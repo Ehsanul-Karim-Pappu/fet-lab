@@ -185,6 +185,11 @@ fun FetLabApp(lib: Library, renderer: Renderer, dynamic: Boolean, onDynamic: (Bo
     }
     fun draw() = glView.requestRender()
 
+    // Hands-off rotation, for leaving the model turning on a desk or a projector.
+    LaunchedEffect(spin) {
+        while (spin) { withFrameNanos { }; renderer.az += 0.0032f; draw() }
+    }
+
     var mode by rememberSaveable { mutableStateOf(0) }
     var sceneKey by rememberSaveable { mutableStateOf("fin") }
     var cfetSeq by rememberSaveable { mutableStateOf(false) }
@@ -198,6 +203,7 @@ fun FetLabApp(lib: Library, renderer: Renderer, dynamic: Boolean, onDynamic: (Bo
     var texture by rememberSaveable { mutableStateOf(true) }
     var edges by rememberSaveable { mutableStateOf(true) }
     var lightBg by rememberSaveable { mutableStateOf(false) }
+    var spin by rememberSaveable { mutableStateOf(false) }
     var input by rememberSaveable { mutableStateOf(0) }
     var tab by rememberSaveable { mutableStateOf(0) }
     var selected by remember { mutableStateOf<Part?>(null) }
@@ -508,7 +514,7 @@ fun FetLabApp(lib: Library, renderer: Renderer, dynamic: Boolean, onDynamic: (Bo
                             goToView(scene, v, animate = true)
                         }
                         1 -> SectionTab(scene, cx, cy, cz, explodeF, ghost, showDims, texture,
-                            edges, lightBg, dynamic,
+                            edges, lightBg, dynamic, spin,
                             onClip = { ax, v ->
                                 flight?.cancel()
                                 when (ax) { 0 -> cx = v; 1 -> cy = v; else -> cz = v }
@@ -527,6 +533,7 @@ fun FetLabApp(lib: Library, renderer: Renderer, dynamic: Boolean, onDynamic: (Bo
                             onEdges = { edges = it; renderer.edges = it; draw() },
                             onLight = { lightBg = it; renderer.lightBg = it; draw() },
                             onDynamic = onDynamic,
+                            onSpin = { spin = it },
                             onReset = {
                                 for (p in scene.parts) p.visible = true
                                 layerTick++
@@ -535,7 +542,8 @@ fun FetLabApp(lib: Library, renderer: Renderer, dynamic: Boolean, onDynamic: (Bo
                                 showDims = true
                                 texture = true; renderer.texture = true
                                 edges = true; renderer.edges = true
-                                lightBg = scene.style == "schematic"; renderer.lightBg = lightBg
+                                lightBg = false; renderer.lightBg = false
+                                spin = false
                                 goToView(scene, scene.views.first(), animate = true)
                             })
                         2 -> LayersTab(lib, scene, layerTick) { p ->
@@ -862,12 +870,12 @@ private fun ViewsTab(scene: Scene, viewKey: String, onPick: (ViewPreset) -> Unit
 @Composable
 private fun SectionTab(scene: Scene, cx: Float, cy: Float, cz: Float, explode: Float,
                        ghost: Boolean, dims: Boolean, tex: Boolean, edges: Boolean,
-                       light: Boolean, dynamic: Boolean,
+                       light: Boolean, dynamic: Boolean, spin: Boolean,
                        onClip: (Int, Float) -> Unit, onExplode: (Float) -> Unit,
                        onGhost: (Boolean) -> Unit, onDims: (Boolean) -> Unit,
                        onTex: (Boolean) -> Unit, onEdges: (Boolean) -> Unit,
                        onLight: (Boolean) -> Unit, onDynamic: (Boolean) -> Unit,
-                       onReset: () -> Unit) {
+                       onSpin: (Boolean) -> Unit, onReset: () -> Unit) {
     Column(Modifier.verticalScroll(rememberScrollState())) {
         SliderRow("Cut along channel", "X", cx, scene.lo[0], scene.hi[0], true) { onClip(0, it) }
         SliderRow("Cut vertically", "Y", cy, scene.lo[1], scene.hi[1], true) { onClip(1, it) }
@@ -879,6 +887,7 @@ private fun SectionTab(scene: Scene, cx: Float, cy: Float, cz: Float, explode: F
         ToggleRow("Surface texture", tex, onTex)
         ToggleRow("Dimension callouts", dims, onDims)
         ToggleRow("Ghost the gate fill", ghost, onGhost)
+        ToggleRow("Slow rotate", spin, onSpin)
         ToggleRow("Light background", light, onLight)
         ToggleRow("Material You colours", dynamic, onDynamic)
         Spacer(Modifier.height(10.dp))
@@ -1055,9 +1064,23 @@ private fun BoxScope.CalloutOverlay(renderer: Renderer, scene: Scene, viewKey: S
         val cx = if (sil != null) (sil[0] + sil[2]) / 2f else w / 2f
         val out = ArrayList<Placed>()
         for (c in shown) {
-            val fs = with(density) { (when (c.size) { "l" -> 16f; "s" -> 10f; else -> 13f }).sp.toPx() }
-            val tw = strip(c.label).length * fs * 0.6f
-            val th = fs * 1.35f
+            // Measure what actually gets drawn. A dimension chip is two lines of mono
+            // inside a padded surface, not one line of body text, and estimating it as
+            // the latter is why they used to pile up on top of each other.
+            val tw: Float; val th: Float
+            if (c.flat) {
+                val fs = with(density) { (when (c.size) { "l" -> 16f; "s" -> 10f; else -> 13f }).sp.toPx() }
+                tw = strip(c.label).length * fs * 0.6f
+                th = fs * 1.35f
+            } else {
+                val f1 = with(density) { 10.5f.sp.toPx() }
+                val f2 = with(density) { 8.5f.sp.toPx() }
+                val padX = with(density) { 7.dp.toPx() } * 2f
+                val padY = with(density) { 3.dp.toPx() } * 2f
+                val head = if (c.value.isEmpty()) strip(c.label) else "${strip(c.label)} = ${c.value}"
+                tw = maxOf(head.length * f1 * 0.6f, c.desc.length * f2 * 0.6f) + padX
+                th = f1 * 1.3f + (if (c.desc.isNotEmpty()) f2 * 1.3f else 0f) + padY
+            }
             var anchor = renderer.project(c.a)
             if (c.lead && c.pids.isNotEmpty()) {
                 // anchor on a face of the named layer that the camera can actually see
@@ -1073,8 +1096,17 @@ private fun BoxScope.CalloutOverlay(renderer: Renderer, scene: Scene, viewKey: S
                 anchor = best        // null means none of it is in view: drop the label
             }
             val a = anchor ?: continue
-            val side = if (c.sd != 0) c.sd else if (a[0] < cx) -1 else 1
-            out.add(Placed(c, a[0], a[1], a[0], a[1], tw, th, side))
+            if (c.lead) {
+                val side = if (c.sd != 0) c.sd else if (a[0] < cx) -1 else 1
+                out.add(Placed(c, a[0], a[1], a[0], a[1], a[0], a[1], tw, th, side))
+            } else {
+                // a and b are the two ends of the dimension; lab is where the chip belongs,
+                // parked off the model so it does not cover what it is measuring.
+                val bp = renderer.project(c.b) ?: continue
+                val lp = renderer.project(c.lab) ?: continue
+                if (lp[0] < -70f || lp[0] > w + 70f || lp[1] < -70f || lp[1] > h + 70f) continue
+                out.add(Placed(c, a[0], a[1], bp[0], bp[1], lp[0], lp[1], tw, th, 0))
+            }
         }
 
         // leader labels form one tidy column per side, swept so none can overlap
@@ -1102,6 +1134,24 @@ private fun BoxScope.CalloutOverlay(renderer: Renderer, scene: Scene, viewKey: S
                 p.ty = p.ty.coerceIn(p.h / 2f + top, h - p.h / 2f - bot)
             }
         }
+
+        // dimension chips keep their own spot, nudged apart until none overlaps
+        val rest = out.filter { !it.c.lead }
+        for (p in rest) {
+            p.tx = p.tx.coerceIn(p.w / 2f + pad, w - p.w / 2f - pad)
+            p.ty = p.ty.coerceIn(p.h / 2f + top, h - p.h / 2f - bot)
+        }
+        repeat(6) {
+            val byY = rest.sortedBy { it.ty }
+            for (i in 1 until byY.size) {
+                val u = byY[i - 1]; val v = byY[i]
+                if (u.c.flat || v.c.flat) continue
+                val need = (u.h + v.h) / 2f + 8f
+                if (kotlin.math.abs(v.tx - u.tx) < (u.w + v.w) / 2f + 4f && v.ty - u.ty < need)
+                    v.ty = u.ty + need
+            }
+        }
+        for (p in rest) p.ty = p.ty.coerceIn(p.h / 2f + top, h - p.h / 2f - bot)
         out
     }
 
@@ -1109,13 +1159,24 @@ private fun BoxScope.CalloutOverlay(renderer: Renderer, scene: Scene, viewKey: S
     val dotCol = if (light) Color(0xFF454F5C) else Color(0xFFAEB9C8)
     Canvas(Modifier.matchParentSize()) {
         for (p in placed) {
-            if (!p.c.lead) continue
-            val dir = if (p.side < 0) 1f else -1f
-            val ix = p.tx + dir * (p.w / 2f + 4f)
-            val kx = ix + dir * 11f
-            drawLine(leadCol, GOffset(ix, p.ty), GOffset(kx, p.ty), strokeWidth = 1.2f)
-            drawLine(leadCol, GOffset(kx, p.ty), GOffset(p.ax, p.ay), strokeWidth = 1.2f)
-            drawCircle(dotCol, radius = 2.8f, center = GOffset(p.ax, p.ay))
+            if (p.c.lead) {
+                // stub out of the label, then a straight run to the dot on the layer
+                val dir = if (p.side < 0) 1f else -1f
+                val ix = p.tx + dir * (p.w / 2f + 4f)
+                val kx = ix + dir * 11f
+                drawLine(leadCol, GOffset(ix, p.ty), GOffset(kx, p.ty), strokeWidth = 1.2f)
+                drawLine(leadCol, GOffset(kx, p.ty), GOffset(p.ax, p.ay), strokeWidth = 1.2f)
+                drawCircle(dotCol, radius = 2.8f, center = GOffset(p.ax, p.ay))
+            } else if (!p.c.flat) {
+                // the measured span itself, then a leader from the chip to its midpoint
+                drawLine(dotCol, GOffset(p.ax, p.ay), GOffset(p.bx, p.by), strokeWidth = 1.4f)
+                val mx = (p.ax + p.bx) / 2f; val my = (p.ay + p.by) / 2f
+                val dx = mx - p.tx; val dy = my - p.ty
+                val len = kotlin.math.hypot(dx, dy).coerceAtLeast(1f)
+                val sx = p.tx + dx / len * minOf(p.w / 2f + 4f, len)
+                val sy = p.ty + dy / len * minOf(p.h / 2f + 4f, len)
+                drawLine(leadCol, GOffset(sx, sy), GOffset(mx, my), strokeWidth = 1.2f)
+            }
         }
     }
     Box(Modifier.matchParentSize()) {
@@ -1155,6 +1216,6 @@ private fun BoxScope.CalloutOverlay(renderer: Renderer, scene: Scene, viewKey: S
 
 /** A callout after layout: where its dot sits, and where its text ended up. */
 private class Placed(
-    val c: Callout, val ax: Float, val ay: Float,
+    val c: Callout, val ax: Float, val ay: Float, val bx: Float, val by: Float,
     var tx: Float, var ty: Float, val w: Float, val h: Float, val side: Int
 )

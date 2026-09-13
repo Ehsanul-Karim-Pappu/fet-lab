@@ -80,6 +80,7 @@ def deck(d, holes, arch_note, wall=None):
                                         ("out", "out", 21, 29, YMD1, 8, 14)):
         A(d, f"vd_{nm}", f"VD · {net.upper()}", "vd", [box(xa, xb, ya, YV1, za, zb)], "Vias", [0, 1.1, 0], net)
     if wall:
+        # The wall splits the drain contact in two, so the n side needs its own via up.
         A(d, "vd_out2", "VD · OUT (n side)", "vd", [box(21, 29, YMD1, YV1, -14, -8)], "Vias", [0, 1.1, 0], "out")
     A(d, "vg", "VG · gate via", "vg", [box(-5, 5, YPO1, YV1, -20, -16)], "Vias", [0, 1.2, 0], "in")
 
@@ -88,6 +89,12 @@ def deck(d, holes, arch_note, wall=None):
         z = ZBAR[net]
         A(d, f"m0_{net}", f"Metal 0 · {label}", "m0", [box(-54, 54, YM0, YM1, z - 4, z + 4)],
           "Metal 0", [0, 1.6, 0], net)
+    if wall:
+        # ...and that second via has to reach the OUT track, which runs on the p side of
+        # the wall. A short transverse Metal 0 jog over the drain ties the two together —
+        # one of the forksheet's real costs, and the reason its OUT net is not a single bar.
+        A(d, "m0_out_jog", "Metal 0 · OUT jog", "m0",
+          [box(21, 29, YM0, YM1, -14, ZBAR["out"] - 4)], "Metal 0", [0, 1.6, 0], "out")
 
     # --- layer names, each anchored on the edge of the layer it names -------
     mid = lambda a, b: (a + b) / 2.0
@@ -178,7 +185,7 @@ def show_fs():
     return finish(d, [
         ["Sheets", "Per device", "2"], ["Separation", "Dielectric wall", "no metal gap"],
         ["Gate", "Po, bridged over the wall", "1"], ["Contacts", "MD columns", "3"],
-        ["Metal 0", "V_DD · IN · OUT · GND", "4 bars"], ["Gate faces", "Per sheet", "3"]])
+        ["Metal 0", "V_DD · IN · OUT · GND", "4 bars + drain jog"], ["Gate faces", "Per sheet", "3"]])
 
 # --------------------------------------------------------------------- FINFET
 def show_fin():
