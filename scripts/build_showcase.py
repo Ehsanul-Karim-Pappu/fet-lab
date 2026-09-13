@@ -36,6 +36,7 @@ def L(d, text, at, size="m", tone="dark", v=None, lead=True, sd=0, pid=None):
 # rail-to-rail width the inverter scenes derive. Only the vertical direction is
 # exaggerated — drawn to scale, the films would be a pixel or two on a phone.
 MW = 16.0                                        # Metal 0 track width
+OVH = 3.0                                        # MD overhang past the end of a channel
 
 ARCH = {                        # gate length · rail-to-rail cell · Metal 0 tracks, -z to +z
     "fin":  dict(LG=18.0, cell=156.0, bars=("gnd", "in", "out", "vdd")),
@@ -71,8 +72,12 @@ def deck(d, P, holes, arch_note, nband, pband, wall=None):
     """
     XW, XMD0, XMD1, XPO = P["xw"], P["xmd0"], P["xmd1"], P["xpo"]
     half, ZBAR, hw = P["half"], P["zbar"], P["mw"] / 2.0
-    ZCELL, ZPLINTH = half, half + 10.0
-    gate_z = half + hw                       # the gate runs the full width of the cell
+    # A rail straddles the cell boundary and is shared with the row above or below, so the
+    # wells, the oxide and the gate all run out under its far edge rather than stopping at
+    # the boundary line.
+    ZCELL = half + hw
+    ZPLINTH = ZCELL + 2.0
+    gate_z = ZCELL
 
     # --- wells and oxide ---------------------------------------------------
     A(d, "pwell", "P Well", "pwell", [box(-XW - 8, XW + 8, YPW0, YPW1, -ZPLINTH, ZPLINTH)],
@@ -88,18 +93,31 @@ def deck(d, P, holes, arch_note, nband, pband, wall=None):
     A(d, "fox", "SiO₂ field oxide", "fox", ox, "Wells & oxide", [0, -.8, 0])
 
     # --- source / drain contacts ------------------------------------------
+    # Two rules, both from how a real cell is drawn. An end that meets a rail runs out to
+    # the far edge of that rail, so the contact sits under the whole of it. An end that
+    # stops beside a channel overhangs it by OVH — landing a contact flush with the end of
+    # the channel it is contacting leaves no margin for overlay, and reads as a short to
+    # whatever is on the other side.
+    # An MD column runs the full height of the cell, rail edge to rail edge, and is only
+    # broken where it has to serve two different nets. The source column is cut, because
+    # one half goes to GND and the other to V_DD; each half then overhangs its own channel
+    # by OVH, since landing a contact flush with the end of the channel it contacts leaves
+    # nothing for overlay. The drain column is one net, so it is not cut at all.
     wz0, wz1 = wall if wall else (0.0, 0.0)
-    A(d, "md_gnd", "MD · nMOS source", "md", [box(-XMD1, -XMD0, YOX1, YMD1, -half, nband[1])],
-      "Contacts", [-1.3, .3, -.6], "gnd")
-    A(d, "md_vdd", "MD · pMOS source", "md", [box(-XMD1, -XMD0, YOX1, YMD1, pband[0], half)],
-      "Contacts", [-1.3, .3, .6], "vdd")
+    inner_n = min(nband[1] + OVH, wz0) if wall else nband[1] + OVH
+    inner_p = max(pband[0] - OVH, wz1) if wall else pband[0] - OVH
+    A(d, "md_gnd", "MD · nMOS source", "md",
+      [box(-XMD1, -XMD0, YOX1, YMD1, -ZCELL, inner_n)], "Contacts", [-1.3, .3, -.6], "gnd")
+    A(d, "md_vdd", "MD · pMOS source", "md",
+      [box(-XMD1, -XMD0, YOX1, YMD1, inner_p, ZCELL)], "Contacts", [-1.3, .3, .6], "vdd")
     if wall:
+        # ...except here, where the wall is taller than the contact and splits it anyway.
         A(d, "md_out", "MD · shared drain", "md",
-          [box(XMD0, XMD1, YOX1, YMD1, nband[0], wz0), box(XMD0, XMD1, YOX1, YMD1, wz1, pband[1])],
+          [box(XMD0, XMD1, YOX1, YMD1, -ZCELL, wz0), box(XMD0, XMD1, YOX1, YMD1, wz1, ZCELL)],
           "Contacts", [1.3, .3, 0], "out")
     else:
         A(d, "md_out", "MD · shared drain", "md",
-          [box(XMD0, XMD1, YOX1, YMD1, nband[0], pband[1])], "Contacts", [1.3, .3, 0], "out")
+          [box(XMD0, XMD1, YOX1, YMD1, -ZCELL, ZCELL)], "Contacts", [1.3, .3, 0], "out")
 
     # --- gate --------------------------------------------------------------
     po = []
@@ -344,8 +362,8 @@ def show_cfet():
     XW, XMD0, XMD1, XPO = P["xw"], P["xmd0"], P["xmd1"], P["xpo"]
     ZB, hw = P["zbar"], P["mw"] / 2.0
     ZCH = 20.0 / 2.0                             # sheet width, from the device scene
-    ZMD, ZC, ZPL = ZCH, P["half"], P["half"] + 10.0
-    GZ = P["half"] + hw                          # the gate runs the full width of the cell
+    ZC = P["half"] + hw                          # wells and oxide run under the far rail edge
+    ZPL, GZ = ZC + 2.0, ZC
     YBM = (-56.0, -46.0); YBI = (-46.0, -34.0); YPW = (-34.0, -4.0); YOX = (-4.0, 6.0)
     WN = [(12.0, 17.0), (22.0, 27.0)]          # bottom tier, nMOS
     WP = [(42.0, 47.0), (52.0, 57.0)]          # top tier, pMOS
@@ -388,13 +406,13 @@ def show_cfet():
 
     # --- contacts -----------------------------------------------------------
     A(d, "md_gnd", "MD · nMOS source (bottom)", "md",
-      [box(-XMD1, -XMD0, MDB[0], MDB[1], -ZMD, ZMD)], "Contacts", [-1.3, -.3, 0], "gnd")
+      [box(-XMD1, -XMD0, MDB[0], MDB[1], -ZC, ZC)], "Contacts", [-1.3, -.3, 0], "gnd")
     A(d, "md_outb", "MD · nMOS drain (bottom)", "md",
-      [box(XMD0, XMD1, MDB[0], MDB[1], -ZMD, ZMD)], "Contacts", [1.3, -.3, 0], "out")
+      [box(XMD0, XMD1, MDB[0], MDB[1], -ZC, ZC)], "Contacts", [1.3, -.3, 0], "out")
     A(d, "md_vdd", "MD · pMOS source (top)", "md",
-      [box(-XMD1, -XMD0, MDT[0], MDT[1], -ZMD, ZB["vdd"])], "Contacts", [-1.3, .5, 0], "vdd")
+      [box(-XMD1, -XMD0, MDT[0], MDT[1], -ZC, ZC)], "Contacts", [-1.3, .5, 0], "vdd")
     A(d, "md_outt", "MD · pMOS drain (top)", "md",
-      [box(XMD0, XMD1, MDT[0], MDT[1], -ZMD, ZMD)], "Contacts", [1.3, .5, 0], "out")
+      [box(XMD0, XMD1, MDT[0], MDT[1], -ZC, ZC)], "Contacts", [1.3, .5, 0], "out")
     A(d, "riser", "Output riser · past the isolation", "vd",
       [box(RIS[0], RIS[1], YMDI[0], YMDI[1], RIS[2], RIS[3])], "Contacts", [1.4, .1, .8], "out")
 
@@ -426,11 +444,11 @@ def show_cfet():
     L(d, "SiO₂", [XW, mid(*YOX), ZC * .6], "m", "dark", LAYER_VIEWS, sd=1, pid="fox")
     L(d, "Nanowire", [XW, 24.5, ZCH - 3], "s", "dark", LAYER_VIEWS, pid=["n_ws2", "n_wsr2", "p_ws2", "p_wsr2"])
     L(d, "Tier isolation", [XW, mid(*YMDI), ZC * .6], "m", "dark", LAYER_VIEWS, sd=1, pid="mdi")
-    L(d, "MD", [XMD1, mid(*MDT), ZCH], "m", "dark", LAYER_VIEWS, sd=1, pid=["md_outt", "md_vdd"])
+    L(d, "MD", [XMD1, mid(*MDT), ZCH + OVH], "m", "dark", LAYER_VIEWS, sd=1, pid=["md_outt", "md_vdd"])
     L(d, "VD", [vx, mid(*YVD), ZB["out"]], "s", "dark", LAYER_VIEWS, sd=1, pid="vd_out")
     # left-hand column
     L(d, "GND", [-XW - 8, mid(*YBM), -ZC * .6], "m", "dark", LAYER_VIEWS, sd=-1, pid="bm")
-    L(d, "MD", [-XMD1, mid(*MDB), -ZCH], "m", "dark", LAYER_VIEWS, sd=-1, pid="md_gnd")
+    L(d, "MD", [-XMD1, mid(*MDB), -ZCH - OVH], "m", "dark", LAYER_VIEWS, sd=-1, pid="md_gnd")
     L(d, "Po", [-XPO, 52, -ZC * .7], "m", "dark", LAYER_VIEWS, pid="po")
     L(d, "VG", [-5, mid(*YVG), ZB["in"]], "s", "dark", LAYER_VIEWS, pid="vg")
     for net, label in (("in", "IN"), ("out", "OUT"), ("vdd", "V_DD")):
