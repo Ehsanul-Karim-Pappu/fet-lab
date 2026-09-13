@@ -988,7 +988,7 @@ private fun SpecsTab(scene: Scene) {
 private fun strip(s: String) = s.replace(Regex("<[^>]*>"), "")
 
 @Composable
-private fun CalloutOverlay(renderer: Renderer, scene: Scene, viewKey: String, light: Boolean) {
+private fun BoxScope.CalloutOverlay(renderer: Renderer, scene: Scene, viewKey: String, light: Boolean) {
     var frame by remember { mutableIntStateOf(0) }
     LaunchedEffect(Unit) { while (true) { withFrameNanos { }; frame++ } }
     val placed = remember(frame, viewKey, scene) {
