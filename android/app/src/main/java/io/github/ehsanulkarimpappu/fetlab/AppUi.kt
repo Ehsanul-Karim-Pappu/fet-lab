@@ -185,11 +185,6 @@ fun FetLabApp(lib: Library, renderer: Renderer, dynamic: Boolean, onDynamic: (Bo
     }
     fun draw() = glView.requestRender()
 
-    // Hands-off rotation, for leaving the model turning on a desk or a projector.
-    LaunchedEffect(spin) {
-        while (spin) { withFrameNanos { }; renderer.az += 0.0032f; draw() }
-    }
-
     var mode by rememberSaveable { mutableStateOf(0) }
     var sceneKey by rememberSaveable { mutableStateOf("fin") }
     var cfetSeq by rememberSaveable { mutableStateOf(false) }
@@ -204,6 +199,11 @@ fun FetLabApp(lib: Library, renderer: Renderer, dynamic: Boolean, onDynamic: (Bo
     var edges by rememberSaveable { mutableStateOf(true) }
     var lightBg by rememberSaveable { mutableStateOf(false) }
     var spin by rememberSaveable { mutableStateOf(false) }
+
+    // Hands-off rotation, for leaving the model turning on a desk or a projector.
+    LaunchedEffect(spin) {
+        while (spin) { withFrameNanos { }; renderer.az += 0.0032f; draw() }
+    }
     var input by rememberSaveable { mutableStateOf(0) }
     var tab by rememberSaveable { mutableStateOf(0) }
     var selected by remember { mutableStateOf<Part?>(null) }
