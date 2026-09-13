@@ -1,0 +1,734 @@
+<title>FinFET to CFET</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap">
+<style>
+:root{
+  --ground:#E7EAEF;--surface:#FFFFFF;--surface-2:#F1F3F7;--line:#CDD3DC;--line-soft:#DFE4EB;
+  --ink:#141821;--ink-2:#4B5462;--ink-3:#78818F;
+  --accent:#0E7C8C;--accent-soft:#D6EDF1;--accent-ink:#08525E;
+  --stage-1:#0D1015;--stage-ink:#C7CEDA;--stage-ink-2:#7D8798;--stage-line:#2C3441;
+  --shadow:0 1px 2px rgba(20,24,33,.06),0 8px 24px -12px rgba(20,24,33,.18);--r:10px;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --ground:#0F1217;--surface:#171B22;--surface-2:#1E232C;--line:#2C333E;--line-soft:#242A34;
+  --ink:#E7EBF1;--ink-2:#A3ACBA;--ink-3:#767F8D;
+  --accent:#4FC7D8;--accent-soft:#16323A;--accent-ink:#8FE0EC;
+  --shadow:0 1px 2px rgba(0,0,0,.4),0 10px 28px -14px rgba(0,0,0,.7);}}
+:root[data-theme="dark"]{
+  --ground:#0F1217;--surface:#171B22;--surface-2:#1E232C;--line:#2C333E;--line-soft:#242A34;
+  --ink:#E7EBF1;--ink-2:#A3ACBA;--ink-3:#767F8D;
+  --accent:#4FC7D8;--accent-soft:#16323A;--accent-ink:#8FE0EC;
+  --shadow:0 1px 2px rgba(0,0,0,.4),0 10px 28px -14px rgba(0,0,0,.7);}
+*{box-sizing:border-box}
+body{margin:0;background:var(--ground);color:var(--ink);
+  font-family:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;font-size:15px;line-height:1.55;
+  -webkit-font-smoothing:antialiased}
+.wrap{max-width:1240px;margin:0 auto;padding-inline:20px;padding-block:28px 56px}
+.mono{font-family:"IBM Plex Mono",ui-monospace,Menlo,monospace}
+h1,h2{text-wrap:balance;margin:0}
+header{display:flex;flex-wrap:wrap;gap:18px;align-items:flex-end;justify-content:space-between;
+  border-bottom:1px solid var(--line);padding-bottom:18px;margin-bottom:22px}
+.eyebrow{font-family:"IBM Plex Mono",monospace;font-size:11px;font-weight:500;letter-spacing:.18em;
+  text-transform:uppercase;color:var(--accent);margin-bottom:8px}
+h1{font-family:"IBM Plex Mono",monospace;font-weight:500;font-size:clamp(23px,3.4vw,34px);letter-spacing:-.01em;line-height:1.1}
+header p{margin:8px 0 0;color:var(--ink-2);max-width:62ch;font-size:14.5px}
+.cite{font-size:12px;color:var(--ink-3);text-align:right;line-height:1.5;flex:0 0 auto}
+.cite b{color:var(--ink-2);font-weight:500}
+.app{display:grid;grid-template-columns:272px minmax(0,1fr);gap:16px;align-items:start}
+@media(max-width:880px){.app{grid-template-columns:1fr}.rail{order:2}.stagewrap{order:1}}
+.stagewrap{position:relative;border-radius:var(--r);overflow:hidden;border:1px solid var(--line);
+  background:var(--stage-1);box-shadow:var(--shadow)}
+#stage{display:block;width:100%;height:clamp(400px,72vh,740px);touch-action:none;cursor:grab}
+#stage.drag{cursor:grabbing}
+#overlay{position:absolute;inset:0;pointer-events:none}
+#leaders{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+.cal{position:absolute;transform:translate(-50%,-50%);pointer-events:none;white-space:nowrap;
+  font-family:"IBM Plex Mono",monospace;font-size:10px;line-height:1.3;color:var(--stage-ink);
+  background:rgba(13,16,21,.74);border:1px solid var(--stage-line);border-radius:5px;padding:2px 6px;text-align:center}
+.cal b{display:block;font-weight:600;color:#fff;font-size:11px}
+.cal i{font-style:normal;color:var(--stage-ink-2);font-size:9px}
+.hud{position:absolute;pointer-events:none;font-family:"IBM Plex Mono",monospace;font-size:10.5px;
+  letter-spacing:.06em;color:var(--stage-ink-2);text-transform:uppercase}
+.hud.tl{top:11px;left:13px}.hud.br{top:11px;right:13px;text-transform:none;text-align:right}
+/* schematic scenes render on a light ground, so the stage chrome flips */
+.stagewrap.light .hud{color:#5E6875}
+.stagewrap.light #inspector{background:rgba(255,255,255,.9);border-color:#B7BEC8}
+.stagewrap.light #inspector .nm{color:#121820}
+.stagewrap.light #inspector .dt{color:#5E6875}
+.stagewrap.light #logicbar{background:rgba(255,255,255,.93);border-color:#B7BEC8;box-shadow:0 6px 22px -12px rgba(0,0,0,.45)}
+.stagewrap.light .lb-lbl,.stagewrap.light .lb-txt{color:#5E6875}
+.stagewrap.light .lb-seg{border-color:#B7BEC8}
+.stagewrap.light .lb-seg button{color:#5E6875}
+.stagewrap.light .lb-seg button[aria-pressed="true"]{background:#2B3442;color:#fff}
+.stagewrap.light .lb-hi{color:#9A5A05}.stagewrap.light .lb-lo{color:#0B7A8A}
+.stagewrap.light .cal{background:rgba(255,255,255,.88);border-color:#B7BEC8;color:#2A323E}
+.stagewrap.light .cal b{color:#121820}.stagewrap.light .cal i{color:#5E6875}
+.stagewrap.light #leaders polyline,.stagewrap.light #leaders line{stroke:#8B94A1}
+/* surface labels: no chrome, they sit on the geometry */
+.stagewrap .cal.flat{background:none;border:0;padding:0;font-weight:600;letter-spacing:.005em;
+  color:#FFFFFF;text-shadow:0 1px 3px rgba(0,0,0,.55),0 0 6px rgba(0,0,0,.3)}
+/* "dark" surface labels follow the stage: light text on the dark ground, dark on the light one */
+.stagewrap .cal.flat.tone-dark{color:#E9EEF5;text-shadow:0 1px 3px rgba(0,0,0,.75),0 0 6px rgba(0,0,0,.45)}
+.stagewrap.light .cal.flat.tone-dark{color:#232B36;text-shadow:0 1px 2px rgba(255,255,255,.9),0 0 6px rgba(255,255,255,.7)}
+.stagewrap .cal.flat.sz-s{font-size:11.5px}
+.stagewrap .cal.flat.sz-m{font-size:15px}
+.stagewrap .cal.flat.sz-l{font-size:19px}
+@media(max-width:760px){.hud.br{display:none}}
+@media(max-width:700px){#logicbar{bottom:10px;top:auto;font-size:11px;padding:5px 11px}
+  #inspector{top:30px;bottom:auto;max-width:calc(100% - 26px);padding:5px 10px}#inspector .dt{display:none}}
+#logicbar{position:absolute;left:50%;bottom:12px;transform:translateX(-50%);display:flex;align-items:center;
+  gap:10px;background:rgba(13,16,21,.9);border:1px solid var(--stage-line);border-radius:999px;
+  padding:6px 14px 6px 12px;pointer-events:auto;font-family:"IBM Plex Mono",monospace;font-size:12px;
+  color:var(--stage-ink);box-shadow:0 6px 22px -10px rgba(0,0,0,.8);max-width:calc(100% - 26px)}
+#logicbar[hidden]{display:none}
+.lb-lbl{letter-spacing:.14em;color:var(--stage-ink-2);font-size:10.5px}
+.lb-seg{display:inline-flex;border:1px solid var(--stage-line);border-radius:999px;overflow:hidden}
+.lb-seg button{font:inherit;font-size:12px;font-weight:600;background:transparent;border:0;color:var(--stage-ink-2);
+  padding:3px 13px;cursor:pointer;line-height:1.4}
+.lb-seg button[aria-pressed="true"]{background:#2B3442;color:#fff}
+.lb-txt{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:11.5px}
+.lb-txt b{font-weight:600}
+.lb-hi{color:#FFC073}.lb-lo{color:#6FD8E6}
+#inspector{position:absolute;left:13px;bottom:11px;max-width:min(250px,40%);background:rgba(13,16,21,.86);
+  border:1px solid var(--stage-line);border-radius:7px;padding:8px 11px;color:var(--stage-ink);pointer-events:none}
+#inspector .nm{font-weight:600;color:#fff;font-size:12.5px;display:flex;align-items:center;gap:7px}
+#inspector .sw{width:10px;height:10px;border-radius:2px;flex:0 0 auto;box-shadow:0 0 0 1px rgba(255,255,255,.25)}
+#inspector .dt{font-family:"IBM Plex Mono",monospace;font-size:11px;color:var(--stage-ink-2);margin-top:2px}
+.rail{display:flex;flex-direction:column;gap:11px}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:12px 14px;box-shadow:var(--shadow)}
+.ptitle{font-family:"IBM Plex Mono",monospace;font-size:10.5px;font-weight:500;letter-spacing:.16em;
+  text-transform:uppercase;color:var(--ink-3);margin-bottom:10px}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{font:inherit;font-size:12.5px;background:var(--surface-2);border:1px solid var(--line);color:var(--ink-2);
+  border-radius:999px;padding:5px 11px;cursor:pointer;transition:background .12s,border-color .12s}
+.chip:hover{border-color:var(--accent);color:var(--accent-ink)}
+.chip[aria-pressed="true"]{background:var(--accent-soft);border-color:var(--accent);color:var(--accent-ink);font-weight:600}
+.modules{margin-top:16px}
+.modhead{display:flex;align-items:center;gap:12px;margin-bottom:11px}
+.modhead .ptitle{margin:0;flex:0 0 auto}
+.modhint{flex:1;min-width:0;font-family:"IBM Plex Mono",monospace;font-size:10.5px;color:var(--ink-3);
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+.modcols{columns:232px 5;column-gap:24px;max-height:clamp(400px,72vh,740px);overflow:auto}
+@media(max-width:520px){.modcols{columns:1;max-height:340px}}
+.views{display:grid;gap:6px}
+.view{display:grid;grid-template-columns:20px 1fr;gap:8px;align-items:center;width:100%;text-align:left;
+  background:var(--surface-2);border:1px solid transparent;border-radius:7px;padding:6px 9px;cursor:pointer;
+  color:var(--ink);font:inherit;font-size:13px;transition:background .12s,border-color .12s}
+.view:hover{background:var(--accent-soft);border-color:var(--accent)}
+.view[aria-pressed="true"]{background:var(--accent-soft);border-color:var(--accent);color:var(--accent-ink)}
+.view .k{font-family:"IBM Plex Mono",monospace;font-size:11px;color:var(--accent);font-weight:600;text-align:center}
+.view .s{display:block;font-size:11px;color:var(--ink-3);line-height:1.3}
+.seg{display:grid;grid-auto-flow:column;grid-auto-columns:1fr;gap:5px;margin-top:8px}
+.seg button{padding:5px 4px}
+.seg[hidden]{display:none}
+.seg button{font:inherit;font-size:12px;background:var(--surface-2);border:1px solid var(--line);color:var(--ink-2);
+  border-radius:6px;padding:5px 6px;cursor:pointer}
+.seg button[aria-pressed="true"]{background:var(--accent-soft);border-color:var(--accent);color:var(--accent-ink);font-weight:600}
+.grp{margin:0 0 15px;break-inside:avoid;-webkit-column-break-inside:avoid;page-break-inside:avoid}
+.ghd{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:0 0 5px}
+.ghd span{font-size:11px;font-weight:600;color:var(--ink-2)}
+.ghd button{background:none;border:0;font:inherit;font-size:10.5px;color:var(--accent);cursor:pointer;
+  font-family:"IBM Plex Mono",monospace;padding:1px 3px;border-radius:4px}
+.ghd button:hover{background:var(--accent-soft)}
+.lay{display:flex;align-items:center;gap:8px;padding:3px 4px;border-radius:5px;cursor:pointer;font-size:12.5px}
+.lay:hover{background:var(--surface-2)}
+.lay input{margin:0;accent-color:var(--accent);width:13px;height:13px;flex:0 0 auto}
+.lay .sw{width:12px;height:12px;border-radius:3px;flex:0 0 auto;box-shadow:0 0 0 1px rgba(0,0,0,.18) inset}
+.lay .tx{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.lay.off .tx{color:var(--ink-3);opacity:.55}
+.ctl{margin-bottom:9px}.ctl:last-child{margin-bottom:2px}
+.ctl label{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:12.5px;margin-bottom:4px}
+.ctl .val{font-family:"IBM Plex Mono",monospace;font-size:11px;color:var(--ink-3);font-variant-numeric:tabular-nums}
+input[type=range]{width:100%;accent-color:var(--accent);margin:0;height:18px}
+.chk{display:flex;align-items:center;gap:8px;font-size:12.5px;padding:3px 0;cursor:pointer}
+.chk input{accent-color:var(--accent);width:13px;height:13px;margin:0}
+.btn{font:inherit;font-size:12.5px;background:var(--surface-2);border:1px solid var(--line);color:var(--ink);
+  border-radius:7px;padding:6px 10px;cursor:pointer;width:100%}
+.btn:hover{border-color:var(--accent);color:var(--accent-ink)}
+.modhead .btn{width:auto;flex:0 0 auto;padding:5px 12px;font-size:12px}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.sheets{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px;margin-top:26px}
+.panel h2{font-size:14px;font-weight:600;margin-bottom:3px}
+.panel .sub{font-size:12.5px;color:var(--ink-3);margin:0 0 12px}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th,td{text-align:left;padding:6px 8px;border-bottom:1px solid var(--line-soft);vertical-align:top}
+th{font-family:"IBM Plex Mono",monospace;font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-3);font-weight:500}
+tbody tr:last-child td{border-bottom:0}
+td.n{font-family:"IBM Plex Mono",monospace;font-variant-numeric:tabular-nums;white-space:nowrap;text-align:right}
+td.sym{font-family:"IBM Plex Mono",monospace;color:var(--accent-ink);white-space:nowrap}
+:root:not([data-theme="light"]) td.sym{color:var(--accent)}
+@media(prefers-color-scheme:light){:root:not([data-theme="dark"]) td.sym{color:var(--accent-ink)}}
+td.d{color:var(--ink-2);font-size:12.5px}
+.swcell{display:flex;align-items:center;gap:8px}
+.swcell i{width:11px;height:11px;border-radius:3px;flex:0 0 auto;box-shadow:0 0 0 1px rgba(0,0,0,.2) inset}
+.note{margin-top:22px;padding:14px 16px;border:1px solid var(--line);border-left:2px solid var(--accent);
+  background:var(--surface);border-radius:0 var(--r) var(--r) 0;font-size:13.5px;color:var(--ink-2)}
+.note b{color:var(--ink);font-weight:600}
+.tablewrap{overflow-x:auto}
+.colophon{margin-top:26px;padding-top:18px;border-top:1px solid var(--line);
+  display:flex;flex-wrap:wrap;gap:18px 34px;align-items:flex-start;justify-content:space-between;
+  font-size:13px;color:var(--ink-2);line-height:1.55}
+.colophon .who{max-width:34em}
+.colophon .who strong{display:block;color:var(--ink);font-size:14px;font-weight:600;letter-spacing:-.01em}
+.colophon a{color:var(--accent);text-decoration:none;border-bottom:1px solid transparent}
+.colophon a:hover{border-bottom-color:currentColor}
+.colophon ul{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:6px 18px}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+<div class="wrap">
+<header>
+  <div>
+    <div class="eyebrow">Logic device architectures · 4 generations</div>
+    <h1>FinFET to CFET</h1>
+    <p>Four transistor architectures on one scaling roadmap, modelled film by film at a common
+       scale — then wired into a working CMOS inverter cell in each one. Slice along any axis,
+       compare footprints, or drive the inverter input and watch the conducting path light up.</p>
+  </div>
+  <div class="cite">Nanosheet after <b>S. Rathore et al.</b>, SST 2021<br>
+    FinFET, forksheet and CFET after <b>imec</b> published structures<br><span class="mono">1 unit = 1 nm</span></div>
+</header>
+
+<div class="app">
+  <div class="rail">
+    <div class="panel">
+      <div class="ptitle">Scene</div>
+      <div class="seg seg3" id="modeseg">
+        <button type="button" data-m="dev" aria-pressed="true">Device</button>
+        <button type="button" data-m="inv">Inverter</button>
+        <button type="button" data-m="show">Layout</button>
+      </div>
+      <div class="chips" id="devs" style="margin-top:9px"></div>
+      <div class="seg" id="cfetseg" hidden>
+        <button type="button" data-k="cfet_mono">Monolithic</button>
+        <button type="button" data-k="cfet_seq">Sequential</button>
+      </div>
+    </div>
+    <div class="panel"><div class="ptitle">Views</div><div class="views" id="views"></div></div>
+    <div class="panel">
+      <div class="ptitle">Section planes</div>
+      <div class="ctl"><label><span>Cut along channel <span class="mono">(X)</span></span><span class="val" id="vcx">off</span></label>
+        <input type="range" id="cx" min="0" max="100" value="100" aria-label="Cut along channel"></div>
+      <div class="ctl"><label><span>Cut vertically <span class="mono">(Y)</span></span><span class="val" id="vcy">off</span></label>
+        <input type="range" id="cy" min="0" max="100" value="100" aria-label="Cut vertically"></div>
+      <div class="ctl"><label><span>Cut across channel <span class="mono">(Z)</span></span><span class="val" id="vcz">off</span></label>
+        <input type="range" id="cz" min="0" max="100" value="100" aria-label="Cut across channel"></div>
+      <div class="ctl"><label><span>Separate layers</span><span class="val" id="vex">0 nm</span></label>
+        <input type="range" id="ex" min="0" max="100" value="0" aria-label="Separate layers"></div>
+      <label class="chk"><input type="checkbox" id="lightbg"> Light background</label>
+      <label class="chk"><input type="checkbox" id="edges" checked> Edge outlines</label>
+      <label class="chk"><input type="checkbox" id="tex" checked> Surface texture</label>
+      <label class="chk"><input type="checkbox" id="ghost"> Ghost the Mo gate fill</label>
+      <label class="chk"><input type="checkbox" id="dims" checked> Dimension callouts</label>
+      <label class="chk"><input type="checkbox" id="spin"> Slow rotate</label>
+    </div>
+  </div>
+  <div class="stagewrap">
+    <canvas id="stage"></canvas>
+    <div id="overlay">
+      <svg id="leaders"></svg>
+      <div class="hud tl" id="hudview">Isometric</div>
+      <div class="hud br">drag orbit · wheel zoom · shift+drag pan · click identify</div>
+      <div id="logicbar" hidden>
+        <span class="lb-lbl">IN</span>
+        <span class="lb-seg"><button type="button" data-v="0" aria-pressed="true">0</button><button type="button" data-v="1">1</button></span>
+        <span class="lb-txt" id="lbtxt"></span>
+      </div>
+      <div id="inspector"><div class="nm"><span class="sw"></span><span id="inm">—</span></div>
+        <div class="dt" id="idt">Click any layer in the model to inspect it</div></div>
+    </div>
+  </div>
+</div>
+
+<div class="panel modules">
+  <div class="modhead">
+    <div class="ptitle">Process modules</div>
+    <span class="modhint" id="modcount"></span>
+    <button class="btn btnsm" id="reset">Reset this device</button>
+  </div>
+  <div class="modcols" id="layers"></div>
+</div>
+
+<div class="sheets">
+  <div class="panel">
+    <h2 id="dimtitle">Critical dimensions</h2>
+    <p class="sub" id="dimsub"></p>
+    <div class="tablewrap"><table><thead><tr><th>Symbol</th><th>Parameter</th><th style="text-align:right">Value</th></tr></thead>
+      <tbody id="dimtable"></tbody></table></div>
+  </div>
+  <div class="panel">
+    <h2>Film stack</h2>
+    <p class="sub" id="matsub">Materials present in this device.</p>
+    <div class="tablewrap"><table><thead><tr><th>Material</th><th>Role</th></tr></thead>
+      <tbody id="mattable"></tbody></table></div>
+  </div>
+</div>
+<div class="note" id="note"></div>
+
+<footer class="colophon">
+  <div class="who">
+    <strong>Developed by Khandaker Ehsanul Karim</strong>
+    FET Lab &middot; version 1.0.0 &middot; MIT licensed. Geometry is parametric and drawn to a
+    common scale; figures are teaching approximations of published structures, not foundry data.
+  </div>
+  <ul>
+    <li><a href="mailto:ehsan.pappu.99@gmail.com">ehsan.pappu.99@gmail.com</a></li>
+    <li><a href="https://github.com/ehsanul-karim-pappu/fet-lab" rel="noopener">Source on GitHub</a></li>
+    <li><a href="https://github.com/ehsanul-karim-pappu/fet-lab/issues" rel="noopener">Report an issue</a></li>
+    <li><a href="https://github.com/ehsanul-karim-pappu" rel="noopener">@ehsanul-karim-pappu</a></li>
+  </ul>
+</footer>
+</div>
+
+<script>
+const DATA = /*__DATA__*/null;
+(function(){
+"use strict";
+const MAT=DATA.materials, DEVS=DATA.devices;
+const byKey={}; DEVS.forEach(d=>byKey[d.key]=d);
+const cv=document.getElementById("stage");
+const gl=cv.getContext("webgl",{antialias:true,alpha:false,preserveDrawingBuffer:true});
+const RM=matchMedia("(prefers-reduced-motion:reduce)").matches;
+if(!gl){document.querySelector(".stagewrap").innerHTML='<p style="color:#C7CEDA;font:14px/1.6 system-ui;padding:40px 28px;margin:0">'+
+ 'This browser has WebGL disabled, so the 3D models cannot draw. The tables below still describe each device, '+
+ 'and the downloadable GLB / STL / OBJ files open in any 3D viewer.</p>'; return;}
+
+/* ---- mat4 ---- */
+const sub=(a,b)=>[a[0]-b[0],a[1]-b[1],a[2]-b[2]],dot=(a,b)=>a[0]*b[0]+a[1]*b[1]+a[2]*b[2];
+const cross=(a,b)=>[a[1]*b[2]-a[2]*b[1],a[2]*b[0]-a[0]*b[2],a[0]*b[1]-a[1]*b[0]];
+const nrm=a=>{const l=Math.hypot(a[0],a[1],a[2])||1;return[a[0]/l,a[1]/l,a[2]/l];};
+const M4={mul:(a,b)=>{const o=new Float32Array(16);for(let i=0;i<4;i++)for(let j=0;j<4;j++){let s=0;
+   for(let k=0;k<4;k++)s+=a[k*4+j]*b[i*4+k];o[i*4+j]=s;}return o;},
+ persp:(f,ar,n,fa)=>{const t=1/Math.tan(f/2);return new Float32Array([t/ar,0,0,0,0,t,0,0,0,0,(fa+n)/(n-fa),-1,0,0,2*fa*n/(n-fa),0]);},
+ look:(e,c,u)=>{const z=nrm(sub(e,c)),x=nrm(cross(u,z)),y=cross(z,x);
+   return new Float32Array([x[0],y[0],z[0],0,x[1],y[1],z[1],0,x[2],y[2],z[2],0,-dot(x,e),-dot(y,e),-dot(z,e),1]);}};
+
+/* ---- shaders ---- */
+const VS=`attribute vec3 aPos,aNrm,aCol,aExp;uniform mat4 uVP;uniform float uE;varying vec3 vN,vC,vW;
+void main(){vec3 p=aPos+aExp*uE;vW=p;vN=aNrm;vC=aCol;gl_Position=uVP*vec4(p,1.0);}`;
+const FS=`precision highp float;varying vec3 vN,vC,vW;uniform vec3 uHi,uAdd,uTex;uniform float uA,uTint,uClip,uFlat;
+float h31(vec3 p){return fract(sin(dot(p,vec3(12.9898,78.233,37.719)))*43758.5453);}
+float vn(vec3 p){vec3 i=floor(p),f=fract(p);f=f*f*(3.0-2.0*f);
+ float a=mix(h31(i),h31(i+vec3(1.,0.,0.)),f.x);
+ float b=mix(h31(i+vec3(0.,1.,0.)),h31(i+vec3(1.,1.,0.)),f.x);
+ float c=mix(h31(i+vec3(0.,0.,1.)),h31(i+vec3(1.,0.,1.)),f.x);
+ float e=mix(h31(i+vec3(0.,1.,1.)),h31(i+vec3(1.,1.,1.)),f.x);
+ return mix(mix(a,b,f.y),mix(c,e,f.y),f.z);}
+void main(){ if(uClip>0.5){if(vW.x>uHi.x+0.001||vW.y>uHi.y+0.001||vW.z>uHi.z+0.001)discard;}
+ vec3 n=normalize(vN); if(!gl_FrontFacing)n=-n;
+ vec3 L1=normalize(vec3(0.55,0.78,0.62)),L2=normalize(vec3(-0.62,0.22,-0.45));
+ float d=max(dot(n,L1),0.0)*0.82+max(dot(n,L2),0.0)*0.26+0.34;
+ float df=max(dot(n,L1),0.0)*0.24+max(dot(n,L2),0.0)*0.10+0.74;
+ d=mix(d,df,uFlat);
+ float rim=pow(1.0-abs(n.z),2.0)*0.05*(1.0-uFlat);
+ float g=1.0;
+ if(uTex.x>0.0){
+   float nz=vn(vW*uTex.y);
+   g=1.0+(nz-0.5)*uTex.x;
+   if(uTex.z>0.5) g*=1.0+0.055*sin(vW.x*0.55+vW.z*0.18+nz*2.2);
+ }
+ gl_FragColor=vec4(pow(clamp(vC*(d+rim)*uTint*g+uAdd,0.0,1.5),vec3(0.95)),uA);}`;
+function sh(t,s){const o=gl.createShader(t);gl.shaderSource(o,s);gl.compileShader(o);
+ if(!gl.getShaderParameter(o,gl.COMPILE_STATUS))console.error(gl.getShaderInfoLog(o));return o;}
+const PROG=gl.createProgram();
+gl.attachShader(PROG,sh(gl.VERTEX_SHADER,VS));gl.attachShader(PROG,sh(gl.FRAGMENT_SHADER,FS));
+gl.linkProgram(PROG);gl.useProgram(PROG);
+const A={pos:gl.getAttribLocation(PROG,"aPos"),nrm:gl.getAttribLocation(PROG,"aNrm"),
+         col:gl.getAttribLocation(PROG,"aCol"),exp:gl.getAttribLocation(PROG,"aExp")};
+const U={vp:gl.getUniformLocation(PROG,"uVP"),e:gl.getUniformLocation(PROG,"uE"),
+  hi:gl.getUniformLocation(PROG,"uHi"),a:gl.getUniformLocation(PROG,"uA"),
+  tint:gl.getUniformLocation(PROG,"uTint"),clip:gl.getUniformLocation(PROG,"uClip"),
+  add:gl.getUniformLocation(PROG,"uAdd"),flat:gl.getUniformLocation(PROG,"uFlat"),tex:gl.getUniformLocation(PROG,"uTex")};
+
+/* ---- geometry: every device in one buffer ---- */
+const hex=h=>[parseInt(h.slice(1,3),16)/255,parseInt(h.slice(3,5),16)/255,parseInt(h.slice(5,7),16)/255];
+const FACES=[[[0,0,1],[[-1,-1,1],[1,-1,1],[1,1,1],[-1,1,1]]],[[0,0,-1],[[1,-1,-1],[-1,-1,-1],[-1,1,-1],[1,1,-1]]],
+ [[1,0,0],[[1,-1,1],[1,-1,-1],[1,1,-1],[1,1,1]]],[[-1,0,0],[[-1,-1,-1],[-1,-1,1],[-1,1,1],[-1,1,-1]]],
+ [[0,1,0],[[-1,1,1],[1,1,1],[1,1,-1],[-1,1,-1]]],[[0,-1,0],[[-1,-1,-1],[1,-1,-1],[1,-1,1],[-1,-1,1]]]];
+const pos=[],nrmA=[],colA=[],expA=[],idx=[];let vc=0;
+const lpos=[],lexp=[];let lvc=0;
+const EDG=[[0,1],[2,3],[4,5],[6,7],[0,2],[1,3],[4,6],[5,7],[0,4],[1,5],[2,6],[3,7]];
+DEVS.forEach(dev=>{
+  const B=dev.bounds, CEN=[(B.x[0]+B.x[1])/2,(B.y[0]+B.y[1])/2,(B.z[0]+B.z[1])/2];
+  dev.parts.forEach(p=>{
+    const c=hex(MAT[p.material].color);p.start=idx.length;p.lstart=lvc;p.aabb=[];p.dev=dev.key;p.on=true;
+    p.boxes.forEach(b=>{
+      const[cx,cy,cz,dx,dy,dz]=b,h=[dx/2,dy/2,dz/2];const e=p.explode;let ev;
+      if(Array.isArray(e)&&e[0]==="radial"){const zc=e[3]||0;const d=nrm([0,cy-e[1],cz-zc]);ev=[d[0]*e[2],d[1]*e[2],d[2]*e[2]];}
+      else if(Array.isArray(e))ev=e;else ev=nrm([cx-CEN[0],cy-CEN[1],cz-CEN[2]]).map(v=>v*1.3);
+      p.aabb.push({lo:[cx-h[0],cy-h[1],cz-h[2]],hi:[cx+h[0],cy+h[1],cz+h[2]],ev:ev});
+      const cn=[];
+      for(let k=0;k<8;k++)cn.push([cx+(k&1?h[0]:-h[0]),cy+(k&2?h[1]:-h[1]),cz+(k&4?h[2]:-h[2])]);
+      EDG.forEach(([a2,b2])=>{[cn[a2],cn[b2]].forEach(v=>{
+        lpos.push(v[0],v[1],v[2]);lexp.push(ev[0],ev[1],ev[2]);lvc++;});});
+      FACES.forEach(([n,q])=>{const base=vc;
+        q.forEach(s=>{pos.push(cx+s[0]*h[0],cy+s[1]*h[1],cz+s[2]*h[2]);
+          nrmA.push(n[0],n[1],n[2]);colA.push(c[0],c[1],c[2]);expA.push(ev[0],ev[1],ev[2]);vc++;});
+        idx.push(base,base+1,base+2,base,base+2,base+3);});
+    });
+    p.count=idx.length-p.start;p.lcount=lvc-p.lstart;
+  });
+});
+function mkbuf(d,loc,n){const b=gl.createBuffer();gl.bindBuffer(gl.ARRAY_BUFFER,b);
+  gl.bufferData(gl.ARRAY_BUFFER,new Float32Array(d),gl.STATIC_DRAW);
+  gl.enableVertexAttribArray(loc);gl.vertexAttribPointer(loc,n,gl.FLOAT,false,0,0);return b;}
+const SB={p:mkbuf(pos,A.pos,3),n:mkbuf(nrmA,A.nrm,3),c:mkbuf(colA,A.col,3),e:mkbuf(expA,A.exp,3)};
+const LB={p:mkbuf(lpos,A.pos,3),e:mkbuf(lexp,A.exp,3)};
+const IB=gl.createBuffer();gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER,IB);
+gl.bufferData(gl.ELEMENT_ARRAY_BUFFER,new Uint16Array(idx),gl.STATIC_DRAW);
+const CB={p:gl.createBuffer(),n:gl.createBuffer(),c:gl.createBuffer(),e:gl.createBuffer()};
+let capN=0;
+const bindSet=o=>{const f=(b,l,n)=>{gl.bindBuffer(gl.ARRAY_BUFFER,b);gl.enableVertexAttribArray(l);
+  gl.vertexAttribPointer(l,n,gl.FLOAT,false,0,0);};f(o.p,A.pos,3);f(o.n,A.nrm,3);f(o.c,A.col,3);f(o.e,A.exp,3);};
+
+/* ---- surface texture (procedural: no image assets, works everywhere) ---- */
+const TEXSET=[
+  [["mo","tin","nickel","tungsten","nisi","md","po","vd","vg","m0"],[0.10,0.28,1]],
+  [["silicon","sige","nanowire"],                                   [0.09,0.40,0]],
+  [["sio2","highk","si3n4","wall","mdi","bond","fox"],              [0.07,0.18,0]],
+  [["pwell","nwell"],                                               [0.055,0.10,0]]];
+const TEXMAP={};
+TEXSET.forEach(([keys,v])=>keys.forEach(k=>{TEXMAP[k]=v;}));
+const NOTEX=[0,1,0];
+const texOf=mat=>S.tex?(TEXMAP[mat]||[0.06,0.3,0]):NOTEX;
+
+/* ---- logic ---- */
+const HIC=[0.32,0.19,0.03], LOC=[0.02,0.18,0.23], NIL=[0,0,0];
+const HIC2=[0.16,0.10,0.02], LOC2=[0.01,0.09,0.12];   // flat scenes take half the glow
+function style(p){
+  if(!DEV.logic) return [1,NIL];
+  const F=DEV.style==="schematic", H=F?HIC2:HIC, L=F?LOC2:LOC, dim=F?0.62:0.38;
+  switch(p.net){
+    case "vdd": return [1,H];
+    case "gnd": return [1,L];
+    case "in":  return [1,S.inp?H:L];
+    case "out": return [1,S.inp?L:H];
+    // on the flat pastel palette a colour wash reads as "darker", so channels use brightness only
+    case "chan_p": return F?(S.inp?[0.50,NIL]:[1.22,NIL]):(S.inp?[dim,NIL]:[1,H]);
+    case "chan_n": return F?(S.inp?[1.22,NIL]:[0.50,NIL]):(S.inp?[1,L]:[dim,NIL]);
+    default: return [1,NIL];
+  }}
+/* ---- state ---- */
+const S={key:"fin",inp:0,tex:true,edges:true,lightBg:false,az:-.76,el:.36,r:300,tgt:[0,40,0],ex:0,ghost:false,dims:true,spin:false,
+         clip:[0,0,0],view:"iso",lset:"iso"};
+let DEV=byKey.fin, HOT=null;
+const OFFB=(p,i)=>{const a=p.aabb[i],e=S.ex;
+  return{lo:[a.lo[0]+a.ev[0]*e,a.lo[1]+a.ev[1]*e,a.lo[2]+a.ev[2]*e],
+         hi:[a.hi[0]+a.ev[0]*e,a.hi[1]+a.ev[1]*e,a.hi[2]+a.ev[2]*e]};};
+function rebuildCaps(){
+  const pp=[],nn=[],cc=[],B=DEV.bounds,HI=[B.x[1],B.y[1],B.z[1]];
+  const on=[S.clip[0]<HI[0]-.01,S.clip[1]<HI[1]-.01,S.clip[2]<HI[2]-.01];
+  if(on[0]||on[1]||on[2]) DEV.parts.forEach(p=>{ if(!p.on)return;
+    const st=style(p),c0=hex(MAT[p.material].color),
+      c=[Math.min(1.4,c0[0]*st[0]+st[1][0]),Math.min(1.4,c0[1]*st[0]+st[1][1]),Math.min(1.4,c0[2]*st[0]+st[1][2])];
+    p.aabb.forEach((_,i)=>{const a=OFFB(p,i);
+      const lo=a.lo, hi=[Math.min(a.hi[0],S.clip[0]),Math.min(a.hi[1],S.clip[1]),Math.min(a.hi[2],S.clip[2])];
+      for(let ax=0;ax<3;ax++){ if(!on[ax])continue; const v=S.clip[ax];
+        if(v<=a.lo[ax]||v>=a.hi[ax])continue;
+        const u=(ax+1)%3,w=(ax+2)%3;
+        if(hi[u]<=lo[u]||hi[w]<=lo[w])continue;
+        const n=[0,0,0];n[ax]=1;
+        const mk=(su,sw)=>{const q=[0,0,0];q[ax]=v-0.002;q[u]=su?hi[u]:lo[u];q[w]=sw?hi[w]:lo[w];return q;};
+        const qd=(ax===1)?[mk(0,0),mk(0,1),mk(1,1),mk(1,0)]:[mk(0,0),mk(1,0),mk(1,1),mk(0,1)];
+        [0,1,2,0,2,3].forEach(k=>{pp.push(qd[k][0],qd[k][1],qd[k][2]);nn.push(n[0],n[1],n[2]);cc.push(c[0],c[1],c[2]);});
+      }});});
+  gl.bindBuffer(gl.ARRAY_BUFFER,CB.p);gl.bufferData(gl.ARRAY_BUFFER,new Float32Array(pp),gl.DYNAMIC_DRAW);
+  gl.bindBuffer(gl.ARRAY_BUFFER,CB.n);gl.bufferData(gl.ARRAY_BUFFER,new Float32Array(nn),gl.DYNAMIC_DRAW);
+  gl.bindBuffer(gl.ARRAY_BUFFER,CB.c);gl.bufferData(gl.ARRAY_BUFFER,new Float32Array(cc),gl.DYNAMIC_DRAW);
+  gl.bindBuffer(gl.ARRAY_BUFFER,CB.e);gl.bufferData(gl.ARRAY_BUFFER,new Float32Array(pp.length),gl.DYNAMIC_DRAW);
+  capN=pp.length/3;}
+
+/* ---- render ---- */
+let VP=new Float32Array(16),W=1,H=1;
+const eye=()=>{const ce=Math.cos(S.el);
+  return[S.tgt[0]+S.r*ce*Math.sin(S.az),S.tgt[1]+S.r*Math.sin(S.el),S.tgt[2]+S.r*ce*Math.cos(S.az)];};
+function draw(){
+  const dpr=Math.min(devicePixelRatio||1,2),w=cv.clientWidth,h=cv.clientHeight;
+  if(cv.width!==Math.round(w*dpr)||cv.height!==Math.round(h*dpr)){cv.width=Math.round(w*dpr);cv.height=Math.round(h*dpr);}
+  W=w;H=h;gl.viewport(0,0,cv.width,cv.height);
+  VP=M4.mul(M4.persp(0.62,W/H,8,6000),M4.look(eye(),S.tgt,[0,1,0]));
+  const SCH=DEV.style==="schematic";
+  if(S.lightBg)gl.clearColor(0.855,0.859,0.866,1);else gl.clearColor(0.051,0.063,0.082,1);
+  gl.uniform1f(U.flat,SCH?1:0);
+  gl.enable(gl.DEPTH_TEST);gl.disable(gl.CULL_FACE);
+  gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT);gl.useProgram(PROG);
+  gl.uniformMatrix4fv(U.vp,false,VP);gl.uniform1f(U.e,S.ex);gl.uniform1f(U.flat,DEV.style==="schematic"?1:0);
+  gl.uniform3f(U.hi,S.clip[0],S.clip[1],S.clip[2]);gl.uniform1f(U.clip,1);
+  bindSet(SB);gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER,IB);
+  gl.enable(gl.BLEND);gl.blendFunc(gl.SRC_ALPHA,gl.ONE_MINUS_SRC_ALPHA);
+  if(S.edges){gl.enable(gl.POLYGON_OFFSET_FILL);gl.polygonOffset(1.2,1.2);}
+  const solid=[],ghost=[];
+  DEV.parts.forEach(p=>{if(!p.on)return;(S.ghost&&p.material==="mo"?ghost:solid).push(p);});
+  solid.forEach(p=>{const st=style(p);const tx=texOf(p.material);
+    gl.uniform3f(U.tex,tx[0],tx[1],tx[2]);gl.uniform1f(U.a,1);
+    gl.uniform1f(U.tint,p===HOT?st[0]*1.28:st[0]);
+    gl.uniform3f(U.add,st[1][0],st[1][1],st[1][2]);
+    gl.drawElements(gl.TRIANGLES,p.count,gl.UNSIGNED_SHORT,p.start*2);});
+  gl.uniform3f(U.add,0,0,0);
+  if(capN){gl.uniform1f(U.clip,0);gl.uniform1f(U.a,1);gl.uniform1f(U.tint,1.02);
+    gl.uniform3f(U.tex,S.tex?0.05:0,0.34,0);
+    bindSet(CB);gl.drawArrays(gl.TRIANGLES,0,capN);
+    bindSet(SB);gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER,IB);gl.uniform1f(U.clip,1);}
+  if(ghost.length){gl.depthMask(false);
+    gl.uniform3f(U.tex,0,1,0);
+    ghost.forEach(p=>{gl.uniform1f(U.a,0.16);gl.uniform1f(U.tint,1.3);gl.uniform3f(U.add,0,0,0);
+      gl.drawElements(gl.TRIANGLES,p.count,gl.UNSIGNED_SHORT,p.start*2);});
+    gl.depthMask(true);}
+  if(S.edges){
+    gl.disable(gl.POLYGON_OFFSET_FILL);
+    const EC=S.lightBg?[0.16,0.19,0.24]:[0.09,0.12,0.17];
+    gl.bindBuffer(gl.ARRAY_BUFFER,LB.p);gl.enableVertexAttribArray(A.pos);
+    gl.vertexAttribPointer(A.pos,3,gl.FLOAT,false,0,0);
+    gl.bindBuffer(gl.ARRAY_BUFFER,LB.e);gl.enableVertexAttribArray(A.exp);
+    gl.vertexAttribPointer(A.exp,3,gl.FLOAT,false,0,0);
+    gl.disableVertexAttribArray(A.nrm);gl.vertexAttrib3f(A.nrm,0,0,1);
+    gl.disableVertexAttribArray(A.col);gl.vertexAttrib3f(A.col,0,0,0);
+    gl.uniform1f(U.clip,1);gl.uniform1f(U.a,1);gl.uniform1f(U.tint,0);
+    gl.uniform3f(U.tex,0,1,0);gl.uniform3f(U.add,EC[0],EC[1],EC[2]);
+    solid.forEach(p=>{if(p.lcount)gl.drawArrays(gl.LINES,p.lstart,p.lcount);});
+    gl.enableVertexAttribArray(A.nrm);gl.enableVertexAttribArray(A.col);
+    gl.uniform3f(U.add,0,0,0);
+  }
+  gl.disable(gl.BLEND);labels();}
+let raf=0;
+const render=()=>{if(!raf)raf=requestAnimationFrame(()=>{raf=0;draw();});};
+function loop(){if(!S.spin)return;S.az+=RM?0:0.0032;setView(null);draw();requestAnimationFrame(loop);}
+addEventListener("resize",render);
+
+/* ---- callout labels ---- */
+const ov=document.getElementById("overlay"),svg=document.getElementById("leaders");
+const MAXC=Math.max(...DEVS.map(d=>d.callouts.length));
+const calEls=[],lines=[];
+for(let i=0;i<MAXC;i++){
+  const d=document.createElement("div");d.className="cal";d.style.display="none";ov.appendChild(d);calEls.push(d);
+  const g=document.createElementNS("http://www.w3.org/2000/svg","g");
+  const l=document.createElementNS("http://www.w3.org/2000/svg","polyline");
+  l.setAttribute("fill","none");l.setAttribute("stroke","#6E7A8C");l.setAttribute("stroke-width","1");
+  const t=document.createElementNS("http://www.w3.org/2000/svg","line");
+  t.setAttribute("stroke","#9AA6B6");t.setAttribute("stroke-width","1.4");
+  g.appendChild(l);g.appendChild(t);g.style.display="none";svg.appendChild(g);lines.push({g,l,t});}
+function fillCalouts(){
+  calEls.forEach((el,i)=>{const c=DEV.callouts[i];
+    if(!c){el.style.display="none";lines[i].g.style.display="none";el._c=null;return;}
+    el._c=c;
+    if(c.flat){el.className=`cal flat sz-${c.size||"m"} tone-${c.tone||"dark"}`;el.textContent=c.label;}
+    else{el.className="cal";
+      el.innerHTML=(c.value?`<b>${c.label} = ${c.value}</b>`:`<b>${c.label}</b>`)+`<i>${c.desc}</i>`;}});}
+function proj(p){const x=VP[0]*p[0]+VP[4]*p[1]+VP[8]*p[2]+VP[12],
+  y=VP[1]*p[0]+VP[5]*p[1]+VP[9]*p[2]+VP[13],w=VP[3]*p[0]+VP[7]*p[1]+VP[11]*p[2]+VP[15];
+  return w<=0?null:[(x/w*.5+.5)*W,(1-(y/w*.5+.5))*H];}
+function labels(){
+  const live=[];
+  calEls.forEach((el,i)=>{const c=el._c,ln=lines[i];
+    if(!c){el.style.display="none";ln.g.style.display="none";return;}
+    const a=proj(c.a),b=proj(c.b),l=proj(c.lab);
+    if(!S.dims||(c.v&&c.v.indexOf(S.lset)<0)||!a||!b||!l||l[0]<-70||l[0]>W+70||l[1]<-70||l[1]>H+70){
+      el.style.display="none";ln.g.style.display="none";return;}
+    el.style.display="";
+    live.push({el,ln,a,b,x:l[0],y:l[1],h:el.offsetHeight||26,w:el.offsetWidth||110,flat:!!c.flat});});
+  live.sort((p,q)=>p.y-q.y);
+  const PAD=8;
+  const TOP=32, BOT=DEV.logic?48:PAD;
+  live.forEach(p=>{p.x=Math.max(p.w/2+PAD,Math.min(W-p.w/2-PAD,p.x));
+                   p.y=Math.max(p.h/2+TOP,Math.min(H-p.h/2-BOT,p.y));});
+  for(let k=0;k<3;k++)for(let i=1;i<live.length;i++){const a=live[i-1],b=live[i];
+    if(a.flat||b.flat)continue;               // surface labels stay where the geometry puts them
+    const need=(a.h+b.h)/2+9;
+    if(Math.abs(b.x-a.x)<(a.w+b.w)/2+6&&b.y-a.y<need)b.y=a.y+need;}
+  live.forEach(p=>{p.y=Math.min(p.y,H-p.h/2-BOT);
+    if(p.flat){p.el.style.left=p.x+"px";p.el.style.top=p.y+"px";p.ln.g.style.display="none";return;}
+    p.ln.g.style.display="";
+    p.el.style.left=p.x+"px";p.el.style.top=p.y+"px";
+    const mx=(p.a[0]+p.b[0])/2,my=(p.a[1]+p.b[1])/2,dx=mx-p.x,dy=my-p.y,L=Math.hypot(dx,dy)||1;
+    const sx=p.x+dx/L*Math.min(p.w/2+4,L),sy=p.y+dy/L*Math.min(p.h/2+4,L);
+    p.ln.l.setAttribute("points",`${sx.toFixed(1)},${sy.toFixed(1)} ${mx.toFixed(1)},${my.toFixed(1)}`);
+    p.ln.t.setAttribute("x1",p.a[0].toFixed(1));p.ln.t.setAttribute("y1",p.a[1].toFixed(1));
+    p.ln.t.setAttribute("x2",p.b[0].toFixed(1));p.ln.t.setAttribute("y2",p.b[1].toFixed(1));});}
+
+/* ---- picking ---- */
+function invVP(){const m=VP,v=new Float32Array(16);
+ v[0]=m[5]*m[10]*m[15]-m[5]*m[11]*m[14]-m[9]*m[6]*m[15]+m[9]*m[7]*m[14]+m[13]*m[6]*m[11]-m[13]*m[7]*m[10];
+ v[4]=-m[4]*m[10]*m[15]+m[4]*m[11]*m[14]+m[8]*m[6]*m[15]-m[8]*m[7]*m[14]-m[12]*m[6]*m[11]+m[12]*m[7]*m[10];
+ v[8]=m[4]*m[9]*m[15]-m[4]*m[11]*m[13]-m[8]*m[5]*m[15]+m[8]*m[7]*m[13]+m[12]*m[5]*m[11]-m[12]*m[7]*m[9];
+ v[12]=-m[4]*m[9]*m[14]+m[4]*m[10]*m[13]+m[8]*m[5]*m[14]-m[8]*m[6]*m[13]-m[12]*m[5]*m[10]+m[12]*m[6]*m[9];
+ v[1]=-m[1]*m[10]*m[15]+m[1]*m[11]*m[14]+m[9]*m[2]*m[15]-m[9]*m[3]*m[14]-m[13]*m[2]*m[11]+m[13]*m[3]*m[10];
+ v[5]=m[0]*m[10]*m[15]-m[0]*m[11]*m[14]-m[8]*m[2]*m[15]+m[8]*m[3]*m[14]+m[12]*m[2]*m[11]-m[12]*m[3]*m[10];
+ v[9]=-m[0]*m[9]*m[15]+m[0]*m[11]*m[13]+m[8]*m[1]*m[15]-m[8]*m[3]*m[13]-m[12]*m[1]*m[11]+m[12]*m[3]*m[9];
+ v[13]=m[0]*m[9]*m[14]-m[0]*m[10]*m[13]-m[8]*m[1]*m[14]+m[8]*m[2]*m[13]+m[12]*m[1]*m[10]-m[12]*m[2]*m[9];
+ v[2]=m[1]*m[6]*m[15]-m[1]*m[7]*m[14]-m[5]*m[2]*m[15]+m[5]*m[3]*m[14]+m[13]*m[2]*m[7]-m[13]*m[3]*m[6];
+ v[6]=-m[0]*m[6]*m[15]+m[0]*m[7]*m[14]+m[4]*m[2]*m[15]-m[4]*m[3]*m[14]-m[12]*m[2]*m[7]+m[12]*m[3]*m[6];
+ v[10]=m[0]*m[5]*m[15]-m[0]*m[7]*m[13]-m[4]*m[1]*m[15]+m[4]*m[3]*m[13]+m[12]*m[1]*m[7]-m[12]*m[3]*m[5];
+ v[14]=-m[0]*m[5]*m[14]+m[0]*m[6]*m[13]+m[4]*m[1]*m[14]-m[4]*m[2]*m[13]-m[12]*m[1]*m[6]+m[12]*m[2]*m[5];
+ v[3]=-m[1]*m[6]*m[11]+m[1]*m[7]*m[10]+m[5]*m[2]*m[11]-m[5]*m[3]*m[10]-m[9]*m[2]*m[7]+m[9]*m[3]*m[6];
+ v[7]=m[0]*m[6]*m[11]-m[0]*m[7]*m[10]-m[4]*m[2]*m[11]+m[4]*m[3]*m[10]+m[8]*m[2]*m[7]-m[8]*m[3]*m[6];
+ v[11]=-m[0]*m[5]*m[11]+m[0]*m[7]*m[9]+m[4]*m[1]*m[11]-m[4]*m[3]*m[9]-m[8]*m[1]*m[7]+m[8]*m[3]*m[5];
+ v[15]=m[0]*m[5]*m[10]-m[0]*m[6]*m[9]-m[4]*m[1]*m[10]+m[4]*m[2]*m[9]+m[8]*m[1]*m[6]-m[8]*m[2]*m[5];
+ let d=m[0]*v[0]+m[1]*v[4]+m[2]*v[8]+m[3]*v[12];if(!d)return null;d=1/d;
+ for(let i=0;i<16;i++)v[i]*=d;return v;}
+function pick(px,py){
+  const e=eye(),inv=invVP();if(!inv)return null;
+  const ndc=[(px/W)*2-1,1-(py/H)*2];
+  const un=z=>{const q=[ndc[0],ndc[1],z,1],o=[0,0,0,0];
+    for(let i=0;i<4;i++)o[i]=inv[0+i]*q[0]+inv[4+i]*q[1]+inv[8+i]*q[2]+inv[12+i]*q[3];
+    return[o[0]/o[3],o[1]/o[3],o[2]/o[3]];};
+  const d=nrm(sub(un(1),un(-1)));let best=null,bt=1e9;
+  DEV.parts.forEach(p=>{if(!p.on)return;
+    p.aabb.forEach((_,i)=>{const a=OFFB(p,i);
+      const hi=[Math.min(a.hi[0],S.clip[0]),Math.min(a.hi[1],S.clip[1]),Math.min(a.hi[2],S.clip[2])];
+      if(hi[0]<=a.lo[0]||hi[1]<=a.lo[1]||hi[2]<=a.lo[2])return;
+      let t0=-1e9,t1=1e9;
+      for(let k=0;k<3;k++){ if(Math.abs(d[k])<1e-9){if(e[k]<a.lo[k]||e[k]>hi[k])return;continue;}
+        let ta=(a.lo[k]-e[k])/d[k],tb=(hi[k]-e[k])/d[k];if(ta>tb){const s=ta;ta=tb;tb=s;}
+        t0=Math.max(t0,ta);t1=Math.min(t1,tb);if(t0>t1)return;}
+      if(t0>0&&t0<bt){bt=t0;best=p;}});});
+  return best;}
+
+/* ---- interaction ---- */
+let drag=null;
+cv.addEventListener("pointerdown",e=>{cv.setPointerCapture(e.pointerId);
+  drag={x:e.clientX,y:e.clientY,pan:e.shiftKey||e.button===2,moved:0};cv.classList.add("drag");});
+cv.addEventListener("pointermove",e=>{if(!drag)return;
+  const dx=e.clientX-drag.x,dy=e.clientY-drag.y;drag.x=e.clientX;drag.y=e.clientY;drag.moved+=Math.abs(dx)+Math.abs(dy);
+  if(drag.pan){const s=S.r*0.0016,ey=eye(),f=nrm(sub(S.tgt,ey)),rt=nrm(cross(f,[0,1,0])),up=cross(rt,f);
+    S.tgt=[S.tgt[0]-(rt[0]*dx-up[0]*dy)*s,S.tgt[1]-(rt[1]*dx-up[1]*dy)*s,S.tgt[2]-(rt[2]*dx-up[2]*dy)*s];}
+  else{S.az-=dx*.008;S.el=Math.max(-1.45,Math.min(1.45,S.el+dy*.006));setView(null);}
+  render();});
+addEventListener("pointerup",e=>{if(drag&&drag.moved<5)doPick(e);drag=null;cv.classList.remove("drag");});
+cv.addEventListener("contextmenu",e=>e.preventDefault());
+cv.addEventListener("wheel",e=>{e.preventDefault();
+  S.r=Math.max(40,Math.min(3000,S.r*Math.exp(e.deltaY*0.0011)));render();},{passive:false});
+function doPick(e){const r=cv.getBoundingClientRect(),p=pick(e.clientX-r.left,e.clientY-r.top);HOT=p;
+  const inm=document.getElementById("inm"),idt=document.getElementById("idt"),sw=document.querySelector("#inspector .sw");
+  if(!p){inm.textContent="No layer here";idt.textContent="Click any layer in the model to inspect it";
+    sw.style.background="#4A5364";render();return;}
+  const m=MAT[p.material];sw.style.background=m.color;inm.textContent=p.name;
+  idt.textContent=`${m.label} · ${p.group}`;render();}
+
+/* ---- UI ---- */
+const MODES={
+  dev:[["fin","FinFET"],["ns","Nanosheet"],["fs","Forksheet"],["cfet","CFET"],["cmp","Compare"]],
+  inv:[["inv_fin","FinFET"],["inv_ns","Nanosheet"],["inv_fs","Forksheet"],["inv_cfet","CFET"],["inv_cmp","Compare"]],
+  show:[["show_fin","FinFET"],["show_ns","Nanosheet"],["show_fs","Forksheet"],["show_cfet","CFET"],["show_cmp","Compare"]]};
+let MODE="dev";
+const dwrap=document.getElementById("devs"),seg=document.getElementById("cfetseg"),
+      mseg=document.getElementById("modeseg"),lbar=document.getElementById("logicbar");
+function chips(){
+  dwrap.innerHTML="";
+  MODES[MODE].forEach(([k,n])=>{const b=document.createElement("button");b.className="chip";b.type="button";
+    b.dataset.d=k;b.textContent=n;
+    b.onclick=()=>setDevice(k==="cfet"?(S.key.indexOf("cfet")===0&&S.key.indexOf("inv")<0?S.key:"cfet_mono"):k);
+    dwrap.appendChild(b);});}
+mseg.querySelectorAll("button").forEach(b=>b.onclick=()=>{
+  if(MODE===b.dataset.m)return; MODE=b.dataset.m;
+  mseg.querySelectorAll("button").forEach(x=>x.setAttribute("aria-pressed",String(x.dataset.m===MODE)));
+  chips(); setDevice(MODE==="dev"?"fin":MODE==="inv"?"inv_ns":"show_ns");});
+chips();
+lbar.querySelectorAll("button").forEach(b=>b.onclick=()=>{
+  S.inp=+b.dataset.v; lbar.querySelectorAll("button").forEach(x=>x.setAttribute("aria-pressed",String(+x.dataset.v===S.inp)));
+  logicText(); rebuildCaps(); render();});
+function logicText(){
+  const on=S.inp?"nMOS conducting":"pMOS conducting", out=S.inp?0:1;
+  const cls=S.inp?"lb-lo":"lb-hi";
+  document.getElementById("lbtxt").innerHTML=
+    `${on} &nbsp;·&nbsp; OUT = <b class="${cls}">${out}</b>`;}
+seg.querySelectorAll("button").forEach(b=>b.onclick=()=>setDevice(b.dataset.k));
+
+const vwrap=document.getElementById("views"),lwrap=document.getElementById("layers");
+function setDevice(key){
+  S.key=key;DEV=byKey[key];HOT=null;
+  MODE=key.indexOf("inv_")===0?"inv":key.indexOf("show_")===0?"show":"dev";
+  mseg.querySelectorAll("button").forEach(x=>x.setAttribute("aria-pressed",String(x.dataset.m===MODE)));
+  if(!dwrap.firstChild||!MODES[MODE].some(k=>k[0]===dwrap.firstChild.dataset.d)) chips();
+  const fam=(MODE==="dev"&&key.indexOf("cfet")===0)?"cfet":key;
+  dwrap.querySelectorAll("button").forEach(b=>b.setAttribute("aria-pressed",String(b.dataset.d===fam)));
+  seg.hidden=fam!=="cfet";
+  lbar.hidden=!DEV.logic; if(DEV.logic) logicText();
+  S.lightBg=DEV.style==="schematic";
+  document.getElementById("lightbg").checked=S.lightBg;
+  document.querySelector(".stagewrap").classList.toggle("light",S.lightBg);
+  seg.querySelectorAll("button").forEach(b=>b.setAttribute("aria-pressed",String(b.dataset.k===key)));
+  vwrap.innerHTML="";
+  Object.entries(DEV.views).forEach(([k,v],i)=>{const b=document.createElement("button");
+    b.className="view";b.type="button";b.dataset.k=k;
+    b.innerHTML=`<span class="k">${["◧","▤","▥","★"][i]||"·"}</span><span>${v.n}<span class="s">${v.s}</span></span>`;
+    b.onclick=()=>applyView(k);vwrap.appendChild(b);});
+  lwrap.innerHTML="";
+  DEV.groups.forEach(g=>{
+    const ps=DEV.parts.filter(p=>p.group===g);if(!ps.length)return;
+    const d=document.createElement("div");d.className="grp";
+    d.innerHTML=`<div class="ghd"><span>${g}</span><button type="button">toggle</button></div>`;
+    ps.forEach(p=>{const l=document.createElement("label");l.className="lay";
+      l.innerHTML=`<input type="checkbox" checked><span class="sw" style="background:${MAT[p.material].color}"></span><span class="tx">${p.name}</span>`;
+      const ck=l.querySelector("input");p._ck=l;
+      ck.onchange=e=>{p.on=e.target.checked;l.classList.toggle("off",!p.on);rebuildCaps();render();};
+      d.appendChild(l);});
+    d.querySelector("button").onclick=()=>{const any=ps.some(p=>p.on);
+      ps.forEach(p=>{p.on=!any;const c=p._ck.querySelector("input");c.checked=!any;p._ck.classList.toggle("off",any);});
+      rebuildCaps();render();};
+    lwrap.appendChild(d);});
+  fillCalouts();
+  document.getElementById("dimtitle").textContent=
+    DEV.key==="cmp"?"Active footprint":(DEV.logic?"Cell summary":"Critical dimensions");
+  document.getElementById("dimsub").textContent=DEV.blurb;
+  document.getElementById("dimtable").innerHTML=DEV.dims.map(r=>
+    `<tr><td class="sym">${r[0]}</td><td class="d">${r[1]}</td><td class="n">${r[2]}</td></tr>`).join("");
+  const used=[...new Set(DEV.parts.map(p=>p.material))];
+  document.getElementById("mattable").innerHTML=DATA.order.filter(k=>used.indexOf(k)>=0).map(k=>
+    `<tr><td><span class="swcell"><i style="background:${MAT[k].color}"></i>${MAT[k].label}</span></td>
+      <td class="d">${MAT[k].note}</td></tr>`).join("");
+  document.getElementById("matsub").textContent=`${used.length} materials in the ${DEV.name.toLowerCase()}.`;
+  document.getElementById("note").innerHTML=DEV.note;
+  document.getElementById("modcount").textContent=
+    `${DEV.parts.length} parts · ${DEV.groups.length} modules · ${DEV.name}`;
+  document.getElementById("inm").textContent=DEV.name;
+  document.getElementById("idt").textContent="Click any layer in the model to inspect it";
+  document.querySelector("#inspector .sw").style.background="#4A5364";
+  applyView(Object.keys(DEV.views)[0]);}
+function setView(k){S.view=k;vwrap.querySelectorAll("button").forEach(b=>b.setAttribute("aria-pressed",String(b.dataset.k===k)));
+  document.getElementById("hudview").textContent=k?DEV.views[k].n:"Free orbit";}
+function applyView(k){const v=DEV.views[k],B=DEV.bounds;
+  S.az=v.az;S.el=v.el;S.r=v.r;S.tgt=v.tgt.slice();S.lset=k;
+  const c=v.clip||[null,null,null];
+  S.clip=[c[0]==null?B.x[1]:c[0], c[1]==null?B.y[1]:c[1], c[2]==null?B.z[1]:c[2]];
+  DEV.parts.forEach(p=>{const want=!(v.off&&v.off.indexOf(p.id)>=0);
+    if(p.on!==want){p.on=want;const ck=p._ck&&p._ck.querySelector("input");
+      if(ck){ck.checked=want;p._ck.classList.toggle("off",!want);}}});
+  syncClip();setView(k);rebuildCaps();render();}
+
+const rg={cx:document.getElementById("cx"),cy:document.getElementById("cy"),cz:document.getElementById("cz")};
+const AX={cx:0,cy:1,cz:2},LBL={cx:"vcx",cy:"vcy",cz:"vcz"},KEYS=["x","y","z"];
+Object.keys(rg).forEach(k=>{rg[k].oninput=()=>{const B=DEV.bounds[KEYS[AX[k]]],t=+rg[k].value/100;
+  S.clip[AX[k]]=B[0]+(B[1]-B[0])*t;updLbl(k);setView(null);rebuildCaps();render();};});
+function updLbl(k){const B=DEV.bounds[KEYS[AX[k]]],v=S.clip[AX[k]];
+  document.getElementById(LBL[k]).textContent=(v>=B[1]-0.01)?"off":v.toFixed(1)+" nm";}
+function syncClip(){Object.keys(rg).forEach(k=>{const B=DEV.bounds[KEYS[AX[k]]];
+  rg[k].value=Math.round((S.clip[AX[k]]-B[0])/(B[1]-B[0])*100);updLbl(k);});}
+
+const exr=document.getElementById("ex");
+exr.oninput=()=>{S.ex=+exr.value/100*16;document.getElementById("vex").textContent=S.ex.toFixed(1)+" nm";
+  rebuildCaps();render();};
+document.getElementById("lightbg").onchange=e=>{S.lightBg=e.target.checked;
+  document.querySelector(".stagewrap").classList.toggle("light",S.lightBg);render();};
+document.getElementById("edges").onchange=e=>{S.edges=e.target.checked;render();};
+document.getElementById("tex").onchange=e=>{S.tex=e.target.checked;render();};
+document.getElementById("ghost").onchange=e=>{S.ghost=e.target.checked;render();};
+document.getElementById("dims").onchange=e=>{S.dims=e.target.checked;render();};
+document.getElementById("spin").onchange=e=>{S.spin=e.target.checked;if(S.spin)loop();};
+document.getElementById("reset").onclick=()=>{
+  S.ex=0;exr.value=0;document.getElementById("vex").textContent="0 nm";
+  S.ghost=false;document.getElementById("ghost").checked=false;
+  S.tex=true;document.getElementById("tex").checked=true;
+  S.edges=true;document.getElementById("edges").checked=true;
+  S.dims=true;document.getElementById("dims").checked=true;
+  S.spin=false;document.getElementById("spin").checked=false;
+  DEV.parts.forEach(p=>{p.on=true;const ck=p._ck&&p._ck.querySelector("input");
+    if(ck){ck.checked=true;p._ck.classList.remove("off");}});
+  HOT=null;applyView(Object.keys(DEV.views)[0]);};
+addEventListener("keydown",e=>{if(e.target.tagName==="INPUT")return;
+  if(e.key==="0"||e.key==="1"){if(DEV.logic){const b=lbar.querySelector(`button[data-v="${e.key}"]`);if(b)b.click();}return;}
+  const L=MODES[MODE]; const i="12345".indexOf(e.key);
+  if(i>=0&&i<L.length){const k=L[i][0];setDevice(k==="cfet"?"cfet_mono":k);}});
+
+setDevice("fin");
+})();
+</script>

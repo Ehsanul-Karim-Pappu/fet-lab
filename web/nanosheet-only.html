@@ -1,0 +1,590 @@
+<title>Nanosheet FET Teardown</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap">
+<style>
+:root{
+  --ground:#E7EAEF; --surface:#FFFFFF; --surface-2:#F1F3F7; --line:#CDD3DC; --line-soft:#DFE4EB;
+  --ink:#141821; --ink-2:#4B5462; --ink-3:#78818F;
+  --accent:#0E7C8C; --accent-soft:#D6EDF1; --accent-ink:#08525E;
+  --stage-1:#0D1015; --stage-2:#1B212B; --stage-ink:#C7CEDA; --stage-ink-2:#7D8798; --stage-line:#2C3441;
+  --shadow:0 1px 2px rgba(20,24,33,.06),0 8px 24px -12px rgba(20,24,33,.18);
+  --r:10px;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --ground:#0F1217; --surface:#171B22; --surface-2:#1E232C; --line:#2C333E; --line-soft:#242A34;
+  --ink:#E7EBF1; --ink-2:#A3ACBA; --ink-3:#767F8D;
+  --accent:#4FC7D8; --accent-soft:#16323A; --accent-ink:#8FE0EC;
+  --shadow:0 1px 2px rgba(0,0,0,.4),0 10px 28px -14px rgba(0,0,0,.7);
+}}
+:root[data-theme="dark"]{
+  --ground:#0F1217; --surface:#171B22; --surface-2:#1E232C; --line:#2C333E; --line-soft:#242A34;
+  --ink:#E7EBF1; --ink-2:#A3ACBA; --ink-3:#767F8D;
+  --accent:#4FC7D8; --accent-soft:#16323A; --accent-ink:#8FE0EC;
+  --shadow:0 1px 2px rgba(0,0,0,.4),0 10px 28px -14px rgba(0,0,0,.7);
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--ground);color:var(--ink);
+  font-family:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  font-size:15px;line-height:1.55;-webkit-font-smoothing:antialiased}
+.wrap{max-width:1240px;margin:0 auto;padding-inline:20px;padding-block:28px 56px}
+.mono{font-family:"IBM Plex Mono",ui-monospace,"SF Mono",Menlo,monospace}
+h1,h2,h3{text-wrap:balance;margin:0}
+
+/* ---------- header ---------- */
+header{display:flex;flex-wrap:wrap;gap:18px;align-items:flex-end;justify-content:space-between;
+  border-bottom:1px solid var(--line);padding-bottom:18px;margin-bottom:22px}
+.eyebrow{font-family:"IBM Plex Mono",monospace;font-size:11px;font-weight:500;letter-spacing:.18em;
+  text-transform:uppercase;color:var(--accent);margin-bottom:8px}
+h1{font-family:"IBM Plex Mono",monospace;font-weight:500;font-size:clamp(23px,3.4vw,34px);
+  letter-spacing:-.01em;line-height:1.1}
+header p{margin:8px 0 0;color:var(--ink-2);max-width:60ch;font-size:14.5px}
+.cite{font-size:12px;color:var(--ink-3);text-align:right;line-height:1.5;flex:0 0 auto}
+.cite b{color:var(--ink-2);font-weight:500}
+
+/* ---------- app ---------- */
+.app{display:grid;grid-template-columns:266px minmax(0,1fr);gap:16px;align-items:start}
+@media(max-width:860px){.app{grid-template-columns:1fr}.rail{order:2}.stagewrap{order:1}}
+
+.stagewrap{position:relative;border-radius:var(--r);overflow:hidden;border:1px solid var(--line);
+  background:var(--stage-1);box-shadow:var(--shadow)}
+#stage{display:block;width:100%;height:clamp(360px,58vh,560px);touch-action:none;cursor:grab}
+#stage.drag{cursor:grabbing}
+#overlay{position:absolute;inset:0;pointer-events:none}
+#leaders{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+.cal{position:absolute;transform:translate(-50%,-50%);pointer-events:none;white-space:nowrap;
+  font-family:"IBM Plex Mono",monospace;font-size:10px;line-height:1.3;color:var(--stage-ink);
+  background:rgba(13,16,21,.74);border:1px solid var(--stage-line);border-radius:5px;padding:2px 6px;
+  text-align:center;backdrop-filter:blur(3px)}
+.cal b{display:block;font-weight:600;color:#fff;font-size:11px;letter-spacing:.01em}
+.cal i{font-style:normal;color:var(--stage-ink-2);font-size:9px}
+.hud{position:absolute;pointer-events:none;font-family:"IBM Plex Mono",monospace;font-size:10.5px;
+  letter-spacing:.06em;color:var(--stage-ink-2);text-transform:uppercase}
+.hud.tl{top:11px;left:13px}.hud.br{top:11px;right:13px;text-align:right;text-transform:none}
+#inspector{position:absolute;left:13px;bottom:11px;max-width:min(268px,60%);
+  background:rgba(13,16,21,.86);border:1px solid var(--stage-line);border-radius:7px;padding:8px 11px;
+  color:var(--stage-ink);pointer-events:none;backdrop-filter:blur(4px)}
+#inspector .nm{font-weight:600;color:#fff;font-size:12.5px;display:flex;align-items:center;gap:7px}
+#inspector .sw{width:10px;height:10px;border-radius:2px;flex:0 0 auto;box-shadow:0 0 0 1px rgba(255,255,255,.25)}
+#inspector .dt{font-family:"IBM Plex Mono",monospace;font-size:11px;color:var(--stage-ink-2);margin-top:2px}
+
+/* ---------- rail ---------- */
+.rail{display:flex;flex-direction:column;gap:12px}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:13px 14px;
+  box-shadow:var(--shadow)}
+.ptitle{font-family:"IBM Plex Mono",monospace;font-size:10.5px;font-weight:500;letter-spacing:.16em;
+  text-transform:uppercase;color:var(--ink-3);margin-bottom:10px}
+.views{display:grid;gap:6px}
+.view{display:grid;grid-template-columns:20px 1fr;gap:9px;align-items:center;width:100%;text-align:left;
+  background:var(--surface-2);border:1px solid transparent;border-radius:7px;padding:7px 9px;cursor:pointer;
+  color:var(--ink);font:inherit;font-size:13px;transition:background .12s,border-color .12s}
+.view:hover{background:var(--accent-soft);border-color:var(--accent)}
+.view[aria-pressed="true"]{background:var(--accent-soft);border-color:var(--accent);color:var(--accent-ink)}
+.view .k{font-family:"IBM Plex Mono",monospace;font-size:11px;color:var(--accent);font-weight:600}
+.view .s{display:block;font-size:11px;color:var(--ink-3);line-height:1.3}
+
+.grp{margin-bottom:11px}
+.grp:last-child{margin-bottom:0}
+.ghd{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:0 0 5px}
+.ghd span{font-size:11px;font-weight:600;letter-spacing:.02em;color:var(--ink-2)}
+.ghd button{background:none;border:0;font:inherit;font-size:10.5px;color:var(--accent);cursor:pointer;
+  font-family:"IBM Plex Mono",monospace;padding:1px 3px;border-radius:4px}
+.ghd button:hover{background:var(--accent-soft)}
+.lay{display:flex;align-items:center;gap:8px;padding:3px 4px;border-radius:5px;cursor:pointer;font-size:12.5px}
+.lay:hover{background:var(--surface-2)}
+.lay input{margin:0;accent-color:var(--accent);width:13px;height:13px;flex:0 0 auto}
+.lay .sw{width:12px;height:12px;border-radius:3px;flex:0 0 auto;box-shadow:0 0 0 1px rgba(0,0,0,.18) inset}
+.lay .tx{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.lay .th{font-family:"IBM Plex Mono",monospace;font-size:10.5px;color:var(--ink-3);flex:0 0 auto}
+.lay.off .tx,.lay.off .th{color:var(--ink-3);opacity:.55}
+
+.ctl{margin-bottom:11px}
+.ctl:last-child{margin-bottom:0}
+.ctl label{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:12.5px;margin-bottom:4px}
+.ctl .val{font-family:"IBM Plex Mono",monospace;font-size:11px;color:var(--ink-3);font-variant-numeric:tabular-nums}
+input[type=range]{width:100%;accent-color:var(--accent);margin:0;height:18px}
+.chk{display:flex;align-items:center;gap:8px;font-size:12.5px;padding:3px 0;cursor:pointer}
+.chk input{accent-color:var(--accent);width:13px;height:13px;margin:0}
+.btn{font:inherit;font-size:12.5px;background:var(--surface-2);border:1px solid var(--line);color:var(--ink);
+  border-radius:7px;padding:6px 10px;cursor:pointer;width:100%}
+.btn:hover{border-color:var(--accent);color:var(--accent-ink)}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+/* ---------- spec sections ---------- */
+.sheets{display:grid;grid-template-columns:repeat(auto-fit,minmax(290px,1fr));gap:16px;margin-top:26px}
+.panel h2{font-size:14px;font-weight:600;margin-bottom:3px}
+.panel .sub{font-size:12.5px;color:var(--ink-3);margin:0 0 12px}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th,td{text-align:left;padding:6px 8px;border-bottom:1px solid var(--line-soft);vertical-align:top}
+th{font-family:"IBM Plex Mono",monospace;font-size:10px;letter-spacing:.12em;text-transform:uppercase;
+  color:var(--ink-3);font-weight:500}
+tbody tr:last-child td{border-bottom:0}
+td.n{font-family:"IBM Plex Mono",monospace;font-variant-numeric:tabular-nums;white-space:nowrap;text-align:right}
+td.sym{font-family:"IBM Plex Mono",monospace;color:var(--accent-ink);white-space:nowrap}
+:root:not([data-theme="light"]) td.sym{color:var(--accent)}
+@media(prefers-color-scheme:light){:root:not([data-theme="dark"]) td.sym{color:var(--accent-ink)}}
+td.d{color:var(--ink-2);font-size:12.5px}
+.swcell{display:flex;align-items:center;gap:8px}
+.swcell i{width:11px;height:11px;border-radius:3px;flex:0 0 auto;box-shadow:0 0 0 1px rgba(0,0,0,.2) inset}
+.note{margin-top:26px;padding:14px 16px;border-left:2px solid var(--accent);background:var(--surface);
+  border-radius:0 var(--r) var(--r) 0;font-size:13px;color:var(--ink-2);border-top:1px solid var(--line);
+  border-right:1px solid var(--line);border-bottom:1px solid var(--line)}
+.note b{color:var(--ink);font-weight:600}
+.tablewrap{overflow-x:auto}
+@media(max-width:700px){.hud.br{display:none}}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+<div class="wrap">
+<header>
+  <div>
+    <div class="eyebrow">Gate-all-around · 3 stacked sheets</div>
+    <h1>Nanosheet FET Teardown</h1>
+    <p>Every film in the Rathore schematic, built to scale and pulled apart. Drag to orbit, slice along any
+       axis to recover the published cross-sections, or click a layer to identify it.</p>
+  </div>
+  <div class="cite">Geometry after <b>S. Rathore et al.</b><br>Semicond. Sci. Technol., 2021<br>
+    <span class="mono">1 unit = 1 nm</span></div>
+</header>
+
+<div class="app">
+  <div class="rail">
+    <div class="panel">
+      <div class="ptitle">Views from the paper</div>
+      <div class="views" id="views"></div>
+    </div>
+
+    <div class="panel">
+      <div class="ptitle">Section planes</div>
+      <div class="ctl"><label><span>Cut along channel <span class="mono">(X)</span></span><span class="val" id="vcx">off</span></label>
+        <input type="range" id="cx" min="0" max="100" value="100" aria-label="Cut along channel"></div>
+      <div class="ctl"><label><span>Cut vertically <span class="mono">(Y)</span></span><span class="val" id="vcy">off</span></label>
+        <input type="range" id="cy" min="0" max="100" value="100" aria-label="Cut vertically"></div>
+      <div class="ctl"><label><span>Cut across channel <span class="mono">(Z)</span></span><span class="val" id="vcz">off</span></label>
+        <input type="range" id="cz" min="0" max="100" value="100" aria-label="Cut across channel"></div>
+      <div class="ctl"><label><span>Separate layers</span><span class="val" id="vex">0 nm</span></label>
+        <input type="range" id="ex" min="0" max="100" value="0" aria-label="Separate layers"></div>
+      <label class="chk"><input type="checkbox" id="ghost"> Ghost the Mo gate fill</label>
+      <label class="chk"><input type="checkbox" id="dims" checked> Dimension callouts</label>
+      <label class="chk"><input type="checkbox" id="spin"> Slow rotate</label>
+    </div>
+
+    <div class="panel">
+      <div class="ptitle">Process modules</div>
+      <div id="layers"></div>
+      <button class="btn" id="reset" style="margin-top:10px">Reset everything</button>
+    </div>
+  </div>
+
+  <div class="stagewrap">
+    <canvas id="stage"></canvas>
+    <div id="overlay">
+      <svg id="leaders"></svg>
+      <div class="hud tl" id="hudview">Isometric</div>
+      <div class="hud br">drag orbit · wheel zoom · shift+drag pan · click identify</div>
+      <div id="inspector"><div class="nm"><span class="sw" style="background:#BE5518"></span><span id="inm">TiN work-function metal</span></div>
+        <div class="dt" id="idt">Click any layer in the model to inspect it</div></div>
+    </div>
+  </div>
+</div>
+
+<div class="sheets">
+  <div class="panel">
+    <h2>Critical dimensions</h2>
+    <p class="sub">Representative of a 3 nm-class stacked nanosheet; these are the values the model is built from.</p>
+    <div class="tablewrap"><table><thead><tr><th>Symbol</th><th>Parameter</th><th style="text-align:right">Value</th></tr></thead>
+      <tbody id="dimtable"></tbody></table></div>
+  </div>
+  <div class="panel">
+    <h2>Film stack</h2>
+    <p class="sub">Nine materials, matching the legend on the source slide.</p>
+    <div class="tablewrap"><table><thead><tr><th>Material</th><th>Role</th><th style="text-align:right">t</th></tr></thead>
+      <tbody id="mattable"></tbody></table></div>
+  </div>
+</div>
+
+<div class="note">
+  <b>Reading the gate-all-around wrap.</b> Slice across the channel (Z) and each sheet resolves into four
+  concentric films — Si core, 1 nm SiO₂ interfacial layer, 2 nm HfO₂, then TiN — with Mo filling whatever is
+  left between sheets. That 4 nm of Mo between adjacent TiN shells is the real scaling wall: shrink the
+  sheet pitch further and the work-function metal from neighbouring sheets merges before the fill metal
+  ever gets in. The Si₃N₄ slabs beside the gate are drawn as one body, which is how the outer spacer and
+  the inner spacers appear once the cavity etch and refill are complete.
+</div>
+</div>
+
+<script>
+const GEO = {"params":{"t_ch":5.0,"W_sh":30.0,"L_G":15.0,"L_SP":7.0,"L_SD":22.0,"pitch":21.0,"t_il":1.0,"t_hk":2.0,"t_tin":3.0,"sti_h":10.0,"sub_h":26.0,"n_sheets":3,"EOT":1.35,"x_g":7.5,"x_sp":14.5,"x_sd":36.5,"sheet_y":[24.5,45.5,66.5],"y_mo_top":84.0,"y_m2":102.0},"materials":{"silicon":{"label":"Silicon","color":"#F2C2CF","note":"Substrate, nanosheet channels and S/D epi"},"sio2":{"label":"SiO\u2082","color":"#8C1C13","note":"STI / bottom isolation + gate interfacial layer"},"highk":{"label":"High-\u03ba (HfO\u2082)","color":"#BE8250","note":"Gate dielectric, k \u2248 22"},"si3n4":{"label":"Si\u2083N\u2084","color":"#E4AE1B","note":"Outer and inner gate spacers"},"mo":{"label":"M\u2080 \u00b7 Mo","color":"#E3D3B0","note":"Gate fill metal"},"nickel":{"label":"M\u2081 \u00b7 Ni","color":"#EE7A1A","note":"S/D contact plug"},"tungsten":{"label":"M\u2082 \u00b7 W","note":"Top-level metal","color":"#BFBBD2"},"nisi":{"label":"M\u2083 \u00b7 NiSi","color":"#E6E2F0","note":"S/D silicide"},"tin":{"label":"M\u2084 \u00b7 TiN","color":"#BE5518","note":"Work-function metal + gate cap"}},"order":["silicon","sio2","highk","si3n4","tin","mo","nisi","nickel","tungsten"],"parts":[{"id":"substrate","name":"Si substrate","material":"silicon","group":"Substrate & isolation","boxes":[[0,-13.0,0,96.0,26.0,70.0]],"explode":[0,-1.2,0]},{"id":"sti","name":"STI / bottom isolation","material":"sio2","group":"Substrate & isolation","boxes":[[0,5.0,0,29.0,10.0,70.0]],"explode":[0,-0.8,0]},{"id":"sheet1","name":"Si nanosheet 1","material":"silicon","group":"Channel stack","boxes":[[0,24.5,0,29.0,5.0,30.0]],"explode":[0,0,0]},{"id":"sheet2","name":"Si nanosheet 2","material":"silicon","group":"Channel stack","boxes":[[0,45.5,0,29.0,5.0,30.0]],"explode":[0,0,0]},{"id":"sheet3","name":"Si nanosheet 3","material":"silicon","group":"Channel stack","boxes":[[0,66.5,0,29.0,5.0,30.0]],"explode":[0,0,0]},{"id":"il1","name":"SiO\u2082 interfacial layer (sheet 1)","material":"sio2","group":"Gate-all-around stack","boxes":[[0,27.5,0,15.0,1.0,32.0],[0,21.5,0,15.0,1.0,32.0],[0,24.5,15.5,15.0,5.0,1.0],[0,24.5,-15.5,15.0,5.0,1.0]],"explode":["radial",24.5,1.0]},{"id":"il2","name":"SiO\u2082 interfacial layer (sheet 2)","material":"sio2","group":"Gate-all-around stack","boxes":[[0,48.5,0,15.0,1.0,32.0],[0,42.5,0,15.0,1.0,32.0],[0,45.5,15.5,15.0,5.0,1.0],[0,45.5,-15.5,15.0,5.0,1.0]],"explode":["radial",45.5,1.0]},{"id":"il3","name":"SiO\u2082 interfacial layer (sheet 3)","material":"sio2","group":"Gate-all-around stack","boxes":[[0,69.5,0,15.0,1.0,32.0],[0,63.5,0,15.0,1.0,32.0],[0,66.5,15.5,15.0,5.0,1.0],[0,66.5,-15.5,15.0,5.0,1.0]],"explode":["radial",66.5,1.0]},{"id":"hk1","name":"HfO\u2082 high-\u03ba (sheet 1)","material":"highk","group":"Gate-all-around stack","boxes":[[0,29.0,0,15.0,2.0,36.0],[0,20.0,0,15.0,2.0,36.0],[0,24.5,17.0,15.0,7.0,2.0],[0,24.5,-17.0,15.0,7.0,2.0]],"explode":["radial",24.5,2.1]},{"id":"hk2","name":"HfO\u2082 high-\u03ba (sheet 2)","material":"highk","group":"Gate-all-around stack","boxes":[[0,50.0,0,15.0,2.0,36.0],[0,41.0,0,15.0,2.0,36.0],[0,45.5,17.0,15.0,7.0,2.0],[0,45.5,-17.0,15.0,7.0,2.0]],"explode":["radial",45.5,2.1]},{"id":"hk3","name":"HfO\u2082 high-\u03ba (sheet 3)","material":"highk","group":"Gate-all-around stack","boxes":[[0,71.0,0,15.0,2.0,36.0],[0,62.0,0,15.0,2.0,36.0],[0,66.5,17.0,15.0,7.0,2.0],[0,66.5,-17.0,15.0,7.0,2.0]],"explode":["radial",66.5,2.1]},{"id":"tin1","name":"TiN work-function metal (sheet 1)","material":"tin","group":"Gate-all-around stack","boxes":[[0,31.5,0,15.0,3.0,42.0],[0,17.5,0,15.0,3.0,42.0],[0,24.5,19.5,15.0,11.0,3.0],[0,24.5,-19.5,15.0,11.0,3.0]],"explode":["radial",24.5,3.3]},{"id":"tin2","name":"TiN work-function metal (sheet 2)","material":"tin","group":"Gate-all-around stack","boxes":[[0,52.5,0,15.0,3.0,42.0],[0,38.5,0,15.0,3.0,42.0],[0,45.5,19.5,15.0,11.0,3.0],[0,45.5,-19.5,15.0,11.0,3.0]],"explode":["radial",45.5,3.3]},{"id":"tin3","name":"TiN work-function metal (sheet 3)","material":"tin","group":"Gate-all-around stack","boxes":[[0,73.5,0,15.0,3.0,42.0],[0,59.5,0,15.0,3.0,42.0],[0,66.5,19.5,15.0,11.0,3.0],[0,66.5,-19.5,15.0,11.0,3.0]],"explode":["radial",66.5,3.3]},{"id":"mo","name":"Mo gate fill","material":"mo","group":"Gate electrode","boxes":[[0,47.0,23.5,15.0,74.0,5.0],[0,47.0,-23.5,15.0,74.0,5.0],[0,13.0,0,15.0,6.0,42.0],[0,35.0,0,15.0,4.0,42.0],[0,56.0,0,15.0,4.0,42.0],[0,79.5,0,15.0,9.0,42.0]],"explode":[0,1.0,0]},{"id":"gatecap","name":"TiN gate cap","material":"tin","group":"Gate electrode","boxes":[[0,87.0,0,15.0,6.0,52.0]],"explode":[0,1.4,0]},{"id":"gatew","name":"W gate contact","material":"tungsten","group":"Gate electrode","boxes":[[0,96.0,0,15.0,12.0,40.0]],"explode":[0,1.8,0]},{"id":"spacer_source","name":"Si\u2083N\u2084 spacer (source side)","material":"si3n4","group":"Spacers","boxes":[[-11.0,50.0,20.5,7.0,80.0,11.0],[-11.0,50.0,-20.5,7.0,80.0,11.0],[-11.0,16.0,0,7.0,12.0,30.0],[-11.0,35.0,0,7.0,16.0,30.0],[-11.0,56.0,0,7.0,16.0,30.0],[-11.0,79.5,0,7.0,21.0,30.0]],"explode":[-1.3,0,0]},{"id":"spacer_drain","name":"Si\u2083N\u2084 spacer (drain side)","material":"si3n4","group":"Spacers","boxes":[[11.0,50.0,20.5,7.0,80.0,11.0],[11.0,50.0,-20.5,7.0,80.0,11.0],[11.0,16.0,0,7.0,12.0,30.0],[11.0,35.0,0,7.0,16.0,30.0],[11.0,56.0,0,7.0,16.0,30.0],[11.0,79.5,0,7.0,21.0,30.0]],"explode":[1.3,0,0]},{"id":"epi_source","name":"Source epi (Si)","material":"silicon","group":"Source / drain","boxes":[[-25.5,36.0,0,22.0,72.0,30.0]],"explode":[-1.6,0,0]},{"id":"nisi_source","name":"Source NiSi silicide","material":"nisi","group":"Source / drain","boxes":[[-25.5,74.5,0,22.0,5.0,30.0]],"explode":[-1.9,0.3,0]},{"id":"ni_source","name":"Source Ni contact plug","material":"nickel","group":"Source / drain","boxes":[[-25.5,84.5,0,16.0,15.0,24.0]],"explode":[-2.1,0.8,0]},{"id":"w_source","name":"Source W metal","material":"tungsten","group":"Source / drain","boxes":[[-25.5,97.0,0,22.0,10.0,30.0]],"explode":[-2.3,1.3,0]},{"id":"epi_drain","name":"Drain epi (Si)","material":"silicon","group":"Source / drain","boxes":[[25.5,36.0,0,22.0,72.0,30.0]],"explode":[1.6,0,0]},{"id":"nisi_drain","name":"Drain NiSi silicide","material":"nisi","group":"Source / drain","boxes":[[25.5,74.5,0,22.0,5.0,30.0]],"explode":[1.9,0.3,0]},{"id":"ni_drain","name":"Drain Ni contact plug","material":"nickel","group":"Source / drain","boxes":[[25.5,84.5,0,16.0,15.0,24.0]],"explode":[2.1,0.8,0]},{"id":"w_drain","name":"Drain W metal","material":"tungsten","group":"Source / drain","boxes":[[25.5,97.0,0,22.0,10.0,30.0]],"explode":[2.3,1.3,0]}],"callouts":[{"id":"LG","v":["iso","b"],"tex":"L_G","label":"L<sub>G</sub>","value":"15 nm","desc":"Physical gate length","a":[-7.5,86.0,26.0],"b":[7.5,86.0,26.0],"lab":[0,106.0,62.0]},{"id":"LSP","v":["iso","b"],"tex":"L_SP","label":"L<sub>SP</sub>","value":"7 nm","desc":"Spacer length","a":[7.5,91.0,26.0],"b":[14.5,91.0,26.0],"lab":[44.5,106.0,48.0]},{"id":"tch","v":["iso","b","c","gaa"],"tex":"t_ch","label":"t<sub>ch</sub>","value":"5 nm","desc":"Nanosheet thickness","a":[-14.5,43.0,15.0],"b":[-14.5,48.0,15.0],"lab":[-48.5,45.5,49.0]},{"id":"W","v":["iso","c"],"tex":"W_sh","label":"W<sub>sh</sub>","value":"30 nm","desc":"Nanosheet width","a":[-14.5,21.4,-15.0],"b":[-14.5,21.4,15.0],"lab":[0,-1.5,49.0]},{"id":"pitch","v":["b","c"],"tex":"pitch","label":"Sheet pitch","value":"21 nm","desc":"Vertical sheet-to-sheet pitch","a":[14.5,24.5,-15.0],"b":[14.5,45.5,-15.0],"lab":[48.5,35.0,-45.0]},{"id":"eot","v":["c","gaa","iso"],"tex":"EOT","label":"EOT","value":"1.35 nm","desc":"1 nm SiO\u2082 + 2 nm HfO\u2082 (k\u224822)","a":[0,69.0,15.1],"b":[0,72.0,15.1],"lab":[0,98.5,58.0]},{"id":"tin","v":["c","gaa"],"tex":"t_TiN","label":"t<sub>TiN</sub>","value":"3 nm","desc":"Work-function metal","a":[0,72.0,-15.1],"b":[0,75.0,-15.1],"lab":[0,92.5,-59.0]}],"bounds":{"x":[-48.0,48.0],"y":[-26.0,102.0],"z":[-35.0,35.0]}};
+(function(){
+"use strict";
+const P=GEO.params, MAT=GEO.materials, PARTS=GEO.parts, B=GEO.bounds;
+const cv=document.getElementById("stage");
+const gl=cv.getContext("webgl",{antialias:true,alpha:false,preserveDrawingBuffer:true});
+const RM=matchMedia("(prefers-reduced-motion:reduce)").matches;
+if(!gl){document.querySelector(".stagewrap").innerHTML=
+ '<p style="color:#C7CEDA;font:14px/1.6 system-ui;padding:40px 28px;margin:0">'+
+ 'This browser has WebGL disabled, so the 3D model cannot draw. The dimension and film-stack '+
+ 'tables below still describe the full device, and the downloadable GLB/STL/OBJ files open in any 3D viewer.</p>';
+ return;}
+
+/* ---------------- mat4 ---------------- */
+const M4={
+ id:()=>new Float32Array([1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1]),
+ mul:(a,b)=>{const o=new Float32Array(16);for(let i=0;i<4;i++)for(let j=0;j<4;j++){let s=0;
+   for(let k=0;k<4;k++)s+=a[k*4+j]*b[i*4+k];o[i*4+j]=s;}return o;},
+ persp:(f,ar,n,fa)=>{const t=1/Math.tan(f/2);return new Float32Array(
+   [t/ar,0,0,0, 0,t,0,0, 0,0,(fa+n)/(n-fa),-1, 0,0,2*fa*n/(n-fa),0]);},
+ ortho:(l,r,b,t,n,f)=>new Float32Array([2/(r-l),0,0,0, 0,2/(t-b),0,0, 0,0,-2/(f-n),0,
+   -(r+l)/(r-l),-(t+b)/(t-b),-(f+n)/(f-n),1]),
+ look:(e,c,u)=>{const z=nrm(sub(e,c)),x=nrm(cross(u,z)),y=cross(z,x);
+   return new Float32Array([x[0],y[0],z[0],0, x[1],y[1],z[1],0, x[2],y[2],z[2],0,
+     -dot(x,e),-dot(y,e),-dot(z,e),1]);}};
+const sub=(a,b)=>[a[0]-b[0],a[1]-b[1],a[2]-b[2]], dot=(a,b)=>a[0]*b[0]+a[1]*b[1]+a[2]*b[2];
+const cross=(a,b)=>[a[1]*b[2]-a[2]*b[1],a[2]*b[0]-a[0]*b[2],a[0]*b[1]-a[1]*b[0]];
+const nrm=a=>{const l=Math.hypot(a[0],a[1],a[2])||1;return [a[0]/l,a[1]/l,a[2]/l];};
+
+/* ---------------- shaders ---------------- */
+const VS=`attribute vec3 aPos,aNrm,aCol,aExp;uniform mat4 uVP;uniform float uE;
+varying vec3 vN,vC,vW;
+void main(){vec3 p=aPos+aExp*uE;vW=p;vN=aNrm;vC=aCol;gl_Position=uVP*vec4(p,1.0);}`;
+const FS=`precision highp float;varying vec3 vN,vC,vW;
+uniform vec3 uHi;uniform float uA,uTint,uClip;
+void main(){
+ if(uClip>0.5){ if(vW.x>uHi.x+0.001||vW.y>uHi.y+0.001||vW.z>uHi.z+0.001) discard; }
+ vec3 n=normalize(vN); if(!gl_FrontFacing) n=-n;
+ vec3 L1=normalize(vec3(0.55,0.78,0.62)), L2=normalize(vec3(-0.62,0.22,-0.45));
+ float d=max(dot(n,L1),0.0)*0.82 + max(dot(n,L2),0.0)*0.26 + 0.34;
+ float rim=pow(1.0-abs(n.z),2.0)*0.05;
+ vec3 c=vC*(d+rim)*uTint;
+ gl_FragColor=vec4(pow(clamp(c,0.0,1.4),vec3(0.95)),uA);}`;
+function sh(t,s){const o=gl.createShader(t);gl.shaderSource(o,s);gl.compileShader(o);
+  if(!gl.getShaderParameter(o,gl.COMPILE_STATUS))console.error(gl.getShaderInfoLog(o));return o;}
+const PROG=gl.createProgram();
+gl.attachShader(PROG,sh(gl.VERTEX_SHADER,VS));gl.attachShader(PROG,sh(gl.FRAGMENT_SHADER,FS));
+gl.linkProgram(PROG);gl.useProgram(PROG);
+const A={pos:gl.getAttribLocation(PROG,"aPos"),nrm:gl.getAttribLocation(PROG,"aNrm"),
+         col:gl.getAttribLocation(PROG,"aCol"),exp:gl.getAttribLocation(PROG,"aExp")};
+const U={vp:gl.getUniformLocation(PROG,"uVP"),e:gl.getUniformLocation(PROG,"uE"),
+  hi:gl.getUniformLocation(PROG,"uHi"),a:gl.getUniformLocation(PROG,"uA"),
+  tint:gl.getUniformLocation(PROG,"uTint"),clip:gl.getUniformLocation(PROG,"uClip")};
+
+/* ---------------- geometry buffers ---------------- */
+const hex=h=>[parseInt(h.slice(1,3),16)/255,parseInt(h.slice(3,5),16)/255,parseInt(h.slice(5,7),16)/255];
+const FACES=[[[0,0,1],[[-1,-1,1],[1,-1,1],[1,1,1],[-1,1,1]]],[[0,0,-1],[[1,-1,-1],[-1,-1,-1],[-1,1,-1],[1,1,-1]]],
+ [[1,0,0],[[1,-1,1],[1,-1,-1],[1,1,-1],[1,1,1]]],[[-1,0,0],[[-1,-1,-1],[-1,-1,1],[-1,1,1],[-1,1,-1]]],
+ [[0,1,0],[[-1,1,1],[1,1,1],[1,1,-1],[-1,1,-1]]],[[0,-1,0],[[-1,-1,-1],[1,-1,-1],[1,-1,1],[-1,-1,1]]]];
+const CEN=[(B.x[0]+B.x[1])/2,(B.y[0]+B.y[1])/2,(B.z[0]+B.z[1])/2];
+const pos=[],nrmA=[],colA=[],expA=[],idx=[];let vc=0;
+PARTS.forEach(p=>{
+  const c=hex(MAT[p.material].color);p.start=idx.length;p.aabb=[];
+  p.boxes.forEach(b=>{
+    const[cx,cy,cz,dx,dy,dz]=b, h=[dx/2,dy/2,dz/2];
+    let e=p.explode;let ev;
+    if(Array.isArray(e)&&e[0]==="radial"){const d=nrm([0,cy-e[1],cz]);ev=[d[0]*e[2],d[1]*e[2],d[2]*e[2]];}
+    else if(Array.isArray(e))ev=e; else ev=nrm([cx-CEN[0],cy-CEN[1],cz-CEN[2]]).map(v=>v*1.3);
+    p.aabb.push({lo:[cx-h[0],cy-h[1],cz-h[2]],hi:[cx+h[0],cy+h[1],cz+h[2]],ev:ev});
+    FACES.forEach(([n,q])=>{const base=vc;
+      q.forEach(s=>{pos.push(cx+s[0]*h[0],cy+s[1]*h[1],cz+s[2]*h[2]);
+        nrmA.push(n[0],n[1],n[2]);colA.push(c[0],c[1],c[2]);expA.push(ev[0],ev[1],ev[2]);vc++;});
+      idx.push(base,base+1,base+2,base,base+2,base+3);});
+  });
+  p.count=idx.length-p.start;p.on=true;
+});
+function buf(d,loc,n){const b=gl.createBuffer();gl.bindBuffer(gl.ARRAY_BUFFER,b);
+  gl.bufferData(gl.ARRAY_BUFFER,new Float32Array(d),gl.STATIC_DRAW);
+  gl.enableVertexAttribArray(loc);gl.vertexAttribPointer(loc,n,gl.FLOAT,false,0,0);return b;}
+const SB={};SB.p=buf(pos,A.pos,3);SB.n=buf(nrmA,A.nrm,3);SB.c=buf(colA,A.col,3);SB.e=buf(expA,A.exp,3);
+const IB=gl.createBuffer();gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER,IB);
+gl.bufferData(gl.ELEMENT_ARRAY_BUFFER,new Uint16Array(idx),gl.STATIC_DRAW);
+const POSB=gl.createBuffer(),NRMB=gl.createBuffer(),COLB=gl.createBuffer(),EXPB=gl.createBuffer();
+let capN=0;
+function capBuffers(pp,nn,cc){
+  gl.bindBuffer(gl.ARRAY_BUFFER,POSB);gl.bufferData(gl.ARRAY_BUFFER,new Float32Array(pp),gl.DYNAMIC_DRAW);
+  gl.bindBuffer(gl.ARRAY_BUFFER,NRMB);gl.bufferData(gl.ARRAY_BUFFER,new Float32Array(nn),gl.DYNAMIC_DRAW);
+  gl.bindBuffer(gl.ARRAY_BUFFER,COLB);gl.bufferData(gl.ARRAY_BUFFER,new Float32Array(cc),gl.DYNAMIC_DRAW);
+  gl.bindBuffer(gl.ARRAY_BUFFER,EXPB);gl.bufferData(gl.ARRAY_BUFFER,new Float32Array(pp.length),gl.DYNAMIC_DRAW);
+  capN=pp.length/3;}
+
+/* ---------------- state ---------------- */
+const S={az:-0.76,el:0.36,r:300,tgt:[0,40,0],ex:0,ghost:false,dims:true,spin:false,
+  clip:[B.x[1],B.y[1],B.z[1]],view:"iso",lset:"iso"};
+const OFF=(p,i)=>{const a=p.aabb[i];const e=S.ex;
+  return {lo:[a.lo[0]+a.ev[0]*e,a.lo[1]+a.ev[1]*e,a.lo[2]+a.ev[2]*e],
+          hi:[a.hi[0]+a.ev[0]*e,a.hi[1]+a.ev[1]*e,a.hi[2]+a.ev[2]*e]};};
+
+function rebuildCaps(){
+  const pp=[],nn=[],cc=[];
+  const on=[S.clip[0]<B.x[1]-.01,S.clip[1]<B.y[1]-.01,S.clip[2]<B.z[1]-.01];
+  if(on[0]||on[1]||on[2]){
+    PARTS.forEach(p=>{ if(!p.on)return; const c=hex(MAT[p.material].color);
+      p.aabb.forEach((_,i)=>{ const a=OFF(p,i);
+        const lo=[a.lo[0],a.lo[1],a.lo[2]], hi=[Math.min(a.hi[0],S.clip[0]),Math.min(a.hi[1],S.clip[1]),Math.min(a.hi[2],S.clip[2])];
+        for(let ax=0;ax<3;ax++){ if(!on[ax])continue;
+          const v=S.clip[ax]; if(v<=a.lo[ax]||v>=a.hi[ax])continue;
+          const u=(ax+1)%3, w=(ax+2)%3;
+          if(hi[u]<=lo[u]||hi[w]<=lo[w])continue;
+          const n=[0,0,0];n[ax]=1;
+          const mk=(su,sw)=>{const q=[0,0,0];q[ax]=v-0.002;q[u]=su?hi[u]:lo[u];q[w]=sw?hi[w]:lo[w];return q;};
+          const quad=(ax===1)?[mk(0,0),mk(0,1),mk(1,1),mk(1,0)]:[mk(0,0),mk(1,0),mk(1,1),mk(0,1)];
+          [0,1,2,0,2,3].forEach(k=>{pp.push(quad[k][0],quad[k][1],quad[k][2]);
+            nn.push(n[0],n[1],n[2]);cc.push(c[0],c[1],c[2]);});
+        }});});
+  }
+  capBuffers(pp,nn,cc);
+}
+
+/* ---------------- render ---------------- */
+let VP=M4.id(),W=1,H=1;
+function resize(){const d=Math.min(devicePixelRatio||1,2);
+  const w=cv.clientWidth,h=cv.clientHeight;
+  if(cv.width!==Math.round(w*d)||cv.height!==Math.round(h*d)){cv.width=Math.round(w*d);cv.height=Math.round(h*d);}
+  W=w;H=h;gl.viewport(0,0,cv.width,cv.height);}
+function eye(){const ce=Math.cos(S.el);
+  return [S.tgt[0]+S.r*ce*Math.sin(S.az),S.tgt[1]+S.r*Math.sin(S.el),S.tgt[2]+S.r*ce*Math.cos(S.az)];}
+function draw(){
+  resize();
+  const e=eye();
+  VP=M4.mul(M4.persp(0.62,W/H,8,1400),M4.look(e,S.tgt,[0,1,0]));
+  gl.clearColor(0.051,0.063,0.082,1);gl.enable(gl.DEPTH_TEST);gl.disable(gl.CULL_FACE);
+  gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT);
+  gl.useProgram(PROG);
+  gl.uniformMatrix4fv(U.vp,false,VP);gl.uniform1f(U.e,S.ex);
+  gl.uniform3f(U.hi,S.clip[0],S.clip[1],S.clip[2]);gl.uniform1f(U.clip,1);
+  gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER,IB);
+  bindStatic();
+  gl.enable(gl.BLEND);gl.blendFunc(gl.SRC_ALPHA,gl.ONE_MINUS_SRC_ALPHA);
+  const solid=[],ghost=[];
+  PARTS.forEach(p=>{if(!p.on)return;(S.ghost&&p.material==="mo"?ghost:solid).push(p);});
+  solid.forEach(p=>{gl.uniform1f(U.a,1);gl.uniform1f(U.tint,p===HOT?1.28:1);
+    gl.drawElements(gl.TRIANGLES,p.count,gl.UNSIGNED_SHORT,p.start*2);});
+  if(capN){gl.uniform1f(U.clip,0);gl.uniform1f(U.a,1);gl.uniform1f(U.tint,1.02);
+    bindCaps();gl.drawArrays(gl.TRIANGLES,0,capN);bindStatic();
+    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER,IB);gl.uniform1f(U.clip,1);}
+  if(ghost.length){gl.depthMask(false);
+    ghost.forEach(p=>{gl.uniform1f(U.a,0.16);gl.uniform1f(U.tint,1.3);
+      gl.drawElements(gl.TRIANGLES,p.count,gl.UNSIGNED_SHORT,p.start*2);});
+    gl.depthMask(true);}
+  gl.disable(gl.BLEND);
+  labels();
+}
+function bindStatic(){
+  const bind=(b,loc,n)=>{gl.bindBuffer(gl.ARRAY_BUFFER,b);gl.enableVertexAttribArray(loc);
+    gl.vertexAttribPointer(loc,n,gl.FLOAT,false,0,0);};
+  bind(SB.p,A.pos,3);bind(SB.n,A.nrm,3);bind(SB.c,A.col,3);bind(SB.e,A.exp,3);}
+function bindCaps(){
+  const bind=(b,loc,n)=>{gl.bindBuffer(gl.ARRAY_BUFFER,b);gl.enableVertexAttribArray(loc);
+    gl.vertexAttribPointer(loc,n,gl.FLOAT,false,0,0);};
+  bind(POSB,A.pos,3);bind(NRMB,A.nrm,3);bind(COLB,A.col,3);bind(EXPB,A.exp,3);}
+
+/* ---------------- callout labels ---------------- */
+const ov=document.getElementById("overlay"),svg=document.getElementById("leaders");
+const calEls=GEO.callouts.map(c=>{const d=document.createElement("div");d.className="cal";
+  d.innerHTML=`<b>${c.label} = ${c.value}</b><i>${c.desc}</i>`;ov.appendChild(d);return d;});
+const lines=GEO.callouts.map(()=>{const g=document.createElementNS("http://www.w3.org/2000/svg","g");
+  const l=document.createElementNS("http://www.w3.org/2000/svg","polyline");
+  l.setAttribute("fill","none");l.setAttribute("stroke","#6E7A8C");l.setAttribute("stroke-width","1");
+  const t=document.createElementNS("http://www.w3.org/2000/svg","line");
+  t.setAttribute("stroke","#9AA6B6");t.setAttribute("stroke-width","1.4");
+  g.appendChild(l);g.appendChild(t);svg.appendChild(g);return{g,l,t};});
+function proj(p){const x=VP[0]*p[0]+VP[4]*p[1]+VP[8]*p[2]+VP[12],
+  y=VP[1]*p[0]+VP[5]*p[1]+VP[9]*p[2]+VP[13],w=VP[3]*p[0]+VP[7]*p[1]+VP[11]*p[2]+VP[15];
+  if(w<=0)return null;return [(x/w*0.5+0.5)*W,(1-(y/w*0.5+0.5))*H];}
+function labels(){
+  const live=[];
+  GEO.callouts.forEach((c,i)=>{
+    const el=calEls[i],ln=lines[i];
+    const a=proj(c.a),b=proj(c.b),l=proj(c.lab);
+    if(!S.dims||(c.v&&c.v.indexOf(S.lset)<0)||!a||!b||!l||l[0]<-60||l[0]>W+60||l[1]<-60||l[1]>H+60){
+      el.style.display="none";ln.g.style.display="none";return;}
+    live.push({el,ln,a,b,x:l[0],y:l[1],h:el.offsetHeight||28,w:el.offsetWidth||120});
+  });
+  live.sort((p,q)=>p.y-q.y);
+  const PAD=8;
+  live.forEach(p=>{p.x=Math.max(p.w/2+PAD,Math.min(W-p.w/2-PAD,p.x));
+                   p.y=Math.max(p.h/2+PAD,Math.min(H-p.h/2-PAD,p.y));});
+  for(let pass=0;pass<3;pass++)
+    for(let i=1;i<live.length;i++){const a=live[i-1],b=live[i];
+      const need=(a.h+b.h)/2+9;
+      if(Math.abs(b.x-a.x)<(a.w+b.w)/2+6 && b.y-a.y<need) b.y=a.y+need;}
+  live.forEach(p=>{p.y=Math.min(p.y,H-p.h/2-PAD);
+    p.el.style.display="";p.ln.g.style.display="";
+    p.el.style.left=p.x+"px";p.el.style.top=p.y+"px";
+    const mx=(p.a[0]+p.b[0])/2,my=(p.a[1]+p.b[1])/2;
+    const dx=mx-p.x,dy=my-p.y,ln2=Math.hypot(dx,dy)||1;
+    const sx=p.x+dx/ln2*Math.min(p.w/2+4,ln2), sy=p.y+dy/ln2*Math.min(p.h/2+4,ln2);
+    p.ln.l.setAttribute("points",`${sx.toFixed(1)},${sy.toFixed(1)} ${mx.toFixed(1)},${my.toFixed(1)}`);
+    p.ln.t.setAttribute("x1",p.a[0].toFixed(1));p.ln.t.setAttribute("y1",p.a[1].toFixed(1));
+    p.ln.t.setAttribute("x2",p.b[0].toFixed(1));p.ln.t.setAttribute("y2",p.b[1].toFixed(1));});
+}
+
+/* ---------------- picking ---------------- */
+let HOT=null;
+function pick(px,py){
+  const e=eye(),ndc=[(px/W)*2-1,1-(py/H)*2];
+  const inv=invVP();if(!inv)return null;
+  const un=(z)=>{const v=[ndc[0],ndc[1],z,1],o=[0,0,0,0];
+    for(let i=0;i<4;i++)o[i]=inv[0+i]*v[0]+inv[4+i]*v[1]+inv[8+i]*v[2]+inv[12+i]*v[3];
+    return [o[0]/o[3],o[1]/o[3],o[2]/o[3]];};
+  const p1=un(-1),p2=un(1),d=nrm(sub(p2,p1));
+  let best=null,bt=1e9;
+  PARTS.forEach(p=>{if(!p.on)return;
+    p.aabb.forEach((_,i)=>{const a=OFF(p,i);
+      const hi=[Math.min(a.hi[0],S.clip[0]),Math.min(a.hi[1],S.clip[1]),Math.min(a.hi[2],S.clip[2])];
+      if(hi[0]<=a.lo[0]||hi[1]<=a.lo[1]||hi[2]<=a.lo[2])return;
+      let t0=-1e9,t1=1e9;
+      for(let k=0;k<3;k++){ if(Math.abs(d[k])<1e-9){if(e[k]<a.lo[k]||e[k]>hi[k])return;continue;}
+        let ta=(a.lo[k]-e[k])/d[k],tb=(hi[k]-e[k])/d[k];if(ta>tb){const s=ta;ta=tb;tb=s;}
+        t0=Math.max(t0,ta);t1=Math.min(t1,tb);if(t0>t1)return;}
+      if(t0>0&&t0<bt){bt=t0;best=p;}});});
+  return best;}
+function invVP(){const m=VP,inv=new Float32Array(16);
+ inv[0]=m[5]*m[10]*m[15]-m[5]*m[11]*m[14]-m[9]*m[6]*m[15]+m[9]*m[7]*m[14]+m[13]*m[6]*m[11]-m[13]*m[7]*m[10];
+ inv[4]=-m[4]*m[10]*m[15]+m[4]*m[11]*m[14]+m[8]*m[6]*m[15]-m[8]*m[7]*m[14]-m[12]*m[6]*m[11]+m[12]*m[7]*m[10];
+ inv[8]=m[4]*m[9]*m[15]-m[4]*m[11]*m[13]-m[8]*m[5]*m[15]+m[8]*m[7]*m[13]+m[12]*m[5]*m[11]-m[12]*m[7]*m[9];
+ inv[12]=-m[4]*m[9]*m[14]+m[4]*m[10]*m[13]+m[8]*m[5]*m[14]-m[8]*m[6]*m[13]-m[12]*m[5]*m[10]+m[12]*m[6]*m[9];
+ inv[1]=-m[1]*m[10]*m[15]+m[1]*m[11]*m[14]+m[9]*m[2]*m[15]-m[9]*m[3]*m[14]-m[13]*m[2]*m[11]+m[13]*m[3]*m[10];
+ inv[5]=m[0]*m[10]*m[15]-m[0]*m[11]*m[14]-m[8]*m[2]*m[15]+m[8]*m[3]*m[14]+m[12]*m[2]*m[11]-m[12]*m[3]*m[10];
+ inv[9]=-m[0]*m[9]*m[15]+m[0]*m[11]*m[13]+m[8]*m[1]*m[15]-m[8]*m[3]*m[13]-m[12]*m[1]*m[11]+m[12]*m[3]*m[9];
+ inv[13]=m[0]*m[9]*m[14]-m[0]*m[10]*m[13]-m[8]*m[1]*m[14]+m[8]*m[2]*m[13]+m[12]*m[1]*m[10]-m[12]*m[2]*m[9];
+ inv[2]=m[1]*m[6]*m[15]-m[1]*m[7]*m[14]-m[5]*m[2]*m[15]+m[5]*m[3]*m[14]+m[13]*m[2]*m[7]-m[13]*m[3]*m[6];
+ inv[6]=-m[0]*m[6]*m[15]+m[0]*m[7]*m[14]+m[4]*m[2]*m[15]-m[4]*m[3]*m[14]-m[12]*m[2]*m[7]+m[12]*m[3]*m[6];
+ inv[10]=m[0]*m[5]*m[15]-m[0]*m[7]*m[13]-m[4]*m[1]*m[15]+m[4]*m[3]*m[13]+m[12]*m[1]*m[7]-m[12]*m[3]*m[5];
+ inv[14]=-m[0]*m[5]*m[14]+m[0]*m[6]*m[13]+m[4]*m[1]*m[14]-m[4]*m[2]*m[13]-m[12]*m[1]*m[6]+m[12]*m[2]*m[5];
+ inv[3]=-m[1]*m[6]*m[11]+m[1]*m[7]*m[10]+m[5]*m[2]*m[11]-m[5]*m[3]*m[10]-m[9]*m[2]*m[7]+m[9]*m[3]*m[6];
+ inv[7]=m[0]*m[6]*m[11]-m[0]*m[7]*m[10]-m[4]*m[2]*m[11]+m[4]*m[3]*m[10]+m[8]*m[2]*m[7]-m[8]*m[3]*m[6];
+ inv[11]=-m[0]*m[5]*m[11]+m[0]*m[7]*m[9]+m[4]*m[1]*m[11]-m[4]*m[3]*m[9]-m[8]*m[1]*m[7]+m[8]*m[3]*m[5];
+ inv[15]=m[0]*m[5]*m[10]-m[0]*m[6]*m[9]-m[4]*m[1]*m[10]+m[4]*m[2]*m[9]+m[8]*m[1]*m[6]-m[8]*m[2]*m[5];
+ let det=m[0]*inv[0]+m[1]*inv[4]+m[2]*inv[8]+m[3]*inv[12];if(!det)return null;det=1/det;
+ for(let i=0;i<16;i++)inv[i]*=det;return inv;}
+
+/* ---------------- interaction ---------------- */
+let drag=null;
+cv.addEventListener("pointerdown",ev=>{cv.setPointerCapture(ev.pointerId);
+  drag={x:ev.clientX,y:ev.clientY,pan:ev.shiftKey||ev.button===2,moved:0};cv.classList.add("drag");});
+cv.addEventListener("pointermove",ev=>{
+  if(!drag)return;const dx=ev.clientX-drag.x,dy=ev.clientY-drag.y;drag.x=ev.clientX;drag.y=ev.clientY;
+  drag.moved+=Math.abs(dx)+Math.abs(dy);
+  if(drag.pan){const s=S.r*0.0016;const e=eye(),f=nrm(sub(S.tgt,e)),rt=nrm(cross(f,[0,1,0])),up=cross(rt,f);
+    S.tgt=[S.tgt[0]-(rt[0]*dx-up[0]*dy)*s,S.tgt[1]-(rt[1]*dx-up[1]*dy)*s,S.tgt[2]-(rt[2]*dx-up[2]*dy)*s];}
+  else{S.az-=dx*0.008;S.el=Math.max(-1.45,Math.min(1.45,S.el+dy*0.006));setView(null);}
+  render();});
+addEventListener("pointerup",ev=>{if(drag&&drag.moved<5)doPick(ev);drag=null;cv.classList.remove("drag");});
+cv.addEventListener("contextmenu",e=>e.preventDefault());
+cv.addEventListener("wheel",ev=>{ev.preventDefault();
+  S.r=Math.max(60,Math.min(700,S.r*Math.exp(ev.deltaY*0.0011)));render();},{passive:false});
+function doPick(ev){const r=cv.getBoundingClientRect();
+  const p=pick(ev.clientX-r.left,ev.clientY-r.top);HOT=p;
+  const inm=document.getElementById("inm"),idt=document.getElementById("idt"),
+        sw=document.querySelector("#inspector .sw");
+  if(!p){inm.textContent="No layer here";idt.textContent="Click any layer in the model to inspect it";
+    sw.style.background="#4A5364";render();return;}
+  const m=MAT[p.material];sw.style.background=m.color;inm.textContent=p.name;
+  idt.textContent=`${m.label} · ${p.group} · ${thickOf(p)}`;render();}
+
+/* ---------------- UI ---------------- */
+function thickOf(p){
+  const t={substrate:"26 nm shown",sti:P.sti_h+" nm",mo:"fills the gate cavity",gatecap:"6 nm",
+    gatew:"12 nm",}[p.id];
+  if(t)return t;
+  if(p.id.startsWith("sheet"))return `t_ch = ${P.t_ch} nm, W = ${P.W_sh} nm`;
+  if(p.id.startsWith("il"))return `${P.t_il} nm, wraps all four faces`;
+  if(p.id.startsWith("hk"))return `${P.t_hk} nm, wraps all four faces`;
+  if(p.id.startsWith("tin"))return `${P.t_tin} nm, wraps all four faces`;
+  if(p.id.startsWith("spacer"))return `L_SP = ${P.L_SP} nm`;
+  if(p.id.startsWith("epi"))return `${P.L_SD} nm long`;
+  if(p.id.startsWith("nisi"))return "5 nm silicide";
+  if(p.id.startsWith("ni_"))return "15 nm plug";
+  if(p.id.startsWith("w_"))return "10 nm";
+  return "";}
+
+const VIEWS={
+ iso:{n:"(a) Isometric",s:"the whole device",az:-0.76,el:0.36,r:300,clip:[B.x[1],B.y[1],B.z[1]],tgt:[0,40,0]},
+ b:{n:"(b) Along channel",s:"source · gate · drain",az:0,el:0,r:265,clip:[B.x[1],B.y[1],0],tgt:[0,42,0]},
+ c:{n:"(c) Across channel",s:"through the gate",az:Math.PI/2,el:0,r:250,clip:[0,B.y[1],B.z[1]],tgt:[0,46,0]},
+ gaa:{n:"Gate-all-around",s:"source side lifted off",az:-1.12,el:0.30,r:205,clip:[4,B.y[1],B.z[1]],tgt:[0,45,0],off:["epi_source","nisi_source","ni_source","w_source","spacer_source"]}};
+const vwrap=document.getElementById("views");
+Object.entries(VIEWS).forEach(([k,v])=>{const b=document.createElement("button");
+  b.className="view";b.type="button";b.dataset.k=k;b.setAttribute("aria-pressed",k==="iso");
+  b.innerHTML=`<span class="k">${k==="gaa"?"★":k}</span><span>${v.n}<span class="s">${v.s}</span></span>`;
+  b.onclick=()=>applyView(k);vwrap.appendChild(b);});
+function setView(k){S.view=k;document.querySelectorAll(".view").forEach(b=>
+  b.setAttribute("aria-pressed",String(b.dataset.k===k)));
+  document.getElementById("hudview").textContent=k?VIEWS[k].n:"Free orbit";}
+function applyView(k){const v=VIEWS[k];S.az=v.az;S.el=v.el;S.r=v.r;S.tgt=v.tgt.slice();S.lset=k;
+  S.clip=v.clip.slice();
+  PARTS.forEach(p=>{const want=!(v.off&&v.off.indexOf(p.id)>=0);
+    if(p.on!==want){p.on=want;const c=document.getElementById("ck_"+p.id);
+      if(c){c.checked=want;c.closest(".lay").classList.toggle("off",!want);}}});
+  syncClipUI();setView(k);rebuildCaps();render();}
+
+const GROUPS=["Substrate & isolation","Channel stack","Gate-all-around stack","Gate electrode","Spacers","Source / drain"];
+const lwrap=document.getElementById("layers");
+GROUPS.forEach(g=>{
+  const ps=PARTS.filter(p=>p.group===g);if(!ps.length)return;
+  const d=document.createElement("div");d.className="grp";
+  d.innerHTML=`<div class="ghd"><span>${g}</span><button type="button">toggle</button></div>`;
+  ps.forEach(p=>{const l=document.createElement("label");l.className="lay";
+    l.innerHTML=`<input type="checkbox" checked id="ck_${p.id}"><span class="sw" style="background:${MAT[p.material].color}"></span>
+      <span class="tx">${p.name}</span>`;
+    l.querySelector("input").onchange=e=>{p.on=e.target.checked;l.classList.toggle("off",!p.on);
+      rebuildCaps();render();};
+    d.appendChild(l);});
+  d.querySelector("button").onclick=()=>{const any=ps.some(p=>p.on);
+    ps.forEach(p=>{p.on=!any;const c=document.getElementById("ck_"+p.id);c.checked=!any;
+      c.closest(".lay").classList.toggle("off",any);});rebuildCaps();render();};
+  lwrap.appendChild(d);});
+
+const rg={cx:document.getElementById("cx"),cy:document.getElementById("cy"),cz:document.getElementById("cz")};
+const AX={cx:0,cy:1,cz:2},LBL={cx:"vcx",cy:"vcy",cz:"vcz"};
+const lo={cx:B.x[0],cy:B.y[0],cz:B.z[0]},hi={cx:B.x[1],cy:B.y[1],cz:B.z[1]};
+Object.keys(rg).forEach(k=>{rg[k].oninput=()=>{const t=+rg[k].value/100;
+  S.clip[AX[k]]=lo[k]+(hi[k]-lo[k])*t;updClipLabel(k);setView(null);rebuildCaps();render();};});
+function updClipLabel(k){const v=S.clip[AX[k]];
+  document.getElementById(LBL[k]).textContent=(v>=hi[k]-0.01)?"off":v.toFixed(1)+" nm";}
+function syncClipUI(){Object.keys(rg).forEach(k=>{
+  rg[k].value=Math.round((S.clip[AX[k]]-lo[k])/(hi[k]-lo[k])*100);updClipLabel(k);});}
+
+const exr=document.getElementById("ex");
+exr.oninput=()=>{S.ex=+exr.value/100*14;document.getElementById("vex").textContent=S.ex.toFixed(1)+" nm";
+  rebuildCaps();render();};
+document.getElementById("ghost").onchange=e=>{S.ghost=e.target.checked;render();};
+document.getElementById("dims").onchange=e=>{S.dims=e.target.checked;render();};
+document.getElementById("spin").onchange=e=>{S.spin=e.target.checked;if(S.spin)loop();};
+document.getElementById("reset").onclick=()=>{
+  PARTS.forEach(p=>{p.on=true;const c=document.getElementById("ck_"+p.id);
+    if(c){c.checked=true;c.closest(".lay").classList.remove("off");}});
+  S.ex=0;exr.value=0;document.getElementById("vex").textContent="0 nm";
+  S.ghost=false;document.getElementById("ghost").checked=false;
+  S.dims=true;document.getElementById("dims").checked=true;
+  S.spin=false;document.getElementById("spin").checked=false;HOT=null;
+  document.getElementById("inm").textContent="Nanosheet FET";
+  document.getElementById("idt").textContent="Click any layer in the model to inspect it";
+  applyView("iso");};
+
+let raf=0;
+function render(){if(raf)return;raf=requestAnimationFrame(()=>{raf=0;draw();});}
+function loop(){if(!S.spin)return;S.az+=RM?0:0.0032;setView(null);draw();requestAnimationFrame(loop);}
+addEventListener("resize",render);
+
+/* ---------------- spec tables ---------------- */
+const DIMS=[["L_G","Physical gate length",P.L_G],["t_ch","Nanosheet thickness",P.t_ch],
+ ["W_sh","Nanosheet width",P.W_sh],["Sheet pitch","Vertical sheet-to-sheet pitch",P.pitch],
+ ["L_SP","Spacer length",P.L_SP],["L_SD","Source/drain epi length",P.L_SD],
+ ["t_IL","SiO₂ interfacial layer",P.t_il],["t_HK","HfO₂ high-κ",P.t_hk],
+ ["t_TiN","TiN work-function metal",P.t_tin],["EOT","Equivalent oxide thickness",P.EOT],
+ ["N_sh","Sheets in the stack",P.n_sheets,""]];
+document.getElementById("dimtable").innerHTML=DIMS.map(d=>
+ `<tr><td class="sym">${d[0]}</td><td class="d">${d[1]}</td><td class="n">${d[2]}${d[3]===""?"":" nm"}</td></tr>`).join("");
+const MROLE={silicon:["Substrate, 3 channels, S/D epi","—"],sio2:["STI plus the gate interfacial layer",P.t_il+" nm IL"],
+ highk:["Gate dielectric, κ ≈ 22",P.t_hk+" nm"],si3n4:["Outer and inner gate spacers",P.L_SP+" nm"],
+ tin:["Work-function metal + gate cap",P.t_tin+" nm"],mo:["Gate fill metal","fill"],
+ nisi:["Source/drain silicide","5 nm"],nickel:["Source/drain contact plug","15 nm"],
+ tungsten:["Top-level metal","10–12 nm"]};
+document.getElementById("mattable").innerHTML=GEO.order.map(k=>
+ `<tr><td><span class="swcell"><i style="background:${MAT[k].color}"></i>${MAT[k].label}</span></td>
+  <td class="d">${MROLE[k][0]}</td><td class="n">${MROLE[k][1]}</td></tr>`).join("");
+
+/* ---------------- boot ---------------- */
+document.getElementById("inm").textContent="Nanosheet FET";
+document.querySelector("#inspector .sw").style.background="#4A5364";
+syncClipUI();rebuildCaps();setView("iso");render();
+})();
+</script>

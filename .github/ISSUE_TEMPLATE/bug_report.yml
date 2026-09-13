@@ -1,0 +1,53 @@
+name: Bug report
+description: Something renders wrong, crashes, or behaves unexpectedly.
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: Thanks for the report. A screenshot usually saves a round trip.
+  - type: dropdown
+    id: area
+    attributes:
+      label: Where
+      options:
+        - Android app
+        - Web viewer / PWA
+        - Geometry or mesh export
+        - Build scripts
+    validations: { required: true }
+  - type: dropdown
+    id: scene
+    attributes:
+      label: Which scene
+      options:
+        - FinFET
+        - Nanosheet
+        - Forksheet
+        - CFET
+        - Compare
+        - An inverter cell
+        - A layout figure
+        - Not scene-specific
+    validations: { required: true }
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+      description: And what you expected instead.
+    validations: { required: true }
+  - type: input
+    id: device
+    attributes:
+      label: Device and OS
+      placeholder: e.g. Pixel 7, Android 15 — or Chrome 130 on Windows
+  - type: input
+    id: version
+    attributes:
+      label: App version
+      description: From the About screen.
+      placeholder: 1.0.0 (1)
+  - type: textarea
+    id: screenshot
+    attributes:
+      label: Screenshot
+      description: Drag an image in here.

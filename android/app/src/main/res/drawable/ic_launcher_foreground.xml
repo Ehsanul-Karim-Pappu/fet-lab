@@ -1,0 +1,22 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp" android:height="108dp"
+    android:viewportWidth="108" android:viewportHeight="108">
+    <!-- gate fill -->
+    <path android:fillColor="#E3D3B0"
+        android:pathData="M28,26 L80,26 A4,4 0 0 1 84,30 L84,78 A4,4 0 0 1 80,82 L28,82 A4,4 0 0 1 24,78 L24,30 A4,4 0 0 1 28,26 Z"/>
+    <!-- sheet 1 : TiN / high-k / oxide / silicon -->
+    <path android:fillColor="#BE5518" android:pathData="M30,32 h48 v13 h-48 z"/>
+    <path android:fillColor="#BE8250" android:pathData="M32.5,34 h43 v9 h-43 z"/>
+    <path android:fillColor="#8C1C13" android:pathData="M35,35.6 h38 v5.8 h-38 z"/>
+    <path android:fillColor="#F2C2CF" android:pathData="M37,37 h34 v3 h-34 z"/>
+    <!-- sheet 2 -->
+    <path android:fillColor="#BE5518" android:pathData="M30,47.5 h48 v13 h-48 z"/>
+    <path android:fillColor="#BE8250" android:pathData="M32.5,49.5 h43 v9 h-43 z"/>
+    <path android:fillColor="#8C1C13" android:pathData="M35,51.1 h38 v5.8 h-38 z"/>
+    <path android:fillColor="#F2C2CF" android:pathData="M37,52.5 h34 v3 h-34 z"/>
+    <!-- sheet 3 -->
+    <path android:fillColor="#BE5518" android:pathData="M30,63 h48 v13 h-48 z"/>
+    <path android:fillColor="#BE8250" android:pathData="M32.5,65 h43 v9 h-43 z"/>
+    <path android:fillColor="#8C1C13" android:pathData="M35,66.6 h38 v5.8 h-38 z"/>
+    <path android:fillColor="#F2C2CF" android:pathData="M37,68 h34 v3 h-34 z"/>
+</vector>

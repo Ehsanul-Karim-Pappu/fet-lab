@@ -1,0 +1,35 @@
+{
+  "name": "FinFET to CFET \u2014 device explorer",
+  "short_name": "FET Lab",
+  "description": "Interactive 3D models of FinFET, nanosheet, forksheet and CFET transistors, and a working CMOS inverter cell in each.",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#0D1015",
+  "theme_color": "#0D1015",
+  "categories": [
+    "education",
+    "utilities"
+  ],
+  "icons": [
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icon-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}
