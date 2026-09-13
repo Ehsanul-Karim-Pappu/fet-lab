@@ -1018,7 +1018,6 @@ private fun StoryTab(scene: Scene) {
     }
 }
 
-@Composable
 /** A compact parasitics table, tacked onto Specs rather than earning a sixth tab. */
 private fun LazyListScope.parasiticSection(
     scene: Scene, picked: String?, onPick: (Parasitic?) -> Unit
@@ -1075,6 +1074,7 @@ private fun LazyListScope.parasiticSection(
     }
 }
 
+@Composable
 private fun SpecsTab(scene: Scene, picked: String?, onPick: (Parasitic?) -> Unit) {
     LazyColumn(contentPadding = PaddingValues(bottom = 16.dp)) {
         item {
