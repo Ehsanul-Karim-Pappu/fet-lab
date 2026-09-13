@@ -34,7 +34,13 @@ class ViewPreset(
 class Callout(
     val label: String, val value: String, val desc: String,
     val a: FloatArray, val b: FloatArray, val lab: FloatArray, val views: Set<String>?,
-    val flat: Boolean = false, val size: String = "m", val tone: String = "dark"
+    val flat: Boolean = false, val size: String = "m", val tone: String = "dark",
+    /** Park the text in the margin and run a hairline back to the layer it names. */
+    val lead: Boolean = false,
+    /** Forced column: -1 left, +1 right, 0 to let the renderer choose. */
+    val sd: Int = 0,
+    /** Parts this label is for; the renderer anchors on whichever one it can see. */
+    val pids: List<String> = emptyList()
 )
 
 class Scene(
@@ -121,10 +127,16 @@ class Library(val materials: Map<String, Material>, val order: List<String>, val
                     for (c in 0 until it.length()) {
                         val q = it.getJSONObject(c)
                         val vs = (q.opt("v") as? JSONArray)?.toStringList()?.toSet()
+                        val pids = when (val pd = q.opt("pid")) {
+                            is String -> listOf(pd)
+                            is JSONArray -> pd.toStringList()
+                            else -> emptyList()
+                        }
                         cal.add(Callout(q.getString("label"), q.optString("value", ""), q.optString("desc", ""),
                             q.getJSONArray("a").toFloats(), q.getJSONArray("b").toFloats(),
                             q.getJSONArray("lab").toFloats(), vs,
-                            q.optBoolean("flat", false), q.optString("size", "m"), q.optString("tone", "dark")))
+                            q.optBoolean("flat", false), q.optString("size", "m"), q.optString("tone", "dark"),
+                            q.optBoolean("lead", false), q.optInt("sd", 0), pids))
                     }
                 }
 

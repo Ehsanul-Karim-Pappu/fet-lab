@@ -506,11 +506,38 @@ for(let i=0;i<MAXC;i++){
   l.setAttribute("fill","none");l.setAttribute("stroke","#6E7A8C");l.setAttribute("stroke-width","1");
   const t=document.createElementNS("http://www.w3.org/2000/svg","line");
   t.setAttribute("stroke","#9AA6B6");t.setAttribute("stroke-width","1.4");
-  g.appendChild(l);g.appendChild(t);g.style.display="none";svg.appendChild(g);lines.push({g,l,t});}
+  const o=document.createElementNS("http://www.w3.org/2000/svg","circle");
+  o.setAttribute("r","2.6");o.setAttribute("fill","#6E7A8C");o.style.display="none";
+  g.appendChild(l);g.appendChild(t);g.appendChild(o);
+  g.style.display="none";svg.appendChild(g);lines.push({g,l,t,o});}
+// Sample points on a part's faces, so a leader can be anchored somewhere the camera
+// can actually see. Face centre plus two points along each face's longer axis, on the
+// largest box of the part — enough coverage without making picking expensive.
+function faceSamples(pid){
+  const ids=Array.isArray(pid)?pid:[pid];
+  const refs=[];
+  for(const id of ids){const part=DEV.parts.find(q=>q.id===id); if(!part)continue;
+    part.boxes.forEach((b,bi)=>refs.push({part,bi,b,vol:b[3]*b[4]*b[5]}));}
+  if(!refs.length)return null;
+  refs.sort((a,b)=>b.vol-a.vol);
+  const out=[];
+  for(const r of refs.slice(0,3)){
+    const h=[r.b[3]/2,r.b[4]/2,r.b[5]/2];
+    for(let ax=0;ax<3;ax++)for(const sg of [-1,1]){
+      const u=(ax+1)%3, v=(ax+2)%3, long=h[u]>=h[v]?u:v;
+      for(const t of [0,-0.55,0.55]){
+        const d=[0,0,0];
+        d[ax]=sg*(h[ax]+0.35);         // just proud of the face, so the pick lands on it
+        d[long]+=t*h[long];
+        out.push({part:r.part,bi:r.bi,d});}}}
+  return out;}
+// sample point in world space, following the part if the model is exploded
+function samplePt(sm){const a=OFFB(sm.part,sm.bi);
+  return [(a.lo[0]+a.hi[0])/2+sm.d[0],(a.lo[1]+a.hi[1])/2+sm.d[1],(a.lo[2]+a.hi[2])/2+sm.d[2]];}
 function fillCalouts(){
   calEls.forEach((el,i)=>{const c=DEV.callouts[i];
     if(!c){el.style.display="none";lines[i].g.style.display="none";el._c=null;return;}
-    el._c=c;
+    el._c=c; el._pts=c.pid?faceSamples(c.pid):null;
     if(c.flat){el.className=`cal flat sz-${c.size||"m"} tone-${c.tone||"dark"}`;el.textContent=c.label;}
     else{el.className="cal";
       el.innerHTML=(c.value?`<b>${c.label} = ${c.value}</b>`:`<b>${c.label}</b>`)+`<i>${c.desc}</i>`;}});}
@@ -518,27 +545,82 @@ function proj(p){const x=VP[0]*p[0]+VP[4]*p[1]+VP[8]*p[2]+VP[12],
   y=VP[1]*p[0]+VP[5]*p[1]+VP[9]*p[2]+VP[13],w=VP[3]*p[0]+VP[7]*p[1]+VP[11]*p[2]+VP[15];
   return w<=0?null:[(x/w*.5+.5)*W,(1-(y/w*.5+.5))*H];}
 function labels(){
+  // Screen-space silhouette of the scene, so leader labels can be parked clear of it.
+  const B=DEV.bounds; let SX0=1e9,SX1=-1e9,SY0=1e9,SY1=-1e9;
+  for(const X of B.x)for(const Y of B.y)for(const Z of B.z){const q=proj([X,Y,Z]);
+    if(!q)continue; SX0=Math.min(SX0,q[0]);SX1=Math.max(SX1,q[0]);
+                    SY0=Math.min(SY0,q[1]);SY1=Math.max(SY1,q[1]);}
+  const CX=(SX0+SX1)/2, PCTX=pickCtx();
   const live=[];
   calEls.forEach((el,i)=>{const c=el._c,ln=lines[i];
     if(!c){el.style.display="none";ln.g.style.display="none";return;}
-    const a=proj(c.a),b=proj(c.b),l=proj(c.lab);
+    let a=proj(c.a);
+    if(c.lead&&el._pts){                       // anchor on a face the camera can see
+      let best=null,bs=-1e9, sd=c.sd||0;
+      const want=Array.isArray(c.pid)?c.pid:[c.pid];
+      for(const sm of el._pts){const sp=proj(samplePt(sm)); if(!sp)continue;
+        if(sp[0]<0||sp[0]>W||sp[1]<0||sp[1]>H)continue;
+        const hit=pick(sp[0],sp[1],PCTX); if(!hit||want.indexOf(hit.id)<0)continue;
+        const sc=sd?sd*sp[0]:Math.abs(sp[0]-W/2);
+        if(sc>bs){bs=sc;best=sp;}}
+      if(best)a=best; else a=null;}            // nothing of it in view: drop the label
+    const b=a&&proj(c.b),l=a&&proj(c.lab);
     if(!S.dims||(c.v&&c.v.indexOf(S.lset)<0)||!a||!b||!l||l[0]<-70||l[0]>W+70||l[1]<-70||l[1]>H+70){
       el.style.display="none";ln.g.style.display="none";return;}
     el.style.display="";
-    live.push({el,ln,a,b,x:l[0],y:l[1],h:el.offsetHeight||26,w:el.offsetWidth||110,flat:!!c.flat});});
-  live.sort((p,q)=>p.y-q.y);
-  const PAD=8;
-  const TOP=32, BOT=DEV.logic?48:PAD;
-  live.forEach(p=>{p.x=Math.max(p.w/2+PAD,Math.min(W-p.w/2-PAD,p.x));
+    live.push({el,ln,a,b,x:l[0],y:l[1],h:el.offsetHeight||26,w:el.offsetWidth||110,
+               flat:!!c.flat,lead:!!c.lead,sd:c.sd|0,side:0});});
+
+  const PAD=8, TOP=32, BOT=DEV.logic?48:PAD, GAP=22;
+  const leads=live.filter(p=>p.lead), rest=live.filter(p=>!p.lead);
+
+  // --- leader labels: one tidy column per side, swept so none can overlap ---
+  leads.forEach(p=>{ p.side = p.sd || (p.a[0]<CX ? -1 : 1); p.y = p.a[1]; });
+  for(const sd of [-1,1]){
+    const col=leads.filter(p=>p.side===sd).sort((a,b)=>a.y-b.y);
+    if(!col.length)continue;
+    let x = sd<0 ? SX0-GAP : SX1+GAP;                 // park clear of the silhouette
+    const wmax=Math.max(...col.map(p=>p.w));
+    if(sd<0) x=Math.max(x, wmax+PAD); else x=Math.min(x, W-wmax-PAD);
+    col.forEach(p=>p.x = sd<0 ? x-p.w/2 : x+p.w/2);
+    let y=TOP;                                        // sweep down, never closer than the gap
+    col.forEach(p=>{ y=Math.max(p.y, y+p.h/2); p.y=y; y+=p.h/2+6; });
+    const over=col[col.length-1].y+col[col.length-1].h/2-(H-BOT);
+    if(over>0){ let lift=over;                        // column ran off the bottom: lift as a block
+      const head=col[0].y-col[0].h/2-TOP; lift=Math.min(lift,Math.max(head,0));
+      col.forEach(p=>p.y-=lift); }
+    col.forEach(p=>{p.x=Math.max(p.w/2+PAD,Math.min(W-p.w/2-PAD,p.x));
+                    p.y=Math.max(p.h/2+TOP,Math.min(H-p.h/2-BOT,p.y));});}
+
+  // --- everything else keeps the original nudge-apart behaviour -------------
+  rest.sort((p,q)=>p.y-q.y);
+  rest.forEach(p=>{p.x=Math.max(p.w/2+PAD,Math.min(W-p.w/2-PAD,p.x));
                    p.y=Math.max(p.h/2+TOP,Math.min(H-p.h/2-BOT,p.y));});
-  for(let k=0;k<3;k++)for(let i=1;i<live.length;i++){const a=live[i-1],b=live[i];
-    if(a.flat||b.flat)continue;               // surface labels stay where the geometry puts them
+  for(let k=0;k<3;k++)for(let i=1;i<rest.length;i++){const a=rest[i-1],b=rest[i];
+    if(a.flat||b.flat)continue;
     const need=(a.h+b.h)/2+9;
     if(Math.abs(b.x-a.x)<(a.w+b.w)/2+6&&b.y-a.y<need)b.y=a.y+need;}
-  live.forEach(p=>{p.y=Math.min(p.y,H-p.h/2-BOT);
-    if(p.flat){p.el.style.left=p.x+"px";p.el.style.top=p.y+"px";p.ln.g.style.display="none";return;}
-    p.ln.g.style.display="";
+
+  const DARKBG=!S.lightBg;
+  const LEAD=DARKBG?"#8A97A8":"#59636F", DOT=DARKBG?"#AEB9C8":"#454F5C";
+  live.forEach(p=>{
+    if(!p.lead)p.y=Math.min(p.y,H-p.h/2-BOT);
     p.el.style.left=p.x+"px";p.el.style.top=p.y+"px";
+    if(p.flat&&!p.lead){p.ln.g.style.display="none";return;}
+    p.ln.g.style.display="";
+    p.ln.l.setAttribute("stroke",LEAD);
+    if(p.lead){
+      // stub out of the label, then a straight run to the dot sitting on the layer
+      const dir=p.side<0?1:-1, ix=p.x+dir*(p.w/2+4), kx=ix+dir*11;
+      p.ln.l.setAttribute("points",
+        `${ix.toFixed(1)},${p.y.toFixed(1)} ${kx.toFixed(1)},${p.y.toFixed(1)} `+
+        `${p.a[0].toFixed(1)},${p.a[1].toFixed(1)}`);
+      p.ln.t.setAttribute("x1",0);p.ln.t.setAttribute("y1",0);
+      p.ln.t.setAttribute("x2",0);p.ln.t.setAttribute("y2",0);
+      p.ln.o.style.display="";p.ln.o.setAttribute("fill",DOT);
+      p.ln.o.setAttribute("cx",p.a[0].toFixed(1));p.ln.o.setAttribute("cy",p.a[1].toFixed(1));
+      return;}
+    p.ln.o.style.display="none";
     const mx=(p.a[0]+p.b[0])/2,my=(p.a[1]+p.b[1])/2,dx=mx-p.x,dy=my-p.y,L=Math.hypot(dx,dy)||1;
     const sx=p.x+dx/L*Math.min(p.w/2+4,L),sy=p.y+dy/L*Math.min(p.h/2+4,L);
     p.ln.l.setAttribute("points",`${sx.toFixed(1)},${sy.toFixed(1)} ${mx.toFixed(1)},${my.toFixed(1)}`);
@@ -565,8 +647,9 @@ function invVP(){const m=VP,v=new Float32Array(16);
  v[15]=m[0]*m[5]*m[10]-m[0]*m[6]*m[9]-m[4]*m[1]*m[10]+m[4]*m[2]*m[9]+m[8]*m[1]*m[6]-m[8]*m[2]*m[5];
  let d=m[0]*v[0]+m[1]*v[4]+m[2]*v[8]+m[3]*v[12];if(!d)return null;d=1/d;
  for(let i=0;i<16;i++)v[i]*=d;return v;}
-function pick(px,py){
-  const e=eye(),inv=invVP();if(!inv)return null;
+function pickCtx(){const inv=invVP();return inv?{e:eye(),inv}:null;}
+function pick(px,py,ctx){
+  const c=ctx||pickCtx(); if(!c)return null; const e=c.e,inv=c.inv;
   const ndc=[(px/W)*2-1,1-(py/H)*2];
   const un=z=>{const q=[ndc[0],ndc[1],z,1],o=[0,0,0,0];
     for(let i=0;i<4;i++)o[i]=inv[0+i]*q[0]+inv[4+i]*q[1]+inv[8+i]*q[2]+inv[12+i]*q[3];

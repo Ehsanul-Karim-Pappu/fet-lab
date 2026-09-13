@@ -13,10 +13,19 @@ def A(d, pid, name, mat, boxes, group, explode, net="body"):
     d.parts[-1]["net"] = net
 
 LAYER_VIEWS = ["hero", "front"]
-def L(d, text, at, size="m", tone="dark", v=None):
-    """A flat surface label — no box, no leader line."""
+def L(d, text, at, size="m", tone="dark", v=None, lead=True, sd=0, pid=None):
+    """A flat label.
+
+    With lead=True the text is parked out in the margin, clear of the model, and a hairline
+    runs back to a dot sitting on the layer it names — so there is no doubt which slab the
+    name belongs to. `pid` is the part the label is for: the viewer samples that part's
+    faces every frame and anchors the dot on a point that is actually visible from where
+    the camera is, falling back to `at` if the part is hidden. `sd` forces the column
+    (-1 left, +1 right). With lead=False the text is drawn at `at` itself, for titles.
+    """
     d.callouts.append(dict(id=f"L{len(d.callouts)}", label=text, value="", desc="",
-                           a=at, b=at, lab=at, v=v, flat=True, size=size, tone=tone))
+                           a=at, b=at, lab=at, v=v, flat=True, lead=lead, sd=sd, pid=pid,
+                           size=size, tone=tone))
 
 # ------------------------------------------------------------------ geometry
 XW, XMD0, XMD1, XPO = 46.0, 18.0, 32.0, 7.0      # wire end / MD inner / MD outer / gate half
@@ -80,20 +89,21 @@ def deck(d, holes, arch_note, wall=None):
         A(d, f"m0_{net}", f"Metal 0 · {label}", "m0", [box(-54, 54, YM0, YM1, z - 4, z + 4)],
           "Metal 0", [0, 1.6, 0], net)
 
-    # --- surface labels -----------------------------------------------------
+    # --- layer names, each anchored on the edge of the layer it names -------
     mid = lambda a, b: (a + b) / 2.0
-    L(d, "P Well", [38, mid(YPW0, YPW1), ZPLINTH], "l", "dark", LAYER_VIEWS)
-    L(d, "N Well", [22, mid(YWL0, YWL1), ZCELL], "l", "dark", LAYER_VIEWS)
-    L(d, "SiO₂", [40, mid(YOX0, YOX1), ZCELL], "m", "dark", LAYER_VIEWS)
-    L(d, "MD", [-25, mid(YOX1, YMD1), 36], "m", "light", LAYER_VIEWS)
-    L(d, "MD", [25, mid(YOX1, YMD1), 36], "m", "light", LAYER_VIEWS)
-    L(d, "Po", [0, mid(YOX1, YPO1), 40], "m", "light", LAYER_VIEWS)
-    L(d, "VG", [0, mid(YPO1, YV1), -16], "s", "dark", LAYER_VIEWS)
-    L(d, "VD", [25, mid(YMD1, YV1), 14], "s", "dark", LAYER_VIEWS)
-    L(d, "Metal 0", [26, mid(YM0, YM1), ZBAR["vdd"] + 4], "l", "dark", LAYER_VIEWS)
-    for k, (net, label) in enumerate((("gnd", "GND"), ("in", "IN"), ("out", "OUT"), ("vdd", "V_DD"))):
-        yy = YM0 - 5 if k % 2 == 0 else YM1 + 5          # stagger so they do not stack up
-        L(d, label, [-58, yy, ZBAR[net]], "m")
+    # right-hand column, read bottom to top
+    L(d, "P Well", [62, mid(YPW0, YPW1), 30], "m", "dark", LAYER_VIEWS, sd=1, pid="pwell")
+    L(d, "N Well", [54, mid(YWL0, YWL1), 30], "m", "dark", LAYER_VIEWS, sd=1, pid="nwell")
+    L(d, "SiO₂", [54, mid(YOX0, YOX1), 30], "m", "dark", LAYER_VIEWS, sd=1, pid="fox")
+    L(d, "MD", [XMD1, mid(YOX1, YMD1), 20], "m", "dark", LAYER_VIEWS, sd=1, pid="md_out")
+    L(d, "VD", [29, mid(YMD1, YV1), 11], "s", "dark", LAYER_VIEWS, sd=1, pid="vd_out")
+    L(d, "Metal 0", [54, mid(YM0, YM1), ZBAR["vdd"]], "m", "dark", LAYER_VIEWS, sd=1, pid="m0_vdd")
+    # left-hand column
+    L(d, "MD", [-XMD1, mid(YOX1, YMD1), -20], "m", "dark", LAYER_VIEWS, sd=-1, pid="md_gnd")
+    L(d, "Po", [-XPO, mid(YMD1, YPO1), -30], "m", "dark", LAYER_VIEWS, pid="po")
+    L(d, "VG", [-5, mid(YPO1, YV1), -18], "s", "dark", LAYER_VIEWS, pid="vg")
+    for net, label in (("gnd", "GND"), ("in", "IN"), ("out", "OUT"), ("vdd", "V_DD")):
+        L(d, label, [-54, mid(YM0, YM1), ZBAR[net]], "m", sd=-1, pid=f"m0_{net}")
     d.note = arch_note
 
 def finish(d, dims):
@@ -133,7 +143,7 @@ def show_ns():
          "the Po gate, which crosses both the nMOS over the P Well and the pMOS over the N Well. "
          "One gate, one input. The shared MD on the right ties both drains together and carries "
          "the output up to Metal 0; the two outer MDs go to the rails.")
-    L(d, "Nanowire", [XW - 2, 25.5, ZP1], "s", "dark", LAYER_VIEWS)
+    L(d, "Nanowire", [XW, 25.5, ZP1 - 4], "s", "dark", LAYER_VIEWS, sd=1, pid=["p_ws2", "p_wsr2"])
     return finish(d, [
         ["Nanowires", "Per device", "2"], ["Devices", "pMOS over N Well, nMOS over P Well", "2"],
         ["Gate", "Po, crossing both", "1"], ["Contacts", "MD columns", "3"],
@@ -164,8 +174,8 @@ def show_fs():
          "<b>Where the width goes.</b> Between the two devices there is now a wall instead of a "
          "gate-metal gap, so the whole cell narrows. The Po still shows as one body because the "
          "two halves join above the wall — that bridge is what keeps it a single input.")
-    L(d, "Sheet", [XW - 2, 25.5, zp1], "s", "dark", LAYER_VIEWS)
-    L(d, "Wall", [12, YPO1 - 4, 5], "s", "light", LAYER_VIEWS)
+    L(d, "Sheet", [XW, 25.5, zp1 - 4], "s", "dark", LAYER_VIEWS, sd=1, pid=["p_ws2", "p_wsr2"])
+    L(d, "Wall", [12, YPO1 - 4, 0], "s", "dark", LAYER_VIEWS, pid="wall")
     return finish(d, [
         ["Sheets", "Per device", "2"], ["Separation", "Dielectric wall", "no metal gap"],
         ["Gate", "Po, bridged over the wall", "1"], ["Contacts", "MD columns", "3"],
@@ -196,7 +206,7 @@ def show_fin():
          "<b>Drive in whole fins.</b> Two fins each gives a balanced inverter. Wanting a stronger "
          "pull-up means a third fin, which widens the cell by a whole fin pitch and overshoots — "
          "the granularity the nanosheet removed by making width continuous.")
-    L(d, "Fin", [XW - 2, FY1, 27.5], "s", "dark", LAYER_VIEWS)
+    L(d, "Fin", [XW, FY1, 27.5], "s", "dark", LAYER_VIEWS, sd=1, pid=["p_fs2", "p_fsr2"])
     return finish(d, [
         ["Fins", "Per device", "2"], ["Gate faces", "Per fin", "3 (tri-gate)"],
         ["Gate", "Po, crossing all four fins", "1"], ["Contacts", "MD columns", "3"],
@@ -293,20 +303,22 @@ def show_cfet():
 
     # --- labels --------------------------------------------------------------
     mid = lambda a, b: (a + b) / 2.0
-    L(d, "P Well", [38, mid(*YPW), ZC], "l", "dark", LAYER_VIEWS)
-    L(d, "Backside M0", [36, mid(*YBM), ZPL], "m", "dark", LAYER_VIEWS)
-    L(d, "SiO₂", [42, mid(*YOX), ZC], "m", "dark", LAYER_VIEWS)
-    L(d, "Tier isolation", [40, mid(*YMDI), ZC], "m", "dark", LAYER_VIEWS)
-    L(d, "MD", [-25, mid(*MDB), ZMD], "m", "light", LAYER_VIEWS)
-    L(d, "MD", [-25, mid(*MDT), ZMD], "m", "light", LAYER_VIEWS)
-    L(d, "Po", [0, 20, 40], "m", "light", LAYER_VIEWS)
-    L(d, "VG", [0, mid(*YVG), -22], "s", "dark", LAYER_VIEWS)
-    L(d, "Metal 0", [26, mid(*YM), ZB["vdd"] + 4], "l", "dark", LAYER_VIEWS)
-    L(d, "Nanowire", [XW - 2, 24.5, ZCH], "s", "dark", LAYER_VIEWS)
-    L(d, "GND", [-58, mid(*YBM), 0], "m")
-    for k, (net, label) in enumerate((("in", "IN"), ("out", "OUT"), ("vdd", "V_DD"))):
-        yy = YM[0] - 5 if k % 2 == 0 else YM[1] + 5
-        L(d, label, [-58, yy, ZB[net]], "m")
+    # right-hand column, read bottom to top
+    L(d, "Backside M0", [56, mid(*YBM), 24], "m", "dark", LAYER_VIEWS, sd=1, pid="bm")
+    L(d, "P Well", [54, mid(*YPW), 24], "m", "dark", LAYER_VIEWS, sd=1, pid="pwell")
+    L(d, "SiO₂", [54, mid(*YOX), 24], "m", "dark", LAYER_VIEWS, sd=1, pid="fox")
+    L(d, "Nanowire", [XW, 24.5, ZCH - 4], "s", "dark", LAYER_VIEWS, pid=["n_ws2", "n_wsr2", "p_ws2", "p_wsr2"])
+    L(d, "Tier isolation", [XW, mid(*YMDI), 24], "m", "dark", LAYER_VIEWS, sd=1, pid="mdi")
+    L(d, "MD", [XMD1, mid(*MDT), 20], "m", "dark", LAYER_VIEWS, sd=1, pid=["md_outt", "md_vdd"])
+    L(d, "VD", [29, mid(*YVD), 4], "s", "dark", LAYER_VIEWS, sd=1, pid="vd_out")
+    L(d, "Metal 0", [54, mid(*YM), ZB["vdd"]], "m", "dark", LAYER_VIEWS, sd=1, pid="m0_vdd")
+    # left-hand column
+    L(d, "GND", [-56, mid(*YBM), -20], "m", "dark", LAYER_VIEWS, sd=-1, pid="bm")
+    L(d, "MD", [-XMD1, mid(*MDB), -20], "m", "dark", LAYER_VIEWS, sd=-1, pid="md_gnd")
+    L(d, "Po", [-XPO, 52, -30], "m", "dark", LAYER_VIEWS, pid="po")
+    L(d, "VG", [-5, mid(*YVG), -22], "s", "dark", LAYER_VIEWS, pid="vg")
+    for net, label in (("in", "IN"), ("out", "OUT"), ("vdd", "V_DD")):
+        L(d, label, [-54, mid(*YM), ZB[net]], "m", sd=-1, pid=f"m0_{net}")
 
     d.note = ("<b>No second device row.</b> The pMOS sits directly above the nMOS, so the figure "
               "grows upwards instead of sideways and there is no N Well beside the P Well. Two "
@@ -343,8 +355,8 @@ def show_cmp():
         cur += w + GAP
 
     for nm, sub, zc, w, ytop in cells:
-        L(d, nm, [0, ytop + 22, zc], "l")
-        L(d, sub, [0, ytop + 10, zc], "s")
+        L(d, nm, [0, ytop + 22, zc], "l", lead=False)
+        L(d, sub, [0, ytop + 10, zc], "s", lead=False)
     d.dims = [[nm, sub, f"{w:g} nm wide"] for nm, sub, zc, w, yt in cells]
     d.dims.append(["—", "Metal 0 bars on top", "4 / 4 / 4 / 3 (CFET GND is on the back)"])
     d.dims.append(["—", "What grows", "sideways, then upwards"])
@@ -365,6 +377,29 @@ def show_cmp():
       "top": dict(n="Top view", s="Metal 0 routing", az=-1.5708, el=1.42, r=zs * 1.55, tgt=ctr, clip=None)}
     return d
 
+# Technology-generation labels. These are node NAMES, not lengths — since roughly the
+# 90 nm generation the number on the label has not matched any dimension on the wafer.
+# They sit in the table next to the physical gate length on purpose: the contrast is the
+# point. Change a value here and it updates every scene for that architecture.
+NODE = {"fin": "3 nm", "ns": "1.4 nm", "fs": "1.2 nm", "cfet": "1 nm"}
+NODE_ROW = ["Node", "Technology generation (a name, not a length)"]
+CMP_ROW = ["Node", "FinFET · nanosheet · forksheet · CFET", "3 · 1.4 · 1.2 · 1 nm"]
+
+def tag_nodes(devices):
+    """Put the generation label at the top of every scene's table."""
+    for dv in devices:
+        k = dv["key"].replace("show_", "").replace("inv_", "")
+        rows = [r for r in dv["dims"] if r[0] != "Node"]
+        if k.startswith("cmp"):
+            dv["dims"] = [list(CMP_ROW)] + rows
+        else:
+            arch = "cfet" if k.startswith("cfet") else k
+            if arch in NODE:
+                dv["dims"] = [NODE_ROW + [NODE[arch]]] + rows
+            else:
+                dv["dims"] = rows
+    return devices
+
 if __name__ == "__main__":
     import findlap
     G = json.load(open("devices.json"))
@@ -377,5 +412,7 @@ if __name__ == "__main__":
             callouts=d.callouts, dims=d.dims, views=d.views, note=d.note, bounds=d.bounds,
             logic=True, style="schematic",
             groups=list(dict.fromkeys(p["group"] for p in d.parts))))
+    tag_nodes(G["devices"])          # runs last, so every scene in the file gets the row
     json.dump(G, open("devices.json", "w"), separators=(",", ":"))
     print("devices.json", os.path.getsize("devices.json") // 1024, "KB", len(G["devices"]), "scenes")
+    print("nodes:", ", ".join(f"{k}={v}" for k, v in NODE.items()))

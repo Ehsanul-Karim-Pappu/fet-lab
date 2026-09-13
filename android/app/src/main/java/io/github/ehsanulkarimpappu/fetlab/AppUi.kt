@@ -991,21 +991,94 @@ private fun strip(s: String) = s.replace(Regex("<[^>]*>"), "")
 private fun BoxScope.CalloutOverlay(renderer: Renderer, scene: Scene, viewKey: String, light: Boolean) {
     var frame by remember { mutableIntStateOf(0) }
     LaunchedEffect(Unit) { while (true) { withFrameNanos { }; frame++ } }
+    val density = LocalDensity.current
+
     val placed = remember(frame, viewKey, scene) {
-        scene.callouts
-            .filter { it.views == null || it.views.contains(viewKey) }
-            .mapNotNull { c -> renderer.project(c.lab)?.let { c to it } }
+        val shown = scene.callouts.filter { it.views == null || it.views.contains(viewKey) }
+        val inv = renderer.pickInv()
+        val sil = renderer.silhouette()
+        val w = renderer.viewW.toFloat(); val h = renderer.viewH.toFloat()
+        val cx = if (sil != null) (sil[0] + sil[2]) / 2f else w / 2f
+        val out = ArrayList<Placed>()
+        for (c in shown) {
+            val fs = with(density) { (when (c.size) { "l" -> 16f; "s" -> 10f; else -> 13f }).sp.toPx() }
+            val tw = strip(c.label).length * fs * 0.6f
+            val th = fs * 1.35f
+            var anchor = renderer.project(c.a)
+            if (c.lead && c.pids.isNotEmpty()) {
+                // anchor on a face of the named layer that the camera can actually see
+                var best: FloatArray? = null; var bs = -Float.MAX_VALUE
+                for (sm in renderer.faceSamples(c.pids)) {
+                    val sp = renderer.project(renderer.samplePoint(sm)) ?: continue
+                    if (sp[0] < 0f || sp[0] > w || sp[1] < 0f || sp[1] > h) continue
+                    val hit = renderer.pick(sp[0], sp[1], inv) ?: continue
+                    if (!c.pids.contains(hit.id)) continue
+                    val score = if (c.sd != 0) c.sd * sp[0] else kotlin.math.abs(sp[0] - w / 2f)
+                    if (score > bs) { bs = score; best = sp }
+                }
+                anchor = best        // null means none of it is in view: drop the label
+            }
+            val a = anchor ?: continue
+            val side = if (c.sd != 0) c.sd else if (a[0] < cx) -1 else 1
+            out.add(Placed(c, a[0], a[1], a[0], a[1], tw, th, side))
+        }
+
+        // leader labels form one tidy column per side, swept so none can overlap
+        val pad = 8f; val top = 34f; val bot = if (scene.logic) 64f else pad; val gap = 20f
+        for (sd in intArrayOf(-1, 1)) {
+            val col = out.filter { it.c.lead && it.side == sd }.sortedBy { it.ay }
+            if (col.isEmpty()) continue
+            val wmax = col.maxOf { it.w }
+            var x = if (sd < 0) (sil?.get(0) ?: 0f) - gap else (sil?.get(2) ?: w) + gap
+            x = if (sd < 0) maxOf(x, wmax + pad) else minOf(x, w - wmax - pad)
+            var y = top
+            for (p in col) {
+                p.tx = if (sd < 0) x - p.w / 2f else x + p.w / 2f
+                y = maxOf(p.ay, y + p.h / 2f); p.ty = y; y += p.h / 2f + 6f
+            }
+            val last = col.last()
+            val over = last.ty + last.h / 2f - (h - bot)
+            if (over > 0f) {
+                val head = col.first().ty - col.first().h / 2f - top
+                val lift = minOf(over, maxOf(head, 0f))
+                for (p in col) p.ty -= lift
+            }
+            for (p in col) {
+                p.tx = p.tx.coerceIn(p.w / 2f + pad, w - p.w / 2f - pad)
+                p.ty = p.ty.coerceIn(p.h / 2f + top, h - p.h / 2f - bot)
+            }
+        }
+        out
+    }
+
+    val leadCol = if (light) Color(0xFF59636F) else Color(0xFF8A97A8)
+    val dotCol = if (light) Color(0xFF454F5C) else Color(0xFFAEB9C8)
+    Canvas(Modifier.matchParentSize()) {
+        for (p in placed) {
+            if (!p.c.lead) continue
+            val dir = if (p.side < 0) 1f else -1f
+            val ix = p.tx + dir * (p.w / 2f + 4f)
+            val kx = ix + dir * 11f
+            drawLine(leadCol, GOffset(ix, p.ty), GOffset(kx, p.ty), strokeWidth = 1.2f)
+            drawLine(leadCol, GOffset(kx, p.ty), GOffset(p.ax, p.ay), strokeWidth = 1.2f)
+            drawCircle(dotCol, radius = 2.8f, center = GOffset(p.ax, p.ay))
+        }
     }
     Box(Modifier.matchParentSize()) {
-        for ((c, at) in placed) {
+        for (p in placed) {
+            val c = p.c
             val place = Modifier
-                .offset { IntOffset(at[0].roundToInt(), at[1].roundToInt()) }
+                .offset { IntOffset(p.tx.roundToInt(), p.ty.roundToInt()) }
                 .graphicsLayer { translationX = -size.width / 2f; translationY = -size.height / 2f }
             if (c.flat) {
                 Text(strip(c.label), modifier = place, fontFamily = Mono,
                     fontWeight = FontWeight.SemiBold, maxLines = 1,
                     fontSize = when (c.size) { "l" -> 16.sp; "s" -> 10.sp; else -> 13.sp },
-                    color = if (c.tone == "light" || !light) Color.White else Color(0xFF232B36))
+                    color = when {
+                        c.lead -> if (light) Color(0xFF232B36) else Color(0xFFE9EEF5)
+                        c.tone == "light" || !light -> Color.White
+                        else -> Color(0xFF232B36)
+                    })
             } else Surface(
                 color = if (light) Color.White.copy(alpha = .88f) else Stage.dark.copy(alpha = .80f),
                 shape = RoundedCornerShape(7.dp),
@@ -1025,3 +1098,9 @@ private fun BoxScope.CalloutOverlay(renderer: Renderer, scene: Scene, viewKey: S
         }
     }
 }
+
+/** A callout after layout: where its dot sits, and where its text ended up. */
+private class Placed(
+    val c: Callout, val ax: Float, val ay: Float,
+    var tx: Float, var ty: Float, val w: Float, val h: Float, val side: Int
+)

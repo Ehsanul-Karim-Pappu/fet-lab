@@ -121,6 +121,9 @@ Every scene must tile exactly — no overlapping solids, no gaps. The build prin
 ## Caveats
 
 - Dimensions are representative teaching values, not any foundry's process data.
+- The `Node` row is a generation label, not a measurement. Since roughly the 90 nm
+  generation the number in a node name has matched no dimension on the wafer; it sits next
+  to the physical gate length in the table so the gap between the two is visible.
 - The inverter cells route on one metal level plus local interconnect — the topology, not a
   layout you could tape out.
 - The forksheet modelled is the classic inner-wall device; imec's later outer-wall variant

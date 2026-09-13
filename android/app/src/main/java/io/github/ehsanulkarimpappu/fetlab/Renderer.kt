@@ -336,7 +336,7 @@ class Renderer(private val lib: Library) : GLSurfaceView.Renderer {
     }
 
     // ---- section caps ----------------------------------------------------
-    private fun offsetBox(p: Part, i: Int): Pair<FloatArray, FloatArray> {
+    fun offsetBox(p: Part, i: Int): Pair<FloatArray, FloatArray> {
         val a = p.aabb[i]; val e = explode
         return Pair(floatArrayOf(a.lo[0] + a.ev[0] * e, a.lo[1] + a.ev[1] * e, a.lo[2] + a.ev[2] * e),
             floatArrayOf(a.hi[0] + a.ev[0] * e, a.hi[1] + a.ev[1] * e, a.hi[2] + a.ev[2] * e))
@@ -410,9 +410,16 @@ class Renderer(private val lib: Library) : GLSurfaceView.Renderer {
     }
 
     // ---- picking ---------------------------------------------------------
-    fun pick(px: Float, py: Float): Part? {
+    /** Inverted view-projection, so a batch of picks can share one inversion. */
+    fun pickInv(): FloatArray? {
         val inv = FloatArray(16)
-        if (!Matrix.invertM(inv, 0, vpSnapshot, 0)) return null
+        return if (Matrix.invertM(inv, 0, vpSnapshot, 0)) inv else null
+    }
+
+    fun pick(px: Float, py: Float): Part? = pick(px, py, pickInv())
+
+    fun pick(px: Float, py: Float, inv: FloatArray?): Part? {
+        if (inv == null) return null
         val ndcX = px / viewW * 2f - 1f
         val ndcY = 1f - py / viewH * 2f
         val near = FloatArray(4); val far = FloatArray(4)
@@ -443,6 +450,62 @@ class Renderer(private val lib: Library) : GLSurfaceView.Renderer {
             }
         }
         return best
+    }
+
+    /** One sampling point, held relative to a box so it follows an exploded part. */
+    class Sample(val part: Part, val bi: Int, val d: FloatArray)
+
+    /**
+     * Points sitting just proud of a part's faces. A label anchors on whichever of these
+     * the camera can actually see, so the dot never lands on a layer in front of it.
+     */
+    fun faceSamples(ids: List<String>): List<Sample> {
+        val sc = scene
+        val refs = ArrayList<Triple<Part, Int, FloatArray>>()
+        for (id in ids) {
+            val part = sc.parts.firstOrNull { it.id == id } ?: continue
+            part.boxes.forEachIndexed { bi, b -> refs.add(Triple(part, bi, b)) }
+        }
+        if (refs.isEmpty()) return emptyList()
+        refs.sortByDescending { it.third[3] * it.third[4] * it.third[5] }
+        val out = ArrayList<Sample>()
+        for ((part, bi, b) in refs.take(3)) {
+            val h = floatArrayOf(b[3] / 2f, b[4] / 2f, b[5] / 2f)
+            for (ax in 0 until 3) for (sg in intArrayOf(-1, 1)) {
+                val u = (ax + 1) % 3; val v = (ax + 2) % 3
+                val lng = if (h[u] >= h[v]) u else v
+                for (t in floatArrayOf(0f, -0.55f, 0.55f)) {
+                    val d = floatArrayOf(0f, 0f, 0f)
+                    d[ax] = sg * (h[ax] + 0.35f)
+                    d[lng] += t * h[lng]
+                    out.add(Sample(part, bi, d))
+                }
+            }
+        }
+        return out
+    }
+
+    /** Where a sample sits right now, following the part if the model is exploded. */
+    fun samplePoint(s: Sample): FloatArray {
+        val (lo, hi) = offsetBox(s.part, s.bi)
+        return floatArrayOf((lo[0] + hi[0]) / 2f + s.d[0],
+                            (lo[1] + hi[1]) / 2f + s.d[1],
+                            (lo[2] + hi[2]) / 2f + s.d[2])
+    }
+
+    /** Screen-space box the whole scene occupies: [x0, y0, x1, y1]. */
+    fun silhouette(): FloatArray? {
+        val sc = scene
+        var x0 = Float.MAX_VALUE; var y0 = Float.MAX_VALUE
+        var x1 = -Float.MAX_VALUE; var y1 = -Float.MAX_VALUE
+        for (x in floatArrayOf(sc.lo[0], sc.hi[0]))
+            for (y in floatArrayOf(sc.lo[1], sc.hi[1]))
+                for (z in floatArrayOf(sc.lo[2], sc.hi[2])) {
+                    val q = project(floatArrayOf(x, y, z)) ?: continue
+                    if (q[0] < x0) x0 = q[0]; if (q[0] > x1) x1 = q[0]
+                    if (q[1] < y0) y0 = q[1]; if (q[1] > y1) y1 = q[1]
+                }
+        return if (x1 < x0) null else floatArrayOf(x0, y0, x1, y1)
     }
 
     /** World point to view-space pixels, or null when behind the camera. */
