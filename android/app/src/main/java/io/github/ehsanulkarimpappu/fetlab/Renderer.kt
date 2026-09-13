@@ -420,19 +420,29 @@ class Renderer(private val lib: Library) : GLSurfaceView.Renderer {
     }
 
     /** Two-finger pan, in screen units, along the camera's right and up axes. */
+    /**
+     * Half the vertical field of view, as a tangent. The projection is 36 degrees, so
+     * one screen pixel spans `2 * dist * TAN_HALF_FOV / viewH` world units at the target
+     * plane — which is what makes a pan track the finger exactly instead of racing it.
+     */
+    private val tanHalfFov = 0.3249f
+
+    /** World units per screen pixel at the target plane. */
+    fun worldPerPixel(): Float = 2f * dist * tanHalfFov / maxOf(viewH, 1)
+
+    /** Shift the camera target along its own right and up axes. */
     fun panBy(dx: Float, dy: Float) {
+        // Derive the basis from az/el rather than the cached eye, which the GL thread owns.
         val ce = cos(el)
-        val fx = target[0] - eye[0]; val fy = target[1] - eye[1]; val fz = target[2] - eye[2]
-        val fl = kotlin.math.sqrt(fx * fx + fy * fy + fz * fz).let { if (it < 1e-6f) 1f else it }
-        val f = floatArrayOf(fx / fl, fy / fl, fz / fl)
-        val r = floatArrayOf(f[2], 0f, -f[0])
+        val f = floatArrayOf(-ce * sin(az), -sin(el), -ce * cos(az))
+        // right = f x worldUp; the old code had this negated, which inverted both axes
+        val r = floatArrayOf(-f[2], 0f, f[0])
         val rl = hypot(r[0].toDouble(), r[2].toDouble()).toFloat().let { if (it < 1e-6f) 1f else it }
         r[0] /= rl; r[2] /= rl
         val u = floatArrayOf(r[1] * f[2] - r[2] * f[1], r[2] * f[0] - r[0] * f[2], r[0] * f[1] - r[1] * f[0])
         val t = target.copyOf()
         t[0] += r[0] * dx + u[0] * dy; t[1] += r[1] * dx + u[1] * dy; t[2] += r[2] * dx + u[2] * dy
         target = t
-        if (ce == 0f) return
     }
 
     // ---- picking ---------------------------------------------------------

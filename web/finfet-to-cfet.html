@@ -683,7 +683,7 @@ cv.addEventListener("pointerdown",e=>{cv.setPointerCapture(e.pointerId);
   drag={x:e.clientX,y:e.clientY,pan:e.shiftKey||e.button===2,moved:0};cv.classList.add("drag");});
 cv.addEventListener("pointermove",e=>{if(!drag)return;
   const dx=e.clientX-drag.x,dy=e.clientY-drag.y;drag.x=e.clientX;drag.y=e.clientY;drag.moved+=Math.abs(dx)+Math.abs(dy);
-  if(drag.pan){const s=S.r*0.0016,ey=eye(),f=nrm(sub(S.tgt,ey)),rt=nrm(cross(f,[0,1,0])),up=cross(rt,f);
+  if(drag.pan){const s=2*S.r*Math.tan(0.31)/H,ey=eye(),f=nrm(sub(S.tgt,ey)),rt=nrm(cross(f,[0,1,0])),up=cross(rt,f);
     S.tgt=[S.tgt[0]-(rt[0]*dx-up[0]*dy)*s,S.tgt[1]-(rt[1]*dx-up[1]*dy)*s,S.tgt[2]-(rt[2]*dx-up[2]*dy)*s];}
   else{S.az-=dx*.008;S.el=Math.max(-1.45,Math.min(1.45,S.el+dy*.006));setView(null);}
   render();});

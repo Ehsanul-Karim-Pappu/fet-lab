@@ -59,6 +59,7 @@ import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -70,6 +71,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -384,6 +386,7 @@ fun FetLabApp(lib: Library, renderer: Renderer, dynamic: Boolean, onDynamic: (Bo
                     var moved = 0f
                     var prevCentroid = down.position
                     var prevSpread = 0f
+                    var prevCount = 1
                     while (true) {
                         val ev = awaitPointerEvent()
                         val pressed = ev.changes.filter { it.pressed }
@@ -394,13 +397,28 @@ fun FetLabApp(lib: Library, renderer: Renderer, dynamic: Boolean, onDynamic: (Bo
                         val centroid = androidx.compose.ui.geometry.Offset(sx / pressed.size, sy / pressed.size)
                         val spread = if (pressed.size >= 2)
                             (pressed[0].position - pressed[1].position).getDistance() else 0f
+                        if (pressed.size != prevCount) {
+                            // A finger arrived or left. The centroid and the spread both jump in
+                            // that one frame, so re-base on the new gesture instead of treating
+                            // the jump as movement — otherwise the model leaps across the screen.
+                            prevCount = pressed.size
+                            prevCentroid = centroid
+                            prevSpread = spread
+                            for (c in ev.changes) c.consume()
+                            continue
+                        }
                         val d = centroid - prevCentroid
                         moved += abs(d.x) + abs(d.y)
                         if (pressed.size == 1) {
-                            renderer.az -= d.x * 0.008f
-                            renderer.el = (renderer.el + d.y * 0.006f).coerceIn(-1.45f, 1.45f)
+                            // Viewport-relative, so the feel does not change with screen density:
+                            // a full-width swipe is about 180 degrees.
+                            val w = maxOf(renderer.viewW, 1); val h = maxOf(renderer.viewH, 1)
+                            renderer.az -= d.x * (3.2f / w)
+                            renderer.el = (renderer.el + d.y * (2.6f / h)).coerceIn(-1.45f, 1.45f)
                         } else {
-                            val s = renderer.dist * 0.0016f
+                            // One pixel of finger travel moves the model one pixel: pan tracks
+                            // the fingers instead of racing ahead of them.
+                            val s = renderer.worldPerPixel()
                             renderer.panBy(-d.x * s, d.y * s)
                             if (prevSpread > 1f && spread > 1f)
                                 renderer.dist = (renderer.dist * prevSpread / spread).coerceIn(40f, 3000f)
@@ -409,7 +427,9 @@ fun FetLabApp(lib: Library, renderer: Renderer, dynamic: Boolean, onDynamic: (Bo
                         for (c in ev.changes) c.consume()
                         draw()
                     }
-                    if (maxPointers == 1 && moved < 14f) {
+                    // Tap slop in physical pixels, so it is the same distance on any screen.
+                    val slop = maxOf(renderer.viewW, renderer.viewH) * 0.012f
+                    if (maxPointers == 1 && moved < slop) {
                         val hit = renderer.pick(down.position.x, down.position.y)
                         selected = hit; renderer.highlight = hit
                         if (hit != null) haptic.performHapticFeedback(HapticFeedbackType.LongPress)
@@ -424,6 +444,18 @@ fun FetLabApp(lib: Library, renderer: Renderer, dynamic: Boolean, onDynamic: (Bo
             Text(scene.views.firstOrNull { it.key == viewKey }?.label ?: "",
                 style = MaterialTheme.typography.labelSmall, color = dim,
                 modifier = Modifier.align(Alignment.TopStart).padding(14.dp))
+
+            // Gestures are not discoverable, so say them once per scene and then get out of the way.
+            var hint by remember(sceneKey) { mutableStateOf(true) }
+            LaunchedEffect(sceneKey) { delay(4500); hint = false }
+            AnimatedVisibility(visible = hint,
+                enter = fadeIn(tween(500)), exit = fadeOut(tween(700)),
+                modifier = Modifier.align(Alignment.TopEnd)) {
+                Text("drag to orbit · two fingers to pan · pinch to zoom · tap a layer",
+                    style = MaterialTheme.typography.labelSmall, color = dim,
+                    textAlign = TextAlign.End, lineHeight = 14.sp,
+                    modifier = Modifier.padding(14.dp).widthIn(max = 190.dp))
+            }
 
             AnimatedVisibility(visible = selected != null,
                 enter = fadeIn(tween(180)) + slideInVertically(tween(220)) { it / 3 },
