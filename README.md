@@ -108,10 +108,12 @@ Do not hand-edit `data/devices.json`; it is generated.
 
 ```bash
 pip install trimesh numpy
-python scripts/build_devices.py      # device scenes
+python scripts/build_devices.py      # device scenes, full film stack
 python scripts/build_inverters.py    # inverter cells
-python scripts/build_showcase.py     # layout figures
+python scripts/build_showcase.py     # layout figures, and the node labels
+python scripts/build_simple.py       # simplified device scenes
 python scripts/export_all.py         # GLB / STL / OBJ
+python scripts/mkicon.py             # icons, from icon_src.png
 cp data/devices.json android/app/src/main/assets/devices.json
 ```
 

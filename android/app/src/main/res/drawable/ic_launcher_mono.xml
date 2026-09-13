@@ -1,0 +1,17 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp" android:height="108dp"
+    android:viewportWidth="108" android:viewportHeight="108"
+    android:tint="?attr/colorControlNormal">
+    <!--
+      Themed-icon layer. A launcher paints this one flat colour, so the gate is drawn
+      as an open bracket around the sheets: the gaps are what keeps it readable.
+    -->
+    <group>
+        <!-- gate: a C wrapping the channel on three sides -->
+        <path android:fillColor="#FFFFFF" android:pathData="M62,24 h-18 a12,12 0 0 0 -12,12 v36 a12,12 0 0 0 12,12 h18 v-9 h-16 a5,5 0 0 1 -5,-5 v-32 a5,5 0 0 1 5,-5 h16 z"/>
+        <!-- three channel sheets running out of it -->
+        <path android:fillColor="#FFFFFF" android:pathData="M52,40 h24 a3.5,3.5 0 0 1 0,7 h-24 z"/>
+        <path android:fillColor="#FFFFFF" android:pathData="M52,50.5 h24 a3.5,3.5 0 0 1 0,7 h-24 z"/>
+        <path android:fillColor="#FFFFFF" android:pathData="M52,61 h24 a3.5,3.5 0 0 1 0,7 h-24 z"/>
+    </group>
+</vector>
