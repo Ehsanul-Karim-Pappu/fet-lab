@@ -111,14 +111,22 @@ pip install trimesh numpy
 python scripts/build_devices.py      # device scenes, full film stack
 python scripts/build_inverters.py    # inverter cells
 python scripts/build_showcase.py     # layout figures, and the node labels
-python scripts/build_simple.py       # simplified device scenes
+python scripts/build_simple.py       # single-device scenes, carved from the layouts
+python scripts/build_story.py        # the written background, attached to every scene
 python scripts/export_all.py         # GLB / STL / OBJ
 python scripts/mkicon.py             # icons, from icon_src.png
+python scripts/verify.py             # audit every scene before shipping
 cp data/devices.json android/app/src/main/assets/devices.json
 ```
 
 Every scene must tile exactly — no overlapping solids, no gaps. The build prints
 `max/voxel=1` when it does; `scripts/findlap.py` names the offending pair when it does not.
+
+## Background
+
+[docs/BACKGROUND.md](docs/BACKGROUND.md) is the written history behind each architecture —
+what it replaced, what broke, why the industry moved, and what the move cost. The same text
+appears in the app.
 
 ## Caveats
 

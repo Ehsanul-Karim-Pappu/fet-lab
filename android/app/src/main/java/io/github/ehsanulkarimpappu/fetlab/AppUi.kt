@@ -19,6 +19,7 @@ import androidx.compose.animation.shrinkVertically
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -58,8 +59,10 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -88,7 +91,7 @@ private val INV_KEYS = listOf("inv_fin" to "FinFET", "inv_ns" to "Nanosheet",
 private val SHOW_KEYS = listOf("show_fin" to "FinFET", "show_ns" to "Nanosheet",
     "show_fs" to "Forksheet", "show_cfet" to "CFET", "show_cmp" to "Compare")
 private val MODES = listOf("Device", "Inverter", "Layout")
-private val TABS = listOf("Views", "Section", "Layers", "Specs")
+private val TABS = listOf("Views", "Section", "Layers", "Specs", "Story")
 
 private fun keysFor(mode: Int) = when (mode) { 0 -> DEV_KEYS; 1 -> INV_KEYS; else -> SHOW_KEYS }
 
@@ -151,28 +154,10 @@ private fun BootScreen() {
 /** The stacked-sheet mark, drawn rather than shipped as a bitmap. */
 @Composable
 private fun Mark(modifier: Modifier = Modifier) {
-    Canvas(modifier) {
-        val w = size.width
-        drawRoundRect(Color(0xFF0D1015), size = size, cornerRadius = CornerRadius(w * 0.22f))
-        val pad = w * 0.14f
-        val inner = w - pad * 2
-        drawRoundRect(Color(0xFFE3D3B0), topLeft = GOffset(pad, pad),
-            size = GSize(inner, inner), cornerRadius = CornerRadius(w * 0.10f))
-        val gap = inner / 3.55f
-        val sh = gap * 0.60f
-        for (i in 0 until 3) {
-            val cy = pad + gap * 0.52f + i * gap
-            val x0 = pad + inner * 0.12f
-            val x1 = pad + inner * 0.88f
-            val layers = listOf(Color(0xFFBE5518) to 0f, Color(0xFFBE8250) to sh * 0.17f,
-                Color(0xFF8C1C13) to sh * 0.31f, Color(0xFFF2C2CF) to sh * 0.41f)
-            for ((col, ins) in layers) {
-                drawRoundRect(col, topLeft = GOffset(x0 + ins * 1.6f, cy + ins),
-                    size = GSize((x1 - x0) - ins * 3.2f, sh - ins * 2),
-                    cornerRadius = CornerRadius(w * 0.012f))
-            }
-        }
-    }
+    // The launcher artwork, so the header, the boot screen and the home screen
+    // all show the same thing.
+    Image(painter = painterResource(R.drawable.brand_mark), contentDescription = null,
+        modifier = modifier, contentScale = ContentScale.Crop)
 }
 
 /* ============================================================== camera === */
@@ -585,7 +570,8 @@ fun FetLabApp(lib: Library, renderer: Renderer, dynamic: Boolean, onDynamic: (Bo
                             p.visible = !p.visible; layerTick++
                             renderer.capsDirty = true; draw()
                         }
-                        else -> SpecsTab(scene)
+                        3 -> SpecsTab(scene)
+                        else -> StoryTab(scene)
                     }
                 }
             }
@@ -1009,6 +995,36 @@ private fun LayersTab(lib: Library, scene: Scene, tick: Int, onToggle: (Part) ->
                         modifier = Modifier.graphicsLayer { this.alpha = alpha },
                         color = MaterialTheme.colorScheme.onSurface)
                 }
+            }
+        }
+    }
+}
+
+@Composable
+private fun StoryTab(scene: Scene) {
+    val blocks = remember(scene) { storyBlocks(scene.story) }
+    LazyColumn(contentPadding = PaddingValues(bottom = 24.dp)) {
+        if (blocks.isEmpty()) item {
+            Text("No background written for this scene yet.",
+                fontFamily = PlexSans, fontSize = 13.sp,
+                color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+        items(blocks) { b ->
+            when (b.kind) {
+                "h4" -> Text(b.text, fontFamily = PlexSans, fontSize = 14.5f.sp,
+                    fontWeight = FontWeight.SemiBold, lineHeight = 20.sp,
+                    color = MaterialTheme.colorScheme.onBackground,
+                    modifier = Modifier.padding(top = 18.dp, bottom = 6.dp))
+                "li" -> Row(Modifier.padding(bottom = 7.dp)) {
+                    Text("—", fontFamily = PlexSans, fontSize = 13.5f.sp,
+                        color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.padding(end = 8.dp))
+                    Text(b.text, fontFamily = PlexSans, fontSize = 13.5f.sp, lineHeight = 21.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+                else -> Text(b.text, fontFamily = PlexSans, fontSize = 13.5f.sp, lineHeight = 21.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(bottom = 11.dp))
             }
         }
     }

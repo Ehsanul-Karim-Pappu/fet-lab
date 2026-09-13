@@ -165,6 +165,14 @@ td.d{color:var(--ink-2);font-size:12.5px}
   background:var(--surface);border-radius:0 var(--r) var(--r) 0;font-size:13.5px;color:var(--ink-2)}
 .note b{color:var(--ink);font-weight:600}
 .tablewrap{overflow-x:auto}
+.story{margin-top:22px}
+.story h4{margin:20px 0 6px;font-size:14.5px;letter-spacing:-.01em;color:var(--ink)}
+.story h4:first-child{margin-top:4px}
+.story p{margin:0 0 10px;font-size:14px;line-height:1.62;color:var(--ink-2);max-width:74ch}
+.story ul{margin:0 0 12px;padding-left:20px;max-width:74ch}
+.story li{font-size:14px;line-height:1.6;color:var(--ink-2);margin-bottom:5px}
+.story b{color:var(--ink);font-weight:600}
+.story i{font-style:italic}
 /* The small-screen inspector rules live here, after the base ones: a media query adds
    no specificity, so the earlier copy was being overridden by the plain rule below it. */
 @media (max-width:700px){
@@ -278,6 +286,12 @@ td.d{color:var(--ink-2);font-size:12.5px}
   </div>
 </div>
 <div class="note" id="note"></div>
+
+<div class="panel story">
+  <h2>Why this device exists</h2>
+  <p class="sub" id="storysub">The history behind the architecture on screen.</p>
+  <div id="storybody"></div>
+</div>
 
 <footer class="colophon">
   <div class="who">
@@ -959,6 +973,10 @@ function setDevice(key){
       rebuildCaps();render();};
     lwrap.appendChild(d);});
   fillCalouts();
+  document.getElementById("storybody").innerHTML=DEV.story||"";
+  document.getElementById("storysub").textContent=
+    DEV.key.indexOf("cmp")>=0 ? "What drives the whole roadmap."
+                              : `The history behind the ${DEV.tag ? DEV.name.split(" · ")[0] : DEV.name}.`;
   document.getElementById("dimtitle").textContent=
     DEV.key==="cmp"?"Active footprint":(DEV.logic?"Cell summary":"Critical dimensions");
   document.getElementById("dimsub").textContent=DEV.blurb;

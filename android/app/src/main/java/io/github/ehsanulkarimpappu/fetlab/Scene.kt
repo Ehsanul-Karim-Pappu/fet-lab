@@ -51,6 +51,8 @@ class Scene(
     val dims: List<Triple<String, String, String>>, val groups: List<String>
 ) {
     var callouts: List<Callout> = emptyList()
+    /** Written background for this architecture, as a small subset of HTML. */
+    var story: String = ""
 
     val centre get() = floatArrayOf((lo[0] + hi[0]) / 2f, (lo[1] + hi[1]) / 2f, (lo[2] + hi[2]) / 2f)
     val span get() = maxOf(hi[0] - lo[0], hi[1] - lo[1], hi[2] - lo[2])
@@ -140,6 +142,8 @@ class Library(val materials: Map<String, Material>, val order: List<String>, val
                     }
                 }
 
+                val story = d.optString("story", "")
+
                 val dims = ArrayList<Triple<String, String, String>>()
                 (d.opt("dims") as? JSONArray)?.let {
                     for (c in 0 until it.length()) {
@@ -152,6 +156,7 @@ class Library(val materials: Map<String, Material>, val order: List<String>, val
                     d.optString("style", ""), lo, hi, parts, views, dims,
                     d.getJSONArray("groups").toStringList())
                 sc.callouts = cal
+                sc.story = story
                 scenes.add(sc)
             }
             return Library(mats, order, scenes)
