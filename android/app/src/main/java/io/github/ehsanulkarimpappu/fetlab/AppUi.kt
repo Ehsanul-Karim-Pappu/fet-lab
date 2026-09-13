@@ -249,7 +249,7 @@ fun FetLabApp(lib: Library, renderer: Renderer, dynamic: Boolean, onDynamic: (Bo
 
     fun camOf(sc: Scene, v: ViewPreset): Cam {
         val c = v.clip
-        return Cam(v.az, v.el, v.r, v.tgt[0], v.tgt[1], v.tgt[2],
+        return Cam(v.az, v.el, renderer.viewDist(sc, v.az, v.el, v.r), v.tgt[0], v.tgt[1], v.tgt[2],
             if (c?.get(0) != null) frac(c[0]!!, sc.lo[0], sc.hi[0]) else 1f,
             if (c?.get(1) != null) frac(c[1]!!, sc.lo[1], sc.hi[1]) else 1f,
             if (c?.get(2) != null) frac(c[2]!!, sc.lo[2], sc.hi[2]) else 1f)
@@ -438,6 +438,9 @@ fun FetLabApp(lib: Library, renderer: Renderer, dynamic: Boolean, onDynamic: (Bo
                 }
             })
 
+            LaunchedEffect(showDims, viewKey) {
+                renderer.callouts = showDims; renderer.viewKey = viewKey; draw()
+            }
             if (showDims && scene.callouts.isNotEmpty())
                 CalloutOverlay(renderer, scene, viewKey, lightBg)
 
@@ -1026,7 +1029,10 @@ private fun BoxScope.CalloutOverlay(renderer: Renderer, scene: Scene, viewKey: S
     val density = LocalDensity.current
 
     val placed = remember(frame, viewKey, scene) {
-        val shown = scene.callouts.filter { it.views == null || it.views.contains(viewKey) }
+        val shown = scene.callouts.filter {
+            (it.views == null || it.views.contains(viewKey)) &&
+                !(it.lead && it.pids.isNotEmpty())   // those are painted onto the layers now
+        }
         val inv = renderer.pickInv()
         val sil = renderer.silhouette()
         val w = renderer.viewW.toFloat(); val h = renderer.viewH.toFloat()

@@ -165,6 +165,16 @@ td.d{color:var(--ink-2);font-size:12.5px}
   background:var(--surface);border-radius:0 var(--r) var(--r) 0;font-size:13.5px;color:var(--ink-2)}
 .note b{color:var(--ink);font-weight:600}
 .tablewrap{overflow-x:auto}
+/* The small-screen inspector rules live here, after the base ones: a media query adds
+   no specificity, so the earlier copy was being overridden by the plain rule below it. */
+@media (max-width:700px){
+  .stagewrap .cal.flat.sz-l{font-size:13px}
+  .stagewrap .cal.flat.sz-m{font-size:11px}
+  .stagewrap .cal.flat.sz-s{display:none}
+  .stagewrap #inspector{top:28px;bottom:auto;max-width:72%;padding:4px 9px}
+  .stagewrap #inspector .dt{display:none}
+  .stagewrap #inspector .nm{font-size:12px}
+}
 .colophon{margin-top:26px;padding-top:18px;border-top:1px solid var(--line);
   display:flex;flex-wrap:wrap;gap:18px 34px;align-items:flex-start;justify-content:space-between;
   font-size:13px;color:var(--ink-2);line-height:1.55}
@@ -340,6 +350,55 @@ const U={vp:gl.getUniformLocation(PROG,"uVP"),e:gl.getUniformLocation(PROG,"uE")
   tint:gl.getUniformLocation(PROG,"uTint"),clip:gl.getUniformLocation(PROG,"uClip"),
   add:gl.getUniformLocation(PROG,"uAdd"),flat:gl.getUniformLocation(PROG,"uFlat"),tex:gl.getUniformLocation(PROG,"uTex")};
 
+/* ---- surface text: layer names lying on the faces they belong to ---- */
+const TVS=`attribute vec3 aP;attribute vec2 aT;uniform mat4 uVP;varying vec2 vT;
+void main(){vT=aT;gl_Position=uVP*vec4(aP,1.0);}`;
+const TFS=`precision mediump float;varying vec2 vT;uniform sampler2D uS;uniform float uA;
+void main(){vec4 t=texture2D(uS,vT);if(t.a<0.02)discard;gl_FragColor=vec4(t.rgb,t.a*uA);}`;
+const TPROG=gl.createProgram();
+gl.attachShader(TPROG,sh(gl.VERTEX_SHADER,TVS));gl.attachShader(TPROG,sh(gl.FRAGMENT_SHADER,TFS));
+gl.linkProgram(TPROG);
+const TA={p:gl.getAttribLocation(TPROG,"aP"),t:gl.getAttribLocation(TPROG,"aT")};
+const TU={vp:gl.getUniformLocation(TPROG,"uVP"),s:gl.getUniformLocation(TPROG,"uS"),
+          a:gl.getUniformLocation(TPROG,"uA")};
+const TB={p:gl.createBuffer(),t:gl.createBuffer()};
+
+// One atlas holding every label string, drawn white with a dark halo so it stays
+// readable whichever colour of slab it ends up lying on.
+const GLYPH={}, ATLAS=document.createElement("canvas");
+(function buildAtlas(){
+  const names=new Set();
+  DEVS.forEach(d=>(d.callouts||[]).forEach(c=>{if(c.lead)names.add(c.label);}));
+  const list=[...names], PAD=10, FS=72, ctx0=ATLAS.getContext("2d");
+  ctx0.font=`600 ${FS}px "IBM Plex Sans","Segoe UI",system-ui,sans-serif`;
+  const widths=list.map(t=>Math.ceil(ctx0.measureText(t).width));
+  const rowH=FS+PAD*2, cols=Math.max(1,Math.ceil(Math.sqrt(list.length)));
+  let W=0,x=0,y=0,rows=1;
+  const place=[];
+  for(let i=0;i<list.length;i++){
+    const w=widths[i]+PAD*2;
+    if(i%cols===0&&i>0){x=0;y+=rowH;rows++;}
+    place.push([x,y,w]);x+=w;W=Math.max(W,x);}
+  ATLAS.width=Math.max(2,W);ATLAS.height=Math.max(2,rows*rowH);
+  const ctx=ATLAS.getContext("2d");
+  ctx.font=`600 ${FS}px "IBM Plex Sans","Segoe UI",system-ui,sans-serif`;
+  ctx.textBaseline="middle";ctx.lineJoin="round";
+  list.forEach((t,i)=>{const [px,py,w]=place[i];
+    ctx.lineWidth=9;ctx.strokeStyle="rgba(9,13,19,0.92)";
+    ctx.strokeText(t,px+PAD,py+rowH/2);
+    ctx.fillStyle="#FFFFFF";ctx.fillText(t,px+PAD,py+rowH/2);
+    GLYPH[t]={u0:px/ATLAS.width,v0:py/ATLAS.height,
+              u1:(px+w)/ATLAS.width,v1:(py+rowH)/ATLAS.height,
+              aspect:w/rowH};});
+})();
+const TEX=gl.createTexture();
+gl.bindTexture(gl.TEXTURE_2D,TEX);
+gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,gl.RGBA,gl.UNSIGNED_BYTE,ATLAS);
+gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,gl.LINEAR);
+gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MAG_FILTER,gl.LINEAR);
+gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_S,gl.CLAMP_TO_EDGE);
+gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_T,gl.CLAMP_TO_EDGE);
+
 /* ---- geometry: every device in one buffer ---- */
 const hex=h=>[parseInt(h.slice(1,3),16)/255,parseInt(h.slice(3,5),16)/255,parseInt(h.slice(5,7),16)/255];
 const FACES=[[[0,0,1],[[-1,-1,1],[1,-1,1],[1,1,1],[-1,1,1]]],[[0,0,-1],[[1,-1,-1],[-1,-1,-1],[-1,1,-1],[1,1,-1]]],
@@ -500,11 +559,115 @@ function draw(){
     gl.enableVertexAttribArray(A.nrm);gl.enableVertexAttribArray(A.col);
     gl.uniform3f(U.add,0,0,0);
   }
+  surfaceText();
   gl.disable(gl.BLEND);labels();}
 let raf=0;
 const render=()=>{if(!raf)raf=requestAnimationFrame(()=>{raf=0;draw();});};
 function loop(){if(!S.spin)return;S.az+=RM?0:0.0032;setView(null);draw();requestAnimationFrame(loop);}
-addEventListener("resize",render);
+addEventListener("resize",()=>{
+  if(S.view&&DEV.views[S.view])S.r=viewR(DEV.views[S.view]);
+  render();});
+
+/* ---- surface text: pick a face the camera can read, lay the name on it ---- */
+function boxesOf(pid){
+  const ids=Array.isArray(pid)?pid:[pid],out=[];
+  for(const id of ids){const part=DEV.parts.find(q=>q.id===id);
+    if(part)part.boxes.forEach((b,bi)=>out.push({part,bi,b,vol:b[3]*b[4]*b[5]}));}
+  return out.sort((a,b)=>b.vol-a.vol).slice(0,2);}
+
+function textQuad(c,e,ctx){
+  const g=GLYPH[c.label]; if(!g)return null;
+  let best=null,bs=-1e9;
+  for(const r of boxesOf(c.pid)){
+    const a=OFFB(r.part,r.bi);
+    const cen=[(a.lo[0]+a.hi[0])/2,(a.lo[1]+a.hi[1])/2,(a.lo[2]+a.hi[2])/2];
+    const h=[(a.hi[0]-a.lo[0])/2,(a.hi[1]-a.lo[1])/2,(a.hi[2]-a.lo[2])/2];
+    for(let ax=0;ax<3;ax++)for(const sg of [-1,1]){
+      const n=[0,0,0];n[ax]=sg;
+      const fc=[cen[0],cen[1],cen[2]];fc[ax]+=sg*(h[ax]+0.35);
+      const tc=nrm([e[0]-fc[0],e[1]-fc[1],e[2]-fc[2]]);
+      const face=n[0]*tc[0]+n[1]*tc[1]+n[2]*tc[2];
+      if(face<0.18)continue;                        // edge-on or facing away
+      const u=(ax+1)%3,v=(ax+2)%3;
+      // text must run horizontally: on a side face that is whichever of x/z is in
+      // plane, with world up as the text's up; on a top face, the longer in-plane axis
+      let dA,uA;
+      if(ax===1){ dA=h[u]>=h[v]?u:v; uA=dA===u?v:u; }
+      else      { dA=(u===1)?v:u;    uA=1; }
+      // Sample across the face rather than testing its centre alone: a slab is often
+      // half-hidden behind the next one, and the readable part is whatever is left.
+      let seen=0,ax0=0,ax1=0;
+      for(const [ta,tb] of [[0,0],[-0.62,0],[0.62,0],[0,-0.6],[0,0.6],
+                           [-0.5,0.78],[0.5,0.78],[0,0.78]]){
+        const q=[fc[0],fc[1],fc[2]];
+        q[dA]+=ta*h[dA];q[uA]+=tb*h[uA];
+        if(!seesPoint(q,r.part.id,ctx))continue;
+        seen++;ax0+=ta*h[dA];ax1+=tb*h[uA];}
+      if(!seen)continue;                            // nothing of this face is in view
+      const off=[ax0/seen,ax1/seen];                // sit on the part that is visible
+      const sc=face*Math.max(h[dA],0.01)*Math.max(h[uA],0.01)*(seen/8);
+      if(sc>bs){bs=sc;best={cen,h,ax,sg,fc,dA,uA,off};}
+    }}
+  if(!best)return null;
+  const {h,dA,uA,off}=best;
+  const fc=[best.fc[0],best.fc[1],best.fc[2]];
+  fc[dA]+=off[0];fc[uA]+=off[1];
+  // orient the axes so the text reads left-to-right, upright, from where we are
+  const ori=(axis)=>{const p0=proj(fc),d=[0,0,0];d[axis]=1;
+    const p1=proj([fc[0]+d[0],fc[1]+d[1],fc[2]+d[2]]);
+    return (p0&&p1)?[p1[0]-p0[0],p1[1]-p0[1]]:[1,0];};
+  const od=ori(dA),ou=ori(uA);
+  const ds=od[0]>=0?1:-1, us=ou[1]<=0?1:-1;
+  const dir=[0,0,0];dir[dA]=ds;
+  const up=[0,0,0];up[uA]=us;
+  const B=DEV.bounds;
+  const span=Math.max(B.x[1]-B.x[0],B.y[1]-B.y[0],B.z[1]-B.z[0]);
+  const nominal=span*0.042;                       // every name the same size...
+  let hgt=Math.min(nominal, h[uA]*2*0.62, h[dA]*2*0.88/g.aspect);   // ...unless it will not fit
+  if(hgt<span*0.024)return null;                  // too small to read: leave it off
+  const wid=hgt*g.aspect, hw=wid/2, hh=hgt/2;
+  // keep the whole name on the face it belongs to
+  fc[dA]=Math.max(best.fc[dA]-h[dA]+hw, Math.min(best.fc[dA]+h[dA]-hw, fc[dA]));
+  fc[uA]=Math.max(best.fc[uA]-h[uA]+hh, Math.min(best.fc[uA]+h[uA]-hh, fc[uA]));
+  const pt=(a,b)=>[fc[0]+dir[0]*a+up[0]*b, fc[1]+dir[1]*a+up[1]*b, fc[2]+dir[2]*a+up[2]*b];
+  const q=[pt(-hw,-hh),pt(hw,-hh),pt(hw,hh),pt(-hw,hh)];
+  let x0=1e9,y0=1e9,x1=-1e9,y1=-1e9;
+  for(const v of q){const sp=proj(v); if(!sp)return null;
+    x0=Math.min(x0,sp[0]);x1=Math.max(x1,sp[0]);y0=Math.min(y0,sp[1]);y1=Math.max(y1,sp[1]);}
+  return {q,g,sb:[x0,y0,x1,y1],area:(x1-x0)*(y1-y0)};}
+
+function surfaceText(){
+  if(!S.dims)return;
+  const cal=(DEV.callouts||[]).filter(c=>c.lead&&c.pid&&(!c.v||c.v.indexOf(S.lset)>=0));
+  if(!cal.length)return;
+  const e=eye(),ctx=pickCtx(),P=[],T=[],taken=[];
+  const boxes=[];
+  for(const c of cal){const r=textQuad(c,e,ctx); if(r)boxes.push({c,r,area:r.area});}
+  boxes.sort((a,b)=>b.area-a.area);               // biggest, clearest name wins a spot
+  for(const {r} of boxes){
+    const sb=r.sb;
+    const clash=taken.some(t=>{
+      const ox=Math.min(t[2],sb[2])-Math.max(t[0],sb[0]);
+      const oy=Math.min(t[3],sb[3])-Math.max(t[1],sb[1]);
+      if(ox<=0||oy<=0)return false;
+      return (ox*oy)/Math.max(1,(sb[2]-sb[0])*(sb[3]-sb[1]))>0.16;});
+    if(clash)continue;
+    taken.push(sb);
+    const G=r.g;
+    const uv=[[G.u0,G.v1],[G.u1,G.v1],[G.u1,G.v0],[G.u0,G.v0]];
+    [[0,1,2],[0,2,3]].forEach(tri=>tri.forEach(k=>{
+      const v=r.q[k];P.push(v[0],v[1],v[2]);T.push(uv[k][0],uv[k][1]);}));}
+  if(!P.length)return;
+  gl.useProgram(TPROG);
+  gl.bindBuffer(gl.ARRAY_BUFFER,TB.p);gl.bufferData(gl.ARRAY_BUFFER,new Float32Array(P),gl.DYNAMIC_DRAW);
+  gl.enableVertexAttribArray(TA.p);gl.vertexAttribPointer(TA.p,3,gl.FLOAT,false,0,0);
+  gl.bindBuffer(gl.ARRAY_BUFFER,TB.t);gl.bufferData(gl.ARRAY_BUFFER,new Float32Array(T),gl.DYNAMIC_DRAW);
+  gl.enableVertexAttribArray(TA.t);gl.vertexAttribPointer(TA.t,2,gl.FLOAT,false,0,0);
+  gl.uniformMatrix4fv(TU.vp,false,VP);gl.uniform1f(TU.a,1);
+  gl.activeTexture(gl.TEXTURE0);gl.bindTexture(gl.TEXTURE_2D,TEX);gl.uniform1i(TU.s,0);
+  gl.drawArrays(gl.TRIANGLES,0,P.length/3);
+  gl.disableVertexAttribArray(TA.p);gl.disableVertexAttribArray(TA.t);
+  gl.useProgram(PROG);}
 
 /* ---- callout labels ---- */
 const ov=document.getElementById("overlay"),svg=document.getElementById("leaders");
@@ -564,7 +727,7 @@ function labels(){
   const CX=(SX0+SX1)/2, PCTX=pickCtx();
   const live=[];
   calEls.forEach((el,i)=>{const c=el._c,ln=lines[i];
-    if(!c){el.style.display="none";ln.g.style.display="none";return;}
+    if(!c||(c.lead&&c.pid)){el.style.display="none";ln.g.style.display="none";return;}
     let a=proj(c.a);
     if(c.lead&&el._pts){                       // anchor on a face the camera can see
       let best=null,bs=-1e9, sd=c.sd||0;
@@ -607,10 +770,13 @@ function labels(){
   rest.sort((p,q)=>p.y-q.y);
   rest.forEach(p=>{p.x=Math.max(p.w/2+PAD,Math.min(W-p.w/2-PAD,p.x));
                    p.y=Math.max(p.h/2+TOP,Math.min(H-p.h/2-BOT,p.y));});
-  for(let k=0;k<3;k++)for(let i=1;i<rest.length;i++){const a=rest[i-1],b=rest[i];
-    if(a.flat||b.flat)continue;
-    const need=(a.h+b.h)/2+9;
-    if(Math.abs(b.x-a.x)<(a.w+b.w)/2+6&&b.y-a.y<need)b.y=a.y+need;}
+  for(let k=0;k<6;k++){
+    rest.sort((p,q)=>p.y-q.y);
+    for(let i=1;i<rest.length;i++){const a=rest[i-1],b=rest[i];
+      if(a.flat||b.flat)continue;
+      const need=(a.h+b.h)/2+8;
+      if(Math.abs(b.x-a.x)<(a.w+b.w)/2+4&&b.y-a.y<need)b.y=a.y+need;}}
+  rest.forEach(p=>{p.y=Math.max(p.h/2+TOP,Math.min(H-p.h/2-BOT,p.y));});
 
   const DARKBG=!S.lightBg;
   const LEAD=DARKBG?"#8A97A8":"#59636F", DOT=DARKBG?"#AEB9C8":"#454F5C";
@@ -659,6 +825,9 @@ function invVP(){const m=VP,v=new Float32Array(16);
  let d=m[0]*v[0]+m[1]*v[4]+m[2]*v[8]+m[3]*v[12];if(!d)return null;d=1/d;
  for(let i=0;i<16;i++)v[i]*=d;return v;}
 function pickCtx(){const inv=invVP();return inv?{e:eye(),inv}:null;}
+// Distance along the ray of the last hit, plus that ray, so a caller can ask not just
+// "did I hit this part" but "did I hit it HERE" — a part often has another box in front.
+let PICK_T=0,PICK_O=null,PICK_D=null;
 function pick(px,py,ctx){
   const c=ctx||pickCtx(); if(!c)return null; const e=c.e,inv=c.inv;
   const ndc=[(px/W)*2-1,1-(py/H)*2];
@@ -666,6 +835,7 @@ function pick(px,py,ctx){
     for(let i=0;i<4;i++)o[i]=inv[0+i]*q[0]+inv[4+i]*q[1]+inv[8+i]*q[2]+inv[12+i]*q[3];
     return[o[0]/o[3],o[1]/o[3],o[2]/o[3]];};
   const d=nrm(sub(un(1),un(-1)));let best=null,bt=1e9;
+  PICK_O=e;PICK_D=d;          // t below is measured from the eye
   DEV.parts.forEach(p=>{if(!p.on)return;
     p.aabb.forEach((_,i)=>{const a=OFFB(p,i);
       const hi=[Math.min(a.hi[0],S.clip[0]),Math.min(a.hi[1],S.clip[1]),Math.min(a.hi[2],S.clip[2])];
@@ -675,7 +845,14 @@ function pick(px,py,ctx){
         let ta=(a.lo[k]-e[k])/d[k],tb=(hi[k]-e[k])/d[k];if(ta>tb){const s=ta;ta=tb;tb=s;}
         t0=Math.max(t0,ta);t1=Math.min(t1,tb);if(t0>t1)return;}
       if(t0>0&&t0<bt){bt=t0;best=p;}});});
-  return best;}
+  PICK_T=bt;return best;}
+/** True when the frontmost thing along the ray through `q` is that part, at `q` itself. */
+function seesPoint(q,pid,ctx){
+  const sp=proj(q); if(!sp||sp[0]<0||sp[0]>W||sp[1]<0||sp[1]>H)return false;
+  const hit=pick(sp[0],sp[1],ctx);
+  if(!hit||hit.id!==pid||!PICK_O)return false;
+  const want=(q[0]-PICK_O[0])*PICK_D[0]+(q[1]-PICK_O[1])*PICK_D[1]+(q[2]-PICK_O[2])*PICK_D[2];
+  return Math.abs(PICK_T-want)<2.0;}
 
 /* ---- interaction ---- */
 let drag=null;
@@ -780,8 +957,30 @@ function setDevice(key){
   applyView(Object.keys(DEV.views)[0]);}
 function setView(k){S.view=k;vwrap.querySelectorAll("button").forEach(b=>b.setAttribute("aria-pressed",String(b.dataset.k===k)));
   document.getElementById("hudview").textContent=k?DEV.views[k].n:"Free orbit";}
+/**
+ * Distance at which the whole scene just fits, for a given orientation and stage shape.
+ * The presets were authored against a wide stage; on a tall phone the limiting dimension
+ * is the width instead, so without this the model sits tiny in a sea of empty space.
+ */
+function fitDist(az,el,aspect){
+  const B=DEV.bounds,ce=Math.cos(el);
+  const f=[-ce*Math.sin(az),-Math.sin(el),-ce*Math.cos(az)];
+  const rt=nrm(cross(f,[0,1,0])),up=cross(rt,f);
+  const c=[(B.x[0]+B.x[1])/2,(B.y[0]+B.y[1])/2,(B.z[0]+B.z[1])/2];
+  let hw=0,hh=0;
+  for(const X of B.x)for(const Y of B.y)for(const Z of B.z){
+    const d=[X-c[0],Y-c[1],Z-c[2]];
+    hw=Math.max(hw,Math.abs(d[0]*rt[0]+d[1]*rt[1]+d[2]*rt[2]));
+    hh=Math.max(hh,Math.abs(d[0]*up[0]+d[1]*up[1]+d[2]*up[2]));}
+  const t=Math.tan(0.31);
+  const rv=hh/t, rh=hw/(t*Math.max(aspect,0.05));
+  return Math.min(Math.max(rv,rh), rv*2.4);}
+/** Each preset keeps the framing it was authored with, re-fitted to this stage. */
+function viewR(v){
+  const a=W/H, ref=fitDist(v.az,v.el,1.5);
+  return ref>0 ? v.r*fitDist(v.az,v.el,a)/ref : v.r;}
 function applyView(k){const v=DEV.views[k],B=DEV.bounds;
-  S.az=v.az;S.el=v.el;S.r=v.r;S.tgt=v.tgt.slice();S.lset=k;
+  S.az=v.az;S.el=v.el;S.r=viewR(v);S.tgt=v.tgt.slice();S.lset=k;
   const c=v.clip||[null,null,null];
   S.clip=[c[0]==null?B.x[1]:c[0], c[1]==null?B.y[1]:c[1], c[2]==null?B.z[1]:c[2]];
   DEV.parts.forEach(p=>{const want=!(v.off&&v.off.indexOf(p.id)>=0);

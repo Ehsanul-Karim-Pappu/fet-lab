@@ -97,7 +97,6 @@ def deck(d, holes, arch_note, wall=None):
     L(d, "SiO₂", [54, mid(YOX0, YOX1), 30], "m", "dark", LAYER_VIEWS, sd=1, pid="fox")
     L(d, "MD", [XMD1, mid(YOX1, YMD1), 20], "m", "dark", LAYER_VIEWS, sd=1, pid="md_out")
     L(d, "VD", [29, mid(YMD1, YV1), 11], "s", "dark", LAYER_VIEWS, sd=1, pid="vd_out")
-    L(d, "Metal 0", [54, mid(YM0, YM1), ZBAR["vdd"]], "m", "dark", LAYER_VIEWS, sd=1, pid="m0_vdd")
     # left-hand column
     L(d, "MD", [-XMD1, mid(YOX1, YMD1), -20], "m", "dark", LAYER_VIEWS, sd=-1, pid="md_gnd")
     L(d, "Po", [-XPO, mid(YMD1, YPO1), -30], "m", "dark", LAYER_VIEWS, pid="po")
@@ -311,7 +310,6 @@ def show_cfet():
     L(d, "Tier isolation", [XW, mid(*YMDI), 24], "m", "dark", LAYER_VIEWS, sd=1, pid="mdi")
     L(d, "MD", [XMD1, mid(*MDT), 20], "m", "dark", LAYER_VIEWS, sd=1, pid=["md_outt", "md_vdd"])
     L(d, "VD", [29, mid(*YVD), 4], "s", "dark", LAYER_VIEWS, sd=1, pid="vd_out")
-    L(d, "Metal 0", [54, mid(*YM), ZB["vdd"]], "m", "dark", LAYER_VIEWS, sd=1, pid="m0_vdd")
     # left-hand column
     L(d, "GND", [-56, mid(*YBM), -20], "m", "dark", LAYER_VIEWS, sd=-1, pid="bm")
     L(d, "MD", [-XMD1, mid(*MDB), -20], "m", "dark", LAYER_VIEWS, sd=-1, pid="md_gnd")

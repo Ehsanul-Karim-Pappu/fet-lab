@@ -1,7 +1,13 @@
 package io.github.ehsanulkarimpappu.fetlab
 
+import android.graphics.Bitmap
+import android.graphics.Canvas
+import android.graphics.Color as AColor
+import android.graphics.Paint
+import android.graphics.Typeface
 import android.opengl.GLES20 as G
 import android.opengl.GLSurfaceView
+import android.opengl.GLUtils
 import android.opengl.Matrix
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
@@ -13,6 +19,18 @@ import kotlin.math.abs
 import kotlin.math.cos
 import kotlin.math.hypot
 import kotlin.math.sin
+
+private const val TVS = """
+attribute vec3 aP; attribute vec2 aT; uniform mat4 uVP; varying vec2 vT;
+void main() { vT = aT; gl_Position = uVP * vec4(aP, 1.0); }
+"""
+
+private const val TFS = """
+precision mediump float;
+varying vec2 vT; uniform sampler2D uS; uniform float uA;
+void main() { vec4 t = texture2D(uS, vT); if (t.a < 0.02) discard;
+  gl_FragColor = vec4(t.rgb, t.a * uA); }
+"""
 
 private const val VS = """
 attribute vec3 aPos; attribute vec3 aNrm; attribute vec3 aCol; attribute vec3 aExp;
@@ -65,6 +83,10 @@ class Renderer(private val lib: Library) : GLSurfaceView.Renderer {
 
     // ---- state written from the UI thread -------------------------------
     @Volatile var scene: Scene = lib.scenes[0]
+    /** Whether the "Dimension callouts" switch is on, and which preset is showing —
+     *  the surface names follow both, the same as the flat callouts do. */
+    @Volatile var callouts = true
+    @Volatile var viewKey = ""
     @Volatile var az = -0.8f
     @Volatile var el = 0.34f
     @Volatile var dist = 300f
@@ -91,6 +113,15 @@ class Renderer(private val lib: Library) : GLSurfaceView.Renderer {
     private val lbo = IntArray(2)      // edge outlines: pos, exp
     private val cbo = IntArray(4)      // cap pos, nrm, col, exp
     private val clbo = IntArray(2)     // outlines around the cut faces: pos, exp
+    private val tbo = IntArray(2)      // surface text: pos, uv
+    private var tProg = 0
+    private var taP = 0; private var taT = 0
+    private var tuVP = 0; private var tuS = 0; private var tuA = 0
+    private var tTex = 0
+    private val glyphs = HashMap<String, FloatArray>()   // label -> u0,v0,u1,v1,aspect
+    private val textPos = alloc(9000)
+    private val textUV = alloc(6000)
+    private var textVerts = 0
     private var capVerts = 0
     private var capLineVerts = 0
     private var ready = false
@@ -203,6 +234,12 @@ class Renderer(private val lib: Library) : GLSurfaceView.Renderer {
         upload(lbo[0], lposB); upload(lbo[1], lexpB)
         G.glBindBuffer(G.GL_ELEMENT_ARRAY_BUFFER, vbo[4])
         G.glBufferData(G.GL_ELEMENT_ARRAY_BUFFER, idxB.capacity() * 2, idxB, G.GL_STATIC_DRAW)
+        tProg = link(TVS, TFS)
+        taP = G.glGetAttribLocation(tProg, "aP"); taT = G.glGetAttribLocation(tProg, "aT")
+        tuVP = G.glGetUniformLocation(tProg, "uVP"); tuS = G.glGetUniformLocation(tProg, "uS")
+        tuA = G.glGetUniformLocation(tProg, "uA")
+        G.glGenBuffers(2, tbo, 0)
+        buildGlyphAtlas()
         G.glEnable(G.GL_DEPTH_TEST); G.glDisable(G.GL_CULL_FACE)
         ready = true; capsDirty = true
     }
@@ -291,6 +328,7 @@ class Renderer(private val lib: Library) : GLSurfaceView.Renderer {
             G.glEnableVertexAttribArray(aNrm); G.glEnableVertexAttribArray(aCol)
             G.glUniform3f(uAdd, 0f, 0f, 0f)
         }
+        drawSurfaceText()
         G.glDisable(G.GL_BLEND)
     }
 
@@ -344,6 +382,54 @@ class Renderer(private val lib: Library) : GLSurfaceView.Renderer {
             "chan_n" -> if (hi) floatArrayOf(1f, loC[0], loC[1], loC[2]) else floatArrayOf(0.38f, 0f, 0f, 0f)
             else -> floatArrayOf(1f, 0f, 0f, 0f)
         }
+    }
+
+    /**
+     * Every layer name drawn once into a single texture, white with a dark halo so it
+     * stays readable whichever colour of slab it ends up lying on.
+     */
+    private fun buildGlyphAtlas() {
+        val names = LinkedHashSet<String>()
+        for (sc in lib.scenes) for (c in sc.callouts) if (c.lead) names.add(c.label)
+        if (names.isEmpty()) return
+        val fs = 72f; val pad = 10
+        val fill = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            textSize = fs; color = AColor.WHITE
+            typeface = Typeface.create(Typeface.SANS_SERIF, Typeface.BOLD)
+        }
+        val halo = Paint(fill).apply {
+            style = Paint.Style.STROKE; strokeWidth = 9f; strokeJoin = Paint.Join.ROUND
+            color = AColor.argb(235, 9, 13, 19)
+        }
+        val list = names.toList()
+        val rowH = (fs + pad * 2).toInt()
+        val cols = Math.max(1, Math.ceil(Math.sqrt(list.size.toDouble())).toInt())
+        val widths = list.map { Math.ceil(fill.measureText(it).toDouble()).toInt() + pad * 2 }
+        var w = 0; var x = 0; var y = 0; var rows = 1
+        val place = ArrayList<IntArray>()
+        for (i in list.indices) {
+            if (i % cols == 0 && i > 0) { x = 0; y += rowH; rows++ }
+            place.add(intArrayOf(x, y, widths[i])); x += widths[i]; if (x > w) w = x
+        }
+        val bmp = Bitmap.createBitmap(Math.max(2, w), Math.max(2, rows * rowH), Bitmap.Config.ARGB_8888)
+        val cv = Canvas(bmp)
+        val baseline = rowH / 2f + fs * 0.35f
+        list.forEachIndexed { i, t ->
+            val (px, py, pw) = Triple(place[i][0], place[i][1], place[i][2])
+            cv.drawText(t, (px + pad).toFloat(), py + baseline, halo)
+            cv.drawText(t, (px + pad).toFloat(), py + baseline, fill)
+            glyphs[t] = floatArrayOf(px / bmp.width.toFloat(), py / bmp.height.toFloat(),
+                (px + pw) / bmp.width.toFloat(), (py + rowH) / bmp.height.toFloat(),
+                pw / rowH.toFloat())
+        }
+        val tex = IntArray(1); G.glGenTextures(1, tex, 0); tTex = tex[0]
+        G.glBindTexture(G.GL_TEXTURE_2D, tTex)
+        GLUtils.texImage2D(G.GL_TEXTURE_2D, 0, bmp, 0)
+        G.glTexParameteri(G.GL_TEXTURE_2D, G.GL_TEXTURE_MIN_FILTER, G.GL_LINEAR)
+        G.glTexParameteri(G.GL_TEXTURE_2D, G.GL_TEXTURE_MAG_FILTER, G.GL_LINEAR)
+        G.glTexParameteri(G.GL_TEXTURE_2D, G.GL_TEXTURE_WRAP_S, G.GL_CLAMP_TO_EDGE)
+        G.glTexParameteri(G.GL_TEXTURE_2D, G.GL_TEXTURE_WRAP_T, G.GL_CLAMP_TO_EDGE)
+        bmp.recycle()
     }
 
     // ---- section caps ----------------------------------------------------
@@ -427,6 +513,190 @@ class Renderer(private val lib: Library) : GLSurfaceView.Renderer {
      */
     private val tanHalfFov = 0.3249f
 
+    // ---- surface text ----------------------------------------------------
+    private class Quad(val q: Array<FloatArray>, val g: FloatArray,
+                       val sb: FloatArray, val area: Float)
+
+    /** Build the quad for one label, on whichever face of its part reads best from here. */
+    private fun textQuad(c: Callout, e: FloatArray, inv: FloatArray?): Quad? {
+        val g = glyphs[c.label] ?: return null
+        val sc = scene
+        val refs = ArrayList<Pair<Part, Int>>()
+        for (id in c.pids) {
+            val part = sc.parts.firstOrNull { it.id == id } ?: continue
+            for (bi in part.boxes.indices) refs.add(part to bi)
+        }
+        if (refs.isEmpty()) return null
+        refs.sortByDescending { val b = it.first.boxes[it.second]; b[3] * b[4] * b[5] }
+        val probes = arrayOf(floatArrayOf(0f, 0f), floatArrayOf(-0.62f, 0f), floatArrayOf(0.62f, 0f),
+            floatArrayOf(0f, -0.6f), floatArrayOf(0f, 0.6f),
+            floatArrayOf(-0.5f, 0.78f), floatArrayOf(0.5f, 0.78f), floatArrayOf(0f, 0.78f))
+        var bs = -Float.MAX_VALUE
+        var bFc: FloatArray? = null; var bH: FloatArray? = null
+        var bD = 0; var bU = 0; var bOff = floatArrayOf(0f, 0f)
+        for ((part, bi) in refs.take(2)) {
+            val (lo, hi) = offsetBox(part, bi)
+            val cen = floatArrayOf((lo[0] + hi[0]) / 2f, (lo[1] + hi[1]) / 2f, (lo[2] + hi[2]) / 2f)
+            val h = floatArrayOf((hi[0] - lo[0]) / 2f, (hi[1] - lo[1]) / 2f, (hi[2] - lo[2]) / 2f)
+            for (ax in 0 until 3) for (sg in intArrayOf(-1, 1)) {
+                val fc = cen.copyOf(); fc[ax] += sg * (h[ax] + 0.35f)
+                var tx = e[0] - fc[0]; var ty = e[1] - fc[1]; var tz = e[2] - fc[2]
+                val tl = kotlin.math.sqrt(tx * tx + ty * ty + tz * tz).let { if (it < 1e-6f) 1f else it }
+                tx /= tl; ty /= tl; tz /= tl
+                val face = sg * (if (ax == 0) tx else if (ax == 1) ty else tz)
+                if (face < 0.18f) continue
+                val u = (ax + 1) % 3; val v = (ax + 2) % 3
+                val dA: Int; val uA: Int
+                if (ax == 1) { dA = if (h[u] >= h[v]) u else v; uA = if (dA == u) v else u }
+                else { dA = if (u == 1) v else u; uA = 1 }
+                var seen = 0; var o0 = 0f; var o1 = 0f
+                for (pr in probes) {
+                    val q = fc.copyOf()
+                    q[dA] += pr[0] * h[dA]; q[uA] += pr[1] * h[uA]
+                    if (!seesPoint(q, part.id, inv)) continue
+                    seen++; o0 += pr[0] * h[dA]; o1 += pr[1] * h[uA]
+                }
+                if (seen == 0) continue
+                val score = face * Math.max(h[dA], 0.01f) * Math.max(h[uA], 0.01f) * (seen / 8f)
+                if (score > bs) {
+                    bs = score; bFc = fc; bH = h; bD = dA; bU = uA
+                    bOff = floatArrayOf(o0 / seen, o1 / seen)
+                }
+            }
+        }
+        val fc0 = bFc ?: return null
+        val h = bH ?: return null
+        val fc = fc0.copyOf()
+        fc[bD] += bOff[0]; fc[bU] += bOff[1]
+
+        // orient so the name reads left to right, upright, from where the camera is
+        fun screenDir(axis: Int): FloatArray {
+            val p0 = project(fc0) ?: return floatArrayOf(1f, 0f)
+            val d = fc0.copyOf(); d[axis] += 1f
+            val p1 = project(d) ?: return floatArrayOf(1f, 0f)
+            return floatArrayOf(p1[0] - p0[0], p1[1] - p0[1])
+        }
+        val ds = if (screenDir(bD)[0] >= 0f) 1f else -1f
+        val us = if (screenDir(bU)[1] <= 0f) 1f else -1f
+        val dir = FloatArray(3); dir[bD] = ds
+        val up = FloatArray(3); up[bU] = us
+
+        val span = Math.max(sc.hi[0] - sc.lo[0], Math.max(sc.hi[1] - sc.lo[1], sc.hi[2] - sc.lo[2]))
+        var hgt = Math.min(span * 0.042f, Math.min(h[bU] * 2f * 0.62f, h[bD] * 2f * 0.88f / g[4]))
+        if (hgt < span * 0.024f) return null          // too small to read: leave it off
+        val wid = hgt * g[4]; val hw = wid / 2f; val hh = hgt / 2f
+        fc[bD] = Math.max(fc0[bD] - h[bD] + hw, Math.min(fc0[bD] + h[bD] - hw, fc[bD]))
+        fc[bU] = Math.max(fc0[bU] - h[bU] + hh, Math.min(fc0[bU] + h[bU] - hh, fc[bU]))
+
+        fun corner(a: Float, b: Float) = floatArrayOf(
+            fc[0] + dir[0] * a + up[0] * b, fc[1] + dir[1] * a + up[1] * b, fc[2] + dir[2] * a + up[2] * b)
+        val quad = arrayOf(corner(-hw, -hh), corner(hw, -hh), corner(hw, hh), corner(-hw, hh))
+        var x0 = Float.MAX_VALUE; var y0 = Float.MAX_VALUE
+        var x1 = -Float.MAX_VALUE; var y1 = -Float.MAX_VALUE
+        for (p in quad) {
+            val sp = project(p) ?: return null
+            if (sp[0] < x0) x0 = sp[0]; if (sp[0] > x1) x1 = sp[0]
+            if (sp[1] < y0) y0 = sp[1]; if (sp[1] > y1) y1 = sp[1]
+        }
+        return Quad(quad, g, floatArrayOf(x0, y0, x1, y1), (x1 - x0) * (y1 - y0))
+    }
+
+    /** Lay every layer name that fits onto the geometry, biggest first. */
+    private fun buildSurfaceText() {
+        textPos.clear(); textUV.clear(); textVerts = 0
+        if (!callouts || glyphs.isEmpty()) return
+        val sc = scene
+        val want = sc.callouts.filter {
+            it.lead && it.pids.isNotEmpty() && (it.views == null || it.views.contains(viewKey))
+        }
+        if (want.isEmpty()) return
+        val inv = pickInv()
+        val made = ArrayList<Quad>()
+        for (c in want) textQuad(c, eye, inv)?.let { made.add(it) }
+        made.sortByDescending { it.area }
+        val taken = ArrayList<FloatArray>()
+        for (q in made) {
+            val sb = q.sb
+            val clash = taken.any { t ->
+                val ox = Math.min(t[2], sb[2]) - Math.max(t[0], sb[0])
+                val oy = Math.min(t[3], sb[3]) - Math.max(t[1], sb[1])
+                ox > 0f && oy > 0f &&
+                    (ox * oy) / Math.max(1f, (sb[2] - sb[0]) * (sb[3] - sb[1])) > 0.16f
+            }
+            if (clash) continue
+            taken.add(sb)
+            val g = q.g
+            val uv = arrayOf(floatArrayOf(g[0], g[3]), floatArrayOf(g[2], g[3]),
+                floatArrayOf(g[2], g[1]), floatArrayOf(g[0], g[1]))
+            for (k in intArrayOf(0, 1, 2, 0, 2, 3)) {
+                if (textVerts >= 2900) break
+                textPos.put(q.q[k][0]).put(q.q[k][1]).put(q.q[k][2])
+                textUV.put(uv[k][0]).put(uv[k][1])
+                textVerts++
+            }
+        }
+        textPos.position(0); textUV.position(0)
+    }
+
+    private fun drawSurfaceText() {
+        buildSurfaceText()
+        if (textVerts == 0 || tTex == 0) return
+        G.glUseProgram(tProg)
+        uploadDyn(tbo[0], textPos, textVerts * 3)
+        G.glBindBuffer(G.GL_ARRAY_BUFFER, tbo[0])
+        G.glEnableVertexAttribArray(taP)
+        G.glVertexAttribPointer(taP, 3, G.GL_FLOAT, false, 0, 0)
+        uploadDyn(tbo[1], textUV, textVerts * 2)
+        G.glBindBuffer(G.GL_ARRAY_BUFFER, tbo[1])
+        G.glEnableVertexAttribArray(taT)
+        G.glVertexAttribPointer(taT, 2, G.GL_FLOAT, false, 0, 0)
+        G.glUniformMatrix4fv(tuVP, 1, false, vp, 0)
+        G.glUniform1f(tuA, 1f)
+        G.glActiveTexture(G.GL_TEXTURE0)
+        G.glBindTexture(G.GL_TEXTURE_2D, tTex)
+        G.glUniform1i(tuS, 0)
+        G.glDrawArrays(G.GL_TRIANGLES, 0, textVerts)
+        G.glDisableVertexAttribArray(taP); G.glDisableVertexAttribArray(taT)
+        G.glUseProgram(prog)
+    }
+
+    /**
+     * Distance at which the whole scene just fits, for an orientation and stage shape.
+     * The presets were authored against a wide stage; on a tall phone the width is the
+     * limiting dimension instead, so without this a model sits tiny in empty space.
+     * The cap keeps a very wide scene from zooming out past usefulness — pan instead.
+     */
+    fun fitDist(sc: Scene, pAz: Float, pEl: Float, aspect: Float): Float {
+        val ce = cos(pEl)
+        val f = floatArrayOf(-ce * sin(pAz), -sin(pEl), -ce * cos(pAz))
+        val rt = floatArrayOf(-f[2], 0f, f[0])
+        val rl = hypot(rt[0].toDouble(), rt[2].toDouble()).toFloat().let { if (it < 1e-6f) 1f else it }
+        rt[0] /= rl; rt[2] /= rl
+        val up = floatArrayOf(rt[1] * f[2] - rt[2] * f[1], rt[2] * f[0] - rt[0] * f[2],
+            rt[0] * f[1] - rt[1] * f[0])
+        val c = sc.centre
+        var hw = 0f; var hh = 0f
+        for (x in floatArrayOf(sc.lo[0], sc.hi[0]))
+            for (y in floatArrayOf(sc.lo[1], sc.hi[1]))
+                for (z in floatArrayOf(sc.lo[2], sc.hi[2])) {
+                    val dx = x - c[0]; val dy = y - c[1]; val dz = z - c[2]
+                    hw = Math.max(hw, abs(dx * rt[0] + dy * rt[1] + dz * rt[2]))
+                    hh = Math.max(hh, abs(dx * up[0] + dy * up[1] + dz * up[2]))
+                }
+        val t = tanHalfFov
+        val rv = hh / t
+        val rh = hw / (t * Math.max(aspect, 0.05f))
+        return Math.min(Math.max(rv, rh), rv * 2.4f)
+    }
+
+    /** A preset's authored framing, re-fitted to the stage this phone actually has. */
+    fun viewDist(sc: Scene, pAz: Float, pEl: Float, presetR: Float): Float {
+        if (viewW <= 1 || viewH <= 1) return presetR      // stage not measured yet
+        val a = viewW.toFloat() / viewH
+        val ref = fitDist(sc, pAz, pEl, 1.5f)
+        return if (ref > 0.01f) presetR * fitDist(sc, pAz, pEl, a) / ref else presetR
+    }
+
     /** World units per screen pixel at the target plane. */
     fun worldPerPixel(): Float = 2f * dist * tanHalfFov / maxOf(viewH, 1)
 
@@ -446,6 +716,10 @@ class Renderer(private val lib: Library) : GLSurfaceView.Renderer {
     }
 
     // ---- picking ---------------------------------------------------------
+    private var pickT = 0f
+    private var pickO: FloatArray? = null
+    private var pickD: FloatArray? = null
+
     /** Inverted view-projection, so a batch of picks can share one inversion. */
     fun pickInv(): FloatArray? {
         val inv = FloatArray(16)
@@ -466,6 +740,7 @@ class Renderer(private val lib: Library) : GLSurfaceView.Renderer {
         val len = kotlin.math.sqrt(d[0] * d[0] + d[1] * d[1] + d[2] * d[2])
         for (k in 0 until 3) d[k] /= len
         val o = floatArrayOf(near[0], near[1], near[2])
+        pickO = o; pickD = d
         var best: Part? = null; var bt = Float.MAX_VALUE
         for (p in scene.parts) {
             if (!p.visible) continue
@@ -485,7 +760,19 @@ class Renderer(private val lib: Library) : GLSurfaceView.Renderer {
                 if (!miss && t0 > 0f && t0 < bt) { bt = t0; best = p }
             }
         }
+        pickT = bt
         return best
+    }
+
+    /** True when the frontmost thing along the ray through `q` is that part, at `q` itself. */
+    private fun seesPoint(q: FloatArray, pid: String, inv: FloatArray?): Boolean {
+        val sp = project(q) ?: return false
+        if (sp[0] < 0f || sp[0] > viewW || sp[1] < 0f || sp[1] > viewH) return false
+        val hit = pick(sp[0], sp[1], inv) ?: return false
+        if (hit.id != pid) return false
+        val o = pickO ?: return false; val d = pickD ?: return false
+        val want = (q[0] - o[0]) * d[0] + (q[1] - o[1]) * d[1] + (q[2] - o[2]) * d[2]
+        return abs(pickT - want) < 2.0f
     }
 
     /** One sampling point, held relative to a box so it follows an exploded part. */
