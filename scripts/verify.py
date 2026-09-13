@@ -116,7 +116,7 @@ for d in G["devices"]:
         if want is None: continue
         have = len([p for p in d["parts"]
                     if p["group"].lower().startswith("channel") and "stub" not in p["name"]])
-        if have and abs(have - want) > 0.5 and k.startswith("simp_") and "cfet" not in k:
+        if have and abs(have - want) > 0.5 and "cfet" not in k:
             note(k, f"'{sym}' says {want:g} but {have} channel bodies are drawn")
 
 # ------------------------------------------------------------------ overlaps
@@ -147,43 +147,10 @@ for d in G["devices"]:
     for (a, b), v in sorted(worst, key=lambda kv: -kv[1])[:4]:
         bad(d["key"], f"'{a}' and '{b}' overlap by {v:.0f} nm\u00b3")
 
-# ------------------------------- single device against the layout it comes from
-def by_material(d):
-    out = defaultdict(list)
-    for p in d["parts"]:
-        out[p["material"]].extend(p["boxes"])
-    return out
-
-byk = {d["key"]: d for d in G["devices"]}
-for arch in ("fin", "ns", "fs", "cfet"):
-    lay, sol = byk.get("show_" + arch), byk.get("simp_" + arch)
-    if not lay or not sol: continue
-    ml, ms = by_material(lay), by_material(sol)
-    for mat in sorted(set(ml) & set(ms)):
-        for ax, name in ((1, "y"), (0, "x")):
-            # Metal 0 is the routing: the rails are deliberately replaced by local pads,
-            # so its footprint is expected to differ. Its height still has to line up.
-            if mat == "m0" and name == "x": continue
-            a, b = extent(ml[mat], ax), extent(ms[mat], ax)
-            if abs(a[0] - b[0]) > 0.01 or abs(a[1] - b[1]) > 0.01:
-                bad("simp_" + arch,
-                    f"{MAT[mat]['label']} sits at {name} {a[0]:g}…{a[1]:g} in the layout "
-                    f"but {b[0]:g}…{b[1]:g} here")
-    only_lay = sorted(set(ml) - set(ms))
-    only_sol = sorted(set(ms) - set(ml))
-    if only_lay: note("simp_" + arch, f"layers the layout has and this does not: {only_lay}")
-    if only_sol: note("simp_" + arch, f"layers here that the layout does not have: {only_sol}")
-
 # every scene should carry its written background
 for d in G["devices"]:
     if not d.get("story", "").strip():
         bad(d["key"], "no background text attached (run build_story.py last)")
-
-# a single n-type device has no N Well beside it
-for arch in ("fin", "ns", "fs"):
-    sol = byk.get("simp_" + arch)
-    if sol and any(p["material"] == "nwell" for p in sol["parts"]):
-        bad("simp_" + arch, "has an N Well, but a single nMOS device should not")
 
 # --------------------------------------------------------------------- report
 q = "-q" in sys.argv
@@ -191,8 +158,7 @@ if not q:
     fam = defaultdict(list)
     for d in G["devices"]:
         fam["inverter" if d["key"].startswith("inv_") else
-            "layout"   if d["key"].startswith("show_") else
-            "single"   if d["key"].startswith("simp_") else "device"].append(d["key"])
+            "layout"   if d["key"].startswith("show_") else "device"].append(d["key"])
     print(f"{len(G['devices'])} scenes: " + " · ".join(f"{k} {len(v)}" for k, v in fam.items()))
     for line in PROBLEMS: print("  FAIL  " + line)
     for line in NOTES:    print("  note  " + line)

@@ -111,8 +111,8 @@ pip install trimesh numpy
 python scripts/build_devices.py      # device scenes, full film stack
 python scripts/build_inverters.py    # inverter cells
 python scripts/build_showcase.py     # layout figures, and the node labels
-python scripts/build_simple.py       # single-device scenes, carved from the layouts
 python scripts/build_story.py        # the written background, attached to every scene
+python scripts/build_web.py          # roadmap.html + pwa/index.html, from the template
 python scripts/export_all.py         # GLB / STL / OBJ
 python scripts/mkicon.py             # icons, from icon_src.png
 python scripts/verify.py             # audit every scene before shipping

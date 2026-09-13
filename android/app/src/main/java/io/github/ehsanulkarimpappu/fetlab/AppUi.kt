@@ -94,19 +94,6 @@ private val MODES = listOf("Device", "Inverter", "Layout")
 private val TABS = listOf("Views", "Section", "Layers", "Specs", "Story")
 
 private fun keysFor(mode: Int) = when (mode) { 0 -> DEV_KEYS; 1 -> INV_KEYS; else -> SHOW_KEYS }
-
-/** The architecture a Device-mode scene belongs to, whichever detail level it is. */
-private fun famOf(key: String): String {
-    val b = key.removePrefix("simp_")
-    return if (b.startsWith("cfet")) "cfet" else b
-}
-
-/** Which Device scene a chip should open, honouring both Device-mode switches. */
-private fun devKey(fam: String, simple: Boolean, cfetSeq: Boolean): String = when {
-    simple && fam != "cmp" -> "simp_$fam"
-    fam == "cfet" -> if (cfetSeq) "cfet_seq" else "cfet_mono"
-    else -> fam
-}
 private fun firstOf(mode: Int) = keysFor(mode).first().first
 
 /* ============================================================== boot ===== */
@@ -211,7 +198,6 @@ fun FetLabApp(lib: Library, renderer: Renderer, dynamic: Boolean, onDynamic: (Bo
     var texture by rememberSaveable { mutableStateOf(true) }
     var edges by rememberSaveable { mutableStateOf(true) }
     var lightBg by rememberSaveable { mutableStateOf(false) }
-    var simple by rememberSaveable { mutableStateOf(false) }   // Device mode detail level
     var input by rememberSaveable { mutableStateOf(0) }
     var tab by rememberSaveable { mutableStateOf(0) }
     var selected by remember { mutableStateOf<Part?>(null) }
@@ -281,7 +267,6 @@ fun FetLabApp(lib: Library, renderer: Renderer, dynamic: Boolean, onDynamic: (Bo
         val sc = lib.scene(key)
         sceneKey = key
         mode = when { key.startsWith("inv_") -> 1; key.startsWith("show_") -> 2; else -> 0 }
-        if (mode == 0) simple = key.startsWith("simp_")
         renderer.scene = sc
         selected = null; renderer.highlight = null
         explodeF = 0f; renderer.explode = 0f
@@ -351,23 +336,10 @@ fun FetLabApp(lib: Library, renderer: Renderer, dynamic: Boolean, onDynamic: (Bo
             LazyRow(contentPadding = PaddingValues(horizontal = 16.dp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 items(keysFor(mode)) { (k, label) ->
-                    val fam = famOf(k)
-                    val active = if (mode == 0) famOf(sceneKey) == fam else sceneKey == k
+                    val active = sceneKey == k || (k == "cfet_mono" && sceneKey == "cfet_seq")
                     Chip(label, active) {
                         haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                        switchScene(if (mode == 0) devKey(fam, simple, cfetSeq) else k)
-                    }
-                }
-            }
-            AnimatedVisibility(visible = mode == 0 && famOf(sceneKey) != "cmp",
-                enter = fadeIn() + expandVertically(), exit = fadeOut() + shrinkVertically()) {
-                Box(Modifier.padding(start = 16.dp, end = 16.dp, top = 10.dp)) {
-                    Segmented(listOf("Full stack", "Simplified"), if (simple) 1 else 0) { i ->
-                        val want = i == 1
-                        if (want != simple) {
-                            simple = want
-                            switchScene(devKey(famOf(sceneKey), want, cfetSeq))
-                        }
+                        switchScene(if (k == "cfet_mono" && cfetSeq) "cfet_seq" else k)
                     }
                 }
             }

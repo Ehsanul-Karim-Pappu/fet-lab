@@ -185,7 +185,7 @@ STORY["cmp"] = COMMON
 def attach():
     G = json.load(open("devices.json"))
     for d in G["devices"]:
-        k = d["key"].replace("show_", "").replace("inv_", "").replace("simp_", "")
+        k = d["key"].replace("show_", "").replace("inv_", "")
         arch = "cfet" if k.startswith("cfet") else k
         body = STORY.get(arch)
         d["story"] = (body + COMMON) if body and arch != "cmp" else (body or COMMON)

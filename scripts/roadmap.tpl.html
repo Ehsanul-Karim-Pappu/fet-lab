@@ -217,10 +217,6 @@ td.d{color:var(--ink-2);font-size:12.5px}
         <button type="button" data-m="show">Layout</button>
       </div>
       <div class="chips" id="devs" style="margin-top:9px"></div>
-      <div class="seg" id="simpseg" hidden>
-        <button type="button" data-s="0" aria-pressed="true">Full stack</button>
-        <button type="button" data-s="1">Simplified</button>
-      </div>
       <div class="seg" id="cfetseg" hidden>
         <button type="button" data-k="cfet_mono">Monolithic</button>
         <button type="button" data-k="cfet_seq">Sequential</button>
@@ -595,6 +591,11 @@ function boxesOf(pid){
 
 function textQuad(c,e,ctx){
   const g=GLYPH[c.label]; if(!g)return null;
+  const B0=DEV.bounds;
+  const span0=Math.max(B0.x[1]-B0.x[0],B0.y[1]-B0.y[0],B0.z[1]-B0.z[0]);
+  const nom0=span0*0.042;
+  // how tall the name can be drawn if it runs along `da` with `ua` as its up
+  const fits=(h,da,ua)=>Math.min(nom0,h[ua]*2*0.62,h[da]*2*0.88/g.aspect);
   let best=null,bs=-1e9;
   for(const r of boxesOf(c.pid)){
     const a=OFFB(r.part,r.bi);
@@ -610,8 +611,20 @@ function textQuad(c,e,ctx){
       // text must run horizontally: on a side face that is whichever of x/z is in
       // plane, with world up as the text's up; on a top face, the longer in-plane axis
       let dA,uA;
-      if(ax===1){ dA=h[u]>=h[v]?u:v; uA=dA===u?v:u; }
-      else      { dA=(u===1)?v:u;    uA=1; }
+      if(ax===1){
+        // A top face has no "up", so either in-plane axis could carry the name. Score
+        // each by how big the name comes out, nudged towards whichever reads more
+        // horizontally on screen: a tie goes to the readable one, but a narrow strip
+        // still gets its name along its length rather than losing it to a size cull.
+        const horiz=(axis)=>{const p0=proj(fc),d2=[0,0,0];d2[axis]=1;
+          const p1=proj([fc[0]+d2[0],fc[1]+d2[1],fc[2]+d2[2]]);
+          if(!p0||!p1)return 0.5;
+          const dx=Math.abs(p1[0]-p0[0]),dy=Math.abs(p1[1]-p0[1]);
+          return dx/(dx+dy+1e-6);};
+        const sU=fits(h,u,v)*(0.75+0.25*horiz(u));
+        const sV=fits(h,v,u)*(0.75+0.25*horiz(v));
+        dA = sU>=sV ? u : v; uA = dA===u?v:u;
+      } else    { dA=(u===1)?v:u;    uA=1; }
       // Sample across the face rather than testing its centre alone: a slab is often
       // half-hidden behind the next one, and the readable part is whatever is left.
       let seen=0,ax0=0,ax1=0;
@@ -638,10 +651,8 @@ function textQuad(c,e,ctx){
   const ds=od[0]>=0?1:-1, us=ou[1]<=0?1:-1;
   const dir=[0,0,0];dir[dA]=ds;
   const up=[0,0,0];up[uA]=us;
-  const B=DEV.bounds;
-  const span=Math.max(B.x[1]-B.x[0],B.y[1]-B.y[0],B.z[1]-B.z[0]);
-  const nominal=span*0.042;                       // every name the same size...
-  let hgt=Math.min(nominal, h[uA]*2*0.62, h[dA]*2*0.88/g.aspect);   // ...unless it will not fit
+  const span=span0;
+  let hgt=fits(h,dA,uA);      // every name the same size unless it will not fit
   if(hgt<span*0.024)return null;                  // too small to read: leave it off
   const wid=hgt*g.aspect, hw=wid/2, hh=hgt/2;
   // keep the whole name on the face it belongs to
@@ -900,15 +911,10 @@ const MODES={
   show:[["show_fin","FinFET"],["show_ns","Nanosheet"],["show_fs","Forksheet"],["show_cfet","CFET"],["show_cmp","Compare"]]};
 let MODE="dev";
 const dwrap=document.getElementById("devs"),seg=document.getElementById("cfetseg"),
-      sseg=document.getElementById("simpseg"),
       mseg=document.getElementById("modeseg"),lbar=document.getElementById("logicbar");
-let SIMPLE=false;                       // Device mode: full film stack, or five bodies
-const famOf=k=>{const b=k.replace(/^simp_/,"");
-  return b.indexOf("cfet")===0?"cfet":b;};
-/** Which scene a device chip should open, honouring the two Device-mode switches. */
+/** Which scene a device chip should open. */
 function devKey(fam){
-  if(SIMPLE&&fam!=="cmp")return "simp_"+fam;
-  if(fam==="cfet")return (S.key.indexOf("cfet")===0&&S.key.indexOf("simp")<0)?S.key:"cfet_mono";
+  if(fam==="cfet")return S.key.indexOf("cfet")===0?S.key:"cfet_mono";
   return fam;}
 function chips(){
   dwrap.innerHTML="";
@@ -930,10 +936,6 @@ function logicText(){
   document.getElementById("lbtxt").innerHTML=
     `${on} &nbsp;·&nbsp; OUT = <b class="${cls}">${out}</b>`;}
 seg.querySelectorAll("button").forEach(b=>b.onclick=()=>setDevice(b.dataset.k));
-sseg.querySelectorAll("button").forEach(b=>b.onclick=()=>{
-  const want=b.dataset.s==="1";
-  if(want===SIMPLE)return;
-  SIMPLE=want; setDevice(devKey(famOf(S.key)));});
 
 const vwrap=document.getElementById("views"),lwrap=document.getElementById("layers");
 function setDevice(key){
@@ -941,13 +943,9 @@ function setDevice(key){
   MODE=key.indexOf("inv_")===0?"inv":key.indexOf("show_")===0?"show":"dev";
   mseg.querySelectorAll("button").forEach(x=>x.setAttribute("aria-pressed",String(x.dataset.m===MODE)));
   if(!dwrap.firstChild||!MODES[MODE].some(k=>k[0]===dwrap.firstChild.dataset.d)) chips();
-  const fam=MODE==="dev"?famOf(key):key;
-  if(MODE==="dev")SIMPLE=key.indexOf("simp_")===0;
+  const fam=(MODE==="dev"&&key.indexOf("cfet")===0)?"cfet":key;
   dwrap.querySelectorAll("button").forEach(b=>b.setAttribute("aria-pressed",String(b.dataset.d===fam)));
-  sseg.hidden=!(MODE==="dev"&&fam!=="cmp");
-  sseg.querySelectorAll("button").forEach(b=>
-    b.setAttribute("aria-pressed",String((b.dataset.s==="1")===SIMPLE)));
-  seg.hidden=!(fam==="cfet"&&!SIMPLE&&MODE==="dev");
+  seg.hidden=!(fam==="cfet"&&MODE==="dev");
   lbar.hidden=!DEV.logic; if(DEV.logic) logicText();
   S.lightBg=false;              // dark stage everywhere; the switch is still there
   document.getElementById("lightbg").checked=S.lightBg;

@@ -521,6 +521,11 @@ class Renderer(private val lib: Library) : GLSurfaceView.Renderer {
     private fun textQuad(c: Callout, e: FloatArray, inv: FloatArray?): Quad? {
         val g = glyphs[c.label] ?: return null
         val sc = scene
+        val span = Math.max(sc.hi[0] - sc.lo[0], Math.max(sc.hi[1] - sc.lo[1], sc.hi[2] - sc.lo[2]))
+        val nominal = span * 0.042f
+        // how tall the name can be drawn if it runs along `da` with `ua` as its up
+        fun fits(h: FloatArray, da: Int, ua: Int) =
+            Math.min(nominal, Math.min(h[ua] * 2f * 0.62f, h[da] * 2f * 0.88f / g[4]))
         val refs = ArrayList<Pair<Part, Int>>()
         for (id in c.pids) {
             val part = sc.parts.firstOrNull { it.id == id } ?: continue
@@ -547,8 +552,22 @@ class Renderer(private val lib: Library) : GLSurfaceView.Renderer {
                 if (face < 0.18f) continue
                 val u = (ax + 1) % 3; val v = (ax + 2) % 3
                 val dA: Int; val uA: Int
-                if (ax == 1) { dA = if (h[u] >= h[v]) u else v; uA = if (dA == u) v else u }
-                else { dA = if (u == 1) v else u; uA = 1 }
+                if (ax == 1) {
+                    // A top face has no "up", so either in-plane axis could carry the name.
+                    // Score each by how big the name comes out, nudged towards whichever reads
+                    // more horizontally on screen: a tie goes to the readable one, but a narrow
+                    // strip still gets its name along its length rather than losing it.
+                    fun horiz(axis: Int): Float {
+                        val p0 = project(fc) ?: return 0.5f
+                        val q = fc.copyOf(); q[axis] += 1f
+                        val p1 = project(q) ?: return 0.5f
+                        val dx = abs(p1[0] - p0[0]); val dy = abs(p1[1] - p0[1])
+                        return dx / (dx + dy + 1e-6f)
+                    }
+                    val sU = fits(h, u, v) * (0.75f + 0.25f * horiz(u))
+                    val sV = fits(h, v, u) * (0.75f + 0.25f * horiz(v))
+                    dA = if (sU >= sV) u else v; uA = if (dA == u) v else u
+                } else { dA = if (u == 1) v else u; uA = 1 }
                 var seen = 0; var o0 = 0f; var o1 = 0f
                 for (pr in probes) {
                     val q = fc.copyOf()
@@ -581,8 +600,7 @@ class Renderer(private val lib: Library) : GLSurfaceView.Renderer {
         val dir = FloatArray(3); dir[bD] = ds
         val up = FloatArray(3); up[bU] = us
 
-        val span = Math.max(sc.hi[0] - sc.lo[0], Math.max(sc.hi[1] - sc.lo[1], sc.hi[2] - sc.lo[2]))
-        var hgt = Math.min(span * 0.042f, Math.min(h[bU] * 2f * 0.62f, h[bD] * 2f * 0.88f / g[4]))
+        val hgt = fits(h, bD, bU)   // every name the same size unless it will not fit
         if (hgt < span * 0.024f) return null          // too small to read: leave it off
         val wid = hgt * g[4]; val hw = wid / 2f; val hh = hgt / 2f
         fc[bD] = Math.max(fc0[bD] - h[bD] + hw, Math.min(fc0[bD] + h[bD] - hw, fc[bD]))
