@@ -377,6 +377,7 @@ const LB={p:mkbuf(lpos,A.pos,3),e:mkbuf(lexp,A.exp,3)};
 const IB=gl.createBuffer();gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER,IB);
 gl.bufferData(gl.ELEMENT_ARRAY_BUFFER,new Uint16Array(idx),gl.STATIC_DRAW);
 const CB={p:gl.createBuffer(),n:gl.createBuffer(),c:gl.createBuffer(),e:gl.createBuffer()};
+const CL={p:gl.createBuffer(),e:gl.createBuffer()};let capLN=0;   // outlines for the cut faces
 let capN=0;
 const bindSet=o=>{const f=(b,l,n)=>{gl.bindBuffer(gl.ARRAY_BUFFER,b);gl.enableVertexAttribArray(l);
   gl.vertexAttribPointer(l,n,gl.FLOAT,false,0,0);};f(o.p,A.pos,3);f(o.n,A.nrm,3);f(o.c,A.col,3);f(o.e,A.exp,3);};
@@ -416,7 +417,7 @@ const OFFB=(p,i)=>{const a=p.aabb[i],e=S.ex;
   return{lo:[a.lo[0]+a.ev[0]*e,a.lo[1]+a.ev[1]*e,a.lo[2]+a.ev[2]*e],
          hi:[a.hi[0]+a.ev[0]*e,a.hi[1]+a.ev[1]*e,a.hi[2]+a.ev[2]*e]};};
 function rebuildCaps(){
-  const pp=[],nn=[],cc=[],B=DEV.bounds,HI=[B.x[1],B.y[1],B.z[1]];
+  const pp=[],nn=[],cc=[],lp=[],B=DEV.bounds,HI=[B.x[1],B.y[1],B.z[1]];
   const on=[S.clip[0]<HI[0]-.01,S.clip[1]<HI[1]-.01,S.clip[2]<HI[2]-.01];
   if(on[0]||on[1]||on[2]) DEV.parts.forEach(p=>{ if(!p.on)return;
     const st=style(p),c0=hex(MAT[p.material].color),
@@ -431,12 +432,16 @@ function rebuildCaps(){
         const mk=(su,sw)=>{const q=[0,0,0];q[ax]=v-0.002;q[u]=su?hi[u]:lo[u];q[w]=sw?hi[w]:lo[w];return q;};
         const qd=(ax===1)?[mk(0,0),mk(0,1),mk(1,1),mk(1,0)]:[mk(0,0),mk(1,0),mk(1,1),mk(0,1)];
         [0,1,2,0,2,3].forEach(k=>{pp.push(qd[k][0],qd[k][1],qd[k][2]);nn.push(n[0],n[1],n[2]);cc.push(c[0],c[1],c[2]);});
+        for(let k=0;k<4;k++){const q0=qd[k],q1=qd[(k+1)%4];   // border of this cross-section
+          lp.push(q0[0],q0[1],q0[2],q1[0],q1[1],q1[2]);}
       }});});
   gl.bindBuffer(gl.ARRAY_BUFFER,CB.p);gl.bufferData(gl.ARRAY_BUFFER,new Float32Array(pp),gl.DYNAMIC_DRAW);
   gl.bindBuffer(gl.ARRAY_BUFFER,CB.n);gl.bufferData(gl.ARRAY_BUFFER,new Float32Array(nn),gl.DYNAMIC_DRAW);
   gl.bindBuffer(gl.ARRAY_BUFFER,CB.c);gl.bufferData(gl.ARRAY_BUFFER,new Float32Array(cc),gl.DYNAMIC_DRAW);
   gl.bindBuffer(gl.ARRAY_BUFFER,CB.e);gl.bufferData(gl.ARRAY_BUFFER,new Float32Array(pp.length),gl.DYNAMIC_DRAW);
-  capN=pp.length/3;}
+  gl.bindBuffer(gl.ARRAY_BUFFER,CL.p);gl.bufferData(gl.ARRAY_BUFFER,new Float32Array(lp),gl.DYNAMIC_DRAW);
+  gl.bindBuffer(gl.ARRAY_BUFFER,CL.e);gl.bufferData(gl.ARRAY_BUFFER,new Float32Array(lp.length),gl.DYNAMIC_DRAW);
+  capN=pp.length/3; capLN=lp.length/3;}
 
 /* ---- render ---- */
 let VP=new Float32Array(16),W=1,H=1;
@@ -486,6 +491,12 @@ function draw(){
     gl.uniform1f(U.clip,1);gl.uniform1f(U.a,1);gl.uniform1f(U.tint,0);
     gl.uniform3f(U.tex,0,1,0);gl.uniform3f(U.add,EC[0],EC[1],EC[2]);
     solid.forEach(p=>{if(p.lcount)gl.drawArrays(gl.LINES,p.lstart,p.lcount);});
+    if(capLN){                        // and round every cut face, so a section reads as a drawing
+      gl.bindBuffer(gl.ARRAY_BUFFER,CL.p);gl.vertexAttribPointer(A.pos,3,gl.FLOAT,false,0,0);
+      gl.bindBuffer(gl.ARRAY_BUFFER,CL.e);gl.vertexAttribPointer(A.exp,3,gl.FLOAT,false,0,0);
+      gl.uniform1f(U.clip,0);
+      gl.drawArrays(gl.LINES,0,capLN);
+      gl.uniform1f(U.clip,1);}
     gl.enableVertexAttribArray(A.nrm);gl.enableVertexAttribArray(A.col);
     gl.uniform3f(U.add,0,0,0);
   }

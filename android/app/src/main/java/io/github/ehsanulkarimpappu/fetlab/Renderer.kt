@@ -90,7 +90,9 @@ class Renderer(private val lib: Library) : GLSurfaceView.Renderer {
     private val vbo = IntArray(5)      // pos, nrm, col, exp, index
     private val lbo = IntArray(2)      // edge outlines: pos, exp
     private val cbo = IntArray(4)      // cap pos, nrm, col, exp
+    private val clbo = IntArray(2)     // outlines around the cut faces: pos, exp
     private var capVerts = 0
+    private var capLineVerts = 0
     private var ready = false
 
     private val proj = FloatArray(16)
@@ -106,6 +108,8 @@ class Renderer(private val lib: Library) : GLSurfaceView.Renderer {
     private lateinit var idxB: ShortBuffer
     private lateinit var lposB: FloatBuffer
     private lateinit var lexpB: FloatBuffer
+    private val capLinePos = alloc(60000)
+    private val capLineExp = alloc(60000)
     private val capPos = alloc(60000)
     private val capNrm = alloc(60000)
     private val capCol = alloc(60000)
@@ -194,6 +198,7 @@ class Renderer(private val lib: Library) : GLSurfaceView.Renderer {
         uAdd = G.glGetUniformLocation(prog, "uAdd")
         uFlat = G.glGetUniformLocation(prog, "uFlat"); uTex = G.glGetUniformLocation(prog, "uTex")
         G.glGenBuffers(5, vbo, 0); G.glGenBuffers(4, cbo, 0); G.glGenBuffers(2, lbo, 0)
+        G.glGenBuffers(2, clbo, 0)
         upload(vbo[0], posB); upload(vbo[1], nrmB); upload(vbo[2], colB); upload(vbo[3], expB)
         upload(lbo[0], lposB); upload(lbo[1], lexpB)
         G.glBindBuffer(G.GL_ELEMENT_ARRAY_BUFFER, vbo[4])
@@ -277,6 +282,12 @@ class Renderer(private val lib: Library) : GLSurfaceView.Renderer {
                 if (!p.visible || p.lineCount == 0) continue
                 G.glDrawArrays(G.GL_LINES, p.lineStart, p.lineCount)
             }
+            if (capLineVerts > 0) {   // and round every cut face, so a section reads as a drawing
+                attach(clbo[0], aPos); attach(clbo[1], aExp)
+                G.glUniform1f(uClip, 0f)
+                G.glDrawArrays(G.GL_LINES, 0, capLineVerts)
+                G.glUniform1f(uClip, 1f)
+            }
             G.glEnableVertexAttribArray(aNrm); G.glEnableVertexAttribArray(aCol)
             G.glUniform3f(uAdd, 0f, 0f, 0f)
         }
@@ -345,7 +356,9 @@ class Renderer(private val lib: Library) : GLSurfaceView.Renderer {
     fun rebuildCaps() {
         val sc = scene
         capPos.clear(); capNrm.clear(); capCol.clear(); capExp.clear()
+        capLinePos.clear(); capLineExp.clear()
         var n = 0
+        var ln = 0
         val on = booleanArrayOf(clip[0] < sc.hi[0] - 0.01f, clip[1] < sc.hi[1] - 0.01f, clip[2] < sc.hi[2] - 0.01f)
         if (on[0] || on[1] || on[2]) {
             for (p in sc.parts) {
@@ -381,15 +394,28 @@ class Renderer(private val lib: Library) : GLSurfaceView.Renderer {
                             capExp.put(0f).put(0f).put(0f)
                             n++
                         }
+                        if (ln + 8 <= 19000) {     // border of this cross-section
+                            for (k in 0 until 4) {
+                                val q0 = quad[k]; val q1 = quad[(k + 1) % 4]
+                                capLinePos.put(q0[0]).put(q0[1]).put(q0[2])
+                                capLineExp.put(0f).put(0f).put(0f)
+                                capLinePos.put(q1[0]).put(q1[1]).put(q1[2])
+                                capLineExp.put(0f).put(0f).put(0f)
+                                ln += 2
+                            }
+                        }
                     }
                 }
             }
         }
         capVerts = n
+        capLineVerts = ln
         capPos.position(0); capNrm.position(0); capCol.position(0); capExp.position(0)
+        capLinePos.position(0); capLineExp.position(0)
         if (ready) {
             uploadDyn(cbo[0], capPos, n * 3); uploadDyn(cbo[1], capNrm, n * 3)
             uploadDyn(cbo[2], capCol, n * 3); uploadDyn(cbo[3], capExp, n * 3)
+            uploadDyn(clbo[0], capLinePos, ln * 3); uploadDyn(clbo[1], capLineExp, ln * 3)
         }
     }
 
