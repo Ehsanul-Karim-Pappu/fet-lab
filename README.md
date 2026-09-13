@@ -11,6 +11,9 @@
 [![minSdk](https://img.shields.io/badge/minSdk-26-4FC7D8.svg)](android/app/build.gradle.kts)
 [![Kotlin](https://img.shields.io/badge/Kotlin-2.0.21-7F52FF.svg)](https://kotlinlang.org)
 
+**[Open it in your browser →](https://ehsanul-karim-pappu.github.io/fet-lab/)**
+No install; add it to your home screen and it works offline.
+
 </div>
 
 ---
@@ -91,7 +94,8 @@ cd android
 ```
 
 JDK 17, Android SDK 35, minSdk 26. No third-party 3D library — the renderer, section
-capping, ray picking and exploded view are all in `Renderer.kt`.
+capping, ray picking and exploded view are all in `Renderer.kt`. CI builds a debug APK on
+every push and attaches it to the run.
 
 Publishing: see [`android/PLAY_STORE.md`](android/PLAY_STORE.md).
 
@@ -115,6 +119,7 @@ python scripts/build_devices.py      # device scenes, full film stack
 python scripts/build_inverters.py    # inverter cells
 python scripts/build_showcase.py     # layout figures, and the node labels
 python scripts/build_story.py        # the written background, attached to every scene
+python scripts/build_parasitics.py   # parasitic capacitances, derived from the geometry
 python scripts/build_web.py          # roadmap.html + pwa/index.html, from the template
 python scripts/export_all.py         # GLB / STL / OBJ
 python scripts/mkicon.py             # icons, from icon_src.png
@@ -149,25 +154,6 @@ appears in the app.
 - Vertically, layer thicknesses in the Layout scenes are exaggerated. Drawn to scale, a
   1 nm interfacial oxide would be sub-pixel on a phone. The Device scenes keep the real
   film thicknesses in all three axes.
-
-## Publishing this repository
-
-The bundle already contains a git repository with one commit authored as
-`Khandaker Ehsanul Karim <ehsan.pappu.99@gmail.com>`. Create an empty repository named
-**fet-lab** on GitHub (no README, no licence — this one has them), then:
-
-```bash
-git remote add origin https://github.com/ehsanul-karim-pappu/fet-lab.git
-git push -u origin main
-```
-
-Then, in the repository settings: **Pages → Source: GitHub Actions** publishes `pwa/` to
-`https://ehsanul-karim-pappu.github.io/fet-lab/` on every push. The Android workflow builds a
-debug APK on each push and attaches it to the run as an artifact.
-
-If you name the repository something other than `fet-lab`, change `REPO` and `SLUG` in
-`android/app/src/main/java/io/github/ehsanulkarimpappu/fetlab/AppInfo.kt` to match — the
-About screen, the issue link and the privacy-policy URL Play asks for all derive from them.
 
 ## Releases
 
