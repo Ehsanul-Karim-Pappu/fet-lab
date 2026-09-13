@@ -30,12 +30,12 @@ so a section reads like a real cross-section rather than a shell.
 |---|---|
 | **Device** | Technical cross-sections of each architecture — section planes, exploded view, tap-to-identify. |
 | **Inverter** | A complete CMOS standard cell in each architecture. Drive the input and the conducting path lights up. |
-| **Layout** | The same inverter as a labelled layout figure — P Well, N Well, SiO₂, nanowire, MD, Po, VD, VG, Metal 0. |
+| **Layout** | The same inverter as a labelled layout figure — P Well, N Well, SiO₂, nanowire, MD, Po, VD, VG, Metal 0 — at the cell's real rail-to-rail width, on a uniform Metal 0 track pitch. |
 
 <table>
 <tr>
 <td width="50%"><img src="docs/inverter.png" alt="Nanosheet inverter, section through the gate"><br><sub><b>Inverter</b> — pMOS conducting, nMOS dimmed</sub></td>
-<td width="50%"><img src="docs/layout.png" alt="Nanosheet inverter as a layout figure"><br><sub><b>Layout</b> — the figure, extruded</sub></td>
+<td width="50%"><img src="docs/layout.png" alt="Nanosheet inverter as a layout figure"><br><sub><b>Layout</b> — the figure, extruded, and drawn to scale</sub></td>
 </tr>
 </table>
 
@@ -62,8 +62,10 @@ Two comparison scenes put the numbers side by side, and they disagree — which 
 | Forksheet | 64 nm — 56% | 106 nm — 68% |
 | CFET | 34 nm — 30% | 74 nm — 47% |
 
-Cell width shrinks about half as much as device footprint, because power rails and the
-routing they need do not scale with the transistor. Published node figures behave the same
+The Layout figures are drawn at those same cell widths, so the two comparison scenes
+agree rather than telling different stories. Cell width shrinks about half as much as
+device footprint, because power rails and the routing they need do not scale with the
+transistor. Published node figures behave the same
 way — imec quotes roughly 5T → 4.3T for the forksheet, and CFET is generally credited with
 a 1.5–2× area gain rather than the 3× the device footprint alone suggests.
 
@@ -77,6 +79,7 @@ models/     Every scene exported as GLB / STL / OBJ
 scripts/    The parametric generators
 data/       devices.json — the box list the app, the viewers and the exporters all read
 store/      Play Store assets and listing copy
+docs/       Screenshots and the written background
 ```
 
 ## Build the app
@@ -165,6 +168,11 @@ debug APK on each push and attaches it to the run as an artifact.
 If you name the repository something other than `fet-lab`, change `REPO` and `SLUG` in
 `android/app/src/main/java/io/github/ehsanulkarimpappu/fetlab/AppInfo.kt` to match — the
 About screen, the issue link and the privacy-policy URL Play asks for all derive from them.
+
+## Releases
+
+Version history and what changed in each release: [CHANGELOG.md](CHANGELOG.md).
+Builds are on the [releases page](../../releases).
 
 ## Contributing
 

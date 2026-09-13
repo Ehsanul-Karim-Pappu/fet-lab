@@ -13,7 +13,7 @@ object AppInfo {
     const val DEVELOPER = "Khandaker Ehsanul Karim"
     const val EMAIL = "ehsan.pappu.99@gmail.com"
 
-    /** Create this repository on GitHub before the first release. */
+    /** Public repository — issues, releases and the privacy notice all hang off this. */
     const val REPO = "https://github.com/ehsanul-karim-pappu/fet-lab"
     const val PROFILE = "https://github.com/ehsanul-karim-pappu"
     const val ISSUES = "$REPO/issues"
