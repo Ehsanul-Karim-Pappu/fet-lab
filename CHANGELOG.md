@@ -3,6 +3,30 @@
 All notable changes to FET Lab. Dates are the release date; versions follow
 [semantic versioning](https://semver.org).
 
+## Unreleased
+
+### Parasitics
+
+A new Parasitics table on the Device scenes, beside Critical dimensions on the web and
+inside Specs on Android. Tap a row and the two conductors that couple light up on the
+model while everything else drops back.
+
+Every value is derived from the scene's own geometry by `scripts/build_parasitics.py`:
+it rasterises the y–z plane, finds the facing surfaces of two conductor groups along x,
+takes the gap between them and looks up the material that fills it. Nothing is typed in.
+C_ox validates against hand calculation — 358 aF/µm for the nanosheet against 384 from
+ε₀·3.9/1.35 nm × 15 nm, the difference being film thicknesses measured from the model
+rather than assumed.
+
+Four terms: C_ox (gate to channel), C_gc (gate to contact across the spacer), C_ge (gate
+to epi) and C_j (junction). C_gc falls monotonically per unit footprint up the roadmap,
+0.343 → 0.187 → 0.166 → 0.145 aF/nm; C_j is exactly zero on the CFET, whose tiers sit on
+isolation.
+
+It is first order and says so in the app: parallel plate only, no field solver, no
+inter-layer dielectric in the model, and C_j assumes a 5 nm depletion width. The ratios
+between architectures are the result, not the absolute femtofarads.
+
 ## 1.1.0 — 2026-09-13
 
 The layout figures are now drawn to scale, and the numbers the app prints are checked

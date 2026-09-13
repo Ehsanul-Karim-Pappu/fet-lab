@@ -31,6 +31,18 @@ class ViewPreset(
     val tgt: FloatArray, val clip: Array<Float?>?, val off: Set<String>
 )
 
+/** One parasitic term, and the two conductor groups it couples. */
+class Parasitic(
+    val id: String, val sym: String, val pair: String, val desc: String,
+    val aF: Float, val perUm: Float, val pct: Float,
+    val a: List<String>, val b: List<String>, val via: List<String>
+)
+
+class Parasitics(
+    val terms: List<Parasitic>, val weff: Float, val foot: Float, val lg: Float,
+    val gatePar: Float, val gateParPct: Float, val note: String
+)
+
 class Callout(
     val label: String, val value: String, val desc: String,
     val a: FloatArray, val b: FloatArray, val lab: FloatArray, val views: Set<String>?,
@@ -53,6 +65,8 @@ class Scene(
     var callouts: List<Callout> = emptyList()
     /** Written background for this architecture, as a small subset of HTML. */
     var story: String = ""
+    /** Parasitic capacitances derived from this scene's geometry. Device scenes only. */
+    var par: Parasitics? = null
 
     val centre get() = floatArrayOf((lo[0] + hi[0]) / 2f, (lo[1] + hi[1]) / 2f, (lo[2] + hi[2]) / 2f)
     val span get() = maxOf(hi[0] - lo[0], hi[1] - lo[1], hi[2] - lo[2])
@@ -157,10 +171,33 @@ class Library(val materials: Map<String, Material>, val order: List<String>, val
                     d.getJSONArray("groups").toStringList())
                 sc.callouts = cal
                 sc.story = story
+                (d.opt("parasitics") as? JSONObject)?.let { pj ->
+                    val terms = ArrayList<Parasitic>()
+                    val ta = pj.getJSONArray("terms")
+                    for (c in 0 until ta.length()) {
+                        val t = ta.getJSONObject(c)
+                        terms.add(Parasitic(
+                            t.getString("id"), strip(t.getString("sym")), t.getString("pair"),
+                            strip(t.getString("desc")),
+                            t.getDouble("aF").toFloat(), t.getDouble("per_um").toFloat(),
+                            t.getDouble("pct").toFloat(),
+                            t.getJSONArray("a").toStringList(), t.getJSONArray("b").toStringList(),
+                            t.getJSONArray("via").toStringList()))
+                    }
+                    sc.par = Parasitics(terms, pj.getDouble("weff").toFloat(),
+                        pj.getDouble("foot").toFloat(), pj.getDouble("lg").toFloat(),
+                        pj.getDouble("gate_par").toFloat(),
+                        pj.getDouble("gate_par_pct").toFloat(), strip(pj.getString("note")))
+                }
                 scenes.add(sc)
             }
             return Library(mats, order, scenes)
         }
+
+        /** The data carries a little HTML for the web build; the app wants plain text. */
+        private fun strip(t: String) = t
+            .replace(Regex("<[^>]+>"), "")
+            .replace("&kappa;", "κ").replace("&mu;", "µ").replace("&amp;", "&")
 
         private fun hexToRgb(h: String) = floatArrayOf(
             h.substring(1, 3).toInt(16) / 255f,

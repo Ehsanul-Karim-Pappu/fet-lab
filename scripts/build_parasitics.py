@@ -189,18 +189,21 @@ def analyse(dev):
     return out
 
 TERMS = [
-    ("C_ox", "C<sub>ox</sub>", "gate", "chan", "ox",
+    ("C_ox", "C<sub>ox</sub>", "gate", "chan", "ox", "gate → channel",
      "Gate to channel through the interfacial oxide and the high-κ, in series. "
      "The capacitance you want. Everything below is measured against it."),
-    ("C_gc", "C<sub>gc</sub>", "gate", "metal", None,
+    ("C_gc", "C<sub>gc</sub>", "gate", "metal", None, "gate → contact",
      "Gate to the source/drain contact metal, across the spacer. The parasitic that "
      "scales worst: gate height, contact height and spacer width set it, and none of "
      "the three shrink with the node."),
-    ("C_ge", "C<sub>ge</sub>", "gate", "epi", None,
+    ("C_ge", "C<sub>ge</sub>", "gate", "epi", None, "gate → epi",
      "Gate to the raised source/drain epitaxy, across the spacer. Gate metal that wraps "
-     "between the channels faces the epi over area a fin never had — the gate-all-around "
-     "penalty, and the reason the nanosheet gave back speed it should have won."),
-    ("C_j", "C<sub>j</sub>", "epi", "body", None,
+     "between the channels faces the epi over area a fin never had. Note the model draws "
+     "one uniform spacer thickness everywhere, including between the sheets, so per "
+     "nanometre of footprint this lands at much the same value for all four — the "
+     "published inner-fringe penalty comes from the inner spacer being thinner and "
+     "shaped differently, which is not drawn here."),
+    ("C_j", "C<sub>j</sub>", "epi", "body", None, "S/D → body",
      "Source and drain to the body beneath. Large where the epi lands on silicon, and "
      "gone entirely where the device sits on isolation — one of the architecture's "
      "quieter wins."),
@@ -210,10 +213,10 @@ def attach(dev, r):
     """Write the result onto the scene in the shape the viewers read."""
     w, fp, cox = r["_weff"], r["_foot"], r["C_ox"][0]
     out = []
-    for key, sym, a, b, via, desc in TERMS:
+    for key, sym, a, b, via, pair, desc in TERMS:
         c, area = r[key]
         out.append(dict(
-            id=key, sym=sym, label=key.replace("_", " ").upper(), desc=desc,
+            id=key, sym=sym, pair=pair, desc=desc,
             aF=round(c, 2), area=round(area, 1),
             per_um=round(c / (w / 1000.0), 1) if w else 0.0,
             per_nm=round(c / fp, 3) if fp else 0.0,

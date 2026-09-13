@@ -31,6 +31,7 @@ import androidx.compose.foundation.gestures.draggable
 import androidx.compose.foundation.gestures.rememberDraggableState
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
@@ -199,6 +200,7 @@ fun FetLabApp(lib: Library, renderer: Renderer, dynamic: Boolean, onDynamic: (Bo
     var edges by rememberSaveable { mutableStateOf(true) }
     var lightBg by rememberSaveable { mutableStateOf(false) }
     var spin by rememberSaveable { mutableStateOf(false) }
+    var parPick by rememberSaveable { mutableStateOf<String?>(null) }
 
     // Hands-off rotation, for leaving the model turning on a desk or a projector.
     LaunchedEffect(spin) {
@@ -275,6 +277,7 @@ fun FetLabApp(lib: Library, renderer: Renderer, dynamic: Boolean, onDynamic: (Bo
         mode = when { key.startsWith("inv_") -> 1; key.startsWith("show_") -> 2; else -> 0 }
         renderer.scene = sc
         selected = null; renderer.highlight = null
+        parPick = null; renderer.par = null      // a highlight must not outlive its scene
         explodeF = 0f; renderer.explode = 0f
         renderer.lightBg = lightBg      // dark stage everywhere; the switch still works
         goToView(sc, sc.views.first(), animate = false)
@@ -550,7 +553,11 @@ fun FetLabApp(lib: Library, renderer: Renderer, dynamic: Boolean, onDynamic: (Bo
                             p.visible = !p.visible; layerTick++
                             renderer.capsDirty = true; draw()
                         }
-                        3 -> SpecsTab(scene)
+                        3 -> SpecsTab(scene, parPick) { t ->
+                            parPick = t?.id
+                            renderer.par = t
+                            renderer.capsDirty = true; draw()
+                        }
                         else -> StoryTab(scene)
                     }
                 }
@@ -1012,7 +1019,63 @@ private fun StoryTab(scene: Scene) {
 }
 
 @Composable
-private fun SpecsTab(scene: Scene) {
+/** A compact parasitics table, tacked onto Specs rather than earning a sixth tab. */
+private fun LazyListScope.parasiticSection(
+    scene: Scene, picked: String?, onPick: (Parasitic?) -> Unit
+) {
+    val P = scene.par ?: return
+    item {
+        Spacer(Modifier.height(18.dp))
+        Text("Parasitics", fontFamily = PlexSans, fontWeight = FontWeight.SemiBold,
+            fontSize = 14.sp, color = MaterialTheme.colorScheme.onSurface)
+        Text("From this model's own geometry — L_G ${P.lg.toInt()} nm, W_eff " +
+             "${P.weff.toInt()} nm, footprint ${P.foot.toInt()} nm. Gate parasitics come " +
+             "to ${P.gateParPct}% of C_ox. Tap a row to see it on the model.",
+            fontFamily = PlexSans, fontSize = 12.sp, lineHeight = 17.sp,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(top = 4.dp, bottom = 8.dp))
+    }
+    items(P.terms, key = { it.id }) { t ->
+        val on = picked == t.id
+        Surface(
+            color = if (on) MaterialTheme.colorScheme.secondaryContainer else Color.Transparent,
+            shape = RoundedCornerShape(8.dp),
+            modifier = Modifier.fillMaxWidth().padding(vertical = 1.dp)
+                .clickable { onPick(if (on) null else t) }) {
+            Column(Modifier.padding(horizontal = 8.dp, vertical = 7.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(t.sym, fontFamily = Mono, fontSize = 12.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.width(52.dp))
+                    Text(t.pair, fontFamily = PlexSans, fontSize = 12.5f.sp,
+                        modifier = Modifier.weight(1f),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text("${t.aF} aF", fontFamily = Mono, fontSize = 11.5f.sp,
+                        color = MaterialTheme.colorScheme.onSurface)
+                    Text("${t.pct}%", fontFamily = Mono, fontSize = 11.sp,
+                        textAlign = TextAlign.End,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.width(52.dp))
+                }
+                if (on) Text(t.desc, fontFamily = PlexSans, fontSize = 11.5f.sp,
+                    lineHeight = 16.sp, color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(top = 6.dp))
+            }
+        }
+    }
+    item {
+        Surface(color = MaterialTheme.colorScheme.surfaceVariant,
+            shape = RoundedCornerShape(10.dp),
+            modifier = Modifier.fillMaxWidth().padding(top = 10.dp)) {
+            Text(P.note, fontFamily = PlexSans, fontSize = 10.5f.sp, lineHeight = 15.sp,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(10.dp))
+        }
+    }
+}
+
+private fun SpecsTab(scene: Scene, picked: String?, onPick: (Parasitic?) -> Unit) {
     LazyColumn(contentPadding = PaddingValues(bottom = 16.dp)) {
         item {
             Text(scene.blurb, fontFamily = PlexSans, fontSize = 13.sp, lineHeight = 19.sp,
@@ -1031,6 +1094,7 @@ private fun SpecsTab(scene: Scene) {
                     color = MaterialTheme.colorScheme.onSurface)
             }
         }
+        parasiticSection(scene, picked, onPick)
         if (scene.note.isNotEmpty()) item {
             Surface(color = MaterialTheme.colorScheme.surfaceVariant,
                 shape = RoundedCornerShape(14.dp),

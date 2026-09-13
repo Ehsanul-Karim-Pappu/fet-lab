@@ -360,8 +360,19 @@ class Renderer(private val lib: Library) : GLSurfaceView.Renderer {
     private val hiC2 = floatArrayOf(0.16f, 0.10f, 0.02f)
     private val loC2 = floatArrayOf(0.01f, 0.09f, 0.12f)
 
+    /** The parasitic term being shown, if any — its two conductors stay lit, the rest drop. */
+    @Volatile var par: Parasitic? = null
+    private val parA = floatArrayOf(0.34f, 0.16f, 0.02f)   // gate side
+    private val parB = floatArrayOf(0.02f, 0.20f, 0.26f)   // the other side
+
     /** returns [tint, addR, addG, addB] */
     private fun style(sc: Scene, p: Part): FloatArray {
+        par?.let { t ->
+            if (t.a.contains(p.id)) return floatArrayOf(1.25f, parA[0], parA[1], parA[2])
+            if (t.b.contains(p.id)) return floatArrayOf(1.25f, parB[0], parB[1], parB[2])
+            if (t.via.contains(p.id)) return floatArrayOf(1.1f, 0f, 0f, 0f)
+            return floatArrayOf(0.30f, 0f, 0f, 0f)
+        }
         if (!sc.logic) return floatArrayOf(1f, 0f, 0f, 0f)
         val hi = input == 1
         val flat = sc.style == "schematic"
