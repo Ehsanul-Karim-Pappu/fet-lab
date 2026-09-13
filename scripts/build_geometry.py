@@ -7,7 +7,7 @@ Coordinates in nanometres.
 Everything is an axis-aligned box. Shells are built as 4 plates so the
 model tiles exactly: no overlapping solids, no gaps.
 """
-import json, math, os
+import json, os, math, os
 
 # ---------------------------------------------------------------- parameters
 P = dict(
@@ -172,8 +172,8 @@ CALLOUTS = [
 
 out = dict(params=P, materials=MAT, order=ORDER, parts=parts, callouts=CALLOUTS,
            bounds=dict(x=[-x_sub, x_sub], y=[-sub_h, y_m2], z=[-hz_sub, hz_sub]))
-os.makedirs("/home/claude/nsfet", exist_ok=True)
-json.dump(out, open("/home/claude/nsfet/geometry.json","w"), indent=1)
+HERE = os.path.dirname(os.path.abspath(__file__))
+json.dump(out, open(os.path.join(HERE, "geometry.json"), "w"), indent=1)
 
 # ------------------------------------------------------------------ sanity
 n_boxes = sum(len(p["boxes"]) for p in parts)

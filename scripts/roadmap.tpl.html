@@ -999,7 +999,7 @@ function setView(k){S.view=k;vwrap.querySelectorAll("button").forEach(b=>b.setAt
  * The presets were authored against a wide stage; on a tall phone the limiting dimension
  * is the width instead, so without this the model sits tiny in a sea of empty space.
  */
-function fitDist(az,el,aspect){
+function fitDist(az,el,aspect,cap){
   const B=DEV.bounds,ce=Math.cos(el);
   const f=[-ce*Math.sin(az),-Math.sin(el),-ce*Math.cos(az)];
   const rt=nrm(cross(f,[0,1,0])),up=cross(rt,f);
@@ -1011,11 +1011,14 @@ function fitDist(az,el,aspect){
     hh=Math.max(hh,Math.abs(d[0]*up[0]+d[1]*up[1]+d[2]*up[2]));}
   const t=Math.tan(0.31);
   const rv=hh/t, rh=hw/(t*Math.max(aspect,0.05));
-  return Math.min(Math.max(rv,rh), rv*2.4);}
+  // The cap stops a very wide scene pushing the camera so far back that the model is a
+  // smudge; it is a framing choice, not a fit, so it must not feed the aspect correction.
+  const raw=Math.max(rv,rh);
+  return cap===false ? raw : Math.min(raw, rv*2.4);}
 /** Each preset keeps the framing it was authored with, re-fitted to this stage. */
 function viewR(v){
-  const a=W/H, ref=fitDist(v.az,v.el,1.5);
-  return ref>0 ? v.r*fitDist(v.az,v.el,a)/ref : v.r;}
+  const a=W/H, ref=fitDist(v.az,v.el,1.5,false);
+  return ref>0 ? v.r*fitDist(v.az,v.el,a,false)/ref : v.r;}
 function applyView(k){const v=DEV.views[k],B=DEV.bounds;
   S.az=v.az;S.el=v.el;S.r=viewR(v);S.tgt=v.tgt.slice();S.lset=k;
   const c=v.clip||[null,null,null];

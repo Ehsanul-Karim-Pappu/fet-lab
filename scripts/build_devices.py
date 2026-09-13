@@ -159,7 +159,7 @@ def build_ns():
     d.cal("tch","t<sub>ch</sub>",f"{TCH:g} nm","Nanosheet thickness",[-XSP,ys[1]-HYS,hz],[-XSP,ys[1]+HYS,hz],[-XSP-34,ys[1],hz+34],["iso","b","c","gaa"])
     d.cal("W","W<sub>sh</sub>",f"{W:g} nm","Nanosheet width",[-XSP,ys[0]-HYS-.6,-hz],[-XSP,ys[0]-HYS-.6,hz],[0,ys[0]-26,zsub+14],["iso","c"])
     d.cal("pitch","Sheet pitch",f"{PITCH:g} nm","Vertical sheet-to-sheet pitch",[XSP,ys[0],-hz],[XSP,ys[1],-hz],[XSP+34,(ys[0]+ys[1])/2,-hz-30],["b","c"])
-    d.cal("eot","EOT",f"{EOT:g} nm",f"{TIL:g} nm SiO₂ + {THK:g} nm HfO₂ (κ≈22)",[0,ys[2]+HYS,hz+.1],[0,ys[2]+HY2,hz+.1],[0,ys[2]+32,hz2+40],["c","gaa","iso"])
+    d.cal("eot","t_ox",f"{TIL+THK:g} nm",f"{TIL:g} SiO₂ + {THK:g} HfO₂ · EOT {EOT:g} nm",[0,ys[2]+HYS,hz+.1],[0,ys[2]+HY2,hz+.1],[0,ys[2]+32,hz2+40],["c","gaa","iso"])
     d.cal("tin","t<sub>TiN</sub>",f"{TTIN:g} nm","Work-function metal",[0,ys[2]+HY2,-hz-.1],[0,ys[2]+HY3,-hz-.1],[0,ys[2]+26,-hz3-38],["c","gaa"])
     d.dims=[["L_G","Physical gate length",f"{LG:g} nm"],["t_ch","Sheet thickness",f"{TCH:g} nm"],
             ["W_sh","Sheet width",f"{W:g} nm"],["Pitch","Sheet-to-sheet pitch",f"{PITCH:g} nm"],
@@ -244,13 +244,13 @@ def build_fin():
     d.cal("Wfin","W<sub>fin</sub>",f"{WFIN:g} nm","Fin width",[-XSPf,ytop+.6,zf[1]-wh],[-XSPf,ytop+.6,zf[1]+wh],[-XSPf-8,ytop+30,zf[1]+22],["iso","c","tri"])
     d.cal("fp","Fin pitch",f"{FPITCH:g} nm","Fin-to-fin pitch",[XSPf,STI-1,zf[0]],[XSPf,STI-1,zf[1]],[XSPf+28,STI-24,0],["c","b"])
     d.cal("LG","L<sub>G</sub>",f"{LGf:g} nm","Physical gate length",[-XGf,ymo+2,hzmo],[XGf,ymo+2,hzmo],[0,ymo+22,hzmo+34],["iso","b"])
-    d.cal("eot","EOT",f"{EOT:g} nm",f"{TIL:g} nm SiO₂ + {THK:g} nm HfO₂ (κ≈22)",[0,ytop,zf[1]+wh],[0,y2,zf[1]+w2],[0,ytop+34,hzmo+28],["c","tri"])
+    d.cal("eot","t_ox",f"{TIL+THK:g} nm",f"{TIL:g} SiO₂ + {THK:g} HfO₂ · EOT {EOT:g} nm",[0,ytop,(zf[1][0]+zf[1][1])/2 if isinstance(zf[1],(list,tuple)) else zf[1]],[0,y2,(zf[1][0]+zf[1][1])/2 if isinstance(zf[1],(list,tuple)) else zf[1]],[0,ytop+34,hzmo+28],["c","tri"])
     d.cal("tin","t<sub>TiN</sub>",f"{TTIN:g} nm","Three faces only",[0,(STI+ytop)/2,zf[0]-w2],[0,(STI+ytop)/2,zf[0]-w3],[0,STI+10,-hzmo-30],["c","tri"])
     d.dims=[["L_G","Physical gate length",f"{LGf:g} nm"],["W_fin","Fin width",f"{WFIN:g} nm"],
             ["H_fin","Exposed fin height",f"{HFIN:g} nm"],["Fin pitch","Fin-to-fin pitch",f"{FPITCH:g} nm"],
             ["N_fin","Fins in this device",f"{NFIN}"],["L_SP","Spacer length",f"{LSP:g} nm"],
             ["EOT","Equivalent oxide thickness",f"{EOT:g} nm"],
-            ["W_eff","Effective width, 2H+W per fin",f"{Weff:g} nm"],
+            ["W_eff","Effective width, (2H+W) x 2 fins",f"{Weff:g} nm"],
             ["—","Gate faces per channel","3 (tri-gate)"],
             ["—","Active footprint (z)",f"{2*hzenv:g} nm"]]
     d.views={"iso":dict(n="Isometric",s="two fins",az=-.78,el=.34,r=290,tgt=[0,38,0],clip=None),
@@ -468,7 +468,7 @@ def build_cfet(seq=False):
     d.cal("W","W<sub>sh</sub>",f"{W:g} nm","Sheet width",[-XSP,yt[1]+HYS+.6,-hz],[-XSP,yt[1]+HYS+.6,hz],[-XSP-16,yt[1]+26,0],["iso","c"])
     d.cal("pitch","Tier pitch",f"{yt[0]-yb[1]:g} nm","Bottom sheet to top sheet",[XSP,yb[1],hz],[XSP,yt[0],hz],[XSP+32,(yb[1]+yt[0])/2,hz+30],["b","c"])
     d.cal("LG","L<sub>G</sub>",f"{LG:g} nm","One gate, both tiers",[-XG,ymo+2,hzmo],[XG,ymo+2,hzmo],[0,ymo+24,hzmo+32],["iso","b"])
-    d.cal("eot","EOT",f"{EOT:g} nm",f"{TIL:g} nm SiO₂ + {THK:g} nm HfO₂",[0,yt[1]+HYS,hz+.1],[0,yt[1]+HY2,hz+.1],[0,yt[1]+28,hz2+36],["c","tier"])
+    d.cal("eot","t_ox",f"{TIL+THK:g} nm",f"{TIL:g} SiO₂ + {THK:g} HfO₂ · EOT {EOT:g} nm",[0,yt[1]+HYS,hz+.1],[0,yt[1]+HY2,hz+.1],[0,yt[1]+28,hz2+36],["c","tier"])
     d.dims=[["L_G","Physical gate length",f"{LG:g} nm"],["t_ch","Sheet thickness",f"{TCH:g} nm"],
             ["W_sh","Sheet width",f"{W:g} nm"],["Pitch","Sheet pitch within a tier",f"{PITCH:g} nm"],
             ["t_MDI","Middle dielectric isolation",f"{MDI:g} nm"],
@@ -623,5 +623,6 @@ if __name__ == "__main__":
         out["devices"].append(dict(key=d.key,name=d.name,tag=d.tag,blurb=d.blurb,parts=d.parts,
             callouts=d.callouts,dims=d.dims,views=d.views,note=d.note,bounds=d.bounds,
             groups=list(dict.fromkeys(p["group"] for p in d.parts))))
-    json.dump(out, open("/home/claude/nsfet/devices.json","w"), separators=(",",":"))
-    print("devices.json", os.path.getsize("/home/claude/nsfet/devices.json")//1024, "KB")
+    out_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "devices.json")
+    json.dump(out, open(out_path, "w"), separators=(",", ":"))
+    print("devices.json", os.path.getsize(out_path)//1024, "KB")

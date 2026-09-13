@@ -9,7 +9,7 @@ table that disagrees with the geometry it describes.
     python scripts/verify.py          # report
     python scripts/verify.py -q       # exit status only
 """
-import json, sys, math
+import json, math, re, sys
 from collections import defaultdict
 
 G = json.load(open("devices.json"))
@@ -97,7 +97,9 @@ def dimval(d, sym):
 
 def num(s):
     if s is None: return None
-    t = "".join(ch for ch in str(s).split()[0] if ch in "0123456789.-")
+    head = str(s).split()
+    if not head: return None
+    t = "".join(ch for ch in head[0] if ch in "0123456789.-")
     try: return float(t)
     except ValueError: return None
 
@@ -146,6 +148,36 @@ for d in G["devices"]:
                     seen.add(key); worst.append((key, v))
     for (a, b), v in sorted(worst, key=lambda kv: -kv[1])[:4]:
         bad(d["key"], f"'{a}' and '{b}' overlap by {v:.0f} nm\u00b3")
+
+# ------------------------------------------------------- measured vs printed
+# A dimension callout carries the two ends of the span it measures and the number
+# it prints beside them. Those two must agree, or the picture is telling the reader
+# something the geometry does not say. This is the check that keeps the model honest.
+for d in G["devices"]:
+    for c in d.get("callouts", []):
+        v = num(c.get("value", ""))
+        a, b = c.get("a"), c.get("b")
+        if v is None or not a or not b:
+            continue
+        dist = math.dist(a, b)
+        if dist < 1e-6:                       # a label, not a measurement
+            continue
+        if abs(dist - v) > 0.05:
+            lab = re.sub(r"<[^>]+>", "", c.get("label", "?"))
+            bad(d["key"], f"callout '{lab}' prints {v:g} nm but its arrow spans {dist:.2f} nm")
+
+# The gate length a scene declares has to be the length of gate that is drawn: the
+# high-κ film exists only under the gate, so its x-span is the gate length.
+for d in G["devices"]:
+    if d["key"].startswith(("inv_", "show_")):
+        continue
+    declared = num(dimval(d, "L_G") or "")
+    hk = [bx for p in d["parts"] if p["material"] == "highk" for bx in p["boxes"]]
+    if declared is None or not hk:
+        continue
+    drawn = round(max(b[0] + b[3] / 2 for b in hk) - min(b[0] - b[3] / 2 for b in hk), 2)
+    if abs(drawn - declared) > 0.05:
+        bad(d["key"], f"L_G declared {declared:g} nm, high-κ spans {drawn:g} nm")
 
 # every scene should carry its written background
 for d in G["devices"]:

@@ -138,8 +138,14 @@ appears in the app.
   layout you could tape out.
 - The forksheet modelled is the classic inner-wall device; imec's later outer-wall variant
   is not included.
-- Layout scenes are deliberately chunky rather than to scale. The Device scenes are the
-  ones built to real nanometres.
+- In the plane of the wafer every scene is to scale: gate length, contacted length,
+  channel width, cell width and Metal 0 track pitch all come from one set of constants in
+  `build_devices.py`, so the same nanometre means the same thing in the Device,
+  Inverter and Layout scenes. `verify.py` fails the build if a callout ever disagrees
+  with the geometry it points at.
+- Vertically, layer thicknesses in the Layout scenes are exaggerated. Drawn to scale, a
+  1 nm interfacial oxide would be sub-pixel on a phone. The Device scenes keep the real
+  film thicknesses in all three axes.
 
 ## Publishing this repository
 

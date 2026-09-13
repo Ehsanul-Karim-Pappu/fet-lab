@@ -1,7 +1,8 @@
-import json, os, numpy as np, trimesh
+import json, os, os, numpy as np, trimesh
 from trimesh.visual.material import PBRMaterial
 
-G = json.load(open("/home/claude/nsfet/geometry.json"))
+HERE = os.path.dirname(os.path.abspath(__file__))
+G = json.load(open(os.path.join(HERE, "geometry.json")))
 MAT, OUT = G["materials"], "/mnt/user-data/outputs"
 os.makedirs(OUT, exist_ok=True)
 
