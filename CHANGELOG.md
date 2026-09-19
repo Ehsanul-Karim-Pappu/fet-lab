@@ -5,6 +5,12 @@ All notable changes to FET Lab. Dates are the release date; versions follow
 
 ## Unreleased
 
+### Consistent view order
+
+Device scenes now use the same view sequence for every architecture: Isometric, Along
+channel, Across channel, then the architecture-specific view. CFET no longer opens in
+section, and the nanosheet view names no longer carry figure letters.
+
 ### Technology stays put when you change view
 
 Switching between Device, Inverter and Layout used to drop you back on FinFET. It now

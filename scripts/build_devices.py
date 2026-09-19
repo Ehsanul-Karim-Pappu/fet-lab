@@ -167,9 +167,9 @@ def build_ns():
             ["EOT","Equivalent oxide thickness",f"{EOT:g} nm"],
             ["—","Mo between adjacent TiN shells",f"{PITCH-2*HY3:g} nm"],
             ["—","Active footprint (z)",f"{2*hz3:g} nm"]]
-    d.views={"iso":dict(n="(a) Isometric",s="the whole device",az=-.76,el=.36,r=300,tgt=[0,40,0],clip=None),
-             "b":dict(n="(b) Along channel",s="source · gate · drain",az=0,el=0,r=265,tgt=[0,42,0],clip=[None,None,0]),
-             "c":dict(n="(c) Across channel",s="through the gate",az=1.5708,el=0,r=250,tgt=[0,46,0],clip=[0,None,None]),
+    d.views={"iso":dict(n="Isometric",s="the whole device",az=-.76,el=.36,r=300,tgt=[0,40,0],clip=None),
+             "b":dict(n="Along channel",s="source · gate · drain",az=0,el=0,r=265,tgt=[0,42,0],clip=[None,None,0]),
+             "c":dict(n="Across channel",s="through the gate",az=1.5708,el=0,r=250,tgt=[0,46,0],clip=[0,None,None]),
              "gaa":dict(n="Gate-all-around",s="source side lifted off",az=-1.12,el=.30,r=205,tgt=[0,45,0],clip=[4,None,None],
                         off=["epi_source","nisi_source","ni_source","w_source","spacer_source"])}
     d.note=("<b>Reading the wrap.</b> Slice across the channel and each sheet resolves into four "
@@ -476,8 +476,8 @@ def build_cfet(seq=False):
             ["—","Bottom tier contact","backside power via"],
             ["—","Gate","shared, strapped by a via" if seq else "shared, continuous Mo"],
             ["—","Active footprint (z)",f"{2*hz3:g} nm"]]
-    d.views={"b":dict(n="Along channel",s="both tiers in section",az=0,el=0,r=310,tgt=[0,52,0],clip=[None,None,0]),
-             "iso":dict(n="Isometric",s="the stacked pair",az=-.80,el=.30,r=360,tgt=[0,50,0],clip=None),
+    d.views={"iso":dict(n="Isometric",s="the stacked pair",az=-.80,el=.30,r=360,tgt=[0,50,0],clip=None),
+             "b":dict(n="Along channel",s="both tiers in section",az=0,el=0,r=310,tgt=[0,52,0],clip=[None,None,0]),
              "c":dict(n="Across channel",s="through the gate",az=1.5708,el=0,r=300,tgt=[0,56,0],clip=[0,None,None]),
              "tier":dict(n="Tier interface",s="source side lifted off",az=-1.18,el=.26,r=270,tgt=[0,54,0],clip=[4,None,None],
                  off=["epi_n_source","epi_p_source","nisi_source","ni_source","w_source","spacer_source"])}
