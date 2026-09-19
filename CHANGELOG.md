@@ -5,6 +5,14 @@ All notable changes to FET Lab. Dates are the release date; versions follow
 
 ## Unreleased
 
+### Technology stays put when you change view
+
+Switching between Device, Inverter and Layout used to drop you back on FinFET. It now
+keeps the architecture you were looking at: Device › Forksheet to Inverter opens the
+forksheet inverter, on to Layout opens the forksheet cell. Compare carries across the
+same way, and a CFET left on Sequential comes back as Sequential rather than Monolithic.
+Only the viewing mode changes.
+
 ### Parasitics
 
 A new Parasitics table on the Device scenes, beside Critical dimensions on the web and

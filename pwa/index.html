@@ -962,9 +962,23 @@ const MODES={
 let MODE="dev";
 const dwrap=document.getElementById("devs"),seg=document.getElementById("cfetseg"),
       mseg=document.getElementById("modeseg"),lbar=document.getElementById("logicbar");
+/** The technology a scene shows, with the viewing mode stripped off. The two CFET
+ *  scenes are one technology: only the device mode splits them into mono/sequential. */
+function techOf(key){
+  const k=key.replace(/^(inv_|show_)/,"");
+  return k.indexOf("cfet")===0?"cfet":k;}
+/** Last scene opened per mode per technology, so switching away from Sequential CFET
+ *  and back lands on Sequential again rather than snapping to Monolithic. */
+const LAST={dev:{},inv:{},show:{}};
+/** The scene that shows `tech` in `mode`, or null when that mode has no equivalent. */
+function sceneFor(mode,tech){
+  if(LAST[mode][tech])return LAST[mode][tech];
+  const row=MODES[mode].find(r=>techOf(r[0])===tech);
+  if(!row)return null;
+  return mode==="dev"&&tech==="cfet"?"cfet_mono":row[0];}
 /** Which scene a device chip should open. */
 function devKey(fam){
-  if(fam==="cfet")return S.key.indexOf("cfet")===0?S.key:"cfet_mono";
+  if(fam==="cfet")return S.key.indexOf("cfet")===0?S.key:(LAST.dev.cfet||"cfet_mono");
   return fam;}
 function chips(){
   dwrap.innerHTML="";
@@ -973,9 +987,9 @@ function chips(){
     b.onclick=()=>setDevice(MODE==="dev"?devKey(k):k);
     dwrap.appendChild(b);});}
 mseg.querySelectorAll("button").forEach(b=>b.onclick=()=>{
-  if(MODE===b.dataset.m)return; MODE=b.dataset.m;
-  mseg.querySelectorAll("button").forEach(x=>x.setAttribute("aria-pressed",String(x.dataset.m===MODE)));
-  chips(); setDevice(MODE==="dev"?"fin":MODE==="inv"?"inv_ns":"show_ns");});
+  const m=b.dataset.m; if(MODE===m)return;
+  // Only the viewing mode changes: the technology on screen carries across.
+  setDevice(sceneFor(m,techOf(S.key))||MODES[m][0][0]);});
 chips();
 lbar.querySelectorAll("button").forEach(b=>b.onclick=()=>{
   S.inp=+b.dataset.v; lbar.querySelectorAll("button").forEach(x=>x.setAttribute("aria-pressed",String(+x.dataset.v===S.inp)));
@@ -1018,6 +1032,7 @@ function parPanel(){
 function setDevice(key){
   S.key=key;DEV=byKey[key];HOT=null;
   MODE=key.indexOf("inv_")===0?"inv":key.indexOf("show_")===0?"show":"dev";
+  LAST[MODE][techOf(key)]=key;
   mseg.querySelectorAll("button").forEach(x=>x.setAttribute("aria-pressed",String(x.dataset.m===MODE)));
   if(!dwrap.firstChild||!MODES[MODE].some(k=>k[0]===dwrap.firstChild.dataset.d)) chips();
   const fam=(MODE==="dev"&&key.indexOf("cfet")===0)?"cfet":key;

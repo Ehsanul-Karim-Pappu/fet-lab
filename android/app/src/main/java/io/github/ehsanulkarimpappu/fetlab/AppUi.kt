@@ -97,6 +97,17 @@ private val TABS = listOf("Views", "Section", "Layers", "Specs", "Story")
 private fun keysFor(mode: Int) = when (mode) { 0 -> DEV_KEYS; 1 -> INV_KEYS; else -> SHOW_KEYS }
 private fun firstOf(mode: Int) = keysFor(mode).first().first
 
+/** The technology a scene shows, with the viewing mode stripped off. The two CFET
+ *  scenes are one technology: only the device mode splits them into mono/sequential. */
+private fun techOf(key: String): String {
+    val k = key.removePrefix("inv_").removePrefix("show_")
+    return if (k.startsWith("cfet")) "cfet" else k
+}
+
+/** The scene that shows [tech] in [mode], or null when that mode has no equivalent. */
+private fun sceneFor(mode: Int, tech: String): String? =
+    keysFor(mode).firstOrNull { techOf(it.first) == tech }?.first
+
 /* ============================================================== boot ===== */
 
 @Composable
@@ -338,7 +349,10 @@ fun FetLabApp(lib: Library, renderer: Renderer, dynamic: Boolean, onDynamic: (Bo
             Box(Modifier.padding(horizontal = 16.dp)) {
                 Segmented(MODES, mode) { i ->
                     haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                    switchScene(firstOf(i))
+                    // Only the viewing mode changes: the technology on screen carries across.
+                    val tech = techOf(sceneKey)
+                    val next = sceneFor(i, tech) ?: firstOf(i)
+                    switchScene(if (i == 0 && tech == "cfet" && cfetSeq) "cfet_seq" else next)
                 }
             }
             Spacer(Modifier.height(10.dp))
