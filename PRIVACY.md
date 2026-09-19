@@ -1,6 +1,6 @@
 # Privacy Policy — FET Lab
 
-_Last updated: 12 September 2026_
+_Last updated: 19 September 2026_
 
 **FET Lab does not collect, store, transmit or share any personal data.**
 
@@ -17,10 +17,18 @@ That is the whole policy, but here is what it means concretely.
 
 ## What the app stores on your device
 
-Nothing that persists. All geometry is read from a read-only asset bundled inside the
-APK (`devices.json`). Your current scene and toggle settings live in memory only and are
-gone when the app closes. Android's automatic backup is explicitly disabled in
-`res/xml/data_extraction_rules.xml`.
+The Android app stores the version of the guided tour you have started or skipped in
+local DataStore preferences, so it does not repeatedly show the first-launch prompt.
+This is not personal data and never leaves the device. Help lets you replay the tour
+without clearing it. Geometry and the feature guide are bundled read-only assets
+(`devices.json` and `guide.json`). Scene controls are not saved as durable preferences.
+Android's automatic backup is disabled in `res/xml/data_extraction_rules.xml`.
+
+The web viewer and PWA store the same tour-version preference in your browser's local
+storage. The PWA also caches its files for offline use. Clearing the site's data removes
+both. If local storage is unavailable, the viewer still works, but the welcome prompt
+may appear again. Loading the website or following external links makes normal requests
+to its hosting provider; FET Lab adds no analytics or tracking.
 
 ## Links out of the app
 

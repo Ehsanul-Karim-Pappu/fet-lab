@@ -5,6 +5,20 @@ All notable changes to FET Lab. Dates are the release date; versions follow
 
 ## Unreleased
 
+### Guided exploration and overlay controls
+
+- Optional first-launch tour, replayable from Help, on Android, web and PWA.
+- Searchable feature guide with direct navigation to real scenes, views and controls;
+  both guide and tour use one shared destination catalog.
+- Compact phone header and translucent overlay controls with peek, half and reading
+  positions. Canvas height and model zoom remain stable when opening tools.
+- Tour exit restores the previous scene and settings. Tour preference stays local;
+  privacy documentation now describes that storage.
+- Browser pinch zoom and two-finger pan, keyboard-accessible tool tabs, zoom buttons,
+  and control highlights. Wide screens retain a separate supporting panel.
+- Repository-relative scene builds and one `scripts/build.py` command to regenerate,
+  validate and synchronize Android, web and PWA assets.
+
 ### Consistent view order
 
 Device scenes now use the same view sequence for every architecture: Isometric, Along

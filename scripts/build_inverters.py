@@ -4,6 +4,7 @@ Every part carries a `net` so the viewer can light the conducting path:
   vdd | gnd | out | in | chan_p | chan_n | body
 """
 import json, os
+from paths import DATA
 from build_devices import (Dev, box, ring4, fork3, finwrap, gaps, check,
                            MAT, ORDER, TCH, LSP, LSD, TIL, THK, TTIN, EOT,
                            HYS, HY1, HY2, HY3)
@@ -437,7 +438,7 @@ def inv_cmp():
 # =================================================================== MAIN ===
 if __name__ == "__main__":
     import findlap
-    G = json.load(open("devices.json"))
+    G = json.load(open(DATA))
     G["devices"] = [x for x in G["devices"] if not x["key"].startswith("inv_")]
     for f in (inv_fin, inv_ns, inv_fs, inv_cfet, inv_cmp):
         d = f(); mx, n = check(d)
@@ -446,5 +447,5 @@ if __name__ == "__main__":
         G["devices"].append(dict(key=d.key, name=d.name, tag=d.tag, blurb=d.blurb, parts=d.parts,
             callouts=d.callouts, dims=d.dims, views=d.views, note=d.note, bounds=d.bounds, logic=True,
             groups=list(dict.fromkeys(p["group"] for p in d.parts))))
-    json.dump(G, open("devices.json", "w"), separators=(",", ":"))
-    print("devices.json", os.path.getsize("devices.json") // 1024, "KB", len(G["devices"]), "scenes")
+    json.dump(G, open(DATA, "w"), separators=(",", ":"))
+    print("devices.json", os.path.getsize(DATA) // 1024, "KB", len(G["devices"]), "scenes")

@@ -1,0 +1,22 @@
+{
+  "version": 1,
+  "tour": ["orbit", "views", "section", "layers", "parasitics", "logic", "layout", "story"],
+  "features": [
+    {"id":"orbit","category":"Explore","title":"Move and inspect the model","description":"Drag to orbit. Pinch to zoom or use the zoom buttons. Pan with two fingers (Shift-drag on desktop). Tap a layer to identify its material.","scene":"ns","view":"iso","tab":"views","target":"stage","peek":true},
+    {"id":"architectures","category":"Explore","title":"Choose a technology","description":"Explore FinFET, nanosheet, forksheet and CFET. Changing Device, Inverter or Layout keeps the selected technology.","scene":"fin","view":"iso","tab":"views","target":"architecture","peek":true},
+    {"id":"views","category":"Inspect","title":"Preset views","description":"Choose Isometric, Along channel or Across channel. The last view reveals the architecture’s distinctive gate or tier structure.","scene":"ns","view":"iso","tab":"views","target":"views"},
+    {"id":"section","category":"Inspect","title":"Section planes","description":"Move a section slider to cut into the model. Solid cut faces reveal the films inside. The model stays visible above and through the controls.","scene":"ns","view":"c","tab":"section","target":"section"},
+    {"id":"explode","category":"Inspect","title":"Exploded view","description":"Move Separate layers to spread the films apart. Return it to zero to reassemble the device.","scene":"ns","view":"iso","tab":"section","target":"explode"},
+    {"id":"layers","category":"Inspect","title":"Layer visibility","description":"Show or hide individual layers, organized by process group. Tap a visible layer in the model to identify it.","scene":"ns","view":"iso","tab":"layers","target":"layers"},
+    {"id":"dimensions","category":"Inspect","title":"Dimension callouts","description":"Turn dimension callouts on or off to balance measurement detail and a clear view. Model coordinates are in nanometres.","scene":"ns","view":"iso","tab":"section","target":"dimensions"},
+    {"id":"ghost","category":"Inspect","title":"See through the gate fill","description":"Ghost the Mo gate fill to reveal the channel and surrounding films without hiding the entire gate.","scene":"ns","view":"iso","tab":"section","target":"ghost"},
+    {"id":"specs","category":"Learn","title":"Device specifications","description":"Read the scene’s dimensions and design notes. These are representative teaching values, not a foundry process specification.","scene":"ns","view":"iso","tab":"specs","target":"specs"},
+    {"id":"parasitics","category":"Learn","title":"Parasitic capacitance","description":"Select a capacitance row to highlight the two conductors and the material between them. Values are first-order estimates from this geometry.","scene":"ns","view":"c","tab":"specs","target":"parasitics"},
+    {"id":"logic","category":"Circuits","title":"CMOS inverter logic","description":"Tap IN 0 or 1. The conducting transistor lights up and OUT takes the opposite value. This is a teaching visualization of inverter logic.","scene":"inv_ns","view":"cell","tab":"views","target":"logic","peek":true},
+    {"id":"layout","category":"Circuits","title":"Cell layout and routing","description":"Trace contacts, gate, vias and Metal 0. Try Top view to inspect routing; use IN to see the inverter’s logic state.","scene":"show_ns","view":"hero","tab":"views","target":"views"},
+    {"id":"compare","category":"Explore","title":"Compare architectures","description":"See all four architectures at the same scale. Switch between Device, Inverter and Layout to compare device footprint with complete cell width.","scene":"cmp","view":"iso","tab":"views","target":"views"},
+    {"id":"cfet","category":"Explore","title":"Monolithic and sequential CFET","description":"Compare the two CFET integration routes using the Monolithic and Sequential selector, then inspect the Tier interface view.","scene":"cfet_mono","view":"tier","tab":"views","target":"architecture"},
+    {"id":"story","category":"Learn","title":"Why this device exists","description":"Read what each architecture replaced, what stopped scaling and what the new structure costs. Close the reading panel to return to the same model.","scene":"ns","view":"iso","tab":"story","target":"story"},
+    {"id":"display","category":"Inspect","title":"Display and reset","description":"Choose edge outlines, surface texture, slow rotation and a light background. Reset the scene to restore its default view.","scene":"ns","view":"iso","tab":"section","target":"display"}
+  ]
+}

@@ -8,6 +8,7 @@ Everything is an axis-aligned box.  Conformal films are built as separate
 plates so each device tiles exactly: no overlapping solids, no gaps.
 """
 import json, os
+from paths import DATA
 import numpy as np
 
 # ---------------------------------------------------------------- materials
@@ -623,6 +624,6 @@ if __name__ == "__main__":
         out["devices"].append(dict(key=d.key,name=d.name,tag=d.tag,blurb=d.blurb,parts=d.parts,
             callouts=d.callouts,dims=d.dims,views=d.views,note=d.note,bounds=d.bounds,
             groups=list(dict.fromkeys(p["group"] for p in d.parts))))
-    out_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "devices.json")
+    out_path = DATA
     json.dump(out, open(out_path, "w"), separators=(",", ":"))
     print("devices.json", os.path.getsize(out_path)//1024, "KB")

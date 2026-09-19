@@ -4,6 +4,11 @@ import android.content.ActivityNotFoundException
 import android.content.Intent
 import android.net.Uri
 import android.opengl.GLSurfaceView
+import androidx.activity.compose.BackHandler
+import androidx.compose.material3.TextButton
+import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.Crossfade
 import androidx.compose.animation.animateColorAsState
@@ -76,6 +81,7 @@ import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -165,6 +171,14 @@ private class Cam(val az: Float, val el: Float, val r: Float,
                   val tx: Float, val ty: Float, val tz: Float,
                   val cx: Float, val cy: Float, val cz: Float)
 
+private data class TourReturn(
+    val key: String, val camera: Cam, val view: String, val tab: Int,
+    val sheet: Int, val input: Int, val explode: Float, val ghost: Boolean,
+    val dims: Boolean, val spin: Boolean, val par: String?, val seq: Boolean,
+    val chooser: Boolean, val texture: Boolean, val edges: Boolean, val light: Boolean,
+    val dynamic: Boolean, val selected: Part?, val visibility: Map<String, Boolean>
+)
+
 private fun lerp(a: Float, b: Float, t: Float) = a + (b - a) * t
 
 private fun lerpCam(a: Cam, b: Cam, t: Float): Cam {
@@ -222,6 +236,25 @@ fun FetLabApp(lib: Library, renderer: Renderer, dynamic: Boolean, onDynamic: (Bo
     var selected by remember { mutableStateOf<Part?>(null) }
     var showAbout by rememberSaveable { mutableStateOf(false) }
     var layerTick by remember { mutableIntStateOf(0) }
+    var showHelp by rememberSaveable { mutableStateOf(false) }
+    var showSceneChooser by rememberSaveable { mutableStateOf(false) }
+    var sheetLevel by rememberSaveable { mutableIntStateOf(0) } // peek / half / reading
+    var stageInset by remember { mutableStateOf(0.dp) }
+    var tourHeight by remember { mutableStateOf(0.dp) }
+    var tourStep by remember { mutableIntStateOf(-1) }
+    var tourReturn by remember { mutableStateOf<TourReturn?>(null) }
+    var guideFocus by remember { mutableStateOf("") }
+    var welcomeDismissed by remember { mutableStateOf(false) }
+    var storedTourVersion by remember { mutableStateOf<Int?>(null) }
+    val guidePrefs = remember { GuidePreferences(ctx.applicationContext) }
+    LaunchedEffect(Unit) { guidePrefs.version.collect { storedTourVersion = it } }
+    fun dismissWelcome() {
+        welcomeDismissed = true
+        scope.launch { guidePrefs.dismiss(lib.guide.version) }
+    }
+    LaunchedEffect(guideFocus, tourStep) {
+        if (tourStep < 0 && guideFocus.isNotEmpty()) { delay(6500); guideFocus = "" }
+    }
 
     val scene = lib.scene(sceneKey)
     val stageBg = if (lightBg) Stage.light else Stage.dark
@@ -237,6 +270,7 @@ fun FetLabApp(lib: Library, renderer: Renderer, dynamic: Boolean, onDynamic: (Bo
 
     // --- camera flight ------------------------------------------------------
     var flight by remember { mutableStateOf<Job?>(null) }
+    var sceneSwitch by remember { mutableStateOf<Job?>(null) }
     fun cameraNow() = Cam(renderer.az, renderer.el, renderer.dist,
         renderer.target[0], renderer.target[1], renderer.target[2], cx, cy, cz)
 
@@ -298,7 +332,8 @@ fun FetLabApp(lib: Library, renderer: Renderer, dynamic: Boolean, onDynamic: (Bo
     fun switchScene(key: String) {
         if (key == sceneKey) return
         flight?.cancel()
-        scope.launch {
+        sceneSwitch?.cancel()
+        sceneSwitch = scope.launch {
             scrim = 1f
             kotlinx.coroutines.delay(140)
             openScene(key, animate = true)
@@ -307,6 +342,63 @@ fun FetLabApp(lib: Library, renderer: Renderer, dynamic: Boolean, onDynamic: (Bo
     }
 
     LaunchedEffect(Unit) { openScene(sceneKey, animate = false) }
+
+    fun navigateTo(f: FeatureDestination, touring: Boolean = false) {
+        flight?.cancel()
+        sceneSwitch?.cancel(); scrim = 0f
+        spin = false
+        showHelp = false
+        openScene(f.scene, animate = false)
+        cfetSeq = f.scene == "cfet_seq"
+        val sc = lib.scene(f.scene)
+        goToView(sc, sc.views.first { it.key == f.view }, animate = false)
+        tab = TABS.indexOfFirst { it.equals(f.tab, ignoreCase = true) }.coerceAtLeast(0)
+        sheetLevel = if (f.peek) 0 else if (f.tab == "story" && !touring) 2 else 1
+        showSceneChooser = f.target == "architecture"
+        ghost = false; renderer.ghost = false
+        showDims = f.id == "dimensions"
+        input = 0; renderer.input = 0
+        guideFocus = f.target
+        draw()
+    }
+
+    fun finishTour() {
+        flight?.cancel(); sceneSwitch?.cancel(); scrim = 0f
+        val saved = tourReturn
+        tourStep = -1; tourReturn = null; guideFocus = ""; tourHeight = 0.dp
+        if (saved != null) {
+            openScene(saved.key, animate = false)
+            for (sc in lib.scenes) for (p in sc.parts)
+                p.visible = saved.visibility["${sc.key}/${p.id}"] ?: true
+            applyCam(lib.scene(saved.key), saved.camera)
+            viewKey = saved.view; tab = saved.tab; sheetLevel = saved.sheet
+            input = saved.input; renderer.input = saved.input
+            explodeF = saved.explode; renderer.explode = saved.explode * 16f
+            ghost = saved.ghost; renderer.ghost = saved.ghost
+            texture = saved.texture; renderer.texture = saved.texture
+            edges = saved.edges; renderer.edges = saved.edges
+            lightBg = saved.light; renderer.lightBg = saved.light
+            onDynamic(saved.dynamic)
+            selected = saved.selected; renderer.highlight = saved.selected
+            showDims = saved.dims; spin = saved.spin; cfetSeq = saved.seq
+            showSceneChooser = saved.chooser
+            parPick = saved.par
+            renderer.par = lib.scene(saved.key).par?.terms?.firstOrNull { it.id == saved.par }
+            renderer.capsDirty = true; layerTick++; draw()
+        }
+    }
+
+    fun startTour() {
+        dismissWelcome()
+        tourReturn = TourReturn(sceneKey, cameraNow(), viewKey, tab, sheetLevel, input,
+            explodeF, ghost, showDims, spin, parPick, cfetSeq, showSceneChooser,
+            texture, edges, lightBg, dynamic, selected,
+            lib.scenes.flatMap { sc -> sc.parts.map { "${sc.key}/${it.id}" to it.visible } }.toMap())
+        tourStep = 0
+        navigateTo(lib.guide.feature(lib.guide.tour[0]), touring = true)
+    }
+
+    BackHandler(enabled = sheetLevel > 0 && tourStep < 0 && !showHelp && !showAbout) { sheetLevel = 0 }
 
     val lifecycleOwner = LocalLifecycleOwner.current
     DisposableEffect(lifecycleOwner) {
@@ -339,13 +431,18 @@ fun FetLabApp(lib: Library, renderer: Renderer, dynamic: Boolean, onDynamic: (Bo
                 }
                 Box(Modifier.size(42.dp).clip(CircleShape)
                     .background(MaterialTheme.colorScheme.surfaceVariant)
-                    .clickable { showAbout = true }, contentAlignment = Alignment.Center) {
-                    Text("i", fontFamily = Mono, fontSize = 16.sp,
+                    .semantics { contentDescription = "Help, features and guided tour" }
+                    .clickable { showHelp = true }, contentAlignment = Alignment.Center) {
+                    Text("?", fontFamily = Mono, fontSize = 16.sp,
                         fontWeight = FontWeight.SemiBold,
                         color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
-            Spacer(Modifier.height(12.dp))
+            TextButton(onClick = { showSceneChooser = !showSceneChooser },
+                modifier = Modifier.padding(horizontal = 12.dp).guideTarget("architecture")) {
+                Text("${MODES[mode]} · ${techOf(sceneKey).let { t -> DEV_KEYS.firstOrNull { techOf(it.first) == t }?.second ?: t }}  ${if (showSceneChooser) "▴" else "▾"}")
+            }
+            if (showSceneChooser) {
             Box(Modifier.padding(horizontal = 16.dp)) {
                 Segmented(MODES, mode) { i ->
                     haptic.performHapticFeedback(HapticFeedbackType.LongPress)
@@ -376,12 +473,13 @@ fun FetLabApp(lib: Library, renderer: Renderer, dynamic: Boolean, onDynamic: (Bo
                     }
                 }
             }
-            Spacer(Modifier.height(12.dp))
+            }
+            Spacer(Modifier.height(4.dp))
         }
     }
 
     val stage = @Composable { mod: Modifier ->
-        Box(mod.clip(RoundedCornerShape(20.dp)).background(stageBg)
+        Box(mod.guideTarget("stage").clip(RoundedCornerShape(20.dp)).background(stageBg)
             .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(20.dp))) {
 
             AndroidView(factory = { glView }, modifier = Modifier.fillMaxSize())
@@ -433,6 +531,7 @@ fun FetLabApp(lib: Library, renderer: Renderer, dynamic: Boolean, onDynamic: (Bo
                         }
                         prevCentroid = centroid; prevSpread = spread
                         for (c in ev.changes) c.consume()
+                        viewKey = ""
                         draw()
                     }
                     // Tap slop in physical pixels, so it is the same distance on any screen.
@@ -471,7 +570,7 @@ fun FetLabApp(lib: Library, renderer: Renderer, dynamic: Boolean, onDynamic: (Bo
             AnimatedVisibility(visible = selected != null,
                 enter = fadeIn(tween(180)) + slideInVertically(tween(220)) { it / 3 },
                 exit = fadeOut(tween(140)) + slideOutVertically(tween(180)) { it / 3 },
-                modifier = Modifier.align(Alignment.BottomStart)) {
+                modifier = Modifier.align(Alignment.BottomStart).padding(bottom = stageInset)) {
                 val p = selected
                 Surface(color = glass, shape = RoundedCornerShape(14.dp),
                     border = BorderStroke(1.dp, line),
@@ -495,7 +594,7 @@ fun FetLabApp(lib: Library, renderer: Renderer, dynamic: Boolean, onDynamic: (Bo
 
             AnimatedVisibility(visible = scene.logic,
                 enter = fadeIn() + slideInVertically { it }, exit = fadeOut() + slideOutVertically { it },
-                modifier = Modifier.align(Alignment.BottomCenter)) {
+                modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = stageInset).guideTarget("logic")) {
                 LogicBar(input, glass, line, ink, dim, lightBg) { v ->
                     haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                     input = v; renderer.input = v; renderer.capsDirty = true; draw()
@@ -504,14 +603,16 @@ fun FetLabApp(lib: Library, renderer: Renderer, dynamic: Boolean, onDynamic: (Bo
 
             if (scrimA > 0.005f)
                 Box(Modifier.matchParentSize().background(stageBg.copy(alpha = scrimA)))
+
+            Row(Modifier.align(Alignment.TopEnd).padding(top = tourHeight + 30.dp, end = 8.dp)) {
+                TextButton(onClick = { renderer.dist = (renderer.dist / 1.2f).coerceAtLeast(40f); draw() }) { Text("Zoom +") }
+                TextButton(onClick = { renderer.dist = (renderer.dist * 1.2f).coerceAtMost(3000f); draw() }) { Text("−") }
+            }
         }
     }
 
-    val expandedPx = with(density) { 296.dp.toPx() }
-    val sheet = remember { androidx.compose.animation.core.Animatable(expandedPx) }
-    val sheetSpring = spring<Float>(dampingRatio = 0.85f, stiffness = Spring.StiffnessMediumLow)
     fun openSheet() {
-        if (sheet.value < expandedPx * 0.5f) scope.launch { sheet.animateTo(expandedPx, sheetSpring) }
+        sheetLevel = if (tab == 4 && tourStep < 0) 2 else 1
     }
 
     val controlTabs = @Composable { mod: Modifier ->
@@ -525,6 +626,7 @@ fun FetLabApp(lib: Library, renderer: Renderer, dynamic: Boolean, onDynamic: (Bo
             Crossfade(targetState = tab, animationSpec = tween(220), label = "tab",
                 modifier = Modifier.fillMaxSize()) { t ->
                 Box(Modifier.fillMaxSize().padding(horizontal = 14.dp)) {
+                    Box(Modifier.guideTarget(TABS[t].lowercase())) {
                     when (t) {
                         0 -> ViewsTab(scene, viewKey) { v ->
                             haptic.performHapticFeedback(HapticFeedbackType.LongPress)
@@ -574,6 +676,7 @@ fun FetLabApp(lib: Library, renderer: Renderer, dynamic: Boolean, onDynamic: (Bo
                         }
                         else -> StoryTab(scene)
                     }
+                    }
                 }
             }
         }
@@ -581,10 +684,12 @@ fun FetLabApp(lib: Library, renderer: Renderer, dynamic: Boolean, onDynamic: (Bo
 
     /* ----------------------------------------------------------- layout -- */
 
+    CompositionLocalProvider(LocalGuideFocus provides guideFocus) {
     BoxWithConstraints(Modifier.fillMaxSize()
         .background(MaterialTheme.colorScheme.background).safeDrawingPadding()) {
         val wide = maxWidth >= 680.dp
         if (wide) {
+            SideEffect { stageInset = 0.dp; renderer.bottomInset = 0f }
             Row(Modifier.fillMaxSize()) {
                 Column(Modifier.width(330.dp).fillMaxHeight()) {
                     header()
@@ -597,46 +702,74 @@ fun FetLabApp(lib: Library, renderer: Renderer, dynamic: Boolean, onDynamic: (Bo
         } else {
             Column(Modifier.fillMaxSize()) {
                 header()
-                stage(Modifier.weight(1f).fillMaxWidth().padding(horizontal = 12.dp))
-                Surface(color = MaterialTheme.colorScheme.surface,
+                BoxWithConstraints(Modifier.weight(1f).fillMaxWidth()) {
+                val desired = when (sheetLevel) { 0 -> 0.dp; 1 -> maxHeight * .34f; else -> maxHeight * .73f }
+                val bodyHeight by animateDpAsState(desired, tween(240), label = "sheetHeight")
+                val alpha by animateFloatAsState(if (sheetLevel == 2 || tab == 4) .98f else .82f, tween(200), label = "sheetAlpha")
+                stage(Modifier.fillMaxSize().padding(horizontal = 8.dp))
+                Surface(color = MaterialTheme.colorScheme.surface.copy(alpha = alpha),
                     shape = RoundedCornerShape(topStart = 22.dp, topEnd = 22.dp),
-                    tonalElevation = 3.dp,
-                    modifier = Modifier.fillMaxWidth().padding(top = 12.dp)
-                        .shadow(14.dp, RoundedCornerShape(topStart = 22.dp, topEnd = 22.dp))) {
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = .45f)),
+                    modifier = Modifier.align(Alignment.BottomCenter).fillMaxWidth()
+                        .onSizeChanged { stageInset = with(density) { it.height.toDp() }; renderer.bottomInset = it.height.toFloat(); draw() }) {
                     Column {
-                        Box(Modifier.fillMaxWidth().height(24.dp).draggable(
+                        var dragDistance by remember { mutableFloatStateOf(0f) }
+                        Row(Modifier.fillMaxWidth().height(40.dp).draggable(
                             orientation = Orientation.Vertical,
-                            state = rememberDraggableState { d ->
-                                scope.launch { sheet.snapTo((sheet.value - d).coerceIn(0f, expandedPx)) }
-                            },
+                            state = rememberDraggableState { d -> dragDistance += d },
+                            onDragStarted = { dragDistance = 0f },
                             onDragStopped = {
-                                val target = if (sheet.value > expandedPx * 0.45f) expandedPx else 0f
-                                sheet.animateTo(target, sheetSpring)
+                                if (abs(dragDistance) > with(density) { 24.dp.toPx() })
+                                    sheetLevel = (sheetLevel + if (dragDistance < 0) 1 else -1).coerceIn(0, 2)
                             }
-                        ).clickable {
-                            scope.launch {
-                                sheet.animateTo(
-                                    if (sheet.value > expandedPx * 0.5f) 0f else expandedPx, sheetSpring)
+                        ), horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically) {
+                            TextButton(onClick = { sheetLevel = if (sheetLevel == 0) 1 else 0 }) {
+                                Text(if (sheetLevel == 0) "Open controls" else "Hide controls")
                             }
-                        }, contentAlignment = Alignment.Center) {
-                            Box(Modifier.width(38.dp).height(4.dp).clip(CircleShape)
-                                .background(MaterialTheme.colorScheme.outline))
+                            TextButton(onClick = { sheetLevel = if (sheetLevel == 2) 1 else 2 }) {
+                                Text(if (sheetLevel == 2) "Half" else "Expand")
+                            }
                         }
                         controlTabs(Modifier.fillMaxWidth().padding(horizontal = 14.dp))
                         Spacer(Modifier.height(8.dp))
                         controlBody(Modifier.fillMaxWidth()
-                            .height(with(density) { sheet.value.toDp() })
+                            .height(bodyHeight)
                             .padding(bottom = 8.dp))
                     }
                 }
+                if (tourStep >= 0) TourCard(lib.guide.feature(lib.guide.tour[tourStep]), tourStep, lib.guide.tour.size,
+                    Modifier.align(Alignment.TopCenter).padding(10.dp).onSizeChanged {
+                        tourHeight = with(density) { it.height.toDp() }; renderer.topInset = it.height.toFloat(); draw()
+                    }, onBack = { tourStep--; navigateTo(lib.guide.feature(lib.guide.tour[tourStep]), true) },
+                    onNext = { if (tourStep == lib.guide.tour.lastIndex) finishTour()
+                        else { tourStep++; navigateTo(lib.guide.feature(lib.guide.tour[tourStep]), true) } },
+                    onExit = { finishTour() })
+                }
             }
         }
+
+        if (wide && tourStep >= 0) TourCard(lib.guide.feature(lib.guide.tour[tourStep]), tourStep, lib.guide.tour.size,
+            Modifier.align(Alignment.TopEnd).padding(16.dp).widthIn(max = 420.dp).onSizeChanged {
+                tourHeight = with(density) { it.height.toDp() }; renderer.topInset = it.height.toFloat(); draw()
+            }, onBack = { tourStep--; navigateTo(lib.guide.feature(lib.guide.tour[tourStep]), true) },
+            onNext = { if (tourStep == lib.guide.tour.lastIndex) finishTour()
+                else { tourStep++; navigateTo(lib.guide.feature(lib.guide.tour[tourStep]), true) } },
+            onExit = { finishTour() })
+        if (tourStep < 0) SideEffect { renderer.topInset = 0f }
+
+        if (storedTourVersion != null && storedTourVersion!! < lib.guide.version && !welcomeDismissed)
+            WelcomeGuide(onStart = { startTour() }, onSkip = { dismissWelcome() })
+        if (showHelp) FeatureGuide(lib.guide, onOpen = { f -> if (tourStep >= 0) finishTour(); navigateTo(f) },
+            onTour = { if (tourStep >= 0) finishTour(); startTour() },
+            onAbout = { showHelp = false; showAbout = true }, onClose = { showHelp = false })
 
         AnimatedVisibility(visible = showAbout,
             enter = fadeIn(tween(200)) + slideInVertically(tween(280)) { it / 6 },
             exit = fadeOut(tween(160)) + slideOutVertically(tween(220)) { it / 6 }) {
             AboutScreen { showAbout = false }
         }
+    }
     }
 }
 
@@ -924,13 +1057,14 @@ private fun SectionTab(scene: Scene, cx: Float, cy: Float, cz: Float, explode: F
 private fun SectionLabel(text: String) {
     Text(text, style = MaterialTheme.typography.labelSmall,
         color = MaterialTheme.colorScheme.onSurfaceVariant,
-        modifier = Modifier.padding(top = 10.dp, bottom = 4.dp))
+        modifier = Modifier.padding(top = 10.dp, bottom = 4.dp).guideTarget("display"))
 }
 
 @Composable
 private fun ToggleRow(label: String, on: Boolean, onChange: (Boolean) -> Unit) {
     val haptic = LocalHapticFeedback.current
     Row(Modifier.fillMaxWidth().heightIn(min = 48.dp)
+        .guideTarget(when (label) { "Dimension callouts" -> "dimensions"; "Ghost the gate fill" -> "ghost"; else -> "toggle-$label" })
         .clip(RoundedCornerShape(12.dp))
         .clickable { haptic.performHapticFeedback(HapticFeedbackType.LongPress); onChange(!on) }
         .padding(horizontal = 4.dp),
@@ -944,7 +1078,7 @@ private fun ToggleRow(label: String, on: Boolean, onChange: (Boolean) -> Unit) {
 @Composable
 private fun SliderRow(label: String, axis: String, frac: Float, lo: Float, hi: Float,
                       offAtMax: Boolean, onChange: (Float) -> Unit) {
-    Column(Modifier.padding(vertical = 2.dp)) {
+    Column(Modifier.padding(vertical = 2.dp).guideTarget(if (label == "Separate layers") "explode" else "axis-$axis")) {
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
             Text(label, fontFamily = PlexSans, fontSize = 13.sp,
                 color = MaterialTheme.colorScheme.onSurface, modifier = Modifier.weight(1f))
@@ -1090,7 +1224,12 @@ private fun LazyListScope.parasiticSection(
 
 @Composable
 private fun SpecsTab(scene: Scene, picked: String?, onPick: (Parasitic?) -> Unit) {
-    LazyColumn(contentPadding = PaddingValues(bottom = 16.dp)) {
+    val focus = LocalGuideFocus.current
+    val listState = androidx.compose.foundation.lazy.rememberLazyListState()
+    LaunchedEffect(focus, scene) {
+        if (focus == "parasitics" && scene.par != null) listState.scrollToItem(scene.dims.size + 1)
+    }
+    LazyColumn(state = listState, modifier = Modifier.guideTarget("parasitics"), contentPadding = PaddingValues(bottom = 16.dp)) {
         item {
             Text(scene.blurb, fontFamily = PlexSans, fontSize = 13.sp, lineHeight = 19.sp,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -1188,7 +1327,8 @@ private fun BoxScope.CalloutOverlay(renderer: Renderer, scene: Scene, viewKey: S
         }
 
         // leader labels form one tidy column per side, swept so none can overlap
-        val pad = 8f; val top = 34f; val bot = if (scene.logic) 64f else pad; val gap = 20f
+        val pad = 8f; val top = maxOf(34f, renderer.topInset + 8f)
+        val bot = renderer.bottomInset + if (scene.logic) 64f else pad; val gap = 20f
         for (sd in intArrayOf(-1, 1)) {
             val col = out.filter { it.c.lead && it.side == sd }.sortedBy { it.ay }
             if (col.isEmpty()) continue
@@ -1208,16 +1348,16 @@ private fun BoxScope.CalloutOverlay(renderer: Renderer, scene: Scene, viewKey: S
                 for (p in col) p.ty -= lift
             }
             for (p in col) {
-                p.tx = p.tx.coerceIn(p.w / 2f + pad, w - p.w / 2f - pad)
-                p.ty = p.ty.coerceIn(p.h / 2f + top, h - p.h / 2f - bot)
+                p.tx = p.tx.coerceIn(p.w / 2f + pad, maxOf(p.w / 2f + pad, w - p.w / 2f - pad))
+                p.ty = p.ty.coerceIn(p.h / 2f + top, maxOf(p.h / 2f + top, h - p.h / 2f - bot))
             }
         }
 
         // dimension chips keep their own spot, nudged apart until none overlaps
         val rest = out.filter { !it.c.lead }
         for (p in rest) {
-            p.tx = p.tx.coerceIn(p.w / 2f + pad, w - p.w / 2f - pad)
-            p.ty = p.ty.coerceIn(p.h / 2f + top, h - p.h / 2f - bot)
+            p.tx = p.tx.coerceIn(p.w / 2f + pad, maxOf(p.w / 2f + pad, w - p.w / 2f - pad))
+            p.ty = p.ty.coerceIn(p.h / 2f + top, maxOf(p.h / 2f + top, h - p.h / 2f - bot))
         }
         repeat(6) {
             val byY = rest.sortedBy { it.ty }
@@ -1229,7 +1369,7 @@ private fun BoxScope.CalloutOverlay(renderer: Renderer, scene: Scene, viewKey: S
                     v.ty = u.ty + need
             }
         }
-        for (p in rest) p.ty = p.ty.coerceIn(p.h / 2f + top, h - p.h / 2f - bot)
+        for (p in rest) p.ty = p.ty.coerceIn(p.h / 2f + top, maxOf(p.h / 2f + top, h - p.h / 2f - bot))
         out
     }
 

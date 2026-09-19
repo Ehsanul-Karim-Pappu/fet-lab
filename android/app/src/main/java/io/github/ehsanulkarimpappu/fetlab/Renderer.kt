@@ -103,6 +103,9 @@ class Renderer(private val lib: Library) : GLSurfaceView.Renderer {
     /** Latest view-projection matrix, for projecting callouts in the Compose overlay. */
     @Volatile var vpSnapshot = FloatArray(16)
     @Volatile var viewW = 1; @Volatile var viewH = 1
+    @Volatile var bottomInset = 0f
+    @Volatile var topInset = 0f
+    private var framingScale = 1f
 
     private var prog = 0
     private var aPos = 0; private var aNrm = 0; private var aCol = 0; private var aExp = 0
@@ -253,11 +256,15 @@ class Renderer(private val lib: Library) : GLSurfaceView.Renderer {
         if (capsDirty) { rebuildCaps(); capsDirty = false }
         val sc = scene
         val ce = cos(el)
-        eye[0] = target[0] + dist * ce * sin(az)
-        eye[1] = target[1] + dist * sin(el)
-        eye[2] = target[2] + dist * ce * cos(az)
         val aspect = if (viewH == 0) 1f else viewW.toFloat() / viewH
+        // Overlay controls never change the user's zoom.
+        framingScale = 1f
+        val renderedDist = dist * framingScale
+        eye[0] = target[0] + renderedDist * ce * sin(az)
+        eye[1] = target[1] + renderedDist * sin(el)
+        eye[2] = target[2] + renderedDist * ce * cos(az)
         Matrix.perspectiveM(proj, 0, 36f, aspect, 8f, 8000f)
+        proj[9] = -((bottomInset - topInset) / maxOf(viewH, 1)).coerceIn(-.35f, .35f)
         Matrix.setLookAtM(view, 0, eye[0], eye[1], eye[2], target[0], target[1], target[2], 0f, 1f, 0f)
         Matrix.multiplyMM(vp, 0, proj, 0, view, 0)
         System.arraycopy(vp, 0, vpSnapshot, 0, 16)
@@ -693,7 +700,7 @@ class Renderer(private val lib: Library) : GLSurfaceView.Renderer {
      * Distance at which the whole scene just fits, for an orientation and stage shape.
      * The presets were authored against a wide stage; on a tall phone the width is the
      * limiting dimension instead, so without this a model sits tiny in empty space.
-     * The cap keeps a very wide scene from zooming out past usefulness — pan instead.
+     * Use the full bounds so comparison scenes fit narrow portrait stages as well.
      */
     fun fitDist(sc: Scene, pAz: Float, pEl: Float, aspect: Float): Float {
         val ce = cos(pEl)
@@ -715,7 +722,7 @@ class Renderer(private val lib: Library) : GLSurfaceView.Renderer {
         val t = tanHalfFov
         val rv = hh / t
         val rh = hw / (t * Math.max(aspect, 0.05f))
-        return Math.min(Math.max(rv, rh), rv * 2.4f)
+        return Math.max(rv, rh)
     }
 
     /** A preset's authored framing, re-fitted to the stage this phone actually has. */
@@ -727,7 +734,7 @@ class Renderer(private val lib: Library) : GLSurfaceView.Renderer {
     }
 
     /** World units per screen pixel at the target plane. */
-    fun worldPerPixel(): Float = 2f * dist * tanHalfFov / maxOf(viewH, 1)
+    fun worldPerPixel(): Float = 2f * dist * framingScale * tanHalfFov / maxOf(viewH, 1)
 
     /** Shift the camera target along its own right and up axes. */
     fun panBy(dx: Float, dy: Float) {

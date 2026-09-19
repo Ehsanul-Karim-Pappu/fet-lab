@@ -74,7 +74,7 @@ class Scene(
 
 class Material(val key: String, val label: String, val color: FloatArray, val note: String)
 
-class Library(val materials: Map<String, Material>, val order: List<String>, val scenes: List<Scene>) {
+class Library(val materials: Map<String, Material>, val order: List<String>, val scenes: List<Scene>, val guide: GuideCatalog) {
     fun scene(key: String): Scene = scenes.first { it.key == key }
     companion object {
         fun load(ctx: Context): Library {
@@ -191,7 +191,7 @@ class Library(val materials: Map<String, Material>, val order: List<String>, val
                 }
                 scenes.add(sc)
             }
-            return Library(mats, order, scenes)
+            return Library(mats, order, scenes, GuideCatalog.load(ctx))
         }
 
         /** The data carries a little HTML for the web build; the app wants plain text. */

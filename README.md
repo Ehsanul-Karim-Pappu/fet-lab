@@ -114,18 +114,35 @@ to GitHub Pages if you enable it.
 Do not hand-edit `data/devices.json`; it is generated.
 
 ```bash
-pip install trimesh numpy
-python scripts/build_devices.py      # device scenes, full film stack
-python scripts/build_inverters.py    # inverter cells
-python scripts/build_showcase.py     # layout figures, and the node labels
-python scripts/build_story.py        # the written background, attached to every scene
-python scripts/build_parasitics.py   # parasitic capacitances, derived from the geometry
-python scripts/build_web.py          # roadmap.html + pwa/index.html, from the template
-python scripts/export_all.py         # GLB / STL / OBJ
-python scripts/mkicon.py             # icons, from icon_src.png
-python scripts/verify.py             # audit every scene before shipping
-cp data/devices.json android/app/src/main/assets/devices.json
+python3 -m pip install numpy
+python3 scripts/build.py             # scenes → stories → parasitics → verify → all viewers
+python3 scripts/verify.py             # audit geometry and guide destinations independently
+
+# Optional mesh exports to models/:
+python3 -m pip install trimesh
+python3 scripts/export_all.py
 ```
+
+These commands resolve paths relative to the repository, not your terminal directory.
+For UI or guide-only changes, run `python3 scripts/build_web.py`. It combines
+`scripts/roadmap.tpl.html`, `scripts/explorer.css`, `scripts/explorer.js` and the data into
+`web/finfet-to-cfet.html` and `pwa/index.html`, updates Android assets, and bumps the PWA
+cache version. Do not edit the generated HTML directly.
+
+## Help and small-screen controls
+
+Android, web and PWA offer an optional first-launch tour and **Help → Guided tour** to
+replay it. Help's searchable feature list opens the corresponding scene, view and tool.
+Both use `data/guide.json`; add destinations there and run the verifier before rebuilding.
+Skipping or finishing the tour restores the scene and controls you started with.
+
+On phones the controls overlay the full-height 3D scene. Use Open/Hide, Expand/Half, or
+drag the handle between peek, half and reading positions. The half sheet is translucent;
+expanded reading mode is more opaque. Only the background is transparent: text and
+sliders remain solid. Opening controls preserves model zoom, and gestures on the sheet
+operate the controls, not the scene underneath. Desktop keeps a separate tool panel.
+
+The tour preference is local to your device/browser; see [Privacy](PRIVACY.md).
 
 Every scene must tile exactly — no overlapping solids, no gaps. The build prints
 `max/voxel=1` when it does; `scripts/findlap.py` names the offending pair when it does not.

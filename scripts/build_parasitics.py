@@ -31,6 +31,7 @@ corner enhancement and the bias dependence of the junction are all outside it. T
 ratios between architectures as the result, not the absolute femtofarads.
 """
 import json, math, os, sys
+from paths import DATA
 import numpy as np
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -236,7 +237,7 @@ def attach(dev, r):
               "ratios between architectures, not the absolute femtofarads."))
 
 if __name__ == "__main__":
-    path = os.path.join(HERE, "devices.json")
+    path = DATA
     G = json.load(open(path))
     for dev in G["devices"]:
         if dev["key"].startswith(("show_", "inv_")) or dev["key"] == "cmp":

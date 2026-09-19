@@ -27,13 +27,14 @@ Compose BOM.
 Do not hand-edit `data/devices.json` — it is generated. Edit the builders and re-run:
 
 ```bash
-pip install trimesh numpy
-python scripts/build_devices.py      # device scenes
-python scripts/build_inverters.py    # inverter cells
-python scripts/build_showcase.py     # layout figures
-python scripts/export_all.py         # GLB / STL / OBJ
-cp data/devices.json android/app/src/main/assets/devices.json
+python3 -m pip install numpy
+python3 scripts/build.py             # all scenes, validation, web/PWA and Android assets
+python3 scripts/verify.py
 ```
+
+The shared Help and tour destinations live in `data/guide.json`. Web UI sources are
+`scripts/roadmap.tpl.html`, `scripts/explorer.css` and `scripts/explorer.js`; regenerate
+the shipped HTML with `python3 scripts/build_web.py`. See README for optional mesh exports.
 
 **Every scene must tile exactly** — no overlapping solids, no gaps. The build prints
 `max/voxel=1` when it does. If it prints 2, `scripts/findlap.py` names the offending pair.

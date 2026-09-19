@@ -8,6 +8,7 @@ width and track pitch all come from the device cross-sections. Only the vertical
 direction is exaggerated, so the thin films stay visible.
 """
 import json, math, os
+from paths import DATA
 from build_devices import Dev, box, gaps, check, LSP, LSD
 
 def A(d, pid, name, mat, boxes, group, explode, net="body"):
@@ -546,7 +547,7 @@ def tag_nodes(devices):
 
 if __name__ == "__main__":
     import findlap
-    G = json.load(open("devices.json"))
+    G = json.load(open(DATA))
     G["devices"] = [x for x in G["devices"] if not x["key"].startswith("show_")]
     for f in (show_fin, show_ns, show_fs, show_cfet, show_cmp):
         d = f(); mx, n = check(d); laps = findlap.overlaps(d)
@@ -557,6 +558,6 @@ if __name__ == "__main__":
             logic=True, style="schematic",
             groups=list(dict.fromkeys(p["group"] for p in d.parts))))
     tag_nodes(G["devices"])          # runs last, so every scene in the file gets the row
-    json.dump(G, open("devices.json", "w"), separators=(",", ":"))
-    print("devices.json", os.path.getsize("devices.json") // 1024, "KB", len(G["devices"]), "scenes")
+    json.dump(G, open(DATA, "w"), separators=(",", ":"))
+    print("devices.json", os.path.getsize(DATA) // 1024, "KB", len(G["devices"]), "scenes")
     print("nodes:", ", ".join(f"{k}={v}" for k, v in NODE.items()))

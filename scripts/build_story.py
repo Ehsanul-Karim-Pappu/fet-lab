@@ -6,6 +6,7 @@ story up automatically from its key. Prose lives here rather than in the geometr
 builders because it is edited far more often than the models are.
 """
 import json, os
+from paths import DATA
 
 COMMON = """
 <h4>Why any of this happens</h4>
@@ -183,17 +184,17 @@ devices live on a plane.</p>
 STORY["cmp"] = COMMON
 
 def attach():
-    G = json.load(open("devices.json"))
+    G = json.load(open(DATA))
     for d in G["devices"]:
         k = d["key"].replace("show_", "").replace("inv_", "")
         arch = "cfet" if k.startswith("cfet") else k
         body = STORY.get(arch)
         d["story"] = (body + COMMON) if body and arch != "cmp" else (body or COMMON)
-    json.dump(G, open("devices.json", "w"), separators=(",", ":"))
+    json.dump(G, open(DATA, "w"), separators=(",", ":"))
     return G
 
 if __name__ == "__main__":
     G = attach()
     n = sum(1 for d in G["devices"] if d.get("story"))
     print(f"background attached to {n} of {len(G['devices'])} scenes")
-    print("devices.json", os.path.getsize("devices.json") // 1024, "KB")
+    print("devices.json", os.path.getsize(DATA) // 1024, "KB")

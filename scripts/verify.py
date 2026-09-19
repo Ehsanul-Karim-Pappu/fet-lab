@@ -11,8 +11,9 @@ table that disagrees with the geometry it describes.
 """
 import json, math, re, sys
 from collections import defaultdict
+from paths import DATA, ROOT
 
-G = json.load(open("devices.json"))
+G = json.load(open(DATA))
 MAT = G["materials"]
 PROBLEMS, NOTES = [], []
 
@@ -183,6 +184,23 @@ for d in G["devices"]:
 for d in G["devices"]:
     if not d.get("story", "").strip():
         bad(d["key"], "no background text attached (run build_story.py last)")
+
+# Help destinations must resolve on every platform.
+guide = json.loads((ROOT / "data" / "guide.json").read_text())
+scenes = {d["key"]: d for d in G["devices"]}
+ids = set()
+targets = {"stage", "architecture", "views", "section", "layers", "specs", "story",
+           "parasitics", "logic", "explode", "dimensions", "ghost", "display"}
+for f in guide["features"]:
+    if f["id"] in ids: bad("guide", f"duplicate feature {f['id']}")
+    ids.add(f["id"])
+    scene = scenes.get(f["scene"])
+    if scene is None or f["view"] not in scene["views"]:
+        bad("guide", f"invalid scene/view for {f['id']}")
+    if f["tab"] not in {"views", "section", "layers", "specs", "story"} or f["target"] not in targets:
+        bad("guide", f"invalid control for {f['id']}")
+for step in guide["tour"]:
+    if step not in ids: bad("guide", f"unknown tour step {step}")
 
 # --------------------------------------------------------------------- report
 q = "-q" in sys.argv
