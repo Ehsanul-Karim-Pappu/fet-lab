@@ -1,0 +1,66 @@
+{
+  "stops": [
+    {
+      "id": "modes",
+      "category": "Getting around",
+      "title": "Device, Inverter, Layout",
+      "body": "The same architecture, three ways: a single transistor, the inverter it forms, and how it sits in a standard cell. Switch between them any time — the technology you're looking at carries across.",
+      "gesture": "tap"
+    },
+    {
+      "id": "arch",
+      "category": "Getting around",
+      "title": "Compare architectures",
+      "body": "FinFET, nanosheet, forksheet and CFET — the roadmap in order. Tap any chip to jump to it, or open Compare to see them side by side.",
+      "gesture": "tap"
+    },
+    {
+      "id": "stage",
+      "category": "The 3D view",
+      "title": "Orbit, pan, zoom, inspect",
+      "body": "Drag with one finger to orbit. Two fingers to pan. Pinch to zoom. Tap any layer to see what it's made of.",
+      "gesture": "pinch"
+    },
+    {
+      "id": "views",
+      "category": "Tools",
+      "title": "Views",
+      "body": "Jump straight to a framed angle — isometric, along the channel, across it — instead of hunting for it by hand.",
+      "tab": 0,
+      "gesture": "tap"
+    },
+    {
+      "id": "section",
+      "category": "Tools",
+      "title": "Section",
+      "body": "Slide to cut the model open on any axis, or pull the layers apart. Slow rotate and the other display switches live here too.",
+      "tab": 1,
+      "gesture": "drag"
+    },
+    {
+      "id": "layers",
+      "category": "Tools",
+      "title": "Layers",
+      "body": "Hide any single layer to see what's underneath it — or hide a whole group, or everything, with one tap.",
+      "tab": 2,
+      "gesture": "tap"
+    },
+    {
+      "id": "specs",
+      "category": "Tools",
+      "title": "Specs",
+      "body": "Critical dimensions, materials, and — on device scenes — the parasitic capacitances. Tap a row and the two conductors it couples light up on the model.",
+      "tab": 3,
+      "gesture": "tap"
+    },
+    {
+      "id": "story",
+      "category": "Tools",
+      "title": "Story",
+      "body": "The history behind this architecture. About, further back, has credits, source and where to report a bug.",
+      "tab": 4,
+      "gesture": "none"
+    }
+  ],
+  "tour": ["modes", "arch", "stage", "views", "section", "layers", "specs", "story"]
+}
