@@ -4,25 +4,16 @@ Every part carries a `net` so the viewer can light the conducting path:
   vdd | gnd | out | in | chan_p | chan_n | body
 """
 import json, os
+from pathlib import Path
+DATA = Path(__file__).resolve().parent.parent / "data/devices.json"
 from build_devices import (Dev, box, ring4, fork3, finwrap, gaps, check,
                            MAT, ORDER, TCH, LSP, LSD, TIL, THK, TTIN, EOT,
                            HYS, HY1, HY2, HY3)
 
-NOTE_NS = ("<b>One gate, two devices.</b> The Mo runs continuously across both stacks — that single "
- "body is the input. What separates the pMOS from the nMOS is not the gate but the work-function "
- "metal: a p-type TiN shell on one stack, n-type on the other, patterned into the same gate. Most "
- "of the cell width here is the gap those two metals need between them.")
-NOTE_FIN = ("<b>Drive comes in quanta.</b> Two fins each gives β = 1. Want the pMOS stronger and your "
- "only move is a third fin, which costs a whole fin pitch of cell width and overshoots to β = 1.5. "
- "Sheet devices set width continuously, which is half of why the industry moved.")
-NOTE_FS = ("<b>Pushed together until only the wall is left.</b> The gate metal is genuinely split here — "
- "the wall runs floor to ceiling through the gate — so the TiN gate cap bridging over the top is what "
- "makes this one input. That also means the two work-function metals never have to be spaced apart, "
- "which is the whole cell-width saving.")
-NOTE_CFET = ("<b>The inverter as a single stack.</b> nMOS underneath, pMOS on top, one gate through both, "
- "so the cell is one device wide. Two things had to change to make it work: GND arrives from the back "
- "of the wafer, because nothing can reach the bottom tier from above any more, and the output has to "
- "climb past the tier isolation in its own riser to tie the two drains together.")
+NOTE_NS = ("<b>One input, complementary devices.</b> The two gates share an input conductor. TiN colors mark illustrative work-function regions for nFET and pFET; they do not represent n-doped and p-doped TiN. Actual threshold tuning requires process-specific gate stacks. IN/OUT colors show ideal logic states, not simulated currents.")
+NOTE_FIN = ("<b>Fin-count sizing.</b> Both transistors use two fins, giving a geometric width ratio of 1. Adding a third pFET fin would make that ratio 1.5. Neither ratio guarantees electrical balance: mobility, threshold, strain and contacts also matter. This viewer does not calculate switching delay or current.")
+NOTE_FS = ("<b>A common input over a wall.</b> The two gate-fill regions join above the inner wall in this illustrative cell. Reduced n/p spacing can save lateral span, but does not remove all gate-patterning and contact constraints.")
+NOTE_CFET = ("<b>Stacked inverter example.</b> The nFET is below the pFET, with a common input and connected drains. A backside GND path and an output riser are choices in this drawing; they are not the only possible CFET contact scheme. The model is not a characterized standard cell.")
 
 def A(d, pid, name, mat, boxes, group, explode, net="body"):
     d.add(pid, name, mat, boxes, group, explode)
@@ -96,7 +87,7 @@ def finish(d, C, arch, extra_dims, note="", zcut=0.0):
     R = 2.30 * max(B["x"][1]-B["x"][0], B["y"][1]-B["y"][0], B["z"][1]-B["z"][0])
     hi = [B["x"][1], B["y"][1], B["z"][1]]
     d.views = {
-      "cell": dict(n="The cell", s="everything wired up", az=-.82, el=.32, r=R, tgt=ctr, clip=None),
+      "cell": dict(n="3D overview", s="everything wired up", az=-.82, el=.32, r=R, tgt=ctr, clip=None),
       "gate": dict(n="Through the gate", s="both devices in section", az=1.5708, el=0, r=R*.92, tgt=ctr, clip=[0, None, None]),
       "chan": dict(n="Along the channel", s="source · gate · drain", az=0, el=.02, r=R*.76, tgt=ctr, clip=[None, None, zcut]),
       "plan": dict(n="Routing", s="rails and interconnect", az=-1.5708, el=1.02, r=R*.88, tgt=ctr, clip=None),
@@ -107,8 +98,7 @@ def finish(d, C, arch, extra_dims, note="", zcut=0.0):
 # ============================================================ NANOSHEET INV =
 def inv_ns():
     d = Dev("inv_ns", "Nanosheet inverter", "GAA · 3 sheets per device",
-            "One gate crosses both devices. The pMOS sits under the V_DD rail, the nMOS under "
-            "GND, and a single output bar on M1 ties the two drains together.")
+            "An illustrative CMOS inverter with three nanosheets per transistor. The two gates share IN; the pFET source connects to V_DD, the nFET source to GND, and their drains connect to OUT.")
     W, PITCH, STI = 22.0, 21.0, 10.0
     LG, xg = 15.0, 7.5; xsp, xsd = xg + LSP, xg + LSP + LSD
     hz = W / 2; hz1, hz2, hz3 = hz + TIL, hz + TIL + THK, hz + TIL + THK + TTIN
@@ -127,7 +117,7 @@ def inv_ns():
               [box(-xsp, xsp, yy - HYS, yy + HYS, z0 - hz, z0 + hz)], grp, [0, 0, 0], net)
         for nm, mat, hy, h, t, mg, lab in (("il", "sio2", HYS, hz, TIL, 1.0, "SiO₂ interfacial layer"),
                                            ("hk", "highk", HY1, hz1, THK, 2.1, "HfO₂ high-κ"),
-                                           ("tin", "tin", HY2, hz2, TTIN, 3.3, f"{pol}-type TiN WFM")):
+                                           ("tin", "tin", HY2, hz2, TTIN, 3.3, f"TiN work-function region · {pol}FET (illustrative)")):
             for i, yy in enumerate(ys):
                 bs = ring4(yy, hy, h, t, xg)
                 for b in bs: b[2] += z0
@@ -172,16 +162,14 @@ def inv_ns():
     return finish(d, C, "ns", zcut=zc, note=NOTE_NS, extra_dims=[
         ["Devices", "pMOS and nMOS, one gate", "2 × 3 sheets"],
         ["W_eff", "Per device", f"{Weff:g} nm"],
-        ["Cell z", "Rail-to-rail cell width", f"{2*(zr+6):g} nm"],
+        ["Cell z", "Rail-to-rail span (z)", f"{2*(zr+6):g} nm"],
         ["Nets", "V_DD · GND · IN · OUT", "4"],
-        ["β", "W_p / W_n as drawn", "1.00"]])
+        ["W_p/W_n", "Geometric width ratio", "1.00"]])
 
 # ============================================================== FINFET INV ==
 def inv_fin():
     d = Dev("inv_fin", "FinFET inverter", "tri-gate · 2 fins per device",
-            "Two fins for the pMOS, two for the nMOS, one gate crossing all four. Drive ratio is "
-            "set by counting fins, so a β you cannot get from an integer fin count you cannot get "
-            "at all without widening the cell.")
+            "An illustrative CMOS inverter with two fins per transistor. Fin count provides discrete geometric sizing; equal counts do not imply equal pull-up and pull-down strength.")
     WF, HF, FP, STI = 6.0, 45.0, 27.0, 12.0
     LG, xg = 18.0, 9.0; xsp, xsd = xg + LSP, xg + LSP + LSD
     wh = WF / 2; w1, w2, w3 = wh + TIL, wh + TIL + THK, wh + TIL + THK + TTIN
@@ -203,7 +191,7 @@ def inv_fin():
               [box(-xsd, xsd, 0, ytop, z - wh, z + wh)], grp, [0, 0, 0], net)
             for nm, mat, ww, yy, t, mg, lab in (("il", "sio2", wh, ytop, TIL, 1.0, "SiO₂ interfacial layer"),
                                                 ("hk", "highk", w1, y1, THK, 2.1, "HfO₂ high-κ"),
-                                                ("tin", "tin", w2, y2, TTIN, 3.3, f"{pol}-type TiN WFM")):
+                                                ("tin", "tin", w2, y2, TTIN, 3.3, f"TiN work-function region · {pol}FET (illustrative)")):
                 A(d, f"{pol}_{nm}{i+1}", f"{lab} · {pol} fin {i+1}", mat,
                   finwrap(z, ww, STI, yy, t, xg), grp, ["radial", (STI + ytop) / 2, mg, z], "in" if nm == "tin" else "body")
         for sx, T in ((-1, "source"), (1, "drain")):
@@ -241,16 +229,14 @@ def inv_fin():
     return finish(d, C, "fin", zcut=zc, note=NOTE_FIN, extra_dims=[
         ["Devices", "pMOS and nMOS, one gate", "2 × 2 fins"],
         ["W_eff", "Per device, 2H+W per fin", f"{2*(2*HF+WF):g} nm"],
-        ["Cell z", "Rail-to-rail cell width", f"{2*(zr+6):g} nm"],
-        ["β", "W_p / W_n as drawn", "1.00 (2 fins each)"],
+        ["Cell z", "Rail-to-rail span (z)", f"{2*(zr+6):g} nm"],
+        ["W_p/W_n", "Geometric width ratio", "1.00 (2 fins each)"],
         ["—", "Drive granularity", f"{FP:g} nm of cell per extra fin"]])
 
 # =========================================================== FORKSHEET INV ==
 def inv_fs():
     d = Dev("inv_fs", "Forksheet inverter", "n and p astride the wall",
-            "The two devices are pushed together until only the dielectric wall separates them. "
-            "The gate metal is split by that wall, so the cap on top is what actually makes this "
-            "one input.")
+            "An illustrative inner-wall forksheet inverter. The n/p stacks abut a dielectric wall; the two gate regions join above it to form a common input.")
     W, PITCH, STI, WALL = 22.0, 21.0, 10.0, 8.0
     LG, xg = 15.0, 7.5; xsp, xsd = xg + LSP, xg + LSP + LSD
     zi = WALL / 2; zo = zi + W; z1, z2, z3 = zo + TIL, zo + TIL + THK, zo + TIL + THK + TTIN
@@ -270,7 +256,7 @@ def inv_fs():
             A(d, f"{pol}_s{i+1}", f"{pol}MOS sheet {i+1}", "silicon", [box(-xsp, xsp, yy - HYS, yy + HYS, zz[0], zz[1])], grp, [0, 0, 0], net)
         for nm, mat, hy, zz, t, mg, lab in (("il", "sio2", HYS, zo, TIL, 1.0, "SiO₂ interfacial layer"),
                                             ("hk", "highk", HY1, z1, THK, 2.1, "HfO₂ high-κ"),
-                                            ("tin", "tin", HY2, z2, TTIN, 3.3, f"{pol}-type TiN WFM")):
+                                            ("tin", "tin", HY2, z2, TTIN, 3.3, f"TiN work-function region · {pol}FET (illustrative)")):
             for i, yy in enumerate(ys):
                 A(d, f"{pol}_{nm}{i+1}", f"{lab} · {pol}{i+1}", mat, fork3(yy, hy, zi, zz, t, xg, s), grp, ["radial", yy, mg], "in" if nm == "tin" else "body")
         mo = [box(-xg, xg, STI, ymo, *sorted((s * z3, s * zg)))]
@@ -301,16 +287,13 @@ def inv_fs():
         ["Devices", "pMOS and nMOS, one gate", "2 × 3 sheets"],
         ["W_eff", "Per device, 2W+t per sheet", f"{3*(2*W+TCH):g} nm"],
         ["t_wall", "n-to-p separation", f"{WALL:g} nm"],
-        ["Cell z", "Rail-to-rail cell width", f"{2*(zr+6):g} nm"],
-        ["β", "W_p / W_n as drawn", "1.00"]])
+        ["Cell z", "Rail-to-rail span (z)", f"{2*(zr+6):g} nm"],
+        ["W_p/W_n", "Geometric width ratio", "1.00"]])
 
 # ================================================================ CFET INV ==
 def inv_cfet():
     d = Dev("inv_cfet", "CFET inverter", "one stack, one gate",
-            "The inverter that collapses into a single stack: nMOS underneath, pMOS on top, one "
-            "gate through both. GND arrives from the back of the wafer because the bottom tier "
-            "can no longer be reached from above, and the output has to climb past the tier "
-            "isolation to tie the two drains together.")
+            "An illustrative stacked nFET/pFET inverter. This example uses nFET below pFET, backside GND, a common gate input and a riser connecting the drains.")
     W, PITCH, MDI, STI = 20.0, 20.0, 12.0, 8.0
     xg, xsp, xsd = 7.5, 14.5, 36.5
     hz = W / 2; hz1, hz2, hz3 = hz + TIL, hz + TIL + THK, hz + TIL + THK + TTIN
@@ -343,7 +326,7 @@ def inv_cfet():
               [box(-xsp, xsp, yy - HYS, yy + HYS, -hz, hz)], grp, [0, 0, 0], net)
         for nm, mat, hy, h, t, mg, lab in (("il", "sio2", HYS, hz, TIL, 1.0, "SiO₂ interfacial layer"),
                                            ("hk", "highk", HY1, hz1, THK, 2.1, "HfO₂ high-κ"),
-                                           ("tin", "tin", HY2, hz2, TTIN, 3.3, f"{pol}-type TiN WFM")):
+                                           ("tin", "tin", HY2, hz2, TTIN, 3.3, f"TiN work-function region · {pol}FET (illustrative)")):
             for i, yy in enumerate(ylist):
                 A(d, f"{pol}_{nm}{i+1}", f"{lab} · {pol}{i+1}", mat, ring4(yy, hy, h, t, xg), grp, ["radial", yy, mg], "in" if nm == "tin" else "body")
     # tier isolation, punched for the output riser
@@ -384,15 +367,13 @@ def inv_cfet():
         ["Devices", "pMOS over nMOS, one gate", "2 × 2 sheets"],
         ["W_eff", "Per device", f"{2*(2*W+2*TCH):g} nm"],
         ["t_MDI", "Tier isolation", f"{MDI:g} nm"],
-        ["Cell z", "Rail-to-rail cell width", f"{2*(zr+6):g} nm"],
+        ["Cell z", "Rail-to-rail span (z)", f"{2*(zr+6):g} nm"],
         ["GND", "Reached from", "backside power rail"]])
 
 # ======================================================== INVERTER COMPARE ==
 def inv_cmp():
     d = Dev("inv_cmp", "Inverter compare", "four cells, one scale",
-            "The same CMOS inverter built four ways, rail to rail, at one scale. This is the "
-            "number that actually shows up in a standard-cell library: how wide the cell has to be "
-            "to hold one n-p pair plus its power rails. Drive the input and all four switch together.")
+            "Four illustrative CMOS inverter cells at a common geometric scale. The z spans include the drawn rails and routing. They are not iso-performance or foundry-library comparisons.")
     builders = [(inv_fin, "FinFET"), (inv_ns, "Nanosheet"), (inv_fs, "Forksheet"), (inv_cfet, "CFET")]
     cells, cur, GAP = [], -300.0, 45.0
     for build, nm in builders:
@@ -415,15 +396,11 @@ def inv_cmp():
               [0, -26, zc - w / 2], [0, -26, zc + w / 2], [0, -52, zc], ["front", "iso"])
         d.cal(f"h_{nm}", nm, "", "rail to rail",
               [0, ytop, zc], [0, ytop + 1, zc], [0, ytop + 30, zc], ["front", "iso"])
-    d.dims = [[nm, "Rail-to-rail cell width", f"{w:g} nm  ({w / w0 * 100:.0f}%)"] for nm, zc, w, yt in cells]
+    d.dims = [[nm, "Rail-to-rail span (z)", f"{w:g} nm  ({w / w0 * 100:.0f}%)"] for nm, zc, w, yt in cells]
     d.dims.append(["—", "What is being measured", "one inverter, both rails"])
     d.dims.append(["—", "Sheets or fins per device", "2 fins / 3 / 3 / 2 per tier"])
     d.logic = True
-    d.note = ("<b>Cell width, not device footprint.</b> Every one of these carries its own V<sub>DD</sub> "
-              "and GND rail, so the numbers include the routing the earlier footprint comparison left "
-              "out — which is why the shrink is gentler here than the device-only figures suggest. The "
-              "forksheet buys its width by deleting the n-to-p gap; the CFET buys it by deleting the "
-              "second device row entirely and moving GND to the back of the wafer.")
+    d.note = ("<b>Rail-to-rail span.</b> These values describe the model's lateral z dimension, commonly called cell height in standard-cell layout practice. Routing and contacts change the comparison with device-only spans. A smaller drawn span alone does not demonstrate higher achievable density or speed.")
     d.finish()
     B = d.bounds
     ctr = [(B["x"][0] + B["x"][1]) / 2, (B["y"][0] + B["y"][1]) / 2, (B["z"][0] + B["z"][1]) / 2]
@@ -437,7 +414,7 @@ def inv_cmp():
 # =================================================================== MAIN ===
 if __name__ == "__main__":
     import findlap
-    G = json.load(open("devices.json"))
+    G = json.load(open(DATA))
     G["devices"] = [x for x in G["devices"] if not x["key"].startswith("inv_")]
     for f in (inv_fin, inv_ns, inv_fs, inv_cfet, inv_cmp):
         d = f(); mx, n = check(d)
@@ -446,5 +423,5 @@ if __name__ == "__main__":
         G["devices"].append(dict(key=d.key, name=d.name, tag=d.tag, blurb=d.blurb, parts=d.parts,
             callouts=d.callouts, dims=d.dims, views=d.views, note=d.note, bounds=d.bounds, logic=True,
             groups=list(dict.fromkeys(p["group"] for p in d.parts))))
-    json.dump(G, open("devices.json", "w"), separators=(",", ":"))
-    print("devices.json", os.path.getsize("devices.json") // 1024, "KB", len(G["devices"]), "scenes")
+    json.dump(G, open(DATA, "w"), separators=(",", ":"))
+    print("devices.json", os.path.getsize(DATA) // 1024, "KB", len(G["devices"]), "scenes")

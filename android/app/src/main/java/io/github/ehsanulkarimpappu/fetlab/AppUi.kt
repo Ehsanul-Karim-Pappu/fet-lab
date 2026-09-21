@@ -736,6 +736,9 @@ fun FetLabApp(lib: Library, renderer: Renderer, dynamic: Boolean, onDynamic: (Bo
 @Composable
 private fun AboutScreen(onClose: () -> Unit) {
     val ctx = LocalContext.current
+    val references = remember {
+        org.json.JSONObject(ctx.assets.open("references.json").bufferedReader().use { it.readText() })
+    }
     fun open(intent: Intent) {
         try { ctx.startActivity(intent) } catch (e: ActivityNotFoundException) { /* no handler */ }
     }
@@ -820,6 +823,22 @@ private fun AboutScreen(onClose: () -> Unit) {
                         Spacer(Modifier.height(12.dp))
                         Text(AppInfo.LICENSE, fontFamily = Mono, fontSize = 12.sp,
                             color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                }
+                item {
+                    AboutCard {
+                        AboutLabel("Technical references")
+                        Text(references.getString("scope"), fontFamily = PlexSans,
+                            fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        val sources = references.getJSONArray("sources")
+                        for (i in 0 until sources.length()) {
+                            val ref = sources.getJSONObject(i)
+                            Spacer(Modifier.height(12.dp))
+                            AboutAction(ref.getString("id") + " · " + ref.getString("title"),
+                                ref.getString("publisher") + " — " + ref.getString("supports")) {
+                                web(ref.getString("url"))
+                            }
+                        }
                     }
                 }
             }
@@ -1163,11 +1182,11 @@ private fun LazyListScope.parasiticSection(
     val P = scene.par ?: return
     item {
         Spacer(Modifier.height(18.dp))
-        Text("Parasitics", fontFamily = PlexSans, fontWeight = FontWeight.SemiBold,
+        Text("Capacitance estimates", fontFamily = PlexSans, fontWeight = FontWeight.SemiBold,
             fontSize = 14.sp, color = MaterialTheme.colorScheme.onSurface)
         Text("From this model's own geometry — L_G ${P.lg.toInt()} nm, W_eff " +
-             "${P.weff.toInt()} nm, footprint ${P.foot.toInt()} nm. Gate parasitics come " +
-             "to ${P.gateParPct}% of C_ox. Tap a row to see it on the model.",
+             "${P.weff.toInt()} nm (total shown), gate-stack span ${P.foot.toInt()} nm. " +
+             "C_gc + C_ge = ${P.gateParPct}% of C_ox in this approximation. Tap a row to highlight it; read the limitations below.",
             fontFamily = PlexSans, fontSize = 12.sp, lineHeight = 17.sp,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.padding(top = 4.dp, bottom = 8.dp))

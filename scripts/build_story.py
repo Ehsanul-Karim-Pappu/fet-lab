@@ -1,199 +1,124 @@
-"""
-The written background behind each architecture, attached to every scene that shows it.
+"""Reviewed background. Reference IDs resolve in data/references.json."""
+import json
+import re
+from pathlib import Path
 
-Runs last, over whatever devices.json already holds, so a scene added later picks its
-story up automatically from its key. Prose lives here rather than in the geometry
-builders because it is edited far more often than the models are.
-"""
-import json, os
+ROOT = Path(__file__).resolve().parent.parent
+DATA = ROOT / "data/devices.json"
 
 COMMON = """
-<h4>Why any of this happens</h4>
-<p>Two things drive every step on this roadmap, and neither is about making a better
-transistor for its own sake. The first is <b>cost per function</b>: a generation has to
-put roughly twice the logic in the same area, or it does not pay for the fab. The second
-is <b>power</b>. Dennard scaling — the rule that a smaller transistor also ran at a lower
-voltage, so power density stayed flat — broke down around 2005. Supply voltage stopped
-falling, and from then on every extra transistor per square millimetre arrived with its
-own heat. Data-centre and mobile designs became power-limited rather than area-limited,
-and they still are.</p>
-<p>That is why the last four device generations are all, underneath, the same move:
-<b>get the gate closer to more of the channel</b>. Better electrostatic control means the
-device turns off harder at a given gate voltage, which means you can lower the supply
-voltage, which is the only lever that reduces energy per operation quadratically. Density
-follows separately, from the cell, not from the transistor.</p>
-<p>Two other pressures shape the recent steps. <b>SRAM has almost stopped scaling</b> —
-memory cells now shrink far slower than logic — so logic has to carry the whole density
-gain. And <b>interconnect resistance</b> rises as wires get thinner, which is why power
-delivery is moving to the back of the wafer: it frees the front-side metal for signals.</p>
+<h4>How to read these models</h4>
+<p>These device architectures illustrate one possible scaling roadmap, not a required sequence
+for every manufacturer. FinFET-to-GAA scaling improves gate control and sizing flexibility;
+forksheet and CFET also address how complementary devices fit into a cell. [R1, R2, R3]</p>
+<p>These are educational structures, not a foundry process or an electrical simulation.
+Dimensions describe the drawn boxes in nanometres. Layout mode simplifies the layer stack and
+exaggerates vertical spacing; it is not a mask layout or fabrication flow. Rail-to-rail span is
+measured along z, a direction commonly called standard-cell height. Equal spans do not imply
+equal drive current, delay or routability. [R10, R12]</p>
+<h4>Materials and electrical limits</h4>
+<p>Si, SiGe, SiO2, HfO2, Si3N4 and TiN represent semiconductor, dielectric and gate-stack
+materials. The complete Mo/Ni/W/NiSi gate and contact palette is illustrative, not a verified
+recipe for any node. Real stacks depend on process and polarity. TiN is a conductor: nFET/pFET
+work-function labels do not mean n-doped/p-doped TiN. Work-function tuning, doping and strain
+are not simulated. [R7, R8, R9, R11]</p>
+<p>Layout colors identify Channel, MD, Po, VD, VG and Metal 0 roles rather than chemical
+compositions. Middle-tier isolation has no specified chemistry here. SiO2 is an illustrative
+bonding dielectric. [R3, R12]</p>
+<p>Capacitance values are geometry-only estimates. They omit 3D fringe fields, quantum and
+depletion corrections to gate capacitance, and calibrated junction behavior. Unfilled gaps
+are treated as vacuum rather than realistic inter-layer dielectric. Both absolute values and
+architecture ratios depend on these assumptions. Zero can mean that a coupling is absent from
+the drawn geometry, not absent from a real device.</p>
+<p>Technical references [R1–R12] are available in About (Android) and below the web viewer.
+They support the concepts, not the numerical accuracy of this model.</p>
 """
-
 STORY = {
 "fin": """
-<h4>What it replaced</h4>
-<p>The planar bulk MOSFET, essentially unchanged in form since the 1960s and scaled by
-Dennard's rules for thirty years. The gate sat on top of the channel; the channel sat in
-the substrate.</p>
-
-<h4>What broke</h4>
-<p>Two things, in sequence. First the gate dielectric: by the 65&nbsp;nm generation SiO₂
-was down to about 1.2&nbsp;nm — five atomic layers — and electrons tunnelled straight
-through it. Gate leakage stopped being negligible and became a first-order term in the
-power budget. That was solved in 2007 by replacing SiO₂ with hafnium oxide and the
-polysilicon gate with metal: a physically thicker film with the same effective
-capacitance.</p>
-<p>The deeper problem could not be solved by materials. With the gate on one side only,
-the drain also has a say in what the channel does. As the channel got shorter, the drain's
-field began to lower the barrier the gate was supposed to control — drain-induced barrier
-lowering, threshold voltage falling with gate length, and a subthreshold slope drifting
-well above the 60&nbsp;mV/decade room-temperature floor. Practically: the device would no
-longer switch off. Off-state leakage rose to where it dominated the power of an idle chip,
-and supply voltage could not be reduced any further without losing drive.</p>
-
-<h4>Why the industry moved</h4>
-<p>Stand the channel on its edge as a fin and wrap the gate over three of its faces. The
-gate is now close to nearly all of the channel volume, so it wins back control from the
-drain. Subthreshold slope returns to roughly 65–70&nbsp;mV/decade, threshold voltage stops
-rolling off, and — the point of the exercise — supply voltage can fall again.</p>
-<p>Intel shipped the first production FinFET at 22&nbsp;nm in 2011, calling it tri-gate.
-TSMC and Samsung followed at 16 and 14&nbsp;nm in 2015. It held the industry for roughly a
-decade.</p>
-
-<h4>What it cost</h4>
-<p><b>Width quantisation.</b> A planar device could be drawn any width you liked. A FinFET
-comes in whole fins. Wanting a slightly stronger pull-up means adding an entire fin —
-a large step in area, in capacitance, and in the cell's width. Standard-cell libraries are
-built around this granularity, and it wastes area in every cell that does not want an
-integer number of fins.</p>
-<p><b>The bottom of the fin.</b> The gate never reaches it, so sub-fin leakage has to be
-suppressed by doping — a punch-through stopper — which brings back random dopant
-fluctuation and variability.</p>
-<p><b>Height.</b> Drive per footprint comes from fin height, so fins grew taller and
-thinner until the aspect ratio became a mechanical and patterning problem, and the
-sidewall capacitance became a speed problem.</p>
+<h4>From a planar channel to a fin</h4>
+<p>A thin fin lets the gate control more of a short channel than a planar top gate.
+This model is a tri-gate FinFET: the top and two sidewalls are gated. Historical FinFET
+implementations need not all use this exact geometry. [R1]</p>
+<h4>Materials and geometry solve different problems</h4>
+<p>A physically thicker high-k dielectric can provide strong capacitive coupling with less
+direct tunnelling than an equally capacitive ultrathin SiO2 film. Intel introduced hafnium-based
+high-k/metal gates at 45nm in 2007. Fin geometry addresses short-channel electrostatics;
+neither change eliminates all leakage. [R7]</p>
+<h4>Why move beyond fins?</h4>
+<p>Fin count changes effective width in discrete steps. Taller fins also increase width but
+introduce fabrication and capacitance trade-offs. Nanosheets offer another way to adjust width
+and gated perimeter. FinFETs remain useful in production technologies. [R1]</p>
+<p>Here, effective width per fin is twice the exposed height plus the top width.
+It is a geometric measure, not a drive-current prediction. Bottom isolation, doping and strain
+differ among real technologies.</p>
 """,
-
 "ns": """
-<h4>What it replaced</h4>
-<p>The FinFET, after about ten years in production.</p>
-
-<h4>What broke</h4>
-<p>The FinFET stopped improving rather than suddenly failing. Fin height had reached the
-limit of what could be patterned and kept standing, so drive per footprint plateaued.
-Width quantisation had become expensive: with only a handful of fins per device, the
-granularity was a large fraction of the design space, and cells carried area they did not
-need. And the sub-fin leakage path was still being held shut by doping rather than by the
-gate.</p>
-
-<h4>Why the industry moved</h4>
-<p>Lay the fin on its side and cut it into a stack of horizontal sheets, then let the gate
-close all the way around each one. Three consequences follow:</p>
-<ul>
-<li><b>Best electrostatics available.</b> No face of the channel is out of the gate's
-reach, so the subthreshold slope is as close to the 60&nbsp;mV/decade floor as a
-thermally-limited device gets — which is what buys the next supply-voltage reduction.</li>
-<li><b>Continuous width.</b> Sheet width is drawn, not quantised. A device can be made
-exactly as strong as it needs to be, which recovers the area the FinFET's granularity was
-wasting.</li>
-<li><b>Effective width per footprint.</b> Stacking sheets multiplies the channel
-perimeter without widening the cell.</li>
-</ul>
-<p>Samsung was first to production, starting 3&nbsp;nm GAA in June 2022; TSMC moved at
-N2. Nanosheet is the architecture the industry is on now.</p>
-
-<h4>What it cost</h4>
-<p><b>Process complexity.</b> The sheets are grown as an alternating Si/SiGe superlattice
-and then released by etching the SiGe away selectively, underneath a gate that is already
-partly built. Inner spacers have to be formed in cavities you cannot see into. It is a
-materially harder flow than a fin etch.</p>
-<p><b>Capacitance.</b> Wrapping metal all the way around the channel puts gate metal close
-to the source and drain on every sheet. Effective capacitance per unit drive went up,
-which eats into the speed gain.</p>
-<p><b>Stack height.</b> How many sheets you can stack is limited by whether the gate metal
-can still be deposited into the gaps between them, and by the vertical space the cell
-allows.</p>
+<h4>Gate-all-around nanosheets</h4>
+<p>A nanosheet FET uses thin horizontal semiconductor sheets surrounded by the gate stack.
+Stacking sheets increases gated perimeter per lateral footprint. Sheet width can be adjusted
+without adding a whole fin, subject to design rules and manufacturing limits. GAA also
+includes other channel shapes, such as nanowires. [R1]</p>
+<h4>What the process requires</h4>
+<p>A common Si nanosheet flow grows alternating Si/SiGe layers and selectively removes the
+sacrificial SiGe. Inner spacers separate gate metal from source/drain regions. Release,
+epitaxy, isolation and gate fill must be co-optimized; this model is not a process sequence.
+[R1, R9]</p>
+<h4>Trade-offs, not automatic gains</h4>
+<p>Better control can help voltage scaling, but contacts, capacitance, strain and heat removal
+also matter. More sheets do not automatically make a faster cell. Samsung announced initial
+3nm GAA production in June 2022; this does not assign every nanosheet technology to that node. [R6]</p>
+<p>Device and Inverter show three sheets per device. Layout deliberately shows two representative
+sheets with exaggerated vertical spacing, not a layer-for-layer copy of those technical scenes.</p>
 """,
-
 "fs": """
-<h4>What it replaces</h4>
-<p>The nanosheet — not because the nanosheet device is failing, but because the
-<i>cell</i> is.</p>
-
-<h4>What broke</h4>
-<p>By the nanosheet generation the limit on standard-cell height is no longer the
-transistor. It is the space <b>between</b> the n and p devices. That gap has to accommodate
-gate patterning, two different work-function metals and their patterning margins, and it
-stopped shrinking. Cell height stalled at around five tracks, and shrinking the sheets
-further bought nothing because the separation between them did not shrink with them.</p>
-
-<h4>Why the industry is moving</h4>
-<p>Put a dielectric wall between n and p and build both devices against it. The wall is
-defined early, before gate patterning, so the n-to-p distance becomes the thickness of a
-deposited film rather than the resolution of a lithographic gap. Cell height drops toward
-roughly 4.3 tracks, and within a cell of the same height the sheets can be made wider —
-so the device gets stronger at the same time the cell gets smaller.</p>
-<p>This is an imec-originated architecture and is a pathfinding device rather than a
-production one: it is a candidate for the generations between nanosheet and CFET.</p>
-
-<h4>What it costs</h4>
-<p><b>One gate face.</b> The wall occupies the side the gate would otherwise wrap, so a
-forksheet is a three-sided device. Some of the electrostatic control the nanosheet just
-won is given back — the forksheet is a footprint trick, not a better channel.</p>
-<p><b>Asymmetry.</b> The device is no longer symmetric about its channel, which shows up
-in stress, in parasitics, and in modelling.</p>
-<p><b>A new process module.</b> The wall has to be formed, survive the sheet release, and
-not introduce its own leakage path or capacitance.</p>
+<h4>Bringing complementary devices closer</h4>
+<p>The classic inner-wall forksheet puts adjacent nFET and pFET stacks against a dielectric wall,
+reducing the separation needed for gate integration. This model uses an 8nm silicon-nitride
+wall; that is an illustrative dimension, not a universal recipe. [R1, R2]</p>
+<h4>What changes at the channel?</h4>
+<p>The wall-facing surface is not wrapped by gate metal here, leaving three gated faces.
+Electrostatics, stress and parasitics differ from a fully wrapped sheet. Benefits must be
+evaluated at comparable performance and design rules, not inferred from footprint alone. [R1]</p>
+<h4>Not the only forksheet design</h4>
+<p>Imec's later outer-wall design places the wall differently and addresses limitations of the
+earlier design. It is not modeled here. Forksheet is a researched scaling option, not a
+mandatory production step for every manufacturer. [R2]</p>
 """,
-
 "cfet": """
-<h4>What it replaces</h4>
-<p>Every architecture before it, in one respect: the assumption that the n and the p
-device sit side by side.</p>
-
-<h4>What broke</h4>
-<p>Even with a dielectric wall, a CMOS cell still pays for two rows of devices. The
-forksheet narrows the gap between them; it does not remove it. As long as n and p are
-side by side there is a floor under cell height, and the industry can see it from here.</p>
-
-<h4>Why the industry needs it</h4>
-<p>Stack them. The pMOS is built directly above the nMOS, sharing one footprint, and the
-cell loses an entire device row — a step of roughly 2× in density at unchanged device
-pitch, which no amount of further sheet shrinking would deliver. It is the last large
-area gain visible on the roadmap.</p>
-<p>Two ways to build it. <b>Monolithic</b> grows both tiers in one continuous flow:
-fewer steps, perfect alignment, but everything the top tier needs must survive the thermal
-budget of the bottom one, and the aspect ratios are extreme. <b>Sequential</b> builds the
-bottom tier, bonds a second wafer on top, and builds the upper tier there: the thermal
-budgets are decoupled and each tier can be optimised for its own polarity, at the cost of
-wafer bonding, overlay accuracy between tiers, and a much longer flow.</p>
-
-<h4>What it costs</h4>
-<p><b>Power has to come from the back.</b> Nothing reaches the bottom tier from above once
-the top tier is over it, so CFET arrives coupled to backside power delivery — a buried
-rail network on the reverse of the wafer, reached through nano through-silicon vias. That
-is a large independent change to the process, and it is why backside power is appearing
-one generation <i>before</i> CFET rather than with it.</p>
-<p><b>Contacting the bottom tier.</b> The middle-of-line has to reach down past the upper
-device without shorting to it, through a tier isolation layer, in the same footprint.</p>
-<p><b>Everything else.</b> Yield on a flow this long, test access to a buried device,
-thermal paths out of a stacked structure, and an EDA and PDK ecosystem that assumes
-devices live on a plane.</p>
-""",
+<h4>A complementary pair, stacked vertically</h4>
+<p>CFET stacks nFET and pFET instead of placing them side by side. Contacts, routing, isolation
+and thermal constraints limit the resulting area benefit: there is no universal 2x density
+gain. This model places pFET above nFET; other tier orders exist. Complementary refers to the
+n/p pair, not a particular gate connection. [R3, R4]</p>
+<h4>Monolithic and sequential integration</h4>
+<p>Monolithic integration forms both tiers in a shared process flow, with demanding vertical
+patterning and selective processing. Sequential integration forms the lower devices, transfers
+a semiconductor layer using bonding, and processes the upper tier. Post-transfer processing
+must protect the lower tier; thermal limits are process-dependent. [R3]</p>
+<p>Our monolithic example uses continuous gate fill. The sequential example connects separate
+gate conductors with a via to form an inverter input. Common-gate and split-gate CFET options
+exist: the integration name alone does not specify the circuit. [R5]</p>
+<h4>Contacting the lower device</h4>
+<p>This model uses backside GND to ease lower-tier access. Frontside contacts are possible too:
+imec demonstrated stacked contacts patterned from the frontside. Backside contacting can
+reduce congestion, but is not a physical requirement defining CFET. [R4]</p>
+<p>Two sheets per tier, the material palette and middle-tier isolation are model choices.
+The rendering does not predict fabrication yield, self-heating or switching delay.</p>
+"""
 }
-STORY["cmp"] = COMMON
 
 def attach():
-    G = json.load(open("devices.json"))
-    for d in G["devices"]:
-        k = d["key"].replace("show_", "").replace("inv_", "")
-        arch = "cfet" if k.startswith("cfet") else k
-        body = STORY.get(arch)
-        d["story"] = (body + COMMON) if body and arch != "cmp" else (body or COMMON)
-    json.dump(G, open("devices.json", "w"), separators=(",", ":"))
-    return G
+    data = json.loads(DATA.read_text())
+    for d in data["devices"]:
+        key = d["key"].replace("show_", "").replace("inv_", "")
+        arch = "cfet" if key.startswith("cfet") else key
+        d["story"] = STORY.get(arch, "") + COMMON
+    DATA.write_text(json.dumps(data, separators=(",", ":")))
+    sections = ["# Device background\n\nGenerated from scripts/build_story.py. See TECHNICAL_REFERENCES.md.\n"]
+    for key, body in {**STORY, "model scope": COMMON}.items():
+        sections.append("\n## " + key + "\n\n" + re.sub(r"<[^>]+>", "", body).strip() + "\n")
+    (ROOT / "docs/BACKGROUND.md").write_text("\n".join(sections))
+    return data
 
 if __name__ == "__main__":
-    G = attach()
-    n = sum(1 for d in G["devices"] if d.get("story"))
-    print(f"background attached to {n} of {len(G['devices'])} scenes")
-    print("devices.json", os.path.getsize("devices.json") // 1024, "KB")
+    print("Reviewed background attached to", len(attach()["devices"]), "scenes")

@@ -28,15 +28,16 @@ Do not hand-edit `data/devices.json` — it is generated. Edit the builders and 
 
 ```bash
 pip install trimesh numpy
-python scripts/build_devices.py      # device scenes
-python scripts/build_inverters.py    # inverter cells
-python scripts/build_showcase.py     # layout figures
+python scripts/build.py              # all scenes, stories, estimates and viewer bundles
+python scripts/test_parasitics.py    # analytic model and grid checks
+python scripts/test_content.py       # shared content and reference checks
 python scripts/export_all.py         # GLB / STL / OBJ
-cp data/devices.json android/app/src/main/assets/devices.json
 ```
 
-**Every scene must tile exactly** — no overlapping solids, no gaps. The build prints
-`max/voxel=1` when it does. If it prints 2, `scripts/findlap.py` names the offending pair.
+**Solids must not overlap.** Empty space outside or between parts is allowed and is not
+a complete physical dielectric environment. The build samples occupancy and prints
+`max/voxel=1` when no overlap is detected at that sampling resolution. If it prints 2,
+`scripts/findlap.py` helps locate the offending pair.
 A PR that breaks this will not be merged, because overlapping solids ruin the section
 planes and the exported meshes.
 

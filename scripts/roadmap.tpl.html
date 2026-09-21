@@ -209,14 +209,14 @@ td.d{color:var(--ink-2);font-size:12.5px}
 <div class="wrap">
 <header>
   <div>
-    <div class="eyebrow">Logic device architectures · 4 generations</div>
+    <div class="eyebrow">Transistor architectures · educational models</div>
     <h1>FinFET to CFET</h1>
-    <p>Four transistor architectures on one scaling roadmap, modelled film by film at a common
-       scale — then wired into a working CMOS inverter cell in each one. Slice along any axis,
-       compare footprints, or drive the inverter input and watch the conducting path light up.</p>
+    <p>Explore FinFET, gate-all-around nanosheet, inner-wall forksheet and CFET examples.
+       Compare device structures, illustrative CMOS inverters and schematic layouts.
+       Logic colors show ideal switching states, not simulated currents or timing.</p>
   </div>
-  <div class="cite">Nanosheet after <b>S. Rathore et al.</b>, SST 2021<br>
-    FinFET, forksheet and CFET after <b>imec</b> published structures<br><span class="mono">1 unit = 1 nm</span></div>
+  <div class="cite">Illustrative geometry, not a foundry recipe<br>
+    <a href="#technical-references">Technical references and model scope</a><br><span class="mono">1 unit = 1 nm; Layout vertical dimensions exaggerated</span></div>
 </header>
 
 <div class="app">
@@ -257,7 +257,7 @@ td.d{color:var(--ink-2);font-size:12.5px}
     <canvas id="stage"></canvas>
     <div id="overlay">
       <svg id="leaders"></svg>
-      <div class="hud tl" id="hudview">Isometric</div>
+      <div class="hud tl" id="hudview">3D overview</div>
       <div class="hud br">drag orbit · wheel zoom · shift+drag pan · click identify</div>
       <div id="logicbar" hidden>
         <span class="lb-lbl">IN</span>
@@ -293,7 +293,7 @@ td.d{color:var(--ink-2);font-size:12.5px}
       <tbody id="mattable"></tbody></table></div>
   </div>
   <div class="panel" id="parpanel" hidden>
-    <h2>Parasitics</h2>
+    <h2>Capacitance estimates</h2>
     <p class="sub" id="parsub"></p>
     <div class="tablewrap"><table><thead><tr><th>Term</th><th>Couples</th>
       <th style="text-align:right">aF</th><th style="text-align:right">aF/µm</th>
@@ -312,11 +312,12 @@ td.d{color:var(--ink-2);font-size:12.5px}
   <div id="storybody"></div>
 </div>
 
+<!-- TECHNICAL_REFERENCES -->
 <footer class="colophon">
   <div class="who">
     <strong>Developed by Khandaker Ehsanul Karim</strong>
-    FET Lab &middot; version 1.0.0 &middot; MIT licensed. Geometry is parametric and drawn to a
-    common scale; figures are teaching approximations of published structures, not foundry data.
+    FET Lab &middot; MIT licensed. Parametric teaching models, not fabrication-ready cells.
+    Numerical capacitances and material choices are illustrative, not measured process data.
   </div>
   <ul>
     <li><a href="mailto:ehsan.pappu.99@gmail.com">ehsan.pappu.99@gmail.com</a></li>
@@ -990,8 +991,8 @@ function parPanel(){
   const P=DEV.parasitics;
   box.hidden=!P; if(!P)return;
   sub.innerHTML=`From this model's own geometry — L<sub>G</sub> ${P.lg} nm, `+
-    `W<sub>eff</sub> ${P.weff} nm, footprint ${P.foot} nm. Gate parasitics come to `+
-    `<b>${P.gate_par_pct}%</b> of C<sub>ox</sub>. Pick a row to see it on the model.`;
+    `total shown W<sub>eff</sub> ${P.weff} nm, gate-stack span ${P.foot} nm. C_gc + C_ge = `+
+     `<b>${P.gate_par_pct}%</b> of C<sub>ox</sub> in this approximation. Pick a row to highlight it; read the limitations below.`;
   document.getElementById("parnote").innerHTML=P.note;
   sel.textContent="";
   tb.innerHTML="";

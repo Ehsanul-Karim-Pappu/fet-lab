@@ -1,37 +1,18 @@
 #!/usr/bin/env python3
-"""Derive the parasitic capacitances of each device scene from its own geometry.
+"""Geometry-only capacitance estimates for the drawn box models.
 
-Nothing here is typed in. Every number comes from the boxes in devices.json: the facing
-area between two conductors, the gap between them, and the material that fills the gap.
-That is only defensible because the scenes are drawn to scale — a first-order estimate on
-geometry that was not would be decoration.
+C_ox is a classical flat-face oxide-stack approximation, not terminal C_gg.
+C_gc and C_ge sum direct facing-area couplings along x with dielectric layers
+in series. Unfilled gaps have k=1. Fringing and bias-dependent semiconductor
+response are not solved. C_j is only a contacted-area depletion proxy at an
+assumed width, not an extracted junction capacitance.
 
-What is modelled, per device, summing both the source and the drain side:
-
-  C_ox   gate to channel through the interfacial oxide and the high-κ. The useful one;
-         everything else is measured against it.
-  C_gc   gate to the source/drain contact metal across the spacer. Parallel plate. This
-         is the term that scales worst — it is set by gate height, contact height and
-         spacer width, and none of the three shrink with the node.
-  C_if   gate to the raised epi, from gate metal lying within the channel stack. The
-         gate-all-around penalty: metal that wraps between the sheets faces the epi over
-         an area a fin never had.
-  C_of   gate to the raised epi, from gate metal above the top channel. Classic outer
-         fringe, and worse the taller the gate.
-  C_j    source/drain to the body underneath. Junction, not a dielectric gap, so it uses
-         a stated depletion width rather than a film thickness.
-
-Method: rasterise the y–z plane at RES nm. For every cell, find the facing surfaces of the
-two conductor groups along x, take the gap between them, look up which material actually
-sits in that gap at that cell, and add ε0·εr·dA/d. A parallel-plate sum over the real
-facing area, which for a structure made of axis-aligned films is the honest first order.
-
-It is a first order. There is no field solver here: fringing beyond the facing overlap,
-corner enhancement and the bias dependence of the junction are all outside it. Treat the
-ratios between architectures as the result, not the absolute femtofarads.
+Units: epsilon_0 = 8.8541878128e-3 aF/nm; lengths nm; areas nm^2.
+Both absolute values AND cross-architecture ratios are assumption-dependent.
 """
 import json, math, os, sys
 import numpy as np
+from pathlib import Path
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 RES  = 0.25                      # y–z raster, nm
@@ -79,16 +60,23 @@ def face(bxs, Y, Z, side):
             out = np.where(m, np.maximum(out, bx[1]), out)
     return out
 
-def filler(dielectrics, Y, Z, xm, valid):
-    """Relative permittivity of whatever occupies the midpoint of each gap."""
-    er = np.where(valid, 1.0, 0.0)          # nothing there means vacuum
-    for bx in dielectrics:
-        k = EPS_R.get(bx[6])
+def electrical_gap(boxes, Y, Z, lo, hi, valid):
+    """Sum thickness/k along x, not just the material at the gap midpoint.
+
+    Boxes must not overlap. Unfilled space has k=1. A conductor crossing the gap
+    shields this direct plate-pair term; it is not treated as a dielectric.
+    """
+    length = np.where(valid, hi - lo, 0.0)
+    blocked = np.zeros(Y.shape, dtype=bool)
+    for bx in boxes:
+        overlap = np.maximum(0.0, np.minimum(hi, bx[1]) - np.maximum(lo, bx[0]))
+        overlap = np.where(valid & cover(bx, Y, Z), overlap, 0.0)
+        k = EPS_R[bx[6]]
         if k is None:
-            continue
-        m = valid & cover(bx, Y, Z) & (xm >= bx[0]) & (xm < bx[1])
-        er = np.where(m, k, er)
-    return er
+            blocked |= overlap > 1e-6
+        else:
+            length += overlap * (1.0 / k - 1.0)
+    return length, valid & ~blocked & (length > 1e-9)
 
 def couple(dev, A, B, Y, Z, sign, band=None):
     """Capacitance between conductor groups A and B, facing each other along x.
@@ -111,12 +99,11 @@ def couple(dev, A, B, Y, Z, sign, band=None):
         ok &= (Y >= band[0]) & (Y < band[1])
     if not ok.any():
         return 0.0, 0.0
-    with np.errstate(invalid="ignore"):
-        mid = (aX + bX) / 2.0 * (1 if sign < 0 else -1)
-    xm = np.where(ok, mid, 0.0)
-    er = filler([b for b in dev["_all"] if b[6] not in CONDUCTOR], Y, Z, xm, ok)
+    lo = np.where(ok, bX if sign < 0 else -aX, 0.0)
+    hi = np.where(ok, aX if sign < 0 else -bX, 0.0)
+    length, ok = electrical_gap(dev["_all"], Y, Z, lo, hi, ok)
     dA = RES * RES
-    c = float(np.sum(np.where(ok, EPS0 * er * dA / np.maximum(gap, 1e-6), 0.0)))
+    c = float(np.sum(np.where(ok, EPS0 * dA / np.maximum(length, 1e-9), 0.0)))
     return c, float(np.sum(ok) * dA)
 
 def touch_area(A, B):
@@ -134,6 +121,17 @@ def touch_area(A, B):
 
 def volume(bxs):
     return sum((b[1] - b[0]) * (b[3] - b[2]) * (b[5] - b[4]) for b in bxs)
+
+def film_thickness(bxs):
+    """Actual normal thickness of the uniform axis-aligned plates used by the builders.
+
+    Volume/interface-area includes corner volume and overestimates thickness.
+    Reject nonuniform films rather than silently applying a single-thickness model.
+    """
+    values = {round(min(b[3] - b[2], b[5] - b[4]), 6) for b in bxs}
+    if len(values) != 1 or min(values) <= 0:
+        raise ValueError("Expected a nonempty uniform rectangular film")
+    return values.pop()
 
 def analyse(dev):
     dev["_all"] = boxes_of(dev, lambda p: True)
@@ -169,13 +167,14 @@ def analyse(dev):
 
     # gate to channel: two conformal films in series, both thicknesses taken from the model
     a_ox = touch_area(chan, il)
-    t_il = volume(il) / a_ox if a_ox else 0.0
-    a_hk = touch_area(il, hk)
-    t_hk = volume(hk) / a_hk if a_hk else 0.0
+    t_il = film_thickness(il)
+    t_hk = film_thickness(hk)
     cox = EPS0 * a_ox / (t_il / EPS_R["sio2"] + t_hk / EPS_R["highk"]) if a_ox else 0.0
     out["C_ox"] = (cox, a_ox)
 
-    a_j = touch_area(epi + chan, body)
+    # Channel/body interface is NOT a source/drain junction. No sidewall or
+    # depletion-profile inference is possible without doping and bias data.
+    a_j = touch_area(epi, body)
     out["C_j"] = (EPS0 * EPS_R["silicon"] * a_j / W_DEP, a_j)
 
     lg = max(b[1] for b in il) - min(b[0] for b in il) if il else 1.0
@@ -189,24 +188,42 @@ def analyse(dev):
     return out
 
 TERMS = [
-    ("C_ox", "C<sub>ox</sub>", "gate", "chan", "ox", "gate → channel",
-     "Gate to channel through the interfacial oxide and the high-κ, in series. "
-     "The capacitance you want. Everything below is measured against it."),
-    ("C_gc", "C<sub>gc</sub>", "gate", "metal", None, "gate → contact",
-     "Gate to the source/drain contact metal, across the spacer. The parasitic that "
-     "scales worst: gate height, contact height and spacer width set it, and none of "
-     "the three shrink with the node."),
-    ("C_ge", "C<sub>ge</sub>", "gate", "epi", None, "gate → epi",
-     "Gate to the raised source/drain epitaxy, across the spacer. Gate metal that wraps "
-     "between the channels faces the epi over area a fin never had. Note the model draws "
-     "one uniform spacer thickness everywhere, including between the sheets, so per "
-     "nanometre of footprint this lands at much the same value for all four — the "
-     "published inner-fringe penalty comes from the inner spacer being thinner and "
-     "shaped differently, which is not drawn here."),
-    ("C_j", "C<sub>j</sub>", "epi", "body", None, "S/D → body",
-     "Source and drain to the body beneath. Large where the epi lands on silicon, and "
-     "gone entirely where the device sits on isolation — one of the architecture's "
-     "quieter wins."),
+    [
+        "C_ox",
+        "C<sub>ox</sub>",
+        "gate",
+        "chan",
+        "ox",
+        "oxide stack → channel",
+        "Classical oxide-stack estimate from gated area and the actual SiO2/HfO2 film thicknesses in series. Not the bias-dependent terminal gate capacitance: depletion, quantum capacitance and corner fields are omitted."
+    ],
+    [
+        "C_gc",
+        "C<sub>gc</sub>",
+        "gate",
+        "metal",
+        None,
+        "gate → S/D contact",
+        "Direct facing-area coupling to source/drain contact conductors along x, summed over both ends. Materials crossed by each ray are combined in series; empty gaps have relative permittivity 1. This is not a 3D fringe-field extraction."
+    ],
+    [
+        "C_ge",
+        "C<sub>ge</sub>",
+        "gate",
+        "epi",
+        None,
+        "gate → S/D epitaxy",
+        "Facing-area estimate treating source/drain epitaxy as equipotential. Uniform spacers, missing ILD and omitted fringe fields limit comparison with real devices. Semiconductor doping and bias are not modeled."
+    ],
+    [
+        "C_j",
+        "C<sub>j</sub>*",
+        "epi",
+        "body",
+        None,
+        "S/D → body proxy",
+        "Contacted-area proxy: epsilon(Si) times the drawn S/D-to-body contact area divided by an assumed 5nm depletion width. Channel-to-body area is excluded. Zero means no such interface is drawn, not zero junction or substrate coupling in a real transistor."
+    ]
 ]
 
 def attach(dev, r):
@@ -227,16 +244,22 @@ def attach(dev, r):
         terms=out, weff=round(w, 1), foot=round(fp, 1), lg=round(r["_lg"], 1),
         wdep=W_DEP, res=RES,
         gate_par=round(par, 2), gate_par_pct=round(par / cox * 100, 1) if cox else 0.0,
-        note=("Estimated from this model's own geometry: facing area between two "
-              "conductors, the gap between them, and the material in the gap. Parallel "
-              "plate only — no field solver. True fringing past the facing overlap, the "
-              "inter-layer dielectric (not modelled, so gaps above the spacer count as "
-              "vacuum) and the bias dependence of the junction are all outside it, and "
-              "C<sub>j</sub> assumes a " + f"{W_DEP:g}" + " nm depletion width. Read the "
-              "ratios between architectures, not the absolute femtofarads."))
+        method="classical plates; no field solver",
+        note=("Geometry-only estimates, not measured or TCAD-extracted values. "
+              "W_eff is the total gated perimeter represented in THIS scene "
+              "(both polarities in forksheet/CFET); normalization is not an equal-drive comparison. "
+              "The gate-stack span is not a cell area or necessarily the footprint in Compare. "
+              "C_ox uses planar series films; C_gc/C_ge integrate thickness/k along x. "
+              "Missing inter-layer dielectric is treated as vacuum (k=1); "
+              "3D fringe fields, quantum effects and bias-dependent semiconductor response are omitted. "
+              "C_j* uses only drawn S/D-body contact area with an assumed "
+              + f"{W_DEP:g}nm" + " depletion width and silicon permittivity. "
+              "Real doping, SiGe composition and depletion widths are unspecified. "
+              "Both numerical values and architecture ratios depend on these assumptions."))
+
 
 if __name__ == "__main__":
-    path = os.path.join(HERE, "devices.json")
+    path = Path(HERE).parent / "data/devices.json"
     G = json.load(open(path))
     for dev in G["devices"]:
         if dev["key"].startswith(("show_", "inv_")) or dev["key"] == "cmp":
@@ -245,8 +268,8 @@ if __name__ == "__main__":
         attach(dev, r)
         w, fp = r["_weff"], r["_foot"]
         print(f"=== {dev['key']:10s} L_G {r['_lg']:.0f} · W_eff {w:.0f} nm · "
-              f"footprint {fp:.0f} nm · IL {r['_tox'][0]:.2f} + HfO2 {r['_tox'][1]:.2f} nm")
-        print(f"      {'':5s} {'aF':>8s} {'area nm2':>10s} {'aF/um Weff':>11s} {'aF/nm foot':>11s} {'% of Cox':>9s}")
+              f"gate-stack span {fp:.0f} nm · IL {r['_tox'][0]:.2f} + HfO2 {r['_tox'][1]:.2f} nm")
+        print(f"      {'':5s} {'aF':>8s} {'area nm2':>10s} {'aF/um Weff':>11s} {'aF/nm span':>11s} {'% of Cox':>9s}")
         tot_par = sum(r[k][0] for k in ("C_gc", "C_ge"))
         for k in ("C_ox", "C_gc", "C_ge", "C_j"):
             c, a = r[k]

@@ -4,7 +4,7 @@
 
 # FET Lab
 
-**Logic device architectures in 3D — FinFET, nanosheet, forksheet and CFET, film by film.**
+**Transistor architectures in 3D — FinFET, nanosheet, forksheet and CFET, film by film.**
 
 [![Android](https://github.com/ehsanul-karim-pappu/fet-lab/actions/workflows/android.yml/badge.svg)](../../actions/workflows/android.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-0E7C8C.svg)](LICENSE)
@@ -18,59 +18,54 @@ No install; add it to your home screen and it works offline.
 
 ---
 
-<img src="docs/device.png" alt="Nanosheet FET, isometric, with dimension callouts">
+<img src="docs/device.png" alt="Nanosheet FET, 3D overview, with dimension callouts">
 
-Every film is modelled: the silicon channel, the 1 nm interfacial oxide, the high-κ HfO₂,
+Selected films are modeled: the silicon channel, the 1 nm interfacial oxide, the high-κ HfO₂,
 the TiN work-function metal, the gate fill, the spacers, the source/drain epitaxy, the
 silicide and the contacts. Slice along any axis and the cut face is **solid**, not hollow,
 so a section reads like a real cross-section rather than a shell.
 
-**1 unit = 1 nm.** `x` = source→drain, `y` = vertical stacking, `z` = cell width (n→p).
+**1 unit = 1 nm.** `x` = source→drain, `y` = vertical stacking, `z` = lateral n/p span.
 
 ## Three ways to look at them
 
 | | |
 |---|---|
 | **Device** | Technical cross-sections of each architecture — section planes, exploded view, tap-to-identify. |
-| **Inverter** | A complete CMOS standard cell in each architecture. Drive the input and the conducting path lights up. |
-| **Layout** | The same inverter as a labelled layout figure — P Well, N Well, SiO₂, nanowire, MD, Po, VD, VG, Metal 0 — at the cell's real rail-to-rail width, on a uniform Metal 0 track pitch. |
+| **Inverter** | An illustrative CMOS inverter cell for each architecture. Drive the input and the conducting path lights up. |
+| **Layout** | Schematic inverter layouts with simplified film stacks and exaggerated vertical dimensions; two representative nanosheets instead of the technical model's three. |
 
 <table>
 <tr>
 <td width="50%"><img src="docs/inverter.png" alt="Nanosheet inverter, section through the gate"><br><sub><b>Inverter</b> — pMOS conducting, nMOS dimmed</sub></td>
-<td width="50%"><img src="docs/layout.png" alt="Nanosheet inverter as a layout figure"><br><sub><b>Layout</b> — the figure, extruded, and drawn to scale</sub></td>
+<td width="50%"><img src="docs/layout.png" alt="Nanosheet inverter as a layout figure"><br><sub><b>Layout</b> — schematic stack, with lateral dimensions to model scale</sub></td>
 </tr>
 </table>
 
 <img src="docs/compare.png" alt="Four inverter layouts side by side at one scale">
 
-## What it shows
+## What it shows—and what it does not
 
-- **Why the FinFET ended.** The gate reaches three faces of a standing fin, never the
-  bottom, and drive arrives in whole fins — one more fin costs a whole fin pitch of cell.
-- **Why the nanosheet replaced it.** Lay the fin on its side, slice it: gate on four faces,
-  width continuous. At a 21 nm sheet pitch only **4 nm** of Mo survives between adjacent
-  TiN shells — that gap is the next wall.
-- **What the forksheet buys.** A dielectric wall replaces the gap between the n and p
-  work-function metals. The price is the fourth gate face.
-- **What the CFET costs.** One device wide, but GND has to arrive from the back of the
-  wafer and the output has to climb past the tier isolation.
+- FinFET: a tri-gate example with discrete fin-count sizing.
+- Nanosheet FET: gate-all-around channels with adjustable sheet width.
+- Forksheet: the classic inner-wall arrangement, not the later outer-wall variant.
+- CFET: a stacked nFET/pFET pair, with monolithic and sequential examples.
 
-Two comparison scenes put the numbers side by side, and they disagree — which is the point:
+This is one educational roadmap, not a universal process sequence. FinFETs remain in use.
+Materials and dimensions are illustrative; the complete stack is not a verified foundry
+recipe. Work-function tuning, doping, strain, self-heating and electrical drive are not simulated.
+IN/OUT colors demonstrate ideal logic states, not current or timing calculations.
 
-| | Device footprint | Inverter cell, rail to rail |
-|---|---|---|
-| FinFET | 114 nm — 100% | 156 nm — 100% |
-| Nanosheet | 92 nm — 81% | 136 nm — 87% |
-| Forksheet | 64 nm — 56% | 106 nm — 68% |
-| CFET | 34 nm — 30% | 74 nm — 47% |
+Comparison scenes report drawn lateral spans, not equal-performance area comparisons.
+The rail-to-rail z dimension is commonly called cell height in standard-cell design.
+Gate-stack span, device-pair span and rail-to-rail span are distinct measurements.
+The example-node labels do not assign an architecture to one universal technology node.
 
-The Layout figures are drawn at those same cell widths, so the two comparison scenes
-agree rather than telling different stories. Cell width shrinks about half as much as
-device footprint, because power rails and the routing they need do not scale with the
-transistor. Published node figures behave the same
-way — imec quotes roughly 5T → 4.3T for the forksheet, and CFET is generally credited with
-a 1.5–2× area gain rather than the 3× the device footprint alone suggests.
+Capacitances are geometry-only approximations. Their absolute values **and ratios** depend
+on missing dielectrics, omitted 3D fields and assumed material properties. See the
+[numerical audit](docs/CONTENT_AUDIT.md) and [technical references](docs/TECHNICAL_REFERENCES.md).
+Gate-stack thickness and the plotted dimensions can be checked against the box model;
+that is not physical validation against manufactured devices.
 
 ## Repository layout
 
@@ -95,7 +90,7 @@ cd android
 
 JDK 17, Android SDK 35, minSdk 26. No third-party 3D library — the renderer, section
 capping, ray picking and exploded view are all in `Renderer.kt`. CI builds a debug APK on
-every push and attaches it to the run.
+pushes to main and pull requests, and attaches it to the run.
 
 Publishing: see [`android/PLAY_STORE.md`](android/PLAY_STORE.md).
 
@@ -114,17 +109,11 @@ to GitHub Pages if you enable it.
 Do not hand-edit `data/devices.json`; it is generated.
 
 ```bash
-pip install trimesh numpy
-python scripts/build_devices.py      # device scenes, full film stack
-python scripts/build_inverters.py    # inverter cells
-python scripts/build_showcase.py     # layout figures, and the node labels
-python scripts/build_story.py        # the written background, attached to every scene
-python scripts/build_parasitics.py   # parasitic capacitances, derived from the geometry
-python scripts/build_web.py          # roadmap.html + pwa/index.html, from the template
-python scripts/export_all.py         # GLB / STL / OBJ
-python scripts/mkicon.py             # icons, from icon_src.png
-python scripts/verify.py             # audit every scene before shipping
-cp data/devices.json android/app/src/main/assets/devices.json
+python3 -m pip install numpy
+python3 scripts/build.py             # all scenes, background, capacitances and viewer assets
+python3 scripts/test_parasitics.py   # analytic cases, selection and grid convergence
+python3 scripts/test_content.py      # synchronized bundles and reference coverage
+python3 scripts/verify.py            # structural/geometry checks
 ```
 
 Every scene must tile exactly — no overlapping solids, no gaps. The build prints
@@ -139,9 +128,8 @@ appears in the app.
 ## Caveats
 
 - Dimensions are representative teaching values, not any foundry's process data.
-- The `Node` row is a generation label, not a measurement. Since roughly the 90 nm
-  generation the number in a node name has matched no dimension on the wafer; it sits next
-  to the physical gate length in the table so the gap between the two is visible.
+- The `Node` row is a generation label, not a measurement. Modern node names do not specify a unique physical feature size. The example labels here are
+  illustrative, not a claim that each architecture belongs to one node.
 - The inverter cells route on one metal level plus local interconnect — the topology, not a
   layout you could tape out.
 - The forksheet modelled is the classic inner-wall device; imec's later outer-wall variant

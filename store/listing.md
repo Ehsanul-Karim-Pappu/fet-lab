@@ -16,53 +16,35 @@ FinFET, nanosheet, forksheet and CFET transistors in interactive 3D.
 ## Full description (4000 characters max)
 
 ```
-FET Lab is an interactive 3D model of the transistor architectures that modern logic chips
-are built from — FinFET, nanosheet, forksheet and CFET — drawn film by film at one common
-scale so you can actually see what changes between them.
+FET Lab explores transistor architectures in interactive 3D: FinFET, gate-all-around
+nanosheet, inner-wall forksheet and CFET. Learn device concepts and ideal CMOS inverter logic.
 
-Every layer is there. The silicon channel, the 1 nm interfacial oxide, the high-k HfO2, the
-TiN work-function metal, the gate fill, the spacers, the source and drain epitaxy, the
-silicide, the contacts and the metal. Slice the device along any axis and the cut face is
-solid, not hollow, so a section looks like a real cross-section rather than a shell.
+THREE VIEWS OF THE SUBJECT
 
-THREE WAYS TO LOOK AT THEM
+Device — illustrative cross-sections with section planes, layer visibility and exploded views.
+Inverter — nFET/pFET connections, rails and ideal IN/OUT states. This is not circuit simulation.
+Layout — schematic layouts with simplified layers and exaggerated vertical spacing. The
+nanosheet layout shows two representative sheets; the technical scene shows three.
 
-Device — technical cross-sections of each architecture. Section planes, an exploded view
-that pulls the gate films apart, and tap-to-identify on any layer.
+UNDERSTAND THE TRADE-OFFS
 
-Inverter — a complete CMOS inverter standard cell built in each architecture, with power
-rails, contacts, the output node and the gate strap. Drive the input and the conducting
-path lights up while the transistor that is off dims out.
+Compare discrete fin-count sizing, gate-all-around sheets, inner-wall n/p spacing, and
+vertical complementary-device stacking. The examples are one possible scaling roadmap,
+not a claim that every manufacturer follows the same sequence.
 
-Layout — the same inverter drawn the way a layout figure draws it: P Well, N Well, SiO2,
-nanowire, MD, Po, VD, VG and Metal 0, labelled on the geometry.
+MODEL LIMITS
 
-WHAT IT SHOWS YOU
-
-Why the FinFET ended: the gate reaches three faces of a standing fin, never the bottom, and
-drive current arrives in whole fins.
-
-Why the nanosheet replaced it: lay the fin on its side, cut it into stacked sheets, and the
-gate wraps all four faces with width you can set continuously.
-
-What the forksheet buys: a dielectric wall replaces the gap between the n and p
-work-function metals, and the cell narrows.
-
-What the CFET costs: stack the pMOS on the nMOS and the cell is one device wide, but GND has
-to arrive from the back of the wafer and the output has to climb past the tier isolation.
-
-Two comparison scenes put the numbers side by side — device footprint, and the rail-to-rail
-inverter cell width that a standard-cell library actually quotes. They disagree, and the
-gap between them is the interesting part.
+Dimensions measure the drawn geometry, not a foundry PDK. The complete material stack and
+contacts are illustrative. Smaller drawn spans do not establish equal-drive density gains.
+Capacitance values are geometry-only estimates with explicit assumptions, not measurements
+or a 3D field-solver extraction. Read the model notes and linked Technical references.
 
 BUILT FOR STUDYING
 
-Orbit with one finger, pan and zoom with two, tap any layer to identify it. Per-layer
-visibility grouped by process module. Dimension callouts with real nanometre values. Works
-entirely offline — no account, no network permission, no data collected of any kind.
-
-The models are original parametric geometry at representative dimensions, informed by
-published device descriptions. They are a teaching tool, not any foundry's process data.
+Orbit, pan, zoom, identify layers and follow the optional guided tour. Replay it from Help.
+The Android app works offline and requests no internet permission. It stores a local
+tour-completion preference, with no analytics or personal-data collection. Reference and
+support links open your browser. See the privacy policy for the website/PWA.
 
 Open source. Report anything that looks wrong on the issue tracker.
 ```

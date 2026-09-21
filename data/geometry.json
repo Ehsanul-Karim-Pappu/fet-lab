@@ -26,49 +26,49 @@
  },
  "materials": {
   "silicon": {
-   "label": "Silicon",
+   "label": "Silicon (Si)",
    "color": "#F2C2CF",
-   "note": "Substrate, nanosheet channels and S/D epi"
+   "note": "Channel, substrate and illustrative nFET S/D regions; doping and strain are not modeled"
   },
   "sio2": {
    "label": "SiO\u2082",
    "color": "#8C1C13",
-   "note": "STI / bottom isolation + gate interfacial layer"
+   "note": "STI, interfacial layer, backside ILD"
   },
   "highk": {
-   "label": "High-\u03ba (HfO\u2082)",
+   "label": "Hafnium dioxide (HfO\u2082)",
    "color": "#BE8250",
-   "note": "Gate dielectric, k \u2248 22"
+   "note": "Illustrative high-k gate dielectric; relative permittivity 22 is a model assumption"
   },
   "si3n4": {
    "label": "Si\u2083N\u2084",
    "color": "#E4AE1B",
-   "note": "Outer and inner gate spacers"
+   "note": "Gate spacers"
   },
   "mo": {
-   "label": "M\u2080 \u00b7 Mo",
+   "label": "Molybdenum (Mo)",
    "color": "#E3D3B0",
-   "note": "Gate fill metal"
+   "note": "Illustrative gate-fill conductor; not a verified advanced-node recipe"
   },
   "nickel": {
-   "label": "M\u2081 \u00b7 Ni",
+   "label": "Nickel (Ni)",
    "color": "#EE7A1A",
-   "note": "S/D contact plug"
+   "note": "Illustrative contact conductor; real contact stacks are process-dependent"
   },
   "tungsten": {
-   "label": "M\u2082 \u00b7 W",
-   "note": "Top-level metal",
-   "color": "#BFBBD2"
+   "label": "Tungsten (W)",
+   "color": "#BFBBD2",
+   "note": "Illustrative contact/via/routing conductor; not all real routing uses tungsten"
   },
   "nisi": {
-   "label": "M\u2083 \u00b7 NiSi",
+   "label": "Nickel silicide (NiSi)",
    "color": "#E6E2F0",
-   "note": "S/D silicide"
+   "note": "Simplified silicide contact layer; SiGe contacts can require different alloy/phase treatment"
   },
   "tin": {
-   "label": "M\u2084 \u00b7 TiN",
+   "label": "Titanium nitride (TiN)",
    "color": "#BE5518",
-   "note": "Work-function metal + gate cap"
+   "note": "Illustrative work-function region/cap; effective work function is not modeled"
   }
  },
  "order": [
@@ -1127,10 +1127,10 @@
     "gaa",
     "iso"
    ],
-   "tex": "EOT",
-   "label": "EOT",
-   "value": "1.35 nm",
-   "desc": "1 nm SiO\u2082 + 2 nm HfO\u2082 (k\u224822)",
+   "tex": "t_ox",
+   "label": "t_ox",
+   "value": "3 nm",
+   "desc": "Physical stack; EOT 1.35 nm under assumed permittivities",
    "a": [
     0,
     69.0,

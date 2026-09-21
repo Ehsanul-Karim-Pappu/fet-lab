@@ -11,8 +11,9 @@ table that disagrees with the geometry it describes.
 """
 import json, math, re, sys
 from collections import defaultdict
+from pathlib import Path
 
-G = json.load(open("devices.json"))
+G = json.loads((Path(__file__).resolve().parent.parent / "data/devices.json").read_text())
 MAT = G["materials"]
 PROBLEMS, NOTES = [], []
 

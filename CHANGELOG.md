@@ -7,7 +7,7 @@ All notable changes to FET Lab. Dates are the release date; versions follow
 
 ### Consistent view order
 
-Device scenes now use the same view sequence for every architecture: Isometric, Along
+Device scenes now use the same view sequence for every architecture: 3D overview, Along
 channel, Across channel, then the architecture-specific view. CFET no longer opens in
 section, and the nanosheet view names no longer carry figure letters.
 
@@ -19,27 +19,21 @@ forksheet inverter, on to Layout opens the forksheet cell. Compare carries acros
 same way, and a CFET left on Sequential comes back as Sequential rather than Monolithic.
 Only the viewing mode changes.
 
-### Parasitics
+### Content and capacitance audit
 
-A new Parasitics table on the Device scenes, beside Critical dimensions on the web and
-inside Specs on Android. Tap a row and the two conductors that couple light up on the
-model while everything else drops back.
+Reviewed architecture, materials and integration descriptions against primary sources.
+Added a shared reference catalog to web/PWA and Android About; exact dimensions and the
+complete material palette are explicitly illustrative. Corrected CFET gate/contact
+options, inverter sizing language, layout axis labels, and privacy/local-storage wording.
+The former perspective preset named Isometric is now accurately called 3D overview.
 
-Every value is derived from the scene's own geometry by `scripts/build_parasitics.py`:
-it rasterises the y–z plane, finds the facing surfaces of two conductor groups along x,
-takes the gap between them and looks up the material that fills it. Nothing is typed in.
-C_ox validates against hand calculation — 358 aF/µm for the nanosheet against 384 from
-ε₀·3.9/1.35 nm × 15 nm, the difference being film thicknesses measured from the model
-rather than assumed.
-
-Four terms: C_ox (gate to channel), C_gc (gate to contact across the spacer), C_ge (gate
-to epi) and C_j (junction). C_gc falls monotonically per unit footprint up the roadmap,
-0.343 → 0.187 → 0.166 → 0.145 aF/nm; C_j is exactly zero on the CFET, whose tiers sit on
-isolation.
-
-It is first order and says so in the app: parallel plate only, no field solver, no
-inter-layer dielectric in the model, and C_j assumes a 5 nm depletion width. The ratios
-between architectures are the result, not the absolute femtofarads.
+Capacitance estimates are geometry-only educational approximations, not measured or
+TCAD-validated values. Fixed oxide film thickness extraction, integrated dielectric
+layers in series across each gap, and excluded channel/body area from the source/drain
+junction-area proxy. Removed claims that architecture ratios or a monotonic ranking
+are validated. A zero junction proxy does not mean a real device has zero junction
+capacitance. Added analytic and grid-convergence tests. See
+[the audit](docs/CONTENT_AUDIT.md) for assumptions and before/after values.
 
 ## 1.1.0 — 2026-09-13
 

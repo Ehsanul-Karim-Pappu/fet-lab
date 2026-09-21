@@ -55,17 +55,9 @@ x_sub     = 48.0
 P.update(x_g=x_g, x_sp=x_sp, x_sd=x_sd, sheet_y=ys, y_mo_top=y_mo_top, y_m2=y_m2)
 
 # ---------------------------------------------------------------- materials
-MAT = {
- "silicon": dict(label="Silicon",        color="#F2C2CF", note="Substrate, nanosheet channels and S/D epi"),
- "sio2":    dict(label="SiO₂",      color="#8C1C13", note="STI / bottom isolation + gate interfacial layer"),
- "highk":   dict(label="High-κ (HfO₂)", color="#BE8250", note="Gate dielectric, k ≈ 22"),
- "si3n4":   dict(label="Si₃N₄", color="#E4AE1B", note="Outer and inner gate spacers"),
- "mo":      dict(label="M₀ · Mo", color="#E3D3B0", note="Gate fill metal"),
- "nickel":  dict(label="M₁ · Ni", color="#EE7A1A", note="S/D contact plug"),
- "tungsten":dict(label="M₂ · W",  note="Top-level metal", color="#BFBBD2"),
- "nisi":    dict(label="M₃ · NiSi", color="#E6E2F0", note="S/D silicide"),
- "tin":     dict(label="M₄ · TiN", color="#BE5518", note="Work-function metal + gate cap"),
-}
+from build_devices import MAT as DEVICE_MATERIALS
+MAT = {k: dict(DEVICE_MATERIALS[k]) for k in ("silicon","sio2","highk","si3n4","mo","nickel","tungsten","nisi","tin")}
+
 ORDER = ["silicon","sio2","highk","si3n4","tin","mo","nisi","nickel","tungsten"]
 
 parts = []   # {id, name, material, group, boxes:[[cx,cy,cz,dx,dy,dz],...], explode}
@@ -164,7 +156,7 @@ CALLOUTS = [
       a=[-x_sp, ys[0]-hy_sh-0.6, -hz_sh], b=[-x_sp, ys[0]-hy_sh-0.6, hz_sh], lab=[0, ys[0]-26, hz_sub+14]),
  dict(id="pitch", v=["b","c"],tex="pitch", label="Sheet pitch", value=f"{pitch:g} nm", desc="Vertical sheet-to-sheet pitch",
       a=[x_sp, ys[0], -hz_sh], b=[x_sp, ys[1], -hz_sh], lab=[x_sp+34, (ys[0]+ys[1])/2, -hz_sh-30]),
- dict(id="eot", v=["c","gaa","iso"],  tex="EOT", label="EOT", value=f"{P['EOT']:g} nm", desc=f"{til:g} nm SiO₂ + {thk:g} nm HfO₂ (k≈22)",
+ dict(id="eot", v=["c","gaa","iso"],  tex="t_ox", label="t_ox", value=f"{til+thk:g} nm", desc=f"Physical stack; EOT {P['EOT']:g} nm under assumed permittivities",
       a=[0, ys[2]+hy_sh, hz_sh+0.1], b=[0, ys[2]+hy_hk, hz_sh+0.1], lab=[0, ys[2]+32, hz_hk+40]),
  dict(id="tin", v=["c","gaa"],  tex="t_TiN", label="t<sub>TiN</sub>", value=f"{ttin:g} nm", desc="Work-function metal",
       a=[0, ys[2]+hy_hk, -hz_sh-0.1], b=[0, ys[2]+hy_tin, -hz_sh-0.1], lab=[0, ys[2]+26, -hz_tin-38]),
@@ -173,7 +165,7 @@ CALLOUTS = [
 out = dict(params=P, materials=MAT, order=ORDER, parts=parts, callouts=CALLOUTS,
            bounds=dict(x=[-x_sub, x_sub], y=[-sub_h, y_m2], z=[-hz_sub, hz_sub]))
 HERE = os.path.dirname(os.path.abspath(__file__))
-json.dump(out, open(os.path.join(HERE, "geometry.json"), "w"), indent=1)
+json.dump(out, open(os.path.join(os.path.dirname(HERE), "data", "geometry.json"), "w"), indent=1)
 
 # ------------------------------------------------------------------ sanity
 n_boxes = sum(len(p["boxes"]) for p in parts)

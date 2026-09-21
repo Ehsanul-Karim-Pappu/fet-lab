@@ -1,0 +1,91 @@
+{
+  "reviewed": "2026-09-21",
+  "scope": "References support device concepts, not this model's exact dimensions, complete material recipe or calculated capacitances. Geometry and colors are illustrative; no foundry PDK or measured device dataset is reproduced.",
+  "sources": [
+    {
+      "id": "R1",
+      "title": "Entering the nanosheet transistor era",
+      "publisher": "imec",
+      "url": "https://www.imec-int.com/en/articles/entering-nanosheet-transistor-era-0",
+      "supports": "FinFET, GAA nanosheet, inner-wall forksheet and process modules."
+    },
+    {
+      "id": "R2",
+      "title": "Outer wall forksheet to bridge nanosheet and CFET device architectures in the logic technology roadmap",
+      "publisher": "imec",
+      "url": "https://www.imec-int.com/en/articles/outer-wall-forksheet-bridge-nanosheet-and-cfet-device-architectures-logic-technology",
+      "supports": "Inner-wall versus outer-wall forksheet; non-universal roadmap."
+    },
+    {
+      "id": "R3",
+      "title": "Imec puts complementary FET (CFET) on the logic technology roadmap",
+      "publisher": "imec",
+      "url": "https://www.imec-int.com/en/articles/imec-puts-complementary-fet-cfet-logic-technology-roadmap",
+      "supports": "Monolithic/sequential integration and post-transfer thermal constraints."
+    },
+    {
+      "id": "R4",
+      "title": "Imec demonstrates functional monolithic CFET devices with stacked bottom and top contacts",
+      "publisher": "imec",
+      "url": "https://www.imec-int.com/en/press/imec-demonstrates-functional-monolithic-cfet-devices-stacked-bottom-and-top-contacts",
+      "supports": "Frontside contacts and advantages of backside contact formation."
+    },
+    {
+      "id": "R5",
+      "title": "Advancing the CFET-based device roadmap: novel integration modules and standard-cell configurations",
+      "publisher": "imec",
+      "url": "https://www.imec-int.com/en/articles/advancing-cfet-based-device-roadmap-novel-integration-modules-and-standard-cell",
+      "supports": "Common-gate and split-gate CFET options."
+    },
+    {
+      "id": "R6",
+      "title": "Samsung Begins Chip Production Using 3nm Process Technology With GAA Architecture",
+      "publisher": "Samsung Electronics, 30 June 2022",
+      "url": "https://news.samsung.com/global/samsung-begins-chip-production-using-3nm-process-technology-with-gaa-architecture",
+      "supports": "Initial 3nm GAA production announcement."
+    },
+    {
+      "id": "R7",
+      "title": "Intel's Transistor Technology Breakthrough Represents Biggest Change to Computer Chips In 40 Years",
+      "publisher": "Intel, 28 January 2007",
+      "url": "https://www.intel.com/pressroom/archive/releases/2007/20070128comp.htm",
+      "supports": "Hafnium-based high-k/metal gates at 45nm."
+    },
+    {
+      "id": "R8",
+      "title": "Ab initio calculation of Effective Work Functions for a TiN/HfO2/SiO2/Si transistor stack",
+      "publisher": "Research paper, arXiv:1112.2163 (2011)",
+      "url": "https://arxiv.org/abs/1112.2163",
+      "supports": "Example gate stack; effective work function depends on the stack."
+    },
+    {
+      "id": "R9",
+      "title": "Epi Source/Drain Damage Mitigation with Inner Spacer and Buffer Optimization in Stacked Nanosheet Gate-All-Around Transistors",
+      "publisher": "IBM Research, SSDM 2023",
+      "url": "https://research.ibm.com/publications/epi-sourcedrain-damage-mitigation-with-inner-spacer-and-buffer-optimization-in-stacked-nanosheet-gate-all-around-transistors",
+      "supports": "SiGe pFET source/drain epitaxy and inner-spacer integration."
+    },
+    {
+      "id": "R10",
+      "title": "Analysis and Design of Digital Integrated Circuits: Problem Set 1 Solutions",
+      "publisher": "MIT OpenCourseWare, 6.374 (2003)",
+      "url": "https://ocw.mit.edu/courses/6-374-analysis-and-design-of-digital-integrated-circuits-fall-2003/151adc5717d8b3c7e34e2761972124f8_ps1_03_sol.pdf",
+      "supports": "Electrical inverter balance is not determined by width alone."
+    },
+    {
+      "id": "R11",
+      "title": "Work Function Engineering with Molybdenum and Molybdenum-Nitride Gate Electrodes",
+      "publisher": "Rochester Institute of Technology repository",
+      "url": "https://repository.rit.edu/ritamec/vol14/iss1/6/",
+      "supports": "Molybdenum as a researched gate material, not validation of this model's complete stack."
+    },
+    {
+      "id": "R12",
+      "title": "A view on the logic technology roadmap",
+      "publisher": "imec",
+      "url": "https://www.imec-int.com/en/articles/view-logic-technology-roadmap",
+      "supports": "FEOL/MOL/BEOL, routing and standard-cell track height."
+    }
+  ],
+  "unverified_legacy_credit": "Earlier versions cited S. Rathore et al., Semiconductor Science and Technology (2021), without a title, DOI or figure number. The exact source has not been established. Retained here for provenance, not presented as a verified reference or silently replaced with a different paper."
+}

@@ -8,7 +8,7 @@ package io.github.ehsanulkarimpappu.fetlab
  */
 object AppInfo {
     const val NAME = "FET Lab"
-    const val TAGLINE = "Logic device architectures in 3D"
+    const val TAGLINE = "Transistor architectures in 3D"
 
     const val DEVELOPER = "Khandaker Ehsanul Karim"
     const val EMAIL = "ehsan.pappu.99@gmail.com"
@@ -24,8 +24,8 @@ object AppInfo {
     const val PRIVACY = "$REPO/blob/main/PRIVACY.md"
 
     val ATTRIBUTIONS = listOf(
-        "Nanosheet geometry after S. Rathore et al., Semiconductor Science and Technology (2021)",
-        "FinFET, forksheet and CFET after imec's published device structures",
+        "Original illustrative geometry informed by the technical references below",
+        "Device concepts are sourced; exact dimensions, complete material stacks and capacitances are not foundry data",
         "IBM Plex Sans and IBM Plex Mono — SIL Open Font License 1.1",
         "Models are representative teaching geometry, not any foundry's process data"
     )

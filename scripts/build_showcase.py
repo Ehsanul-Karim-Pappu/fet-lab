@@ -8,6 +8,8 @@ width and track pitch all come from the device cross-sections. Only the vertical
 direction is exaggerated, so the thin films stay visible.
 """
 import json, math, os
+from pathlib import Path
+DATA = Path(__file__).resolve().parent.parent / "data/devices.json"
 from build_devices import Dev, box, gaps, check, LSP, LSD
 
 def A(d, pid, name, mat, boxes, group, explode, net="body"):
@@ -218,7 +220,7 @@ def finish(d, dims):
     ctr = [(B["x"][0] + B["x"][1]) / 2, (B["y"][0] + B["y"][1]) / 2, (B["z"][0] + B["z"][1]) / 2]
     V = lambda az, el: fit_r(B, az, el)
     d.views = {
-      "hero": dict(n="The cell", s="three-quarter, all layers", az=-0.62, el=0.30, r=V(-0.62, 0.30), tgt=ctr, clip=None),
+      "hero": dict(n="3D overview", s="three-quarter, all layers", az=-0.62, el=0.30, r=V(-0.62, 0.30), tgt=ctr, clip=None),
       "front": dict(n="Front on", s="stack from the side", az=0.0, el=0.10, r=V(0.0, 0.10), tgt=ctr, clip=None),
       "end": dict(n="Through the gate", s="n and p in section", az=1.5708, el=0.16, r=V(1.5708, 0.16), tgt=ctr, clip=[0.0, None, None]),
       "top": dict(n="Top view", s="Metal 0 routing", az=0.0, el=1.42, r=V(0.0, 1.42), tgt=ctr, clip=None)}
@@ -226,10 +228,8 @@ def finish(d, dims):
 
 # ------------------------------------------------------------------ NANOSHEET
 def show_ns():
-    d = Dev("show_ns", "Nanosheet inverter · layout", "GAAFET · 2 nanowires per device",
-            "The inverter drawn the way a layout figure draws it: wells, field oxide, the "
-            "nanowire channels, MD source/drain contacts, the Po gate crossing both devices, "
-            "vias, and four Metal 0 bars carrying V_DD, IN, OUT and GND.")
+    d = Dev("show_ns", "Nanosheet inverter · layout", "schematic GAA · 2 representative sheets",
+            "A schematic nanosheet inverter layout with wells, channel regions, gate, contacts, vias and routing. Two representative sheets are drawn instead of the three in Device/Inverter; vertical spacing and the film stack are simplified.")
     P = plan("ns")
     XW, XMD0, XMD1 = P["xw"], P["xmd0"], P["xmd1"]
     WSH = 30.0                                   # sheet width, from the device scene
@@ -240,24 +240,21 @@ def show_ns():
     for i, (y0, y1) in enumerate(wires):
         for z0, z1, pol, net in ((ZN0, ZN1, "n", "chan_n"), (ZP0, ZP1, "p", "chan_p")):
             grp = "nMOS channel" if pol == "n" else "pMOS channel"
-            A(d, f"{pol}_w{i+1}", f"{pol}MOS nanowire {i+1}", "nanowire",
+            A(d, f"{pol}_w{i+1}", f"{pol}MOS nanosheet {i+1}", "nanowire",
               [box(-XMD0, XMD0, y0, y1, z0, z1)], grp, [0, 0, 0], net)
-            A(d, f"{pol}_ws{i+1}", f"{pol}MOS nanowire {i+1} · drain stub", "nanowire",
+            A(d, f"{pol}_ws{i+1}", f"{pol}MOS nanosheet {i+1} · drain stub", "nanowire",
               [box(XMD1, XW, y0, y1, z0, z1)], grp, [1.5, 0, 0], "body")
-            A(d, f"{pol}_wsr{i+1}", f"{pol}MOS nanowire {i+1} · source stub", "nanowire",
+            A(d, f"{pol}_wsr{i+1}", f"{pol}MOS nanosheet {i+1} · source stub", "nanowire",
               [box(-XW, -XMD1, y0, y1, z0, z1)], grp, [-1.5, 0, 0], "body")
     deck(d, P, [(ZN0, ZN1, wires), (ZP0, ZP1, wires)],
-         "<b>Reading the figure.</b> Two nanowire channels per device run left to right through "
-         "the Po gate, which crosses both the nMOS over the P Well and the pMOS over the N Well. "
-         "One gate, one input. The shared MD on the right ties both drains together and carries "
-         "the output up to Metal 0; the two outer MDs run out to the rails they feed.",
+         "<b>Reading the schematic.</b> Two representative Si nanosheets per device pass through the shared gate. nFET is over the p-well and pFET over the n-well. The connected drains form OUT. MD, Po, VD, VG and Metal 0 are explanatory layer-role names, not universal foundry naming conventions.",
          (ZN0, ZN1), (ZP0, ZP1))
-    L(d, "Nanowire", [XW, 25.5, ZP1 - 5], "s", "dark", LAYER_VIEWS, sd=1, pid=["p_ws2", "p_wsr2"])
+    L(d, "Nanosheet", [XW, 25.5, ZP1 - 5], "s", "dark", LAYER_VIEWS, sd=1, pid=["p_ws2", "p_wsr2"])
     return finish(d, [
         ["L_G", "Physical gate length, as drawn", f'{P["LG"]:g} nm'],
-        ["Cell z", "Rail-to-rail cell width", f'{P["cell"]:g} nm'],
+        ["Cell z", "Rail-to-rail span (z)", f'{P["cell"]:g} nm'],
         ["M0 pitch", "Metal 0 track pitch", f'{P["step"]:.1f} nm'],
-        ["Nanowires", "Per device", "2"], ["Devices", "pMOS over N Well, nMOS over P Well", "2"],
+        ["Sheets", "Per device", "2"], ["Devices", "pMOS over N Well, nMOS over P Well", "2"],
         ["Gate", "Po, crossing both", "1"], ["Contacts", "MD columns", "3"],
         ["Metal 0", "V_DD · IN · OUT · GND", "4 bars"],
         ["Vias", "VD to MD, VG to gate", "4"]])
@@ -265,9 +262,7 @@ def show_ns():
 # ------------------------------------------------------------------ FORKSHEET
 def show_fs():
     d = Dev("show_fs", "Forksheet inverter · layout", "n and p astride a dielectric wall",
-            "The same figure with the two devices pushed together until only a dielectric wall "
-            "separates them. The Po gate still crosses both, but the wall runs up through it, so "
-            "the n-side and p-side gate metal only meet over the top.")
+            "A schematic inner-wall forksheet inverter layout. The wall narrows the drawn n/p separation and the gate regions connect above it.")
     P = plan("fs")
     XW, XMD0, XMD1 = P["xw"], P["xmd0"], P["xmd1"]
     WSH, TW = 22.0, 8.0                          # sheet width and wall, from the device scene
@@ -286,15 +281,13 @@ def show_fs():
             A(d, f"{pol}_wsr{i+1}", f"{pol}MOS sheet {i+1} · source stub", "nanowire",
               [box(-XW, -XMD1, y0, y1, z0, z1)], grp, [-1.5, 0, 0], "body")
     deck(d, P, [(zn0, zn1, wires), (-TW / 2, TW / 2, [(YOX1, YPO1)]), (zp0, zp1, wires)],
-         "<b>Where the width goes.</b> Between the two devices there is now a wall instead of a "
-         "gate-metal gap, so the whole cell narrows — 106 nm rail to rail against the nanosheet's "
-         "136. The Po still shows as one body because the two halves join above the wall.",
+         "<b>Drawn lateral spans.</b> This example spans 106nm rail to rail, versus 136nm for the schematic nanosheet example. These are model measurements, not a general technology-area benefit or an equal-drive comparison.",
          (zn0, zn1), (zp0, zp1), wall=(-TW / 2, TW / 2))
     L(d, "Sheet", [XW, 25.5, zp1 - 5], "s", "dark", LAYER_VIEWS, sd=1, pid=["p_ws2", "p_wsr2"])
     L(d, "Wall", [XMD1 - 6, YPO1 - 4, 0], "s", "dark", LAYER_VIEWS, pid="wall")
     return finish(d, [
         ["L_G", "Physical gate length, as drawn", f'{P["LG"]:g} nm'],
-        ["Cell z", "Rail-to-rail cell width", f'{P["cell"]:g} nm'],
+        ["Cell z", "Rail-to-rail span (z)", f'{P["cell"]:g} nm'],
         ["M0 pitch", "Metal 0 track pitch", f'{P["step"]:.1f} nm'],
         ["Sheets", "Per device", "2"], ["Separation", "Dielectric wall", "no metal gap"],
         ["Gate", "Po, bridged over the wall", "1"], ["Contacts", "MD columns", "3"],
@@ -303,9 +296,7 @@ def show_fs():
 # --------------------------------------------------------------------- FINFET
 def show_fin():
     d = Dev("show_fin", "FinFET inverter · layout", "tri-gate · 2 fins per device",
-            "The pre-nanosheet version of the same figure. The channel is a standing fin rather "
-            "than a stack of wires, so the Po gate drapes over it on three sides and drive comes "
-            "in whole fins.")
+            "A schematic tri-gate inverter layout with two fins per transistor. Gate and contact shapes are simplified; material-role colors do not constitute a process recipe.")
     P = plan("fin")
     XW, XMD0, XMD1 = P["xw"], P["xmd0"], P["xmd1"]
     FW, FP = 6.0, 27.0                           # fin width and fin pitch, from the device scene
@@ -326,14 +317,12 @@ def show_fin():
             holes.append((z0, z1, [(FY0, FY1)]))
     band = FP / 2 + FW / 2
     deck(d, P, sorted(holes),
-         "<b>Drive in whole fins.</b> Two fins each gives a balanced inverter. Wanting a stronger "
-         "pull-up means a third fin, which widens the cell by a whole 27 nm fin pitch and "
-         "overshoots — the granularity the nanosheet removed by making width continuous.",
+         "<b>Geometric sizing only.</b> Two fins are shown for each transistor. Equal counts do not establish a balanced inverter. This layout illustrates connectivity and fin-count granularity, not a characterized library cell.",
          (-rc - band, -rc + band), (rc - band, rc + band))
     L(d, "Fin", [XW, FY1, rc + FP / 2], "s", "dark", LAYER_VIEWS, sd=1, pid=["p_fs2", "p_fsr2"])
     return finish(d, [
         ["L_G", "Physical gate length, as drawn", f'{P["LG"]:g} nm'],
-        ["Cell z", "Rail-to-rail cell width", f'{P["cell"]:g} nm'],
+        ["Cell z", "Rail-to-rail span (z)", f'{P["cell"]:g} nm'],
         ["Fin pitch", "Fin-to-fin, as drawn", f'{FP:g} nm'],
         ["Fins", "Per device", "2"], ["Gate faces", "Per fin", "3 (tri-gate)"],
         ["Gate", "Po, crossing all four fins", "1"], ["Contacts", "MD columns", "3"],
@@ -355,9 +344,7 @@ def plate(x0, x1, y0, y1, z0, z1, holes=()):
 
 def show_cfet():
     d = Dev("show_cfet", "CFET inverter · layout", "one stack, power from the back",
-            "The same figure once the pMOS moves on top of the nMOS. There is no N Well beside "
-            "the P Well any more — the top tier sits on the tier isolation, GND arrives from the "
-            "back of the wafer, and the output has to climb past the isolation in its own riser.")
+            "A schematic stacked inverter with pFET above nFET. This example uses backside GND and a riser joining the drains. Other tier orders and contact schemes are possible.")
     P = plan("cfet")
     XW, XMD0, XMD1, XPO = P["xw"], P["xmd0"], P["xmd1"], P["xpo"]
     ZB, hw = P["zbar"], P["mw"] / 2.0
@@ -392,11 +379,11 @@ def show_cfet():
                                        ("p", WP, "p", "chan_p", "chan_p_grp")):
         g = "nMOS channel (bottom tier)" if pol == "n" else "pMOS channel (top tier)"
         for i, (y0, y1) in enumerate(bands):
-            A(d, f"{pol}_w{i+1}", f"{pol}MOS nanowire {i+1}", "nanowire",
+            A(d, f"{pol}_w{i+1}", f"{pol}MOS nanosheet {i+1}", "nanowire",
               [box(-XMD0, XMD0, y0, y1, -ZCH, ZCH)], g, [0, 0, 0], net)
-            A(d, f"{pol}_ws{i+1}", f"{pol}MOS nanowire {i+1} · drain stub", "nanowire",
+            A(d, f"{pol}_ws{i+1}", f"{pol}MOS nanosheet {i+1} · drain stub", "nanowire",
               [box(XMD1, XW, y0, y1, -ZCH, ZCH)], g, [1.5, 0, 0], "body")
-            A(d, f"{pol}_wsr{i+1}", f"{pol}MOS nanowire {i+1} · source stub", "nanowire",
+            A(d, f"{pol}_wsr{i+1}", f"{pol}MOS nanosheet {i+1} · source stub", "nanowire",
               [box(-XW, -XMD1, y0, y1, -ZCH, ZCH)], g, [-1.5, 0, 0], "body")
 
     # --- tier isolation, punched for the gate and the riser ----------------
@@ -442,7 +429,7 @@ def show_cfet():
     L(d, "Backside M0", [XW + 8, mid(*YBM), ZC * .6], "m", "dark", LAYER_VIEWS, sd=1, pid="bm")
     L(d, "P Well", [XW, mid(*YPW), ZC * .6], "m", "dark", LAYER_VIEWS, sd=1, pid="pwell")
     L(d, "SiO₂", [XW, mid(*YOX), ZC * .6], "m", "dark", LAYER_VIEWS, sd=1, pid="fox")
-    L(d, "Nanowire", [XW, 24.5, ZCH - 3], "s", "dark", LAYER_VIEWS, pid=["n_ws2", "n_wsr2", "p_ws2", "p_wsr2"])
+    L(d, "Nanosheet", [XW, 24.5, ZCH - 3], "s", "dark", LAYER_VIEWS, pid=["n_ws2", "n_wsr2", "p_ws2", "p_wsr2"])
     L(d, "Tier isolation", [XW, mid(*YMDI), ZC * .6], "m", "dark", LAYER_VIEWS, sd=1, pid="mdi")
     L(d, "MD", [XMD1, mid(*MDT), ZCH + OVH], "m", "dark", LAYER_VIEWS, sd=1, pid=["md_outt", "md_vdd"])
     L(d, "VD", [vx, mid(*YVD), ZB["out"]], "s", "dark", LAYER_VIEWS, sd=1, pid="vd_out")
@@ -454,27 +441,21 @@ def show_cfet():
     for net, label in (("in", "IN"), ("out", "OUT"), ("vdd", "V_DD")):
         L(d, label, [-XW, mid(*YM), ZB[net]], "m", sd=-1, pid=f"m0_{net}")
 
-    d.note = ("<b>No second device row.</b> The pMOS sits directly above the nMOS, so the figure "
-              "grows upwards instead of sideways and there is no N Well beside the P Well. Two "
-              "things had to move: GND now comes up from a backside metal through a buried via, "
-              "because nothing reaches the bottom tier from above, and the output needs its own "
-              "riser through the tier isolation to tie the two drains together.")
+    d.note = ("<b>One lateral pair footprint.</b> Stacking changes the placement of the complementary devices, but isolation, contacts and routing still take space. Backside GND is a design choice in this example; the lower tier is not intrinsically inaccessible from the frontside.")
     return finish(d, [
         ["L_G", "Physical gate length, as drawn", f'{P["LG"]:g} nm'],
-        ["Cell z", "Rail-to-rail cell width", f'{P["cell"]:g} nm'],
+        ["Cell z", "Rail-to-rail span (z)", f'{P["cell"]:g} nm'],
         ["M0 pitch", "Metal 0 track pitch", f'{P["step"]:.1f} nm'],
-        ["Tiers", "pMOS above nMOS", "2"], ["Nanowires", "Per tier", "2"],
+        ["Tiers", "pMOS above nMOS", "2"], ["Sheets", "Per tier", "2"],
         ["Gate", "Po, continuous through both", "1"], ["Contacts", "MD, split top and bottom", "4"],
         ["Metal 0", "V_DD · IN · OUT", "3 bars"], ["GND", "Reached from", "backside metal"]])
 
 # --------------------------------------------------------------- LAYOUT COMPARE
 def show_cmp():
     d = Dev("show_cmp", "Layout compare", "four cells, one scale",
-            "The same inverter figure drawn four ways at one scale, each at its own rail-to-rail "
-            "cell width. Read it left to right and you can watch the cell stop growing sideways "
-            "and start growing upwards.")
+            "Four schematic inverter layouts at a common scale. The z spans match the technical inverter examples, but layer detail and vertical geometry are simplified.")
     builders = [(show_fin, "FinFET", "2 fins per device", "fin"),
-                (show_ns, "Nanosheet", "2 nanowires per device", "ns"),
+                (show_ns, "Nanosheet", "2 representative sheets per device", "ns"),
                 (show_fs, "Forksheet", "wall between n and p", "fs"),
                 (show_cfet, "CFET", "pMOS stacked on nMOS", "cfet")]
     cur, GAP, cells = -320.0, 28.0, []
@@ -500,18 +481,12 @@ def show_cmp():
         L(d, sub, [0, ytop + 12, zc], "s", lead=False, v=["front", "hero"])
     w0 = cells[0][3]
     d.dims = [[nm, sub, f"{w:g} nm  ({w / w0 * 100:.0f}%)"] for nm, sub, zc, w, yt in cells]
-    d.dims.insert(0, ["—", "Rail-to-rail cell width", "same number the Inverter scenes use"])
+    d.dims.insert(0, ["—", "Rail-to-rail span (z)", "same number the Inverter scenes use"])
     d.dims.append(["—", "Metal 0 bars on top", "4 / 4 / 4 / 3 (CFET GND is on the back)"])
     d.dims.append(["—", "What grows", "sideways, then upwards"])
     d.logic = True
     d.style = "schematic"
-    d.note = ("<b>Left to right.</b> FinFET and nanosheet spend their width on two device rows "
-              "with a work-function-metal gap between them. The forksheet replaces that gap with "
-              "a wall. The CFET deletes the second row altogether and pays for it in height — "
-              "note it carries only three Metal 0 bars, because GND has moved to the back of the "
-              "wafer. <b>These are the same widths as the Inverter comparison</b>, because both "
-              "are drawn from the same numbers: gate length, contacted pitch and track pitch all "
-              "come from the device cross-sections.")
+    d.note = ("<b>Scope of the comparison.</b> Matching rail spans do not make these schematic models exact copies of the technical scenes. Nanosheet Layout uses two representative sheets, while Device/Inverter use three. CFET moves GND to the backside in this example. The figures do not establish equal drive, timing, routability or density.")
     d.finish()
     B = d.bounds
     ctr = [(B["x"][0] + B["x"][1]) / 2, (B["y"][0] + B["y"][1]) / 2, (B["z"][0] + B["z"][1]) / 2]
@@ -526,14 +501,14 @@ def show_cmp():
 # They sit in the table next to the physical gate length on purpose: the contrast is the
 # point. Change a value here and it updates every scene for that architecture.
 NODE = {"fin": "3 nm", "ns": "1.4 nm", "fs": "1.2 nm", "cfet": "1 nm"}
-NODE_ROW = ["Node", "Technology generation (a name, not a length)"]
-CMP_ROW = ["Node", "FinFET · nanosheet · forksheet · CFET", "3 · 1.4 · 1.2 · 1 nm"]
+NODE_ROW = ["Example node", "Illustrative roadmap label; not a process specification"]
+CMP_ROW = ["Example node", "FinFET · nanosheet · forksheet · CFET", "3 · 1.4 · 1.2 · 1 nm"]
 
 def tag_nodes(devices):
     """Put the generation label at the top of every scene's table."""
     for dv in devices:
         k = dv["key"].replace("show_", "").replace("inv_", "")
-        rows = [r for r in dv["dims"] if r[0] != "Node"]
+        rows = [r for r in dv["dims"] if r[0] not in ("Node", "Example node")]
         if k.startswith("cmp"):
             dv["dims"] = [list(CMP_ROW)] + rows
         else:
@@ -546,7 +521,7 @@ def tag_nodes(devices):
 
 if __name__ == "__main__":
     import findlap
-    G = json.load(open("devices.json"))
+    G = json.load(open(DATA))
     G["devices"] = [x for x in G["devices"] if not x["key"].startswith("show_")]
     for f in (show_fin, show_ns, show_fs, show_cfet, show_cmp):
         d = f(); mx, n = check(d); laps = findlap.overlaps(d)
@@ -557,6 +532,6 @@ if __name__ == "__main__":
             logic=True, style="schematic",
             groups=list(dict.fromkeys(p["group"] for p in d.parts))))
     tag_nodes(G["devices"])          # runs last, so every scene in the file gets the row
-    json.dump(G, open("devices.json", "w"), separators=(",", ":"))
-    print("devices.json", os.path.getsize("devices.json") // 1024, "KB", len(G["devices"]), "scenes")
+    json.dump(G, open(DATA, "w"), separators=(",", ":"))
+    print("devices.json", os.path.getsize(DATA) // 1024, "KB", len(G["devices"]), "scenes")
     print("nodes:", ", ".join(f"{k}={v}" for k, v in NODE.items()))

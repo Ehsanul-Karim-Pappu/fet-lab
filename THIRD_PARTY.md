@@ -27,9 +27,13 @@ No third-party 3D engine is used. The renderer is hand-written OpenGL ES 2.0.
 The models are original parametric geometry written for this project. They are informed
 by published descriptions, not derived from anyone's files:
 
-- S. Rathore et al., *Semiconductor Science and Technology* (2021) — nanosheet FET
-  schematic that the device layer stack follows.
-- imec published articles and press material on forksheet and CFET device architectures.
+- Verified concept references and links: [Technical references](docs/TECHNICAL_REFERENCES.md).
+- Reference data shared with the app and website: `data/references.json`.
+- The old incomplete Rathore (2021) credit is retained as unverified provenance in that
+  catalog. Its exact paper/figure remains unresolved; it is not used to substantiate claims.
 
 All dimensions are representative teaching values. Nothing here is any foundry's process
 data, and nothing in this repository is confidential to any company.
+
+Material colors and the complete contact/gate recipe are illustrative. A cited paper
+supports only the concept identified in its reference entry, not all model details.

@@ -12,26 +12,26 @@ import numpy as np
 
 # ---------------------------------------------------------------- materials
 MAT = {
- "silicon": dict(label="Silicon",            color="#F2C2CF", note="Substrate, channels, n-type S/D epi"),
- "sige":    dict(label="SiGe",               color="#B37FA0", note="p-type source/drain epi"),
+ "silicon": dict(label="Silicon (Si)",       color="#F2C2CF", note="Channel, substrate and illustrative nFET S/D regions; doping and strain are not modeled"),
+ "sige":    dict(label="Silicon-germanium (SiGe)", color="#B37FA0", note="Illustrative pFET S/D epitaxy; Ge fraction and doping are unspecified"),
  "sio2":    dict(label="SiO₂",               color="#8C1C13", note="STI, interfacial layer, backside ILD"),
- "highk":   dict(label="High-κ (HfO₂)",      color="#BE8250", note="Gate dielectric, κ ≈ 22"),
+ "highk":   dict(label="Hafnium dioxide (HfO₂)", color="#BE8250", note="Illustrative high-k gate dielectric; relative permittivity 22 is a model assumption"),
  "si3n4":   dict(label="Si₃N₄",              color="#E4AE1B", note="Gate spacers"),
  "wall":    dict(label="Dielectric wall",    color="#7A8AA0", note="SiN n–p separation wall (forksheet)"),
- "mdi":     dict(label="Middle isolation",   color="#4E7F8C", note="Dielectric between CFET tiers"),
+ "mdi":     dict(label="Middle-tier dielectric", color="#4E7F8C", note="Isolation role, not a specified compound; relative permittivity 4.2 assumed"),
  "bond":    dict(label="Bonding oxide",      color="#8FB6C0", note="Wafer-bond interface (sequential CFET)"),
- "mo":      dict(label="M₀ · Mo",            color="#E3D3B0", note="Gate fill metal"),
- "nickel":  dict(label="M₁ · Ni",            color="#EE7A1A", note="S/D contact plug"),
- "tungsten":dict(label="M₂ · W",             color="#BFBBD2", note="Top metal, vias, buried power rail"),
- "nisi":    dict(label="M₃ · NiSi",          color="#E6E2F0", note="S/D silicide"),
- "tin":     dict(label="M₄ · TiN",           color="#BE5518", note="Work-function metal and gate cap"),
+ "mo":      dict(label="Molybdenum (Mo)",    color="#E3D3B0", note="Illustrative gate-fill conductor; not a verified advanced-node recipe"),
+ "nickel":  dict(label="Nickel (Ni)",        color="#EE7A1A", note="Illustrative contact conductor; real contact stacks are process-dependent"),
+ "tungsten":dict(label="Tungsten (W)",       color="#BFBBD2", note="Illustrative contact/via/routing conductor; not all real routing uses tungsten"),
+ "nisi":    dict(label="Nickel silicide (NiSi)", color="#E6E2F0", note="Simplified silicide contact layer; SiGe contacts can require different alloy/phase treatment"),
+ "tin":     dict(label="Titanium nitride (TiN)", color="#BE5518", note="Illustrative work-function region/cap; effective work function is not modeled"),
  # --- schematic-layout palette, used by the showcase inverters ---
  "pwell":   dict(label="P Well",             color="#7FC9EA", note="p-type well / substrate"),
  "nwell":   dict(label="N Well",             color="#EFE53A", note="n-type well under the pMOS"),
  "fox":     dict(label="SiO₂ (field)",       color="#C7CBD0", note="Field oxide the devices sit on"),
- "nanowire":dict(label="Nanowire",           color="#C08A2E", note="Channel running source to drain"),
+ "nanowire":dict(label="Channel (schematic Si)", color="#C08A2E", note="Layout role: fins or representative nanosheets; not a material called nanowire"),
  "md":      dict(label="MD",                 color="#4FAE4F", note="Source/drain contact"),
- "po":      dict(label="Po",                 color="#3B41CF", note="Gate electrode"),
+ "po":      dict(label="Po · gate role",      color="#3B41CF", note="Schematic gate electrode; label does not imply a polysilicon final gate"),
  "vd":      dict(label="VD",                 color="#8E1C1C", note="Via, MD to Metal 0"),
  "vg":      dict(label="VG",                 color="#F5E93B", note="Via, gate to Metal 0"),
  "m0":      dict(label="Metal 0",            color="#F2C1A2", note="First routing level"),
@@ -116,8 +116,7 @@ def check(dev, step=0.5):
 # ============================================================== NANOSHEET ===
 def build_ns():
     d=Dev("ns","Nanosheet FET","GAA · 3 stacked sheets",
-      "The baseline gate-all-around device. Each Si sheet is wrapped on all four faces "
-      "by SiO₂ / HfO₂ / TiN, with Mo filling whatever is left between sheets.")
+      "A gate-all-around example with three silicon nanosheets. SiO2 and HfO2 represent the dielectric stack, TiN a work-function layer, and Mo an illustrative gate fill.")
     W, PITCH, NSH = 30.0, 21.0, 3
     hz=W/2; STI=10.0
     ys=[STI+HY3+6.0+i*PITCH for i in range(NSH)]        # 24.5 45.5 66.5
@@ -167,24 +166,18 @@ def build_ns():
             ["EOT","Equivalent oxide thickness",f"{EOT:g} nm"],
             ["—","Mo between adjacent TiN shells",f"{PITCH-2*HY3:g} nm"],
             ["—","Active footprint (z)",f"{2*hz3:g} nm"]]
-    d.views={"iso":dict(n="Isometric",s="the whole device",az=-.76,el=.36,r=300,tgt=[0,40,0],clip=None),
+    d.views={"iso":dict(n="3D overview",s="the whole device",az=-.76,el=.36,r=300,tgt=[0,40,0],clip=None),
              "b":dict(n="Along channel",s="source · gate · drain",az=0,el=0,r=265,tgt=[0,42,0],clip=[None,None,0]),
              "c":dict(n="Across channel",s="through the gate",az=1.5708,el=0,r=250,tgt=[0,46,0],clip=[0,None,None]),
              "gaa":dict(n="Gate-all-around",s="source side lifted off",az=-1.12,el=.30,r=205,tgt=[0,45,0],clip=[4,None,None],
                         off=["epi_source","nisi_source","ni_source","w_source","spacer_source"])}
-    d.note=("<b>Reading the wrap.</b> Slice across the channel and each sheet resolves into four "
-            "concentric films — Si core, 1 nm SiO₂, 2 nm HfO₂, then TiN — with Mo filling the rest. "
-            f"At a {PITCH:g} nm pitch only <b>{PITCH-2*HY3:g} nm</b> of Mo survives between adjacent TiN shells. "
-            "That gap is the vertical scaling wall: tighten the pitch and the work-function metal of "
-            "neighbouring sheets merges before fill metal can get in.")
+    d.note=("<b>Reading the wrap.</b> The Si channel is surrounded by a 1nm SiO2 interfacial layer, 2nm HfO2 and 3nm TiN in this model. With 5nm sheets at 21nm center pitch, 4nm remains between adjacent TiN shells for Mo fill. This illustrates a gate-fill constraint, not a universal process limit. These exact materials and dimensions are model choices.")
     return d.finish()
 
 # ================================================================= FINFET ===
 def build_fin():
     d=Dev("fin","FinFET","tri-gate · 2 fins",
-      "The device the whole roadmap is trying to replace. The channel is a thin vertical fin and "
-      "the gate reaches only three of its faces — both sidewalls and the top. Drive current comes "
-      "from fin height, so more current means more fins, and more fins means a wider cell.")
+      "A tri-gate FinFET example: the gate surrounds the exposed fin top and sidewalls. Effective width depends on fin height, top width and fin count; electrical drive also depends on the process.")
     WFIN, HFIN, FPITCH, NFIN = 6.0, 45.0, 27.0, 2
     LGf=18.0; XGf=LGf/2; XSPf=XGf+LSP; XSDf=XSPf+LSD      # 9 / 16 / 38
     STI=12.0; wh=WFIN/2
@@ -253,25 +246,18 @@ def build_fin():
             ["W_eff","Effective width, (2H+W) x 2 fins",f"{Weff:g} nm"],
             ["—","Gate faces per channel","3 (tri-gate)"],
             ["—","Active footprint (z)",f"{2*hzenv:g} nm"]]
-    d.views={"iso":dict(n="Isometric",s="two fins",az=-.78,el=.34,r=290,tgt=[0,38,0],clip=None),
+    d.views={"iso":dict(n="3D overview",s="two fins",az=-.78,el=.34,r=290,tgt=[0,38,0],clip=None),
              "b":dict(n="Along channel",s="through one fin",az=0,el=0,r=250,tgt=[0,40,0],clip=[None,None,zf[1]]),
              "c":dict(n="Across channel",s="through the gate",az=1.5708,el=0,r=250,tgt=[0,42,0],clip=[0,None,None]),
              "tri":dict(n="Tri-gate",s="source side lifted off",az=-1.15,el=.28,r=215,tgt=[0,40,0],clip=[3,None,None],
                         off=["epi_source","nisi_source","ni_source","w_source","spacer_source"])}
-    d.note=("<b>Why this had to end.</b> The gate reaches three faces of the fin, never the bottom, so "
-            "the sub-fin leakage path is only ever suppressed by doping and fin reveal depth. Drive "
-            f"current is quantised: one fin gives {2*HFIN+WFIN:g} nm of effective width and you buy more only in "
-            f"whole fins, {FPITCH:g} nm of cell width at a time. Taller, thinner fins bought two more nodes, and "
-            "then bent, wobbled and broke. Laying the fin on its side and cutting it into stacked "
-            "sheets is what the nanosheet does — same idea, gate on all four faces, width now continuous.")
+    d.note=("<b>Discrete sizing.</b> Each drawn fin has 96nm of gated perimeter (2 x 45nm height + 6nm top width). Adding a fin adds effective width in discrete steps, here at a 27nm pitch. This does not establish current or inverter balance. Real FinFETs use process-dependent isolation, doping and strain; they have not universally been replaced.")
     return d.finish()
 
 # ============================================================== FORKSHEET ===
 def build_fs():
-    d=Dev("fs","Forksheet FET","n + p astride a dielectric wall",
-      "A dielectric wall is patterned between the n and p stacks before the gate. The sheets "
-      "are anchored to it, so the gate forks around three faces instead of four — and the n and "
-      "p work-function metals sit one wall thickness apart instead of a whole gate-metal gap.")
+    d=Dev("fs","Forksheet FET","inner-wall forksheet · n/p pair",
+      "An inner-wall forksheet example with adjacent nFET and pFET stacks. A dielectric wall replaces part of their separation. Each drawn sheet has three gated faces; the wall-facing surface is not gate-wrapped.")
     W, PITCH, NSH, WALL = 22.0, 21.0, 3, 8.0
     zi=WALL/2                                            # 4  wall face
     zo=zi+W                                              # 26 sheet outer face
@@ -338,32 +324,22 @@ def build_fs():
             ["N_sh","Sheets per polarity","3"],["EOT","Equivalent oxide thickness",f"{EOT:g} nm"],
             ["—","Gate faces per sheet","3 (forked)"],
             ["—","Active footprint (z)",f"{2*z3:g} nm"]]
-    d.views={"iso":dict(n="Isometric",s="both polarities",az=-.80,el=.34,r=330,tgt=[0,42,0],clip=None),
+    d.views={"iso":dict(n="3D overview",s="both polarities",az=-.80,el=.34,r=330,tgt=[0,42,0],clip=None),
              "b":dict(n="Along channel",s="source · gate · drain",az=0,el=0,r=280,tgt=[0,44,0],clip=[None,None,(zi+zo)/2]),
              "c":dict(n="Across channel",s="n | wall | p",az=1.5708,el=0,r=290,tgt=[0,48,0],clip=[0,None,None]),
              "fork":dict(n="The fork",s="p side lifted off",az=-1.25,el=.30,r=240,tgt=[0,46,0],clip=[4,None,None],
                  off=[f"epi_{g}_source" for g in "np"]+[f"nisi_{g}_source" for g in "np"]+
                      [f"ni_{g}_source" for g in "np"]+[f"w_{g}_source" for g in "np"]+
                      [f"spacer_{g}_source" for g in "np"])}
-    d.note=("<b>Why the wall matters.</b> In a nanosheet cell the n and p stacks must be far enough apart "
-            "for two separately patterned work-function metals plus the gate-cut margin — tens of "
-            f"nanometres. The forksheet replaces that gap with a <b>{WALL:g} nm</b> SiN wall the sheets are "
-            "anchored to, so nWFM and pWFM sit against opposite faces of the same wall. The price is the "
-            "fourth gate face: the sheet is gated on three sides, not all around, so electrostatic control "
-            "is slightly worse than a true GAA sheet of the same thickness.")
+    d.note=("<b>Model choice.</b> An 8nm silicon-nitride wall separates the n/p stacks here. Real wall dimensions and chemistry depend on the integration scheme. Reduced lateral spacing must be balanced against gate control, stress, contact access and parasitics. This is the classic inner-wall concept, not the later outer-wall forksheet.")
     return d.finish()
 
 # =================================================================== CFET ===
 def build_cfet(seq=False):
     key = "cfet_seq" if seq else "cfet_mono"
     d=Dev(key, "Sequential CFET" if seq else "Monolithic CFET",
-      "top tier bonded on" if seq else "one continuous flow",
-      ("The top tier is processed on a separate wafer and bonded on. A bonding oxide runs across "
-       "the whole footprint, so the two gates are physically separate and have to be strapped "
-       "together by a through-tier via.") if seq else
-      ("nFET and pFET share one footprint and one gate. A middle dielectric isolation separates the "
-       "two tiers everywhere except under the gate, where the Mo runs straight through from the "
-       "bottom sheets to the top ones."))
+      "sequential integration · bonded layer" if seq else "monolithic integration · common gate",
+      ("A bonded-layer sequential CFET example. Separate gate conductors are connected by a via for an inverter input. Upper-tier processing must respect the completed lower tier." if seq else "A monolithic CFET example: an nFET and pFET share a lateral footprint. Continuous gate fill connects the gates in this model; middle-tier isolation separates the devices."))
     W, PITCH, MDI = 20.0, 20.0, 12.0
     hz=W/2; hz1,hz2,hz3 = hz+TIL, hz+TIL+THK, hz+TIL+THK+TTIN     # 11 13 16
     hzmo=hz3+5.0                                                   # 21
@@ -476,30 +452,18 @@ def build_cfet(seq=False):
             ["—","Bottom tier contact","backside power via"],
             ["—","Gate","shared, strapped by a via" if seq else "shared, continuous Mo"],
             ["—","Active footprint (z)",f"{2*hz3:g} nm"]]
-    d.views={"iso":dict(n="Isometric",s="the stacked pair",az=-.80,el=.30,r=360,tgt=[0,50,0],clip=None),
+    d.views={"iso":dict(n="3D overview",s="the stacked pair",az=-.80,el=.30,r=360,tgt=[0,50,0],clip=None),
              "b":dict(n="Along channel",s="both tiers in section",az=0,el=0,r=310,tgt=[0,52,0],clip=[None,None,0]),
              "c":dict(n="Across channel",s="through the gate",az=1.5708,el=0,r=300,tgt=[0,56,0],clip=[0,None,None]),
              "tier":dict(n="Tier interface",s="source side lifted off",az=-1.18,el=.26,r=270,tgt=[0,54,0],clip=[4,None,None],
                  off=["epi_n_source","epi_p_source","nisi_source","ni_source","w_source","spacer_source"])}
-    d.note=(("<b>Bonded, not grown.</b> The top tier arrives on its own wafer, so a bonding oxide runs "
-             "across the entire footprint — including under the gate. The two gates are therefore separate "
-             "conductors and must be tied together by the through-tier via you can see at the edge of the "
-             "gate. The payoff is freedom: the top tier can use a different crystal orientation or a "
-             "different channel material entirely, as long as everything after bonding stays below ~500 °C.")
-            if seq else
-            ("<b>One gate, two tiers.</b> The middle dielectric isolation stops at the gate edge — inside "
-             "the gate the Mo runs continuously from the bottom sheets to the top ones, which is what makes "
-             "this a <i>complementary</i> FET: one gate input drives both the n and the p device, so an "
-             "inverter collapses into a single stack. The bottom tier can no longer be reached from above, "
-             "so its source/drain is contacted downwards through a buried power via."))
+    d.note=(("<b>Sequential integration.</b> A semiconductor layer is transferred by bonding before upper-tier device processing. The bonding dielectric separates the gates here; a via connects them for this inverter configuration. Post-transfer thermal limits depend on the process (around 500 degrees C or below in the flow discussed in R3), not on the architecture name alone. [R3, R5]" if seq else "<b>Complementary devices.</b> CFET means a vertically stacked nFET/pFET pair. Continuous gate fill is one implementation of a common input, not what defines CFET. This model uses backside access for the lower tier; frontside contacting is also possible. [R3, R4, R5]"))
     return d.finish()
 
 # ================================================================ COMPARE ===
 def build_cmp():
     d=Dev("cmp","Footprint compare","same scale, gate section only",
-      "The same gate cross-section for all four architectures at one scale and one channel width. "
-      "Everything outside the gate is stripped, so the only thing left to compare is how much cell "
-      "width each one spends on a single n-p pair — and how much effective width it gets back.")
+      "Gate cross-sections at a common scale. Sheet-based examples use a 22nm channel width; fins use a 6nm width and 45nm exposed height. The lateral spans describe these examples, not equal-performance technology benchmarks.")
     Wc, P3, P2, MDI, STI = 22.0, 21.0, 20.0, 12.0, 8.0
     WFIN, HFIN, FPITCH = 6.0, 45.0, 27.0
     hz=Wc/2; hzt=hz+TIL+THK+TTIN                        # 11 -> 17
@@ -604,13 +568,7 @@ def build_cmp():
     d.views={"b":dict(n="Head on",s="footprint widths",az=-1.5708,el=0,r=780,tgt=[0,38,zmid],clip=None),
              "iso":dict(n="All four",s="same scale",az=-1.30,el=.24,r=840,tgt=[0,40,zmid],clip=None),
              "c":dict(n="From above",s="how the area is used",az=-1.5708,el=1.05,r=780,tgt=[0,38,zmid],clip=None)}
-    d.note=("<b>What is actually being saved.</b> These are device footprints, not standard-cell heights — "
-            "a real cell also carries power rails and routing tracks, so published cell numbers shrink less "
-            "than the numbers above. imec quotes roughly 5T → 4.3T for the forksheet, and CFET is generally "
-            "credited with a 1.5–2× area gain. The number worth watching is the last row: effective width "
-            "per nanometre of footprint. It climbs the whole way — 1.7 → 1.8 → 2.3 → 3.2 — which is the "
-            "entire point of the roadmap. Note also what the CFET gives up to get there: four sheets per "
-            "n-p pair against six, because stacking two tiers inside a sensible gate height costs you sheets.")
+    d.note=("<b>Compare geometry, not process superiority.</b> The footprint is the drawn lateral span of an n/p pair, not a cell area. W_eff is per transistor; W_eff/span divides that value by the pair span. Counts differ: two fins, three nanosheets, three forksheets, or two sheets per CFET tier. These choices affect every ratio. Contacts, routing, electrical performance and design rules must be considered before predicting cell-density gains.")
     return d.finish()
 
 # =================================================================== MAIN ===
@@ -623,6 +581,6 @@ if __name__ == "__main__":
         out["devices"].append(dict(key=d.key,name=d.name,tag=d.tag,blurb=d.blurb,parts=d.parts,
             callouts=d.callouts,dims=d.dims,views=d.views,note=d.note,bounds=d.bounds,
             groups=list(dict.fromkeys(p["group"] for p in d.parts))))
-    out_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "devices.json")
+    out_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "data", "devices.json")
     json.dump(out, open(out_path, "w"), separators=(",", ":"))
     print("devices.json", os.path.getsize(out_path)//1024, "KB")
