@@ -1,6 +1,11 @@
 package io.github.ehsanulkarimpappu.fetlab
 
 import android.content.Context
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.SizeTransform
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.togetherWith
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.RepeatMode
@@ -42,16 +47,22 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.RoundRect
 import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.PathFillType
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.StrokeJoin
+import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.drawscope.clipPath
+import androidx.compose.ui.graphics.drawscope.rotate
 import androidx.compose.ui.graphics.drawscope.scale
 import androidx.compose.ui.graphics.drawscope.translate
+import androidx.compose.ui.graphics.lerp
+import androidx.compose.ui.graphics.vector.PathParser
 import androidx.compose.ui.layout.boundsInRoot
 import androidx.compose.ui.layout.onGloballyPositioned
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -236,6 +247,58 @@ class TourPlayer(val targets: TourTargets, private val scope: CoroutineScope, pr
     }
 }
 
+/* =============================================================== hand ==== */
+
+/** The hand of Material Design's "touch_app" icon (Apache License 2.0), in a 24-unit
+ *  box with the fingertip at (11.5, 6). */
+private const val HAND_PATH = "M18.84,15.87l-4.54,-2.26c-0.17,-0.07 -0.35,-0.11 -0.54,-0.11H13v-6" +
+    "c0,-0.83 -0.67,-1.5 -1.5,-1.5S10,6.67 10,7.5v10.74l-3.43,-0.72c-0.08,-0.01 -0.15,-0.03 " +
+    "-0.24,-0.03 -0.31,0 -0.59,0.13 -0.79,0.33l-0.79,0.8 4.94,4.94c0.27,0.27 0.65,0.44 1.06,0.44" +
+    "h6.79c0.75,0 1.33,-0.55 1.44,-1.28l0.75,-5.27c0.01,-0.07 0.02,-0.14 0.02,-0.2 " +
+    "0,-0.62 -0.38,-1.16 -0.91,-1.38z"
+
+/**
+ * The tour's pointing hand, drawn in its 24-unit space: a soft shadow that tucks in
+ * under the finger as it [press]es (so it reads as touching the glass), light-to-shade
+ * skin, a nail, knuckle and finger creases, an outline, and a cuff in the app's [tint].
+ */
+private fun DrawScope.drawHand(hand: Path, a: Float, press: Float, tint: Color) {
+    val lift = 1f - 0.7f * press
+    translate(0.9f * lift, 1.3f * lift) {
+        drawPath(hand, Color.Black, alpha = 0.2f * a)
+        for (w in floatArrayOf(0.5f, 1.0f, 1.6f))       // a cheap, version-proof blur
+            drawPath(hand, Color.Black, alpha = 0.07f * a, style = Stroke(width = w, join = StrokeJoin.Round))
+    }
+    drawPath(hand, Brush.linearGradient(
+        0f to Color(0xFFFFFFFF), 0.55f to Color(0xFFF1ECE4), 1f to Color(0xFFD5CCC0),
+        start = Offset(6.25f, 6f), end = Offset(18.25f, 24f)), alpha = a)
+    clipPath(hand) {
+        // the far side of the finger turns away from the light, and the palm sits lower
+        drawRect(Brush.horizontalGradient(0.55f to Color.Transparent, 1f to Color.Black.copy(alpha = 0.16f),
+            startX = 10f, endX = 13f), topLeft = Offset(10f, 5f), size = Size(3f, 9f), alpha = a)
+        drawPath(Path().apply { moveTo(13.2f, 13.3f); lineTo(20f, 16.6f); lineTo(20f, 25f); lineTo(13.2f, 25f); close() },
+            Color.Black, alpha = 0.05f * a)
+        val crease = Color(0xFF8E8173)
+        val folds = Path().apply {
+            moveTo(15.1f, 14.7f); quadraticBezierTo(15.6f, 15.8f, 15.3f, 17.0f)
+            moveTo(16.7f, 15.5f); quadraticBezierTo(17.2f, 16.5f, 16.9f, 17.7f)
+            moveTo(18.2f, 16.3f); quadraticBezierTo(18.6f, 17.2f, 18.4f, 18.2f)
+        }
+        drawPath(folds, crease, alpha = 0.65f * a, style = Stroke(width = 0.3f, cap = StrokeCap.Round))
+        val knuckle = Path().apply { moveTo(10.45f, 10.9f); quadraticBezierTo(11.5f, 11.3f, 12.55f, 10.9f) }
+        drawPath(knuckle, crease, alpha = 0.55f * a, style = Stroke(width = 0.26f, cap = StrokeCap.Round))
+        val cuff = Path().apply { moveTo(9.2f, 22.35f); lineTo(19.6f, 21.25f); lineTo(20.4f, 26f); lineTo(9.6f, 27f); close() }
+        drawPath(cuff, Brush.verticalGradient(listOf(tint, lerp(tint, Color.Black, 0.45f)), startY = 21.2f, endY = 24.5f), alpha = a)
+        drawLine(lerp(tint, Color.White, 0.5f), Offset(9.2f, 22.35f), Offset(19.6f, 21.25f), strokeWidth = 0.32f, alpha = 0.8f * a)
+    }
+    drawRoundRect(Color(0xFFFBF6F1), topLeft = Offset(10.75f, 6.45f), size = Size(1.5f, 1.8f),
+        cornerRadius = CornerRadius(0.72f), alpha = a)
+    drawRoundRect(Color(0xFFCFC4B7), topLeft = Offset(10.75f, 6.45f), size = Size(1.5f, 1.8f),
+        cornerRadius = CornerRadius(0.72f), alpha = a, style = Stroke(width = 0.14f))
+    drawOval(Color.White, topLeft = Offset(10.85f, 6.6f), size = Size(0.4f, 0.9f), alpha = a)
+    drawPath(hand, Color(0xFF6F655A), alpha = 0.85f * a, style = Stroke(width = 0.3f, join = StrokeJoin.Round))
+}
+
 /* ============================================================ overlay ==== */
 
 /**
@@ -245,7 +308,7 @@ class TourPlayer(val targets: TourTargets, private val scope: CoroutineScope, pr
  */
 @Composable
 fun TourOverlay(player: TourPlayer, active: Boolean, tint: Color, modifier: Modifier = Modifier) {
-    val hand = painterResource(R.drawable.ic_tour_hand)
+    val hand = remember { PathParser().parsePathString(HAND_PATH).toPath() }
     val scrim by animateFloatAsState(if (active) 0.72f else 0f, tween(320), label = "tourScrim")
     val glow by rememberInfiniteTransition(label = "spotGlow").animateFloat(
         initialValue = 0.35f, targetValue = 0.95f,
@@ -307,16 +370,16 @@ fun TourOverlay(player: TourPlayer, active: Boolean, tint: Color, modifier: Modi
 
         val a = player.handAlpha.value * on
         if (a > 0.01f) {
-            // The fingertip of the 24-unit icon is at (11.5, 6); put that on the target.
-            val hs = 60.dp.toPx()
-            val tipInIcon = Offset(hs * 11.5f / 24f, hs * 6f / 24f)
             val tip = player.hand.value - o
-            translate(tip.x - tipInIcon.x, tip.y - tipInIcon.y) {
-                scale(1f - 0.12f * player.press.value, pivot = tipInIcon) {
-                    translate(2.dp.toPx(), 3.dp.toPx()) {
-                        with(hand) { draw(Size(hs, hs), alpha = 0.4f * a, colorFilter = ColorFilter.tint(Color.Black)) }
+            val press = player.press.value
+            // Work in the icon's own 24-unit space, pivoting on the fingertip at (11.5, 6):
+            // tilted a little, like a real pointing hand, and slightly smaller when pressed.
+            val u = 64.dp.toPx() / 24f * (1f - 0.1f * press)
+            translate(tip.x, tip.y) {
+                rotate(-14f, pivot = Offset.Zero) {
+                    scale(u, u, pivot = Offset.Zero) {
+                        translate(-11.5f, -6f) { drawHand(hand, a, press, tint) }
                     }
-                    with(hand) { draw(Size(hs, hs), alpha = a, colorFilter = ColorFilter.tint(Color(0xFFF7F4EF))) }
                 }
             }
         }
@@ -391,25 +454,34 @@ fun TourCard(stop: GuideStop, step: Int, total: Int, modifier: Modifier = Modifi
              onBack: () -> Unit, onNext: () -> Unit, onExit: () -> Unit) {
     Surface(color = MaterialTheme.colorScheme.primaryContainer, shape = RoundedCornerShape(18.dp),
         modifier = modifier) {
-        Row(Modifier.padding(16.dp), verticalAlignment = Alignment.Top) {
-            GestureGlyph(stop.gesture, MaterialTheme.colorScheme.onPrimaryContainer,
-                Modifier.padding(end = 12.dp, top = 2.dp))
-            Column(Modifier.weight(1f)) {
-                Text("${stop.category.uppercase()} · ${step + 1}/$total",
-                    fontFamily = Mono, fontSize = 10.sp, letterSpacing = 1.2f.sp,
-                    color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f))
-                Text(stop.title, style = MaterialTheme.typography.titleMedium,
-                    color = MaterialTheme.colorScheme.onPrimaryContainer,
-                    modifier = Modifier.padding(top = 2.dp, bottom = 4.dp))
-                Text(stop.body, fontFamily = PlexSans, fontSize = 13.sp, lineHeight = 18.sp,
-                    color = MaterialTheme.colorScheme.onPrimaryContainer)
-                Spacer(Modifier.height(10.dp))
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                    TextButton(onClick = onExit) { Text("Skip") }
-                    Row {
-                        if (step > 0) TextButton(onClick = onBack) { Text("Back") }
-                        TextButton(onClick = onNext) { Text(if (step == total - 1) "Done" else "Next") }
+        Column(Modifier.padding(16.dp)) {
+            // The words cross-fade and the card eases to its new height, instead of snapping.
+            AnimatedContent(targetState = step to stop, label = "tourCard",
+                transitionSpec = {
+                    (fadeIn(tween(240, delayMillis = 90)) togetherWith fadeOut(tween(120)))
+                        .using(SizeTransform(clip = false) { _, _ -> tween(320, easing = FastOutSlowInEasing) })
+                }) { (i, s) ->
+                Row(verticalAlignment = Alignment.Top) {
+                    GestureGlyph(s.gesture, MaterialTheme.colorScheme.onPrimaryContainer,
+                        Modifier.padding(end = 12.dp, top = 2.dp))
+                    Column(Modifier.weight(1f)) {
+                        Text("${s.category.uppercase()} · ${i + 1}/$total",
+                            fontFamily = Mono, fontSize = 10.sp, letterSpacing = 1.2f.sp,
+                            color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f))
+                        Text(s.title, style = MaterialTheme.typography.titleMedium,
+                            color = MaterialTheme.colorScheme.onPrimaryContainer,
+                            modifier = Modifier.padding(top = 2.dp, bottom = 4.dp))
+                        Text(s.body, fontFamily = PlexSans, fontSize = 13.sp, lineHeight = 18.sp,
+                            color = MaterialTheme.colorScheme.onPrimaryContainer)
                     }
+                }
+            }
+            Spacer(Modifier.height(10.dp))
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                TextButton(onClick = onExit) { Text("Skip") }
+                Row {
+                    if (step > 0) TextButton(onClick = onBack) { Text("Back") }
+                    TextButton(onClick = onNext) { Text(if (step == total - 1) "Done" else "Next") }
                 }
             }
         }

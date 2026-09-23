@@ -7,6 +7,7 @@ import android.opengl.GLSurfaceView
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.Crossfade
 import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
@@ -50,6 +51,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.BiasAlignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
@@ -175,6 +177,16 @@ private class Cam(val az: Float, val el: Float, val r: Float,
 
 private fun lerp(a: Float, b: Float, t: Float) = a + (b - a) * t
 
+/**
+ * Section-cut planes for the renderer, from each slider's 0..1 position. A slider at
+ * its end means no cut on that axis: the plane goes to infinity rather than to the
+ * scene's bounding box, which used to slice off any layer exploded past that box.
+ */
+private fun clipPlanes(sc: Scene, fx: Float, fy: Float, fz: Float): FloatArray {
+    fun at(ax: Int, f: Float) = if (f >= 0.999f) 1e9f else sc.lo[ax] + (sc.hi[ax] - sc.lo[ax]) * f
+    return floatArrayOf(at(0, fx), at(1, fy), at(2, fz))
+}
+
 private fun lerpCam(a: Cam, b: Cam, t: Float): Cam {
     var dAz = b.az - a.az
     while (dAz > PI.toFloat()) dAz -= (2 * PI).toFloat()
@@ -268,10 +280,7 @@ fun FetLabApp(lib: Library, renderer: Renderer, dynamic: Boolean, onDynamic: (Bo
         renderer.az = c.az; renderer.el = c.el; renderer.dist = c.r
         renderer.target = floatArrayOf(c.tx, c.ty, c.tz)
         cx = c.cx; cy = c.cy; cz = c.cz
-        renderer.clip = floatArrayOf(
-            sc.lo[0] + (sc.hi[0] - sc.lo[0]) * c.cx,
-            sc.lo[1] + (sc.hi[1] - sc.lo[1]) * c.cy,
-            sc.lo[2] + (sc.hi[2] - sc.lo[2]) * c.cz)
+        renderer.clip = clipPlanes(sc, c.cx, c.cy, c.cz)
         renderer.capsDirty = true
     }
 
@@ -353,11 +362,7 @@ fun FetLabApp(lib: Library, renderer: Renderer, dynamic: Boolean, onDynamic: (Bo
     fun setClip(ax: Int, v: Float) {
         flight?.cancel()
         when (ax) { 0 -> cx = v; 1 -> cy = v; else -> cz = v }
-        val sc = lib.scene(sceneKey)
-        renderer.clip = floatArrayOf(
-            sc.lo[0] + (sc.hi[0] - sc.lo[0]) * cx,
-            sc.lo[1] + (sc.hi[1] - sc.lo[1]) * cy,
-            sc.lo[2] + (sc.hi[2] - sc.lo[2]) * cz)
+        renderer.clip = clipPlanes(lib.scene(sceneKey), cx, cy, cz)
         renderer.capsDirty = true; draw()
     }
     fun setVisible(parts: List<Part>, visible: Boolean) {
@@ -851,11 +856,14 @@ fun FetLabApp(lib: Library, renderer: Renderer, dynamic: Boolean, onDynamic: (Bo
             val lit = tourPlayer.spot.value; val all = tourPlayer.bounds
             lit.isEmpty || all.isEmpty || lit.center.y < all.top + all.height * 0.55f
         } }
+        // Glide across the screen between the two ends rather than jumping.
+        val cardBias by animateFloatAsState(if (cardAtBottom) 1f else -1f,
+            tween(480, easing = FastOutSlowInEasing), label = "tourCardBias")
         if (tourStep in catalog.tour.indices) {
             val stop = catalog.stop(tourFocus)
             TourCard(stop, tourStep, catalog.tour.size,
                 modifier = Modifier
-                    .align(if (cardAtBottom) Alignment.BottomCenter else Alignment.TopCenter)
+                    .align(BiasAlignment(0f, cardBias))
                     .padding(16.dp)
                     .then(if (wide) Modifier.width(380.dp) else Modifier.fillMaxWidth()),
                 onBack = { tourBack() }, onNext = { tourNext() }, onExit = { exitTour() })

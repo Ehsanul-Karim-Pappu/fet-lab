@@ -13,9 +13,10 @@ provided the fonts are not sold on their own.
 
 ## Icons
 
-The guided tour's pointing hand (`android/app/src/main/res/drawable/ic_tour_hand.xml`) is
-the hand from the Material Design "touch_app" icon, Copyright Google LLC, used under the
-Apache License 2.0. <https://github.com/google/material-design-icons>
+The guided tour's pointing hand (the `HAND_PATH` outline in
+`android/app/src/main/java/io/github/ehsanulkarimpappu/fetlab/Guide.kt`) is the hand from
+the Material Design "touch_app" icon, Copyright Google LLC, used under the Apache License
+2.0, with shading added. <https://github.com/google/material-design-icons>
 
 ## Libraries
 
