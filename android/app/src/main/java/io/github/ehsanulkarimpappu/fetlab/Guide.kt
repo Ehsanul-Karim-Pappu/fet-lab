@@ -223,15 +223,25 @@ class TourPlayer(val targets: TourTargets, private val scope: CoroutineScope, pr
             pinch = Offset(centre.x - d, centre.y + d * 0.55f) to Offset(centre.x + d, centre.y - d * 0.55f)
             onSpread(v)
         }
-        place(0f)
-        pinch?.let { ripple(it.first); ripple(it.second) }
-        s.animateTo(1f, tween(ms / 2, easing = FastOutSlowInEasing)) { place(value) }
-        s.animateTo(0f, tween(ms / 2, easing = FastOutSlowInEasing)) { place(value) }
-        pinch = null
+        try {
+            place(0f)
+            pinch?.let { ripple(it.first); ripple(it.second) }
+            s.animateTo(1f, tween(ms / 2, easing = FastOutSlowInEasing)) { place(value) }
+            s.animateTo(0f, tween(ms / 2, easing = FastOutSlowInEasing)) { place(value) }
+        } finally {
+            pinch = null          // even if Next interrupts it mid-pinch
+        }
         delay(250)
     }
 
     suspend fun hideHand() { handAlpha.animateTo(0f, tween(260)) }
+
+    /** Clears anything an interrupted step left mid-gesture: the pinch dots, a hand
+     *  still pressed down. Run at the start of every step. */
+    suspend fun settle() {
+        pinch = null
+        press.snapTo(0f)
+    }
 
     /** Stops the hand. The spotlight hole is left where it was, so the veil can fade out
      *  around it instead of flashing the whole screen dark. */

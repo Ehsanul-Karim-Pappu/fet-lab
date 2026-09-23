@@ -417,6 +417,7 @@ fun FetLabApp(lib: Library, renderer: Renderer, dynamic: Boolean, onDynamic: (Bo
     // loops, because orbiting and pinching back and forth leave the model where it was.
     LaunchedEffect(tourStep) {
         if (tourStep !in catalog.tour.indices) { tourPlayer.reset(); return@LaunchedEffect }
+        tourPlayer.settle()       // the previous step may have been cut off mid-gesture
         val id = catalog.tour[tourStep]
         if (catalog.stop(id).tab < 0) sheetLevel = 0
         with(tourPlayer) {
