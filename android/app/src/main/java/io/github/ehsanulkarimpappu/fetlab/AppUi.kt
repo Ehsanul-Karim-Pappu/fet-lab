@@ -25,6 +25,7 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.gestures.Orientation
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
@@ -119,7 +120,7 @@ private fun sceneFor(mode: Int, tech: String): String? =
 /* ============================================================== boot ===== */
 
 @Composable
-fun FetLabRoot(dynamic: Boolean, onDynamic: (Boolean) -> Unit) {
+fun FetLabRoot() {
     val ctx = LocalContext.current
     var payload by remember { mutableStateOf<Pair<Library, Renderer>?>(null) }
 
@@ -131,7 +132,7 @@ fun FetLabRoot(dynamic: Boolean, onDynamic: (Boolean) -> Unit) {
     }
 
     Crossfade(targetState = payload, animationSpec = tween(420), label = "boot") { p ->
-        if (p == null) BootScreen() else FetLabApp(p.first, p.second, dynamic, onDynamic)
+        if (p == null) BootScreen() else FetLabApp(p.first, p.second)
     }
 }
 
@@ -174,6 +175,9 @@ private class TourReturn(val key: String, val seq: Boolean, val cam: Cam, val vi
                          val tab: Int, val sheet: Int, val par: String?, val selected: Part?,
                          val visible: Map<String, Boolean>)
 
+private class SceneMemo(val cam: Cam, val view: String, val visible: Map<String, Boolean>,
+                        val explode: Float, val par: String?, val selected: Part?)
+
 private class Cam(val az: Float, val el: Float, val r: Float,
                   val tx: Float, val ty: Float, val tz: Float,
                   val cx: Float, val cy: Float, val cz: Float)
@@ -204,7 +208,7 @@ private fun frac(v: Float, lo: Float, hi: Float) = ((v - lo) / (hi - lo)).coerce
 /* ================================================================ app ==== */
 
 @Composable
-fun FetLabApp(lib: Library, renderer: Renderer, dynamic: Boolean, onDynamic: (Boolean) -> Unit) {
+fun FetLabApp(lib: Library, renderer: Renderer) {
     val ctx = LocalContext.current
     val scope = rememberCoroutineScope()
     val haptic = LocalHapticFeedback.current
@@ -229,10 +233,12 @@ fun FetLabApp(lib: Library, renderer: Renderer, dynamic: Boolean, onDynamic: (Bo
     var cz by rememberSaveable { mutableStateOf(1f) }
     var explodeF by rememberSaveable { mutableStateOf(0f) }
     var ghost by rememberSaveable { mutableStateOf(false) }
-    var showDims by rememberSaveable { mutableStateOf(true) }
+    var showDims by rememberSaveable { mutableStateOf(false) }
     var texture by rememberSaveable { mutableStateOf(true) }
     var edges by rememberSaveable { mutableStateOf(true) }
-    var lightBg by rememberSaveable { mutableStateOf(false) }
+    // The stage follows the system's light or dark setting, like the rest of the app.
+    val lightBg = !isSystemInDarkTheme()
+    LaunchedEffect(lightBg) { renderer.lightBg = lightBg; draw() }
     var spin by rememberSaveable { mutableStateOf(false) }
     var parPick by rememberSaveable { mutableStateOf<String?>(null) }
 
@@ -320,16 +326,40 @@ fun FetLabApp(lib: Library, renderer: Renderer, dynamic: Boolean, onDynamic: (Bo
         }
     }
 
+    // What each scene looked like when it was left, so coming back finds it as it was:
+    // camera and cuts, view, hidden layers, separation, the picked layer and capacitance.
+    // Display switches (edges, texture, callouts...) stay app-wide.
+    val memos = remember { mutableMapOf<String, SceneMemo>() }
+    fun memoScene() {
+        if (tourStep >= 0) return       // the tour's demo changes are not the user's
+        val sc = lib.scene(sceneKey)
+        memos[sceneKey] = SceneMemo(cameraNow(), viewKey, sc.parts.associate { it.id to it.visible },
+            explodeF, parPick, selected)
+    }
+
     fun openScene(key: String, animate: Boolean) {
         val sc = lib.scene(key)
         sceneKey = key
         mode = when { key.startsWith("inv_") -> 1; key.startsWith("show_") -> 2; else -> 0 }
         renderer.scene = sc
-        selected = null; renderer.highlight = null
-        parPick = null; renderer.par = null      // a highlight must not outlive its scene
-        explodeF = 0f; renderer.explode = 0f
-        renderer.lightBg = lightBg      // dark stage everywhere; the switch still works
-        goToView(sc, sc.views.first(), animate = false)
+        val m = memos[key]
+        if (m == null) {
+            selected = null; renderer.highlight = null
+            parPick = null; renderer.par = null      // a highlight must not outlive its scene
+            explodeF = 0f; renderer.explode = 0f
+            goToView(sc, sc.views.first(), animate = false)
+        } else {
+            flight?.cancel()
+            viewKey = m.view
+            for (p in sc.parts) p.visible = m.visible[p.id] ?: true
+            layerTick++
+            applyCam(sc, m.cam)
+            explodeF = m.explode; renderer.explode = m.explode * 16f
+            parPick = m.par; renderer.par = sc.par?.terms?.firstOrNull { it.id == m.par }
+            selected = m.selected; renderer.highlight = m.selected
+            renderer.capsDirty = true
+            draw()
+        }
         if (animate) draw()
     }
 
@@ -338,6 +368,7 @@ fun FetLabApp(lib: Library, renderer: Renderer, dynamic: Boolean, onDynamic: (Bo
         if (key == sceneKey) return
         flight?.cancel()
         sceneSwitch?.cancel()
+        memoScene()
         sceneSwitch = scope.launch {
             scrim = 1f
             kotlinx.coroutines.delay(140)
@@ -825,7 +856,7 @@ fun FetLabApp(lib: Library, renderer: Renderer, dynamic: Boolean, onDynamic: (Bo
                             goToView(scene, v, animate = true)
                         }
                         1 -> SectionTab(scene, cx, cy, cz, explodeF, ghost, showDims, texture,
-                            edges, lightBg, dynamic, spin,
+                            edges, spin,
                             onClip = { ax, v -> setClip(ax, v) },
                             onExplode = { explodeF = it; renderer.explode = it * 16f
                                 renderer.capsDirty = true; draw() },
@@ -834,18 +865,15 @@ fun FetLabApp(lib: Library, renderer: Renderer, dynamic: Boolean, onDynamic: (Bo
                             onTex = { texture = it; renderer.texture = it
                                 renderer.capsDirty = true; draw() },
                             onEdges = { edges = it; renderer.edges = it; draw() },
-                            onLight = { lightBg = it; renderer.lightBg = it; draw() },
-                            onDynamic = onDynamic,
                             onSpin = { spin = it },
                             onReset = {
                                 for (p in scene.parts) p.visible = true
                                 layerTick++
                                 explodeF = 0f; renderer.explode = 0f
                                 ghost = false; renderer.ghost = false
-                                showDims = true
+                                showDims = false
                                 texture = true; renderer.texture = true
                                 edges = true; renderer.edges = true
-                                lightBg = false; renderer.lightBg = false
                                 spin = false
                                 goToView(scene, scene.views.first(), animate = true)
                             })
@@ -1240,11 +1268,10 @@ private class Toggle(val label: String, val on: Boolean, val set: (Boolean) -> U
 @Composable
 private fun SectionTab(scene: Scene, cx: Float, cy: Float, cz: Float, explode: Float,
                        ghost: Boolean, dims: Boolean, tex: Boolean, edges: Boolean,
-                       light: Boolean, dynamic: Boolean, spin: Boolean,
+                       spin: Boolean,
                        onClip: (Int, Float) -> Unit, onExplode: (Float) -> Unit,
                        onGhost: (Boolean) -> Unit, onDims: (Boolean) -> Unit,
                        onTex: (Boolean) -> Unit, onEdges: (Boolean) -> Unit,
-                       onLight: (Boolean) -> Unit, onDynamic: (Boolean) -> Unit,
                        onSpin: (Boolean) -> Unit, onReset: () -> Unit) {
     val haptic = LocalHapticFeedback.current
     fun toggle(t: Toggle) { haptic.performHapticFeedback(HapticFeedbackType.LongPress); t.set(!t.on) }
@@ -1256,7 +1283,7 @@ private fun SectionTab(scene: Scene, cx: Float, cy: Float, cz: Float, explode: F
         SliderRow("Separate layers", "", explode, 0f, 16f, false) { onExplode(it) }
         Spacer(Modifier.height(4.dp))
         SectionLabel("Display")
-        // Seven switches used to be seven full-width rows. As a wrapping grid of compact
+        // The display switches used to be full-width rows. As a wrapping grid of compact
         // toggle chips — the same pill used for picking a technology, repurposed as on/off —
         // they take about half the vertical room, which is the point on a phone screen.
         val toggles = listOf(
@@ -1264,9 +1291,7 @@ private fun SectionTab(scene: Scene, cx: Float, cy: Float, cz: Float, explode: F
             Toggle("Surface texture", tex, onTex),
             Toggle("Dimension callouts", dims, onDims),
             Toggle("Ghost the gate fill", ghost, onGhost),
-            Toggle("Slow rotate", spin, onSpin),
-            Toggle("Light background", light, onLight),
-            Toggle("Material You colours", dynamic, onDynamic))
+            Toggle("Slow rotate", spin, onSpin))
         for (row in toggles.chunked(2)) {
             Row(Modifier.fillMaxWidth().padding(vertical = 3.dp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)) {

@@ -5,6 +5,19 @@ All notable changes to FET Lab. Dates are the release date; versions follow
 
 ## Unreleased
 
+### Scenes remember where you left them
+
+Switching architecture or mode and coming back now finds each scene as you left it: the
+camera and cuts, the view, hidden layers, layer separation, the picked layer and the
+highlighted capacitance. Display switches still apply to every scene. Memory lasts for
+the session; Reset this scene still returns a scene to its defaults.
+
+### Follows the system theme
+
+The stage background now follows the system's light or dark setting, so the Light
+background switch is gone, and so is the Material You colours switch. Dimension callouts
+start off; turn them on under Section › Display.
+
 ### Consistent view order
 
 Device scenes now use the same view sequence for every architecture: 3D overview, Along
