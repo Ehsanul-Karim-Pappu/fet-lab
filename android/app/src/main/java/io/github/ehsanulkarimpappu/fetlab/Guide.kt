@@ -47,22 +47,16 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.RoundRect
 import androidx.compose.ui.geometry.Size
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.PathFillType
-import androidx.compose.ui.graphics.StrokeCap
-import androidx.compose.ui.graphics.StrokeJoin
-import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.ui.graphics.drawscope.clipPath
-import androidx.compose.ui.graphics.drawscope.rotate
 import androidx.compose.ui.graphics.drawscope.scale
 import androidx.compose.ui.graphics.drawscope.translate
-import androidx.compose.ui.graphics.lerp
-import androidx.compose.ui.graphics.vector.PathParser
 import androidx.compose.ui.layout.boundsInRoot
 import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.res.imageResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -249,55 +243,10 @@ class TourPlayer(val targets: TourTargets, private val scope: CoroutineScope, pr
 
 /* =============================================================== hand ==== */
 
-/** The hand of Material Design's "touch_app" icon (Apache License 2.0), in a 24-unit
- *  box with the fingertip at (11.5, 6). */
-private const val HAND_PATH = "M18.84,15.87l-4.54,-2.26c-0.17,-0.07 -0.35,-0.11 -0.54,-0.11H13v-6" +
-    "c0,-0.83 -0.67,-1.5 -1.5,-1.5S10,6.67 10,7.5v10.74l-3.43,-0.72c-0.08,-0.01 -0.15,-0.03 " +
-    "-0.24,-0.03 -0.31,0 -0.59,0.13 -0.79,0.33l-0.79,0.8 4.94,4.94c0.27,0.27 0.65,0.44 1.06,0.44" +
-    "h6.79c0.75,0 1.33,-0.55 1.44,-1.28l0.75,-5.27c0.01,-0.07 0.02,-0.14 0.02,-0.2 " +
-    "0,-0.62 -0.38,-1.16 -0.91,-1.38z"
-
-/**
- * The tour's pointing hand, drawn in its 24-unit space: a soft shadow that tucks in
- * under the finger as it [press]es (so it reads as touching the glass), light-to-shade
- * skin, a nail, knuckle and finger creases, an outline, and a cuff in the app's [tint].
- */
-private fun DrawScope.drawHand(hand: Path, a: Float, press: Float, tint: Color) {
-    val lift = 1f - 0.7f * press
-    translate(0.9f * lift, 1.3f * lift) {
-        drawPath(hand, Color.Black, alpha = 0.2f * a)
-        for (w in floatArrayOf(0.5f, 1.0f, 1.6f))       // a cheap, version-proof blur
-            drawPath(hand, Color.Black, alpha = 0.07f * a, style = Stroke(width = w, join = StrokeJoin.Round))
-    }
-    drawPath(hand, Brush.linearGradient(
-        0f to Color(0xFFFFFFFF), 0.55f to Color(0xFFF1ECE4), 1f to Color(0xFFD5CCC0),
-        start = Offset(6.25f, 6f), end = Offset(18.25f, 24f)), alpha = a)
-    clipPath(hand) {
-        // the far side of the finger turns away from the light, and the palm sits lower
-        drawRect(Brush.horizontalGradient(0.55f to Color.Transparent, 1f to Color.Black.copy(alpha = 0.16f),
-            startX = 10f, endX = 13f), topLeft = Offset(10f, 5f), size = Size(3f, 9f), alpha = a)
-        drawPath(Path().apply { moveTo(13.2f, 13.3f); lineTo(20f, 16.6f); lineTo(20f, 25f); lineTo(13.2f, 25f); close() },
-            Color.Black, alpha = 0.05f * a)
-        val crease = Color(0xFF8E8173)
-        val folds = Path().apply {
-            moveTo(15.1f, 14.7f); quadraticBezierTo(15.6f, 15.8f, 15.3f, 17.0f)
-            moveTo(16.7f, 15.5f); quadraticBezierTo(17.2f, 16.5f, 16.9f, 17.7f)
-            moveTo(18.2f, 16.3f); quadraticBezierTo(18.6f, 17.2f, 18.4f, 18.2f)
-        }
-        drawPath(folds, crease, alpha = 0.65f * a, style = Stroke(width = 0.3f, cap = StrokeCap.Round))
-        val knuckle = Path().apply { moveTo(10.45f, 10.9f); quadraticBezierTo(11.5f, 11.3f, 12.55f, 10.9f) }
-        drawPath(knuckle, crease, alpha = 0.55f * a, style = Stroke(width = 0.26f, cap = StrokeCap.Round))
-        val cuff = Path().apply { moveTo(9.2f, 22.35f); lineTo(19.6f, 21.25f); lineTo(20.4f, 26f); lineTo(9.6f, 27f); close() }
-        drawPath(cuff, Brush.verticalGradient(listOf(tint, lerp(tint, Color.Black, 0.45f)), startY = 21.2f, endY = 24.5f), alpha = a)
-        drawLine(lerp(tint, Color.White, 0.5f), Offset(9.2f, 22.35f), Offset(19.6f, 21.25f), strokeWidth = 0.32f, alpha = 0.8f * a)
-    }
-    drawRoundRect(Color(0xFFFBF6F1), topLeft = Offset(10.75f, 6.45f), size = Size(1.5f, 1.8f),
-        cornerRadius = CornerRadius(0.72f), alpha = a)
-    drawRoundRect(Color(0xFFCFC4B7), topLeft = Offset(10.75f, 6.45f), size = Size(1.5f, 1.8f),
-        cornerRadius = CornerRadius(0.72f), alpha = a, style = Stroke(width = 0.14f))
-    drawOval(Color.White, topLeft = Offset(10.85f, 6.6f), size = Size(0.4f, 0.9f), alpha = a)
-    drawPath(hand, Color(0xFF6F655A), alpha = 0.85f * a, style = Stroke(width = 0.3f, join = StrokeJoin.Round))
-}
+/** Where the fingertip's pad sits in `drawable-nodpi/tour_hand.png`, as fractions of
+ *  its width and height: the point that lands on the control being tapped. */
+private const val HAND_TIP_X = 0.1353f
+private const val HAND_TIP_Y = 0.0717f
 
 /* ============================================================ overlay ==== */
 
@@ -308,7 +257,7 @@ private fun DrawScope.drawHand(hand: Path, a: Float, press: Float, tint: Color) 
  */
 @Composable
 fun TourOverlay(player: TourPlayer, active: Boolean, tint: Color, modifier: Modifier = Modifier) {
-    val hand = remember { PathParser().parsePathString(HAND_PATH).toPath() }
+    val hand = ImageBitmap.imageResource(R.drawable.tour_hand)
     val scrim by animateFloatAsState(if (active) 0.72f else 0f, tween(320), label = "tourScrim")
     val glow by rememberInfiniteTransition(label = "spotGlow").animateFloat(
         initialValue = 0.35f, targetValue = 0.95f,
@@ -333,8 +282,12 @@ fun TourOverlay(player: TourPlayer, active: Boolean, tint: Color, modifier: Modi
         if (scrim < 0.01f) return@Canvas
         val o = player.bounds.topLeft
         val s = player.spot.value
-        val hole = if (s.isEmpty) null
-            else RoundRect(s.translate(-o.x, -o.y).inflate(8.dp.toPx()), CornerRadius(16.dp.toPx()))
+        // Keep the lit hole a little inside the screen: full-width sections (the mode bar,
+        // the chip row, the tool sheet) would otherwise push the glowing edge off the sides
+        // and leave it looking cut.
+        val lit = if (s.isEmpty) Rect.Zero
+            else s.translate(-o.x, -o.y).inflate(8.dp.toPx()).intersect(Rect(Offset.Zero, size).deflate(10.dp.toPx()))
+        val hole = if (lit.isEmpty) null else RoundRect(lit, CornerRadius(16.dp.toPx()))
 
         val veil = Path().apply {
             fillType = PathFillType.EvenOdd
@@ -372,15 +325,11 @@ fun TourOverlay(player: TourPlayer, active: Boolean, tint: Color, modifier: Modi
         if (a > 0.01f) {
             val tip = player.hand.value - o
             val press = player.press.value
-            // Work in the icon's own 24-unit space, pivoting on the fingertip at (11.5, 6):
-            // tilted a little, like a real pointing hand, and slightly smaller when pressed.
-            val u = 64.dp.toPx() / 24f * (1f - 0.1f * press)
-            translate(tip.x, tip.y) {
-                rotate(-14f, pivot = Offset.Zero) {
-                    scale(u, u, pivot = Offset.Zero) {
-                        translate(-11.5f, -6f) { drawHand(hand, a, press, tint) }
-                    }
-                }
+            // The image already points up and to the left; scale it so the hand is about
+            // 140 dp across, slightly smaller while pressed, with the finger pad on the tap.
+            val k = 140.dp.toPx() / hand.width * (1f - 0.08f * press)
+            translate(tip.x - hand.width * HAND_TIP_X * k, tip.y - hand.height * HAND_TIP_Y * k) {
+                scale(k, k, pivot = Offset.Zero) { drawImage(hand, alpha = a) }
             }
         }
     }
