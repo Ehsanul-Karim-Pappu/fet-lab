@@ -12,6 +12,12 @@ camera and cuts, the view, hidden layers, layer separation, the picked layer and
 highlighted capacitance. Display switches still apply to every scene. Memory lasts for
 the session; Reset this scene still returns a scene to its defaults.
 
+### See-through control sheet
+
+On phones the control sheet is a little more see-through by default, and Section ›
+Display has a Sheet see-through slider (0–60%) to set how much of the model shows through
+it. The setting is kept between launches, and the guided tour's Section step shows it.
+
 ### Follows the system theme
 
 The stage background now follows the system's light or dark setting, so the Light

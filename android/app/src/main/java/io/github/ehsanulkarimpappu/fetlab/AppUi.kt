@@ -1,6 +1,7 @@
 package io.github.ehsanulkarimpappu.fetlab
 
 import android.content.ActivityNotFoundException
+import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.opengl.GLSurfaceView
@@ -67,6 +68,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.onSizeChanged
@@ -175,7 +177,17 @@ private fun Mark(modifier: Modifier = Modifier) {
 /** What the guided tour found on screen, so it can put it back when it ends. */
 private class TourReturn(val key: String, val seq: Boolean, val cam: Cam, val view: String,
                          val tab: Int, val sheet: Int, val par: String?, val selected: Part?,
-                         val visible: Map<String, Boolean>)
+                         val visible: Map<String, Boolean>, val see: Float)
+
+/* How much of the stage shows through the floating control sheet, 0 (solid) to
+ * [SEE_MAX]. Saved, since it suits a screen and a pair of eyes rather than a scene. */
+private const val SEE_MAX = 0.6f
+private const val SEE_DEFAULT = 0.15f
+private fun loadSeeThrough(ctx: Context) =
+    ctx.getSharedPreferences("ui", Context.MODE_PRIVATE).getFloat("sheet_see_through", SEE_DEFAULT)
+        .coerceIn(0f, SEE_MAX)
+private fun saveSeeThrough(ctx: Context, v: Float) =
+    ctx.getSharedPreferences("ui", Context.MODE_PRIVATE).edit().putFloat("sheet_see_through", v).apply()
 
 private class SceneMemo(val cam: Cam, val view: String, val visible: Map<String, Boolean>,
                         val explode: Float, val par: String?, val selected: Part?)
@@ -257,6 +269,10 @@ fun FetLabApp(lib: Library, renderer: Renderer) {
     // 0 peek (handle only) · 1 open (normal working height) · 2 expanded (reading height).
     var sheetLevel by rememberSaveable { mutableIntStateOf(1) }
     var stageInset by remember { mutableStateOf(0.dp) }
+    var seeThrough by remember { mutableFloatStateOf(loadSeeThrough(ctx)) }
+    fun setSeeThrough(v: Float) { seeThrough = v.coerceIn(0f, SEE_MAX); saveSeeThrough(ctx, seeThrough) }
+    // Only the phone layout's sheet floats over the model; the tablet's sits beside it.
+    val sheetFloats = LocalConfiguration.current.screenWidthDp < 680
 
     // --- guided tour and feature list --------------------------------------
     val catalog = remember { GuideCatalog.load(ctx) }
@@ -423,7 +439,7 @@ fun FetLabApp(lib: Library, renderer: Renderer) {
         // remember what was on screen and put it all back when it ends.
         if (tourReturn == null) tourReturn = TourReturn(sceneKey, cfetSeq, cameraNow(), viewKey,
             tab, sheetLevel, parPick, selected,
-            lib.scene(sceneKey).parts.associate { it.id to it.visible })
+            lib.scene(sceneKey).parts.associate { it.id to it.visible }, seeThrough)
         tourStep = 0
     }
     fun exitTour() {
@@ -440,6 +456,7 @@ fun FetLabApp(lib: Library, renderer: Renderer) {
         pickPar(sc.par?.terms?.firstOrNull { it.id == r.par })
         selected = r.selected; renderer.highlight = r.selected
         tab = r.tab; sheetLevel = r.sheet
+        setSeeThrough(r.see)
         draw()
     }
     fun tourNext() { if (tourStep >= catalog.tour.lastIndex) exitTour() else tourStep++ }
@@ -563,6 +580,22 @@ fun FetLabApp(lib: Library, renderer: Renderer) {
                         drag(at(start), at(to), 1300) { setClip(0, (cx + it * (to - start)).coerceIn(0f, 1f)) }
                         delay(500)
                         drag(at(to), at(start), 1300) { setClip(0, (cx + it * (start - to)).coerceIn(0f, 1f)) }
+                    }
+                    // Then the sheet's see-through, with the sheet raised over the model so
+                    // the model shows through as the sheet fades, and back again.
+                    if (sheetFloats) {
+                        sheetLevel = 2
+                        delay(650)
+                        val s = rect("slider:sheet")
+                        if (s != null) {
+                            val inset = 10f * density.density
+                            fun at(v: Float) = GOffset(s.left + inset + (s.width - 2 * inset) * v, s.center.y)
+                            val start = seeThrough / SEE_MAX
+                            val to = if (start < 0.6f) 0.9f else 0.2f
+                            drag(at(start), at(to), 1300) { setSeeThrough(seeThrough + it * (to - start) * SEE_MAX) }
+                            delay(700)
+                            drag(at(to), at(start), 1300) { setSeeThrough(seeThrough + it * (start - to) * SEE_MAX) }
+                        }
                     }
                     hideHand()
                 }
@@ -858,7 +891,8 @@ fun FetLabApp(lib: Library, renderer: Renderer) {
                             goToView(scene, v, animate = true)
                         }
                         1 -> SectionTab(scene, cx, cy, cz, explodeF, ghost, showDims, texture,
-                            edges, spin,
+                            edges, spin, seeThrough = if (sheetFloats) seeThrough / SEE_MAX else null,
+                            onSeeThrough = { setSeeThrough(it * SEE_MAX) },
                             onClip = { ax, v -> setClip(ax, v) },
                             onExplode = { explodeF = it; renderer.explode = it * 16f
                                 renderer.capsDirty = true; draw() },
@@ -917,7 +951,10 @@ fun FetLabApp(lib: Library, renderer: Renderer) {
                         when (sheetLevel) { 0 -> 0.dp; 1 -> maxHeight * 0.36f; else -> maxHeight * 0.68f },
                         sheetSpring, label = "sheetHeight")
                     val sheetAlpha by animateFloatAsState(
-                        if (sheetLevel > 0) 0.95f else 0.9f, tween(200), label = "sheetAlpha")
+                        1f - seeThrough - if (sheetLevel > 0) 0f else 0.05f, tween(200), label = "sheetAlpha")
+                    // A shadow would show through a see-through sheet as a smudge, so it
+                    // fades as the sheet does; the border still marks the edge.
+                    val sheetShadow = 14.dp * (1f - seeThrough / SEE_MAX)
 
                     stage(Modifier.fillMaxSize().padding(horizontal = 12.dp, vertical = 10.dp))
 
@@ -927,7 +964,7 @@ fun FetLabApp(lib: Library, renderer: Renderer) {
                             shape = RoundedCornerShape(topStart = 22.dp, topEnd = 22.dp),
                             border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
                             modifier = Modifier.fillMaxWidth()
-                                .shadow(14.dp, RoundedCornerShape(topStart = 22.dp, topEnd = 22.dp))
+                                .shadow(sheetShadow, RoundedCornerShape(topStart = 22.dp, topEnd = 22.dp))
                                 .tourTarget("sheet")
                                 .onSizeChanged { stageInset = with(density) { it.height.toDp() } }) {
                             Column {
@@ -1270,7 +1307,7 @@ private class Toggle(val label: String, val on: Boolean, val set: (Boolean) -> U
 @Composable
 private fun SectionTab(scene: Scene, cx: Float, cy: Float, cz: Float, explode: Float,
                        ghost: Boolean, dims: Boolean, tex: Boolean, edges: Boolean,
-                       spin: Boolean,
+                       spin: Boolean, seeThrough: Float?, onSeeThrough: (Float) -> Unit,
                        onClip: (Int, Float) -> Unit, onExplode: (Float) -> Unit,
                        onGhost: (Boolean) -> Unit, onDims: (Boolean) -> Unit,
                        onTex: (Boolean) -> Unit, onEdges: (Boolean) -> Unit,
@@ -1285,6 +1322,10 @@ private fun SectionTab(scene: Scene, cx: Float, cy: Float, cz: Float, explode: F
         SliderRow("Separate layers", "", explode, 0f, 16f, false) { onExplode(it) }
         Spacer(Modifier.height(4.dp))
         SectionLabel("Display")
+        // The floating sheet only (null on the tablet, whose panel covers nothing).
+        if (seeThrough != null)
+            SliderRow("Sheet see-through", "", seeThrough, 0f, 1f, false,
+                shown = "${(seeThrough * SEE_MAX * 100).roundToInt()}%", tag = "slider:sheet") { onSeeThrough(it) }
         // The display switches used to be full-width rows. As a wrapping grid of compact
         // toggle chips — the same pill used for picking a technology, repurposed as on/off —
         // they take about half the vertical room, which is the point on a phone screen.
@@ -1319,7 +1360,8 @@ private fun SectionLabel(text: String) {
 
 @Composable
 private fun SliderRow(label: String, axis: String, frac: Float, lo: Float, hi: Float,
-                      offAtMax: Boolean, onChange: (Float) -> Unit) {
+                      offAtMax: Boolean, shown: String? = null, tag: String? = null,
+                      onChange: (Float) -> Unit) {
     Column(Modifier.padding(vertical = 2.dp)) {
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
             Text(label, fontFamily = PlexSans, fontSize = 13.sp,
@@ -1329,14 +1371,18 @@ private fun SliderRow(label: String, axis: String, frac: Float, lo: Float, hi: F
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(end = 8.dp))
             }
-            val shown = lo + (hi - lo) * frac
-            Text(if (offAtMax && frac >= 0.999f) "off" else "${(shown * 10).roundToInt() / 10f} nm",
+            val nm = lo + (hi - lo) * frac
+            Text(shown ?: if (offAtMax && frac >= 0.999f) "off" else "${(nm * 10).roundToInt() / 10f} nm",
                 fontFamily = Mono, fontSize = 11.5f.sp,
                 color = if (offAtMax && frac >= 0.999f) MaterialTheme.colorScheme.onSurfaceVariant
                         else MaterialTheme.colorScheme.primary)
         }
         Box(Modifier.fillMaxWidth().height(44.dp)
-            .then(if (axis.isNotEmpty()) Modifier.tourTarget("slider:${axis.lowercase()}") else Modifier),
+            .then(when {
+                tag != null -> Modifier.tourTarget(tag)
+                axis.isNotEmpty() -> Modifier.tourTarget("slider:${axis.lowercase()}")
+                else -> Modifier
+            }),
             contentAlignment = Alignment.Center) {
             Slider(value = frac, onValueChange = onChange, valueRange = 0f..1f)
         }

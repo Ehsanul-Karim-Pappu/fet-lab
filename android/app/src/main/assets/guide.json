@@ -33,7 +33,7 @@
       "id": "section",
       "category": "Tools",
       "title": "Section",
-      "body": "Slide to cut the model open on any axis, or pull the layers apart. Slow rotate and the other display switches live here too.",
+      "body": "Slide to cut the model open on any axis, or pull the layers apart. Display holds the sheet's see-through, slow rotate and the other display switches.",
       "tab": 1,
       "gesture": "drag"
     },
