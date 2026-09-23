@@ -7,12 +7,9 @@ import android.opengl.GLSurfaceView
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.Crossfade
 import androidx.compose.animation.animateColorAsState
-import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateDpAsState
-import androidx.compose.animation.core.calculateTargetValue
-import androidx.compose.animation.core.exponentialDecay
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
@@ -439,30 +436,31 @@ fun FetLabApp(lib: Library, renderer: Renderer, dynamic: Boolean, onDynamic: (Bo
                     spot("sheet:lit")
                 }
             }
-            // Flicks [list] up until [left] (pixels still to go; null while the item is off
-            // screen) runs out. The content follows the finger, then glides on after it lifts,
-            // never past the item: the glide falls a little short and the last flick, a slow
-            // exact one, lands it.
+            // One flick: the finger swipes up and lets go, and the list glides on at the
+            // release speed until [left] (pixels still to go; null while the item is off
+            // screen) can be measured, then eases to a stop exactly there.
             suspend fun swipe(list: LazyListState, area: String, left: (LazyListLayoutInfo) -> Float?) {
-                val decay = exponentialDecay<Float>(frictionMultiplier = 0.5f,
-                    absVelocityThreshold = 60f * density.density)
-                val perVelocity = decay.calculateTargetValue(0f, 1f)   // glide distance per px/s
-                repeat(6) {
-                    val r = rect(area) ?: return
-                    val go = left(list.layoutInfo) ?: Float.POSITIVE_INFINITY
-                    if (go < 6f * density.density || !list.canScrollForward) return
-                    val len = minOf(go, r.height * 0.6f)
-                    val glide = minOf(go - len, r.height * 3f)
-                    val x = r.left + r.width * 0.75f
-                    val y = r.top + (r.height + len) / 2f
-                    val ms = if (glide > 1f) 260 else (350 + 2f * len / density.density).toInt()
-                    flick(GOffset(x, y), GOffset(x, y - len), ms, onStep = { list.dispatchRawDelta(it * len) }) {
-                        if (glide > 1f) {
-                            var at = 0f
-                            Animatable(0f).animateDecay(glide / perVelocity, decay) {
-                                list.dispatchRawDelta(value - at); at = value
-                            }
-                        }
+                val r = rect(area) ?: return
+                val first = left(list.layoutInfo)
+                if (first != null && first < 6f * density.density) return
+                val len = minOf(first ?: Float.POSITIVE_INFINITY, r.height * 0.5f)
+                val ms = 120
+                val x = r.left + r.width * 0.75f
+                val y = r.top + (r.height + len) / 2f
+                flick(GOffset(x, y), GOffset(x, y - len), ms, onStep = { list.dispatchRawDelta(it * len) }) {
+                    var v = len / ms * 1000f               // px/s, the finger's speed as it lets go
+                    val slowest = 40f * density.density
+                    var last = withFrameNanos { it }
+                    val give = last + 6_000_000_000L       // never glide forever
+                    while (true) {
+                        val now = withFrameNanos { it }
+                        val dt = (now - last) / 1e9f; last = now
+                        val go = left(list.layoutInfo)
+                        if (go != null && go < 0.5f) break
+                        // Once the distance is known, slow so it is covered exactly.
+                        if (go != null) v = minOf(v, maxOf(go * 7f, slowest))
+                        val step = if (go != null) minOf(v * dt, go) else v * dt
+                        if (list.dispatchRawDelta(step) < step * 0.5f || now > give) break   // hit the end
                     }
                 }
             }
@@ -553,8 +551,9 @@ fun FetLabApp(lib: Library, renderer: Renderer, dynamic: Boolean, onDynamic: (Bo
                         layersList.scrollToItem(0)
                         delay(400)
                         spotSheetAndModel()
+                        // Until the group's header sits at the top, its layers in view below.
                         swipe(layersList, "list:layers") { info ->
-                            info.visibleItemsInfo.firstOrNull { it.key == "h_$g" }?.let { it.offset - 6f * density.density }
+                            info.visibleItemsInfo.firstOrNull { it.key == "h_$g" }?.let { it.offset - 4f * density.density }
                         }
                         tap("group:$gi") { setVisible(parts, !parts.any { it.visible }) }
                         delay(900)
@@ -573,13 +572,11 @@ fun FetLabApp(lib: Library, renderer: Renderer, dynamic: Boolean, onDynamic: (Bo
                         specsList.scrollToItem(0)
                         delay(400)
                         spotSheetAndModel()
-                        // Scroll down to the table (after the blurb and the dimensions) until
-                        // its first two rows are fully on screen.
-                        val want = 1 + sc.dims.size + minOf(2, terms.size)
+                        // Down past the blurb and the dimensions until the table's heading
+                        // sits at the top, its rows in view below.
+                        val head = 1 + sc.dims.size
                         swipe(specsList, "list:specs") { info ->
-                            info.visibleItemsInfo.firstOrNull { it.index == want }?.let {
-                                (it.offset + it.size - (info.viewportEndOffset - info.afterContentPadding)).toFloat()
-                            }
+                            info.visibleItemsInfo.firstOrNull { it.index == head }?.let { it.offset.toFloat() }
                         }
                         val i = terms.indexOfFirst { it.id != parPick }.coerceAtLeast(0)
                         tap("par:$i") { pickPar(terms[i]) }
