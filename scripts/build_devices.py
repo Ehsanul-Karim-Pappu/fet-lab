@@ -25,6 +25,8 @@ MAT = {
  "tungsten":dict(label="Tungsten (W)",       color="#BFBBD2", note="Illustrative contact/via/routing conductor; not all real routing uses tungsten"),
  "nisi":    dict(label="Nickel silicide (NiSi)", color="#E6E2F0", note="Simplified silicide contact layer; SiGe contacts can require different alloy/phase treatment"),
  "tin":     dict(label="Titanium nitride (TiN)", color="#BE5518", note="Illustrative work-function region/cap; effective work function is not modeled"),
+ "ild":     dict(label="SiO₂ · interlayer dielectric", color="#C9776C", note="Oxide around the device during processing; left out of the finished models, as their notes say"),
+ "poly":    dict(label="Polysilicon (dummy gate)", color="#8FA67A", note="Placeholder gate in the process steps; removed before the metal gate goes in"),
  # --- schematic-layout palette, used by the showcase inverters ---
  "pwell":   dict(label="P Well",             color="#7FC9EA", note="p-type well / substrate"),
  "nwell":   dict(label="N Well",             color="#EFE53A", note="n-type well under the pMOS"),
@@ -37,7 +39,7 @@ MAT = {
  "m0":      dict(label="Metal 0",            color="#F2C1A2", note="First routing level"),
 }
 ORDER = ["silicon","sige","sio2","highk","si3n4","wall","mdi","bond",
-         "tin","mo","nisi","nickel","tungsten",
+         "tin","mo","nisi","nickel","tungsten","poly","ild",
          "pwell","nwell","fox","nanowire","md","po","vd","vg","m0"]
 
 # ---------------------------------------------------------------- shared CDs
@@ -126,7 +128,11 @@ def build_ns():
     zsub=42.0
 
     d.add("substrate","Si substrate","silicon",[box(-48,48,-26,0,-zsub,zsub)],"Substrate & isolation",[0,-1.2,0])
-    d.add("sti","STI / bottom isolation","sio2",[box(-XSP,XSP,0,STI,-zsub,zsub)],"Substrate & isolation",[0,-.8,0])
+    # Under the gate and spacers it isolates the stack from the substrate; beside the
+    # source/drain it is the trench oxide the stack was patterned into.
+    d.add("sti","STI / bottom isolation","sio2",[box(-XSP,XSP,0,STI,-zsub,zsub),
+          box(-XSD,-XSP,0,STI,hz,zsub), box(-XSD,-XSP,0,STI,-zsub,-hz),
+          box(XSP,XSD,0,STI,hz,zsub), box(XSP,XSD,0,STI,-zsub,-hz)],"Substrate & isolation",[0,-.8,0])
     for i,yc in enumerate(ys):
         d.add(f"sheet{i+1}",f"Si nanosheet {i+1}","silicon",[box(-XSP,XSP,yc-HYS,yc+HYS,-hz,hz)],"Channel stack",[0,0,0])
     for i,yc in enumerate(ys):

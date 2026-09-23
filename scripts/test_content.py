@@ -12,7 +12,7 @@ class ContentTests(unittest.TestCase):
         self.refs = json.loads((ROOT / 'data/references.json').read_text())
 
     def test_bundles_match(self):
-        for name in ('devices.json', 'guide.json', 'references.json'):
+        for name in ('devices.json', 'guide.json', 'references.json', 'process.json'):
             self.assertEqual((ROOT / 'data' / name).read_bytes(),
                              (ROOT / 'android/app/src/main/assets' / name).read_bytes())
         for file in ('web/finfet-to-cfet.html', 'pwa/index.html'):

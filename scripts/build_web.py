@@ -37,7 +37,7 @@ geo_blob = json.dumps(geo, separators=(',', ':')).replace('</', '<\\/')
 legacy, count = re.subn(r'^const GEO = .*;$', lambda _: 'const GEO = ' + geo_blob + ';', legacy, flags=re.M)
 assert count == 1, 'Expected one legacy geometry payload'
 legacy_path.write_text(legacy)
-for name in ('devices.json', 'guide.json', 'references.json'):
+for name in ('devices.json', 'guide.json', 'references.json', 'process.json'):
     (ROOT / 'android/app/src/main/assets' / name).write_bytes((ROOT / 'data' / name).read_bytes())
 md = '# Technical references\n\nGenerated from data/references.json. Reviewed ' + refs['reviewed'] + '.\n\n' + refs['scope'] + '\n\n'
 for r in refs['sources']:
