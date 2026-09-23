@@ -26,6 +26,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.Orientation
+import androidx.compose.foundation.gestures.animateScrollBy
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.draggable
@@ -57,6 +58,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset as GOffset
+import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size as GSize
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
@@ -508,9 +510,18 @@ fun FetLabApp(lib: Library, renderer: Renderer, dynamic: Boolean, onDynamic: (Bo
                     tap("tab:3") { selectTab(3) }
                     val terms = lib.scene(sceneKey).par?.terms
                     if (!terms.isNullOrEmpty()) {
-                        sheetLevel = 2
+                        // Half open, so the coupling the row highlights shows in the model above.
+                        sheetLevel = 1
                         specsShowPar++
                         delay(700)
+                        // Light the model between the card and the sheet as well as the table.
+                        // Only on the phone layout, where the sheet sits below the card.
+                        val card = rect("card"); val sheet = rect("sheet")
+                        if (card != null && sheet != null && sheet.top > card.bottom + 40f * density.density) {
+                            tourTargets.put("specs:lit", Rect(sheet.left, card.bottom + 12f * density.density,
+                                sheet.right, sheet.bottom))
+                            spot("specs:lit")
+                        }
                         val i = terms.indexOfFirst { it.id != parPick }.coerceAtLeast(0)
                         tap("par:$i") { pickPar(terms[i]) }
                     }
@@ -883,7 +894,8 @@ fun FetLabApp(lib: Library, renderer: Renderer, dynamic: Boolean, onDynamic: (Bo
                 modifier = Modifier
                     .align(BiasAlignment(0f, cardBias))
                     .padding(16.dp)
-                    .then(if (wide) Modifier.width(380.dp) else Modifier.fillMaxWidth()),
+                    .then(if (wide) Modifier.width(380.dp) else Modifier.fillMaxWidth())
+                    .tourTarget("card"),
                 onBack = { tourBack() }, onNext = { tourNext() }, onExit = { exitTour() })
         }
         if (!welcomeSeen && tourStep < 0 && !showHelp)
@@ -1405,7 +1417,19 @@ private fun SpecsTab(scene: Scene, picked: String?, showPar: Int = 0, onPick: (P
     val list = rememberLazyListState()
     // Each bump of showPar scrolls to the capacitance table (the header item after the dims).
     LaunchedEffect(showPar) {
-        if (showPar > 0 && scene.par != null) list.animateScrollToItem(1 + scene.dims.size)
+        val par = scene.par
+        if (showPar > 0 && par != null) {
+            val head = 1 + scene.dims.size
+            list.animateScrollToItem(head)
+            // On a half-open sheet the table's preamble can leave the rows below the fold:
+            // lift them until the first two are fully on screen.
+            val want = head + minOf(2, par.terms.size)
+            val info = list.layoutInfo
+            val row = info.visibleItemsInfo.firstOrNull { it.index == want }
+            if (row == null) list.animateScrollToItem(head + 1)
+            else if (row.offset + row.size > info.viewportEndOffset)
+                list.animateScrollBy((row.offset + row.size - info.viewportEndOffset).toFloat())
+        }
     }
     LazyColumn(state = list, contentPadding = PaddingValues(bottom = 16.dp)) {
         item {
