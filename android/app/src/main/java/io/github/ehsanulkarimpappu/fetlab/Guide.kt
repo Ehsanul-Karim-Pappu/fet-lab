@@ -245,8 +245,8 @@ class TourPlayer(val targets: TourTargets, private val scope: CoroutineScope, pr
 
 /** Where the fingertip's pad sits in `drawable-nodpi/tour_hand.png`, as fractions of
  *  its width and height: the point that lands on the control being tapped. */
-private const val HAND_TIP_X = 0.1318f
-private const val HAND_TIP_Y = 0.0933f
+private const val HAND_TIP_X = 0.1310f
+private const val HAND_TIP_Y = 0.0917f
 
 /* ============================================================ overlay ==== */
 
