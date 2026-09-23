@@ -8,6 +8,7 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.VectorConverter
 import androidx.compose.animation.core.animateFloat
@@ -211,6 +212,26 @@ class TourPlayer(val targets: TourTargets, private val scope: CoroutineScope, pr
         }
         press.animateTo(0f, tween(170))
         delay(350)
+    }
+
+    /** A quick swipe from [from] to [to]: [onStep] gets progress deltas while the finger
+     *  moves, and [coast] runs as it lifts off, like a flung list still gliding. */
+    suspend fun flick(from: Offset, to: Offset, ms: Int, onStep: (Float) -> Unit, coast: suspend () -> Unit) {
+        moveHand(from)
+        delay(100)
+        press.animateTo(1f, tween(110))
+        ripple(from)
+        val p = Animatable(0f)
+        var last = 0f
+        coroutineScope {
+            launch { hand.animateTo(to, tween(ms, easing = LinearEasing)) }
+            p.animateTo(1f, tween(ms, easing = LinearEasing)) { onStep(value - last); last = value }
+        }
+        coroutineScope {
+            launch { press.animateTo(0f, tween(170)) }
+            coast()
+        }
+        delay(250)
     }
 
     /** Two fingertips spreading apart and back at [centre]; [onSpread] gets 0 → 1 → 0. */

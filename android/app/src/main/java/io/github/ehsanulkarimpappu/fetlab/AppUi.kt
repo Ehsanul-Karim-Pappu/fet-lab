@@ -7,9 +7,12 @@ import android.opengl.GLSurfaceView
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.Crossfade
 import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.calculateTargetValue
+import androidx.compose.animation.core.exponentialDecay
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
@@ -26,13 +29,14 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.Orientation
-import androidx.compose.foundation.gestures.animateScrollBy
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.draggable
 import androidx.compose.foundation.gestures.rememberDraggableState
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListLayoutInfo
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
@@ -259,7 +263,9 @@ fun FetLabApp(lib: Library, renderer: Renderer, dynamic: Boolean, onDynamic: (Bo
     val tourTargets = remember { TourTargets() }
     val tourPlayer = remember { TourPlayer(tourTargets, scope, density.density) }
     var tourReturn by remember { mutableStateOf<TourReturn?>(null) }
-    var specsShowPar by remember { mutableIntStateOf(0) }
+    // Held here rather than in the tabs so the tour's finger can scroll them.
+    val layersList = rememberLazyListState()
+    val specsList = rememberLazyListState()
 
     val scene = lib.scene(sceneKey)
     val stageBg = if (lightBg) Stage.light else Stage.dark
@@ -404,7 +410,6 @@ fun FetLabApp(lib: Library, renderer: Renderer, dynamic: Boolean, onDynamic: (Bo
         pickPar(sc.par?.terms?.firstOrNull { it.id == r.par })
         selected = r.selected; renderer.highlight = r.selected
         tab = r.tab; sheetLevel = r.sheet
-        specsShowPar = 0          // or Specs would keep jumping to the table after the tour
         draw()
     }
     fun tourNext() { if (tourStep >= catalog.tour.lastIndex) exitTour() else tourStep++ }
@@ -423,6 +428,44 @@ fun FetLabApp(lib: Library, renderer: Renderer, dynamic: Boolean, onDynamic: (Bo
         val id = catalog.tour[tourStep]
         if (catalog.stop(id).tab < 0) sheetLevel = 0
         with(tourPlayer) {
+            // Lights the model between the card and the sheet as well as the sheet, so a
+            // change made in the sheet shows as it happens. Phone layout only, where the
+            // sheet sits below the card.
+            suspend fun spotSheetAndModel() {
+                val card = rect("card"); val sheet = rect("sheet")
+                if (card != null && sheet != null && sheet.top > card.bottom + 40f * density.density) {
+                    tourTargets.put("sheet:lit", Rect(sheet.left, card.bottom + 12f * density.density,
+                        sheet.right, sheet.bottom))
+                    spot("sheet:lit")
+                }
+            }
+            // Flicks [list] up until [left] (pixels still to go; null while the item is off
+            // screen) runs out. The content follows the finger, then glides on after it lifts,
+            // never past the item: the glide falls a little short and the last flick, a slow
+            // exact one, lands it.
+            suspend fun swipe(list: LazyListState, area: String, left: (LazyListLayoutInfo) -> Float?) {
+                val decay = exponentialDecay<Float>(frictionMultiplier = 0.5f,
+                    absVelocityThreshold = 60f * density.density)
+                val perVelocity = decay.calculateTargetValue(0f, 1f)   // glide distance per px/s
+                repeat(6) {
+                    val r = rect(area) ?: return
+                    val go = left(list.layoutInfo) ?: Float.POSITIVE_INFINITY
+                    if (go < 6f * density.density || !list.canScrollForward) return
+                    val len = minOf(go, r.height * 0.6f)
+                    val glide = minOf(go - len, r.height * 3f)
+                    val x = r.left + r.width * 0.75f
+                    val y = r.top + (r.height + len) / 2f
+                    val ms = if (glide > 1f) 260 else (350 + 2f * len / density.density).toInt()
+                    flick(GOffset(x, y), GOffset(x, y - len), ms, onStep = { list.dispatchRawDelta(it * len) }) {
+                        if (glide > 1f) {
+                            var at = 0f
+                            Animatable(0f).animateDecay(glide / perVelocity, decay) {
+                                list.dispatchRawDelta(value - at); at = value
+                            }
+                        }
+                    }
+                }
+            }
             when (id) {
                 "modes" -> {
                     spot("modes")
@@ -496,31 +539,47 @@ fun FetLabApp(lib: Library, renderer: Renderer, dynamic: Boolean, onDynamic: (Bo
                     spot("sheet")
                     tap("tab:2") { selectTab(2) }
                     val sc = lib.scene(sceneKey)
-                    val first = sc.groups.firstOrNull { g -> sc.parts.any { it.group == g } }
-                    if (first != null) {
-                        val parts = sc.parts.filter { it.group == first }
-                        tap("group:0") { setVisible(parts, !parts.any { it.visible }) }
+                    val groups = sc.groups.filter { g -> sc.parts.any { it.group == g } }
+                    // Spacers, which every Device and Inverter scene has; the gate in Layout;
+                    // in Compare, the second cell, since the last is thousands of rows down.
+                    val gi = groups.indexOf("Spacers").takeIf { it >= 0 }
+                        ?: groups.indexOfFirst { it.startsWith("Gate") }.takeIf { it >= 0 }
+                        ?: minOf(1, groups.lastIndex)
+                    if (gi >= 0) {
+                        val g = groups[gi]
+                        val parts = sc.parts.filter { it.group == g }
+                        // Half open, so the group vanishing shows in the model above.
+                        sheetLevel = 1
+                        layersList.scrollToItem(0)
+                        delay(400)
+                        spotSheetAndModel()
+                        swipe(layersList, "list:layers") { info ->
+                            info.visibleItemsInfo.firstOrNull { it.key == "h_$g" }?.let { it.offset - 6f * density.density }
+                        }
+                        tap("group:$gi") { setVisible(parts, !parts.any { it.visible }) }
                         delay(900)
-                        tap("group:0") { setVisible(parts, !parts.any { it.visible }) }
+                        tap("group:$gi") { setVisible(parts, !parts.any { it.visible }) }
                     }
                     hideHand()
                 }
                 "specs" -> {
                     spot("sheet")
                     tap("tab:3") { selectTab(3) }
-                    val terms = lib.scene(sceneKey).par?.terms
+                    val sc = lib.scene(sceneKey)
+                    val terms = sc.par?.terms
                     if (!terms.isNullOrEmpty()) {
                         // Half open, so the coupling the row highlights shows in the model above.
                         sheetLevel = 1
-                        specsShowPar++
-                        delay(700)
-                        // Light the model between the card and the sheet as well as the table.
-                        // Only on the phone layout, where the sheet sits below the card.
-                        val card = rect("card"); val sheet = rect("sheet")
-                        if (card != null && sheet != null && sheet.top > card.bottom + 40f * density.density) {
-                            tourTargets.put("specs:lit", Rect(sheet.left, card.bottom + 12f * density.density,
-                                sheet.right, sheet.bottom))
-                            spot("specs:lit")
+                        specsList.scrollToItem(0)
+                        delay(400)
+                        spotSheetAndModel()
+                        // Scroll down to the table (after the blurb and the dimensions) until
+                        // its first two rows are fully on screen.
+                        val want = 1 + sc.dims.size + minOf(2, terms.size)
+                        swipe(specsList, "list:specs") { info ->
+                            info.visibleItemsInfo.firstOrNull { it.index == want }?.let {
+                                (it.offset + it.size - (info.viewportEndOffset - info.afterContentPadding)).toFloat()
+                            }
                         }
                         val i = terms.indexOfFirst { it.id != parPick }.coerceAtLeast(0)
                         tap("par:$i") { pickPar(terms[i]) }
@@ -793,8 +852,8 @@ fun FetLabApp(lib: Library, renderer: Renderer, dynamic: Boolean, onDynamic: (Bo
                                 spin = false
                                 goToView(scene, scene.views.first(), animate = true)
                             })
-                        2 -> LayersTab(lib, scene, layerTick) { parts, visible -> setVisible(parts, visible) }
-                        3 -> SpecsTab(scene, parPick, specsShowPar) { t -> pickPar(t) }
+                        2 -> LayersTab(lib, scene, layerTick, layersList) { parts, visible -> setVisible(parts, visible) }
+                        3 -> SpecsTab(scene, parPick, specsList) { t -> pickPar(t) }
                         else -> StoryTab(scene)
                     }
                 }
@@ -1261,13 +1320,15 @@ private fun SliderRow(label: String, axis: String, frac: Float, lo: Float, hi: F
 }
 
 @Composable
-private fun LayersTab(lib: Library, scene: Scene, tick: Int, onSet: (List<Part>, Boolean) -> Unit) {
+private fun LayersTab(lib: Library, scene: Scene, tick: Int, list: LazyListState,
+                      onSet: (List<Part>, Boolean) -> Unit) {
     val grouped = remember(tick, scene) {
         scene.groups.map { g -> g to scene.parts.filter { it.group == g } }
             .filter { it.second.isNotEmpty() }
     }
     val anyVisible = scene.parts.any { it.visible }
-    LazyColumn(contentPadding = PaddingValues(bottom = 14.dp)) {
+    LazyColumn(state = list, contentPadding = PaddingValues(bottom = 14.dp),
+        modifier = Modifier.tourTarget("list:layers")) {
         // A master switch for the whole scene, and one per group below — the same
         // any-on-means-hide-all-else-show-all rule the web viewer already uses.
         item(key = "_all") {
@@ -1413,25 +1474,9 @@ private fun LazyListScope.parasiticSection(
 }
 
 @Composable
-private fun SpecsTab(scene: Scene, picked: String?, showPar: Int = 0, onPick: (Parasitic?) -> Unit) {
-    val list = rememberLazyListState()
-    // Each bump of showPar scrolls to the capacitance table (the header item after the dims).
-    LaunchedEffect(showPar) {
-        val par = scene.par
-        if (showPar > 0 && par != null) {
-            val head = 1 + scene.dims.size
-            list.animateScrollToItem(head)
-            // On a half-open sheet the table's preamble can leave the rows below the fold:
-            // lift them until the first two are fully on screen.
-            val want = head + minOf(2, par.terms.size)
-            val info = list.layoutInfo
-            val row = info.visibleItemsInfo.firstOrNull { it.index == want }
-            if (row == null) list.animateScrollToItem(head + 1)
-            else if (row.offset + row.size > info.viewportEndOffset)
-                list.animateScrollBy((row.offset + row.size - info.viewportEndOffset).toFloat())
-        }
-    }
-    LazyColumn(state = list, contentPadding = PaddingValues(bottom = 16.dp)) {
+private fun SpecsTab(scene: Scene, picked: String?, list: LazyListState, onPick: (Parasitic?) -> Unit) {
+    LazyColumn(state = list, contentPadding = PaddingValues(bottom = 16.dp),
+        modifier = Modifier.tourTarget("list:specs")) {
         item {
             Text(scene.blurb, fontFamily = PlexSans, fontSize = 13.sp, lineHeight = 19.sp,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
