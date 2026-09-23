@@ -424,14 +424,21 @@ fun FetLabApp(lib: Library, renderer: Renderer, dynamic: Boolean, onDynamic: (Bo
             when (id) {
                 "modes" -> {
                     spot("modes")
-                    tap("mode:1") { selectMode(1) }
+                    // Switch to another mode and back, so the tap is visible from any mode.
+                    val from = mode
+                    val to = (from + 1) % MODES.size
+                    tap("mode:$to") { selectMode(to) }
                     delay(900)
-                    tap("mode:0") { selectMode(0) }
+                    tap("mode:$from") { selectMode(from) }
                     hideHand()
                 }
                 "arch" -> {
                     spot("arch")
-                    val k = if (techOf(sceneKey) == "ns") "fs" else "ns"
+                    // The next architecture along from the one on screen, in whichever mode
+                    // is open (chip keys differ per mode: "ns", "inv_ns", "show_ns").
+                    val keys = keysFor(mode).map { it.first }.filter { !it.endsWith("cmp") }
+                    val here = keys.indexOfFirst { techOf(it) == techOf(sceneKey) }
+                    val k = keys[(here + 1) % keys.size]
                     tap("chip:$k") { selectChip(k) }
                     hideHand()
                 }
@@ -461,7 +468,9 @@ fun FetLabApp(lib: Library, renderer: Renderer, dynamic: Boolean, onDynamic: (Bo
                     spot("sheet")
                     tap("tab:0") { selectTab(0) }
                     val sc = lib.scene(sceneKey)
-                    if (sc.views.size > 1) tap("view:1") { goToView(sc, sc.views[1], animate = true) }
+                    // A view other than the current one; the top two rows are always on screen.
+                    val i = if (sc.views.indexOfFirst { it.key == viewKey } == 0) 1 else 0
+                    if (sc.views.size > 1) tap("view:$i") { goToView(sc, sc.views[i], animate = true) }
                     hideHand()
                 }
                 "section" -> {
@@ -473,9 +482,11 @@ fun FetLabApp(lib: Library, renderer: Renderer, dynamic: Boolean, onDynamic: (Bo
                         val inset = 10f * density.density
                         fun at(v: Float) = GOffset(r.left + inset + (r.width - 2 * inset) * v, r.center.y)
                         val start = cx
-                        drag(at(start), at(0.45f), 1300) { setClip(0, (cx + it * (0.45f - start)).coerceIn(0f, 1f)) }
+                        // Far enough from where the cut already is that the model visibly opens.
+                        val to = if (start > 0.72f) 0.45f else 1f
+                        drag(at(start), at(to), 1300) { setClip(0, (cx + it * (to - start)).coerceIn(0f, 1f)) }
                         delay(500)
-                        drag(at(0.45f), at(start), 1300) { setClip(0, (cx + it * (start - 0.45f)).coerceIn(0f, 1f)) }
+                        drag(at(to), at(start), 1300) { setClip(0, (cx + it * (start - to)).coerceIn(0f, 1f)) }
                     }
                     hideHand()
                 }
@@ -500,7 +511,8 @@ fun FetLabApp(lib: Library, renderer: Renderer, dynamic: Boolean, onDynamic: (Bo
                         sheetLevel = 2
                         specsShowPar++
                         delay(700)
-                        tap("par:0") { pickPar(terms[0]) }
+                        val i = terms.indexOfFirst { it.id != parPick }.coerceAtLeast(0)
+                        tap("par:$i") { pickPar(terms[i]) }
                     }
                     hideHand()
                 }
@@ -683,10 +695,14 @@ fun FetLabApp(lib: Library, renderer: Renderer, dynamic: Boolean, onDynamic: (Bo
                     modifier = Modifier.padding(14.dp).widthIn(max = 190.dp))
             }
 
+            // On Inverter and Layout scenes the IN 0/1 bar owns the bottom edge, so the
+            // selected-layer card sits just above it instead of on top of it.
+            var logicBarH by remember { mutableStateOf(0.dp) }
+            val cardLift by animateDpAsState(if (scene.logic) logicBarH else 0.dp, tween(220), label = "cardLift")
             AnimatedVisibility(visible = selected != null,
                 enter = fadeIn(tween(180)) + slideInVertically(tween(220)) { it / 3 },
                 exit = fadeOut(tween(140)) + slideOutVertically(tween(180)) { it / 3 },
-                modifier = Modifier.align(Alignment.BottomStart).padding(bottom = stageInset)) {
+                modifier = Modifier.align(Alignment.BottomStart).padding(bottom = stageInset + cardLift)) {
                 val p = selected
                 Surface(color = glass, shape = RoundedCornerShape(14.dp),
                     border = BorderStroke(1.dp, line),
@@ -710,7 +726,8 @@ fun FetLabApp(lib: Library, renderer: Renderer, dynamic: Boolean, onDynamic: (Bo
 
             AnimatedVisibility(visible = scene.logic,
                 enter = fadeIn() + slideInVertically { it }, exit = fadeOut() + slideOutVertically { it },
-                modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = stageInset)) {
+                modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = stageInset)
+                    .onSizeChanged { logicBarH = with(density) { it.height.toDp() } }) {
                 LogicBar(input, glass, line, ink, dim, lightBg) { v ->
                     haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                     input = v; renderer.input = v; renderer.capsDirty = true; draw()
