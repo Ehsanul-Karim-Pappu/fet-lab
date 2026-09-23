@@ -1,16 +1,16 @@
 package io.github.ehsanulkarimpappu.fetlab
 
 import android.content.Context
+import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.VectorConverter
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
-import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -23,20 +23,45 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
+import androidx.compose.runtime.staticCompositionLocalOf
+import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.composed
+import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.geometry.RoundRect
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.PathFillType
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.drawscope.scale
+import androidx.compose.ui.graphics.drawscope.translate
+import androidx.compose.ui.layout.boundsInRoot
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.launch
 import org.json.JSONObject
 
 /** One destination the guided tour or the feature list can point at. */
@@ -76,21 +101,225 @@ fun markTourSeen(ctx: Context) {
     ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit().putBoolean(KEY_TOUR_SEEN, true).apply()
 }
 
-/* ============================================================== dimming == */
+/* ============================================================ targets ==== */
 
 /**
- * Wraps [content] with its own darkening scrim. During the tour every region that
- * is not the current step's subject dims — a spotlight made of several honest
- * rectangles instead of one hole punched in a full-screen overlay, so it needs no
- * cross-composable coordinate math to stay correct as the layout changes underneath it.
+ * Where every control the tour can point at currently sits on screen, in root
+ * coordinates. Controls register themselves with [tourTarget]; the map is snapshot
+ * state, so the spotlight follows a control that moves or resizes (a sheet opening,
+ * a list scrolling) instead of pointing at where it used to be.
+ */
+class TourTargets {
+    private val map = mutableStateMapOf<String, Rect>()
+    operator fun get(id: String): Rect? = map[id]
+    fun put(id: String, r: Rect) { if (map[id] != r) map[id] = r }
+    fun remove(id: String) { map.remove(id) }
+}
+
+val LocalTourTargets = staticCompositionLocalOf<TourTargets?> { null }
+
+/** Registers this element's on-screen bounds under [id] so the tour can find it. */
+fun Modifier.tourTarget(id: String): Modifier = composed {
+    val targets = LocalTourTargets.current ?: return@composed Modifier
+    DisposableEffect(targets, id) { onDispose { targets.remove(id) } }
+    Modifier.onGloballyPositioned { targets.put(id, it.boundsInRoot()) }
+}
+
+/* ============================================================= player ==== */
+
+class Ripple(val at: Offset) { val t = Animatable(0f) }
+
+/**
+ * Drives the tour's moving parts: one spotlight that glides between sections, and a
+ * hand that travels to a control, presses it and leaves a ripple. Steps are written
+ * as short suspend scripts against this, e.g. `spot("sheet"); tap("tab:1") { … }`,
+ * and a step change cancels the running script.
+ */
+class TourPlayer(val targets: TourTargets, private val scope: CoroutineScope, private val px: Float) {
+    /** The section currently lit; the overlay animates [spot] towards its bounds. */
+    var spotId by mutableStateOf("")
+    val spot = Animatable(Rect.Zero, Rect.VectorConverter)
+    /** Root-space bounds of the overlay itself, to convert root rects into its frame. */
+    var bounds by mutableStateOf(Rect.Zero)
+    /** Set by [reset]: the next spotlight closes in from the whole screen again. */
+    var fresh = true
+
+    val hand = Animatable(Offset.Zero, Offset.VectorConverter)
+    val handAlpha = Animatable(0f)
+    val press = Animatable(0f)
+    /** Two fingertips, while a pinch is being shown instead of the hand. */
+    var pinch by mutableStateOf<Pair<Offset, Offset>?>(null)
+    val ripples = mutableStateListOf<Ripple>()
+
+    /** Waits (briefly) for a control to be laid out, since a tab may still be opening. */
+    suspend fun rect(id: String): Rect? {
+        repeat(90) {
+            targets[id]?.let { if (it.width > 0f && it.height > 0f) return it }
+            withFrameNanos { }
+        }
+        return null
+    }
+
+    suspend fun spot(id: String) {
+        spotId = id
+        rect(id)
+        delay(520)
+    }
+
+    private suspend fun moveHand(to: Offset, ms: Int = 560) {
+        if (handAlpha.value < 0.02f) hand.snapTo(Offset(to.x + 70f * px, to.y + 170f * px))
+        coroutineScope {
+            launch { handAlpha.animateTo(1f, tween(220)) }
+            hand.animateTo(to, tween(ms, easing = FastOutSlowInEasing))
+        }
+    }
+
+    fun ripple(at: Offset) {
+        val r = Ripple(at)
+        ripples.add(r)
+        scope.launch { r.t.animateTo(1f, tween(650)); ripples.remove(r) }
+    }
+
+    /** Moves to [id], presses, fires [effect] at the moment of contact, releases. */
+    suspend fun tap(id: String, effect: () -> Unit = {}) {
+        val r = rect(id) ?: return
+        moveHand(r.center)
+        delay(120)
+        press.animateTo(1f, tween(110))
+        ripple(r.center)
+        effect()
+        press.animateTo(0f, tween(170))
+        delay(650)
+    }
+
+    /** Presses at [from], slides to [to] over [ms], calling [onStep] with each progress delta. */
+    suspend fun drag(from: Offset, to: Offset, ms: Int, onStep: (Float) -> Unit) {
+        moveHand(from)
+        delay(100)
+        press.animateTo(1f, tween(110))
+        ripple(from)
+        val p = Animatable(0f)
+        var last = 0f
+        coroutineScope {
+            launch { hand.animateTo(to, tween(ms, easing = FastOutSlowInEasing)) }
+            p.animateTo(1f, tween(ms, easing = FastOutSlowInEasing)) { onStep(value - last); last = value }
+        }
+        press.animateTo(0f, tween(170))
+        delay(350)
+    }
+
+    /** Two fingertips spreading apart and back at [centre]; [onSpread] gets 0 → 1 → 0. */
+    suspend fun pinch(centre: Offset, ms: Int, onSpread: (Float) -> Unit) {
+        handAlpha.animateTo(0f, tween(160))
+        val s = Animatable(0f)
+        val near = 22f * px; val far = 78f * px
+        fun place(v: Float) {
+            val d = near + (far - near) * v
+            pinch = Offset(centre.x - d, centre.y + d * 0.55f) to Offset(centre.x + d, centre.y - d * 0.55f)
+            onSpread(v)
+        }
+        place(0f)
+        pinch?.let { ripple(it.first); ripple(it.second) }
+        s.animateTo(1f, tween(ms / 2, easing = FastOutSlowInEasing)) { place(value) }
+        s.animateTo(0f, tween(ms / 2, easing = FastOutSlowInEasing)) { place(value) }
+        pinch = null
+        delay(250)
+    }
+
+    suspend fun hideHand() { handAlpha.animateTo(0f, tween(260)) }
+
+    /** Stops the hand. The spotlight hole is left where it was, so the veil can fade out
+     *  around it instead of flashing the whole screen dark. */
+    suspend fun reset() {
+        spotId = ""; pinch = null; ripples.clear(); fresh = true
+        handAlpha.snapTo(0f); press.snapTo(0f)
+    }
+}
+
+/* ============================================================ overlay ==== */
+
+/**
+ * The scrim with a hole where the current section is, a soft pulsing edge around the
+ * hole, the ripples, and the hand. It never takes touches — everything underneath
+ * stays live, and the tour card sits above it.
  */
 @Composable
-fun Dimmable(dim: Boolean, modifier: Modifier = Modifier, content: @Composable () -> Unit) {
-    Box(modifier) {
-        content()
-        val alpha by animateFloatAsState(if (dim) 0.72f else 0f, tween(280), label = "dim")
-        if (alpha > 0.01f)
-            Box(Modifier.matchParentSize().background(Color.Black.copy(alpha = alpha)))
+fun TourOverlay(player: TourPlayer, active: Boolean, tint: Color, modifier: Modifier = Modifier) {
+    val hand = painterResource(R.drawable.ic_tour_hand)
+    val scrim by animateFloatAsState(if (active) 0.72f else 0f, tween(320), label = "tourScrim")
+    val glow by rememberInfiniteTransition(label = "spotGlow").animateFloat(
+        initialValue = 0.35f, targetValue = 0.95f,
+        animationSpec = infiniteRepeatable(tween(950, easing = FastOutSlowInEasing), RepeatMode.Reverse),
+        label = "spotGlowT")
+
+    // Follow the lit section: a long glide when it changes, short catch-ups while it moves.
+    LaunchedEffect(player.spotId) {
+        val id = player.spotId
+        if (id.isEmpty()) return@LaunchedEffect
+        var first = true
+        snapshotFlow { player.targets[id] }.collectLatest { r ->
+            if (r == null || r.isEmpty) return@collectLatest
+            // The first spotlight of the tour closes in from the whole screen.
+            if (player.fresh || player.spot.value.isEmpty) { player.spot.snapTo(player.bounds); player.fresh = false }
+            player.spot.animateTo(r, tween(if (first) 520 else 160, easing = FastOutSlowInEasing))
+            first = false
+        }
+    }
+
+    Canvas(modifier.onGloballyPositioned { player.bounds = it.boundsInRoot() }) {
+        if (scrim < 0.01f) return@Canvas
+        val o = player.bounds.topLeft
+        val s = player.spot.value
+        val hole = if (s.isEmpty) null
+            else RoundRect(s.translate(-o.x, -o.y).inflate(8.dp.toPx()), CornerRadius(16.dp.toPx()))
+
+        val veil = Path().apply {
+            fillType = PathFillType.EvenOdd
+            addRect(Rect(Offset.Zero, size))
+            if (hole != null) addRoundRect(hole)
+        }
+        drawPath(veil, Color.Black.copy(alpha = scrim))
+
+        val on = scrim / 0.72f
+        if (hole != null) for (i in 0..2) {
+            val grow = (i * 3).dp.toPx()
+            drawRoundRect(tint.copy(alpha = glow * (0.55f - i * 0.17f) * on),
+                topLeft = Offset(hole.left - grow, hole.top - grow),
+                size = Size(hole.width + 2 * grow, hole.height + 2 * grow),
+                cornerRadius = CornerRadius(16.dp.toPx() + grow),
+                style = Stroke(width = (2 + i * 2).dp.toPx()))
+        }
+
+        for (r in player.ripples) {
+            val t = r.t.value
+            val c = r.at - o
+            drawCircle(tint.copy(alpha = (1f - t) * 0.28f * on), radius = (8 + 30 * t).dp.toPx(), center = c)
+            drawCircle(tint.copy(alpha = (1f - t) * 0.9f * on), radius = (10 + 34 * t).dp.toPx(), center = c,
+                style = Stroke(width = (3f * (1f - t) + 1f).dp.toPx()))
+        }
+
+        player.pinch?.let { (a, b) ->
+            for (p in listOf(a - o, b - o)) {
+                drawCircle(Color.White.copy(alpha = 0.25f * on), radius = 20.dp.toPx(), center = p)
+                drawCircle(Color.White.copy(alpha = 0.95f * on), radius = 11.dp.toPx(), center = p)
+            }
+        }
+
+        val a = player.handAlpha.value * on
+        if (a > 0.01f) {
+            // The fingertip of the 24-unit icon is at (11.5, 6); put that on the target.
+            val hs = 60.dp.toPx()
+            val tipInIcon = Offset(hs * 11.5f / 24f, hs * 6f / 24f)
+            val tip = player.hand.value - o
+            translate(tip.x - tipInIcon.x, tip.y - tipInIcon.y) {
+                scale(1f - 0.12f * player.press.value, pivot = tipInIcon) {
+                    translate(2.dp.toPx(), 3.dp.toPx()) {
+                        with(hand) { draw(Size(hs, hs), alpha = 0.4f * a, colorFilter = ColorFilter.tint(Color.Black)) }
+                    }
+                    with(hand) { draw(Size(hs, hs), alpha = a, colorFilter = ColorFilter.tint(Color(0xFFF7F4EF))) }
+                }
+            }
+        }
     }
 }
 

@@ -34,6 +34,8 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -94,8 +96,6 @@ private val SHOW_KEYS = listOf("show_fin" to "FinFET", "show_ns" to "Nanosheet",
     "show_fs" to "Forksheet", "show_cfet" to "CFET", "show_cmp" to "Compare")
 private val MODES = listOf("Device", "Inverter", "Layout")
 private val TABS = listOf("Views", "Section", "Layers", "Specs", "Story")
-/** Guide stop ids that live on the tool sheet, as opposed to the header or the stage. */
-private val TOOL_STOPS = setOf("views", "section", "layers", "specs", "story")
 
 private fun keysFor(mode: Int) = when (mode) { 0 -> DEV_KEYS; 1 -> INV_KEYS; else -> SHOW_KEYS }
 private fun firstOf(mode: Int) = keysFor(mode).first().first
@@ -163,6 +163,11 @@ private fun Mark(modifier: Modifier = Modifier) {
 }
 
 /* ============================================================== camera === */
+
+/** What the guided tour found on screen, so it can put it back when it ends. */
+private class TourReturn(val key: String, val seq: Boolean, val cam: Cam, val view: String,
+                         val tab: Int, val sheet: Int, val par: String?, val selected: Part?,
+                         val visible: Map<String, Boolean>)
 
 private class Cam(val az: Float, val el: Float, val r: Float,
                   val tx: Float, val ty: Float, val tz: Float,
@@ -233,30 +238,14 @@ fun FetLabApp(lib: Library, renderer: Renderer, dynamic: Boolean, onDynamic: (Bo
     // --- guided tour and feature list --------------------------------------
     val catalog = remember { GuideCatalog.load(ctx) }
     var showHelp by rememberSaveable { mutableStateOf(false) }
-    var tourStep by rememberSaveable { mutableIntStateOf(-1) }
+    // Not saveable: the snapshot the tour restores from does not survive recreation either.
+    var tourStep by remember { mutableIntStateOf(-1) }
     var welcomeSeen by remember { mutableStateOf(tourSeen(ctx)) }
     val tourFocus = if (tourStep in catalog.tour.indices) catalog.tour[tourStep] else ""
-    fun applyTourStep(i: Int) {
-        val stop = catalog.stop(catalog.tour[i])
-        // Header steps want the full stage visible; tool steps open the tab they teach.
-        if (stop.tab >= 0) { tab = stop.tab; sheetLevel = if (stop.id == "story") 2 else maxOf(sheetLevel, 1) }
-        else sheetLevel = 0
-    }
-    fun startTour() {
-        if (!welcomeSeen) { markTourSeen(ctx); welcomeSeen = true }
-        showHelp = false
-        tourStep = 0; applyTourStep(0)
-    }
-    fun exitTour() { tourStep = -1 }
-    fun tourNext() {
-        if (tourStep >= catalog.tour.lastIndex) exitTour() else { tourStep++; applyTourStep(tourStep) }
-    }
-    fun tourBack() { if (tourStep > 0) { tourStep--; applyTourStep(tourStep) } }
-    fun openFeature(s: GuideStop) {
-        showHelp = false; tourStep = -1
-        if (s.tab >= 0) { tab = s.tab; sheetLevel = if (s.id == "story") 2 else maxOf(sheetLevel, 1) }
-        else sheetLevel = 0
-    }
+    val tourTargets = remember { TourTargets() }
+    val tourPlayer = remember { TourPlayer(tourTargets, scope, density.density) }
+    var tourReturn by remember { mutableStateOf<TourReturn?>(null) }
+    var specsShowPar by remember { mutableIntStateOf(0) }
 
     val scene = lib.scene(sceneKey)
     val stageBg = if (lightBg) Stage.light else Stage.dark
@@ -330,10 +319,12 @@ fun FetLabApp(lib: Library, renderer: Renderer, dynamic: Boolean, onDynamic: (Bo
         if (animate) draw()
     }
 
+    var sceneSwitch by remember { mutableStateOf<Job?>(null) }
     fun switchScene(key: String) {
         if (key == sceneKey) return
         flight?.cancel()
-        scope.launch {
+        sceneSwitch?.cancel()
+        sceneSwitch = scope.launch {
             scrim = 1f
             kotlinx.coroutines.delay(140)
             openScene(key, animate = true)
@@ -342,6 +333,182 @@ fun FetLabApp(lib: Library, renderer: Renderer, dynamic: Boolean, onDynamic: (Bo
     }
 
     LaunchedEffect(Unit) { openScene(sceneKey, animate = false) }
+
+    /* ------------------------------------------------ actions ----------- */
+    // One definition each, shared by the controls and the guided tour's hand.
+
+    fun selectMode(i: Int) {
+        // Only the viewing mode changes: the technology on screen carries across.
+        val tech = techOf(sceneKey)
+        val next = sceneFor(i, tech) ?: firstOf(i)
+        switchScene(if (i == 0 && tech == "cfet" && cfetSeq) "cfet_seq" else next)
+    }
+    fun selectChip(k: String) = switchScene(if (k == "cfet_mono" && cfetSeq) "cfet_seq" else k)
+    // Story reads long-form, so give it the reading height; every other tab just needs
+    // to be open. Either way this never *closes* a sheet the user opened wider by hand.
+    fun selectTab(i: Int) {
+        tab = i
+        sheetLevel = if (i == 4) maxOf(sheetLevel, 2) else maxOf(sheetLevel, 1)
+    }
+    fun setClip(ax: Int, v: Float) {
+        flight?.cancel()
+        when (ax) { 0 -> cx = v; 1 -> cy = v; else -> cz = v }
+        val sc = lib.scene(sceneKey)
+        renderer.clip = floatArrayOf(
+            sc.lo[0] + (sc.hi[0] - sc.lo[0]) * cx,
+            sc.lo[1] + (sc.hi[1] - sc.lo[1]) * cy,
+            sc.lo[2] + (sc.hi[2] - sc.lo[2]) * cz)
+        renderer.capsDirty = true; draw()
+    }
+    fun setVisible(parts: List<Part>, visible: Boolean) {
+        for (p in parts) p.visible = visible
+        layerTick++
+        renderer.capsDirty = true; draw()
+    }
+    fun pickPar(t: Parasitic?) {
+        parPick = t?.id
+        renderer.par = t
+        renderer.capsDirty = true; draw()
+    }
+
+    /* ------------------------------------------------ guided tour ------- */
+
+    fun startTour() {
+        if (!welcomeSeen) { markTourSeen(ctx); welcomeSeen = true }
+        showHelp = false
+        // The tour really switches scenes, turns the camera and cuts the model, so
+        // remember what was on screen and put it all back when it ends.
+        if (tourReturn == null) tourReturn = TourReturn(sceneKey, cfetSeq, cameraNow(), viewKey,
+            tab, sheetLevel, parPick, selected,
+            lib.scene(sceneKey).parts.associate { it.id to it.visible })
+        tourStep = 0
+    }
+    fun exitTour() {
+        tourStep = -1
+        val r = tourReturn ?: return
+        tourReturn = null
+        flight?.cancel(); sceneSwitch?.cancel(); scrim = 0f
+        if (sceneKey != r.key) openScene(r.key, animate = false)
+        cfetSeq = r.seq
+        val sc = lib.scene(r.key)
+        for (p in sc.parts) p.visible = r.visible[p.id] ?: true
+        layerTick++
+        applyCam(sc, r.cam); viewKey = r.view
+        pickPar(sc.par?.terms?.firstOrNull { it.id == r.par })
+        selected = r.selected; renderer.highlight = r.selected
+        tab = r.tab; sheetLevel = r.sheet
+        specsShowPar = 0          // or Specs would keep jumping to the table after the tour
+        draw()
+    }
+    fun tourNext() { if (tourStep >= catalog.tour.lastIndex) exitTour() else tourStep++ }
+    fun tourBack() { if (tourStep > 0) tourStep-- }
+    fun openFeature(s: GuideStop) {
+        showHelp = false
+        if (tourStep >= 0) exitTour()
+        if (s.tab >= 0) selectTab(s.tab) else sheetLevel = 0
+    }
+
+    // Each step is a short script for the hand. It runs once per step; the stage step
+    // loops, because orbiting and pinching back and forth leave the model where it was.
+    LaunchedEffect(tourStep) {
+        if (tourStep !in catalog.tour.indices) { tourPlayer.reset(); return@LaunchedEffect }
+        val id = catalog.tour[tourStep]
+        if (catalog.stop(id).tab < 0) sheetLevel = 0
+        with(tourPlayer) {
+            when (id) {
+                "modes" -> {
+                    spot("modes")
+                    tap("mode:1") { selectMode(1) }
+                    delay(900)
+                    tap("mode:0") { selectMode(0) }
+                    hideHand()
+                }
+                "arch" -> {
+                    spot("arch")
+                    val k = if (techOf(sceneKey) == "ns") "fs" else "ns"
+                    tap("chip:$k") { selectChip(k) }
+                    hideHand()
+                }
+                "stage" -> {
+                    spot("stage")
+                    val r = rect("stage") ?: return@with
+                    val y = r.top + r.height * 0.5f
+                    val turn = 0.4f * 3.2f        // a 40%-of-width swipe, at the real gesture's rate
+                    while (true) {
+                        drag(GOffset(r.left + r.width * 0.3f, y), GOffset(r.left + r.width * 0.7f, y), 1100) {
+                            renderer.az -= it * turn; draw()
+                        }
+                        drag(GOffset(r.left + r.width * 0.7f, y), GOffset(r.left + r.width * 0.3f, y), 1100) {
+                            renderer.az += it * turn; draw()
+                        }
+                        val base = renderer.dist
+                        pinch(r.center, 1500) { v -> renderer.dist = base * (1f - 0.3f * v); draw() }
+                        renderer.dist = base
+                        tap("stage") {
+                            val hit = renderer.pick(renderer.viewW / 2f, renderer.viewH / 2f)
+                            selected = hit; renderer.highlight = hit; draw()
+                        }
+                        delay(1300)
+                    }
+                }
+                "views" -> {
+                    spot("sheet")
+                    tap("tab:0") { selectTab(0) }
+                    val sc = lib.scene(sceneKey)
+                    if (sc.views.size > 1) tap("view:1") { goToView(sc, sc.views[1], animate = true) }
+                    hideHand()
+                }
+                "section" -> {
+                    spot("sheet")
+                    tap("tab:1") { selectTab(1) }
+                    val r = rect("slider:x")
+                    if (r != null) {
+                        // Material's thumb travels inside the track, one thumb-radius in.
+                        val inset = 10f * density.density
+                        fun at(v: Float) = GOffset(r.left + inset + (r.width - 2 * inset) * v, r.center.y)
+                        val start = cx
+                        drag(at(start), at(0.45f), 1300) { setClip(0, (cx + it * (0.45f - start)).coerceIn(0f, 1f)) }
+                        delay(500)
+                        drag(at(0.45f), at(start), 1300) { setClip(0, (cx + it * (start - 0.45f)).coerceIn(0f, 1f)) }
+                    }
+                    hideHand()
+                }
+                "layers" -> {
+                    spot("sheet")
+                    tap("tab:2") { selectTab(2) }
+                    val sc = lib.scene(sceneKey)
+                    val first = sc.groups.firstOrNull { g -> sc.parts.any { it.group == g } }
+                    if (first != null) {
+                        val parts = sc.parts.filter { it.group == first }
+                        tap("group:0") { setVisible(parts, !parts.any { it.visible }) }
+                        delay(900)
+                        tap("group:0") { setVisible(parts, !parts.any { it.visible }) }
+                    }
+                    hideHand()
+                }
+                "specs" -> {
+                    spot("sheet")
+                    tap("tab:3") { selectTab(3) }
+                    val terms = lib.scene(sceneKey).par?.terms
+                    if (!terms.isNullOrEmpty()) {
+                        sheetLevel = 2
+                        specsShowPar++
+                        delay(700)
+                        tap("par:0") { pickPar(terms[0]) }
+                    }
+                    hideHand()
+                }
+                "story" -> {
+                    spot("sheet")
+                    tap("tab:4") { selectTab(4) }
+                    delay(1600)
+                    spot("about")
+                    tap("about")          // only pointed at: opening About would cover the tour
+                    hideHand()
+                }
+            }
+        }
+    }
 
     val lifecycleOwner = LocalLifecycleOwner.current
     DisposableEffect(lifecycleOwner) {
@@ -372,7 +539,7 @@ fun FetLabApp(lib: Library, renderer: Renderer, dynamic: Boolean, onDynamic: (Bo
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         maxLines = 1, overflow = TextOverflow.Ellipsis)
                 }
-                Box(Modifier.size(42.dp).clip(CircleShape)
+                Box(Modifier.size(42.dp).tourTarget("about").clip(CircleShape)
                     .background(MaterialTheme.colorScheme.surfaceVariant)
                     .clickable { showAbout = true }, contentAlignment = Alignment.Center) {
                     Text("i", fontFamily = Mono, fontSize = 16.sp,
@@ -389,27 +556,21 @@ fun FetLabApp(lib: Library, renderer: Renderer, dynamic: Boolean, onDynamic: (Bo
                 }
             }
             Spacer(Modifier.height(12.dp))
-            Dimmable(tourStep >= 0 && tourFocus != "modes") {
-                Box(Modifier.padding(horizontal = 16.dp)) {
-                    Segmented(MODES, mode) { i ->
-                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                        // Only the viewing mode changes: the technology on screen carries across.
-                        val tech = techOf(sceneKey)
-                        val next = sceneFor(i, tech) ?: firstOf(i)
-                        switchScene(if (i == 0 && tech == "cfet" && cfetSeq) "cfet_seq" else next)
-                    }
+            Box(Modifier.padding(horizontal = 16.dp).tourTarget("modes")) {
+                Segmented(MODES, mode, tag = "mode") { i ->
+                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                    selectMode(i)
                 }
             }
             Spacer(Modifier.height(10.dp))
-            Dimmable(tourStep >= 0 && tourFocus != "arch") {
-            Column {
+            Column(Modifier.tourTarget("arch")) {
             LazyRow(contentPadding = PaddingValues(horizontal = 16.dp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 items(keysFor(mode)) { (k, label) ->
                     val active = sceneKey == k || (k == "cfet_mono" && sceneKey == "cfet_seq")
-                    Chip(label, active) {
+                    Chip(label, active, Modifier.tourTarget("chip:$k")) {
                         haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                        switchScene(if (k == "cfet_mono" && cfetSeq) "cfet_seq" else k)
+                        selectChip(k)
                     }
                 }
             }
@@ -424,13 +585,12 @@ fun FetLabApp(lib: Library, renderer: Renderer, dynamic: Boolean, onDynamic: (Bo
                 }
             }
             }
-            }
             Spacer(Modifier.height(12.dp))
         }
     }
 
     val stage = @Composable { mod: Modifier ->
-        Box(mod.clip(RoundedCornerShape(20.dp)).background(stageBg)
+        Box(mod.tourTarget("stage").clip(RoundedCornerShape(20.dp)).background(stageBg)
             .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(20.dp))) {
 
             AndroidView(factory = { glView }, modifier = Modifier.fillMaxSize())
@@ -557,15 +717,10 @@ fun FetLabApp(lib: Library, renderer: Renderer, dynamic: Boolean, onDynamic: (Bo
     }
 
     val sheetSpring = spring<Dp>(dampingRatio = 0.85f, stiffness = Spring.StiffnessMediumLow)
-    // Story reads long-form, so give it the reading height; every other tab just needs
-    // to be open. Either way this never *closes* a sheet the user opened wider by hand.
-    fun openSheet() {
-        sheetLevel = if (tab == 4) maxOf(sheetLevel, 2) else maxOf(sheetLevel, 1)
-    }
 
     val controlTabs = @Composable { mod: Modifier ->
         Box(mod) {
-            Segmented(TABS, tab) { tab = it; openSheet() }
+            Segmented(TABS, tab, tag = "tab") { selectTab(it) }
         }
     }
 
@@ -581,15 +736,7 @@ fun FetLabApp(lib: Library, renderer: Renderer, dynamic: Boolean, onDynamic: (Bo
                         }
                         1 -> SectionTab(scene, cx, cy, cz, explodeF, ghost, showDims, texture,
                             edges, lightBg, dynamic, spin,
-                            onClip = { ax, v ->
-                                flight?.cancel()
-                                when (ax) { 0 -> cx = v; 1 -> cy = v; else -> cz = v }
-                                renderer.clip = floatArrayOf(
-                                    scene.lo[0] + (scene.hi[0] - scene.lo[0]) * cx,
-                                    scene.lo[1] + (scene.hi[1] - scene.lo[1]) * cy,
-                                    scene.lo[2] + (scene.hi[2] - scene.lo[2]) * cz)
-                                renderer.capsDirty = true; draw()
-                            },
+                            onClip = { ax, v -> setClip(ax, v) },
                             onExplode = { explodeF = it; renderer.explode = it * 16f
                                 renderer.capsDirty = true; draw() },
                             onGhost = { ghost = it; renderer.ghost = it; draw() },
@@ -612,16 +759,8 @@ fun FetLabApp(lib: Library, renderer: Renderer, dynamic: Boolean, onDynamic: (Bo
                                 spin = false
                                 goToView(scene, scene.views.first(), animate = true)
                             })
-                        2 -> LayersTab(lib, scene, layerTick) { parts, visible ->
-                            for (p in parts) p.visible = visible
-                            layerTick++
-                            renderer.capsDirty = true; draw()
-                        }
-                        3 -> SpecsTab(scene, parPick) { t ->
-                            parPick = t?.id
-                            renderer.par = t
-                            renderer.capsDirty = true; draw()
-                        }
+                        2 -> LayersTab(lib, scene, layerTick) { parts, visible -> setVisible(parts, visible) }
+                        3 -> SpecsTab(scene, parPick, specsShowPar) { t -> pickPar(t) }
                         else -> StoryTab(scene)
                     }
                 }
@@ -631,6 +770,7 @@ fun FetLabApp(lib: Library, renderer: Renderer, dynamic: Boolean, onDynamic: (Bo
 
     /* ----------------------------------------------------------- layout -- */
 
+    CompositionLocalProvider(LocalTourTargets provides tourTargets) {
     BoxWithConstraints(Modifier.fillMaxSize()
         .background(MaterialTheme.colorScheme.background).safeDrawingPadding()) {
         val wide = maxWidth >= 680.dp
@@ -638,18 +778,13 @@ fun FetLabApp(lib: Library, renderer: Renderer, dynamic: Boolean, onDynamic: (Bo
             Row(Modifier.fillMaxSize()) {
                 Column(Modifier.width(330.dp).fillMaxHeight()) {
                     header()
-                    Dimmable(tourStep >= 0 && tourFocus !in TOOL_STOPS, Modifier.weight(1f).fillMaxWidth()) {
-                        Column(Modifier.fillMaxSize()) {
-                            controlTabs(Modifier.fillMaxWidth().padding(horizontal = 16.dp))
-                            Spacer(Modifier.height(10.dp))
-                            controlBody(Modifier.weight(1f).fillMaxWidth().padding(bottom = 12.dp))
-                        }
+                    Column(Modifier.weight(1f).fillMaxWidth().tourTarget("sheet")) {
+                        controlTabs(Modifier.fillMaxWidth().padding(horizontal = 16.dp))
+                        Spacer(Modifier.height(10.dp))
+                        controlBody(Modifier.weight(1f).fillMaxWidth().padding(bottom = 12.dp))
                     }
                 }
-                Dimmable(tourStep >= 0 && tourFocus != "stage",
-                    Modifier.weight(1f).fillMaxHeight().padding(end = 14.dp, bottom = 14.dp, top = 12.dp)) {
-                    stage(Modifier.fillMaxSize())
-                }
+                stage(Modifier.weight(1f).fillMaxHeight().padding(end = 14.dp, bottom = 14.dp, top = 12.dp))
             }
         } else {
             Column(Modifier.fillMaxSize()) {
@@ -664,20 +799,16 @@ fun FetLabApp(lib: Library, renderer: Renderer, dynamic: Boolean, onDynamic: (Bo
                     val sheetAlpha by animateFloatAsState(
                         if (sheetLevel > 0) 0.95f else 0.9f, tween(200), label = "sheetAlpha")
 
-                    Dimmable(tourStep >= 0 && tourFocus != "stage",
-                        Modifier.fillMaxSize().padding(horizontal = 12.dp, vertical = 10.dp)) {
-                        stage(Modifier.fillMaxSize())
-                    }
+                    stage(Modifier.fillMaxSize().padding(horizontal = 12.dp, vertical = 10.dp))
 
                     var dragDistance by remember { mutableFloatStateOf(0f) }
-                    Dimmable(tourStep >= 0 && tourFocus !in TOOL_STOPS,
-                        Modifier.align(Alignment.BottomCenter).fillMaxWidth()
-                            .clip(RoundedCornerShape(topStart = 22.dp, topEnd = 22.dp))) {
+                    Box(Modifier.align(Alignment.BottomCenter).fillMaxWidth()) {
                         Surface(color = MaterialTheme.colorScheme.surface.copy(alpha = sheetAlpha),
                             shape = RoundedCornerShape(topStart = 22.dp, topEnd = 22.dp),
                             border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
                             modifier = Modifier.fillMaxWidth()
                                 .shadow(14.dp, RoundedCornerShape(topStart = 22.dp, topEnd = 22.dp))
+                                .tourTarget("sheet")
                                 .onSizeChanged { stageInset = with(density) { it.height.toDp() } }) {
                             Column {
                                 Box(Modifier.fillMaxWidth().height(26.dp).draggable(
@@ -711,14 +842,20 @@ fun FetLabApp(lib: Library, renderer: Renderer, dynamic: Boolean, onDynamic: (Bo
             AboutScreen { showAbout = false }
         }
 
+        TourOverlay(tourPlayer, active = tourStep >= 0, tint = MaterialTheme.colorScheme.primary,
+            modifier = Modifier.fillMaxSize())
+
+        // The card sits in whichever half the spotlight is not, so it never covers what it
+        // is teaching — and it follows the light when one step moves it (Story → About).
+        val cardAtBottom by remember { derivedStateOf {
+            val lit = tourPlayer.spot.value; val all = tourPlayer.bounds
+            lit.isEmpty || all.isEmpty || lit.center.y < all.top + all.height * 0.55f
+        } }
         if (tourStep in catalog.tour.indices) {
             val stop = catalog.stop(tourFocus)
-            // The card sits opposite whatever it is teaching, so it never covers it:
-            // header and stage steps point from the bottom, tool steps from the top.
-            val atBottom = tourFocus !in TOOL_STOPS
             TourCard(stop, tourStep, catalog.tour.size,
                 modifier = Modifier
-                    .align(if (atBottom) Alignment.BottomCenter else Alignment.TopCenter)
+                    .align(if (cardAtBottom) Alignment.BottomCenter else Alignment.TopCenter)
                     .padding(16.dp)
                     .then(if (wide) Modifier.width(380.dp) else Modifier.fillMaxWidth()),
                 onBack = { tourBack() }, onNext = { tourNext() }, onExit = { exitTour() })
@@ -728,6 +865,7 @@ fun FetLabApp(lib: Library, renderer: Renderer, dynamic: Boolean, onDynamic: (Bo
         if (showHelp)
             FeatureGuide(catalog, onOpen = { s -> openFeature(s) },
                 onTour = { startTour() }, onClose = { showHelp = false })
+    }
     }
 }
 
@@ -883,7 +1021,7 @@ private fun matColor(lib: Library, key: String): Color {
 }
 
 @Composable
-private fun Segmented(items: List<String>, selected: Int, onSelect: (Int) -> Unit) {
+private fun Segmented(items: List<String>, selected: Int, tag: String? = null, onSelect: (Int) -> Unit) {
     val shape = RoundedCornerShape(13.dp)
     BoxWithConstraints(Modifier.fillMaxWidth().clip(shape)
         .background(MaterialTheme.colorScheme.surfaceVariant).padding(3.dp)) {
@@ -898,7 +1036,9 @@ private fun Segmented(items: List<String>, selected: Int, onSelect: (Int) -> Uni
                 val fg by animateColorAsState(
                     if (i == selected) MaterialTheme.colorScheme.onPrimaryContainer
                     else MaterialTheme.colorScheme.onSurfaceVariant, tween(220), label = "segfg")
-                Box(Modifier.width(w).height(36.dp).clip(RoundedCornerShape(10.dp))
+                Box(Modifier.width(w).height(36.dp)
+                    .then(if (tag != null) Modifier.tourTarget("$tag:$i") else Modifier)
+                    .clip(RoundedCornerShape(10.dp))
                     .clickable { onSelect(i) }, contentAlignment = Alignment.Center) {
                     Text(s, color = fg, fontFamily = PlexSans, fontSize = 12.5f.sp,
                         fontWeight = if (i == selected) FontWeight.SemiBold else FontWeight.Medium,
@@ -972,13 +1112,14 @@ private fun LogicBar(input: Int, glass: Color, line: Color, ink: Color, dim: Col
 private fun ViewsTab(scene: Scene, viewKey: String, onPick: (ViewPreset) -> Unit) {
     LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp),
         contentPadding = PaddingValues(bottom = 12.dp)) {
-        items(scene.views) { v ->
+        itemsIndexed(scene.views) { i, v ->
             val on = v.key == viewKey
             val bg by animateColorAsState(
                 if (on) MaterialTheme.colorScheme.primaryContainer
                 else MaterialTheme.colorScheme.surfaceVariant, tween(220), label = "viewBg")
             Surface(color = bg, shape = RoundedCornerShape(14.dp),
-                modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp).clickable { onPick(v) }) {
+                modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp).tourTarget("view:$i")
+                    .clickable { onPick(v) }) {
                 Row(Modifier.padding(horizontal = 15.dp, vertical = 11.dp),
                     verticalAlignment = Alignment.CenterVertically) {
                     Box(Modifier.size(8.dp).clip(CircleShape).background(
@@ -1073,7 +1214,9 @@ private fun SliderRow(label: String, axis: String, frac: Float, lo: Float, hi: F
                 color = if (offAtMax && frac >= 0.999f) MaterialTheme.colorScheme.onSurfaceVariant
                         else MaterialTheme.colorScheme.primary)
         }
-        Box(Modifier.fillMaxWidth().height(44.dp), contentAlignment = Alignment.Center) {
+        Box(Modifier.fillMaxWidth().height(44.dp)
+            .then(if (axis.isNotEmpty()) Modifier.tourTarget("slider:${axis.lowercase()}") else Modifier),
+            contentAlignment = Alignment.Center) {
             Slider(value = frac, onValueChange = onChange, valueRange = 0f..1f)
         }
     }
@@ -1105,10 +1248,10 @@ private fun LayersTab(lib: Library, scene: Scene, tick: Int, onSet: (List<Part>,
             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant,
                 modifier = Modifier.padding(top = 6.dp))
         }
-        for ((g, parts) in grouped) {
+        grouped.forEachIndexed { gi, (g, parts) ->
             item(key = "h_$g") {
                 val groupOn = parts.any { it.visible }
-                Row(Modifier.fillMaxWidth().heightIn(min = 36.dp)
+                Row(Modifier.fillMaxWidth().heightIn(min = 36.dp).tourTarget("group:$gi")
                     .clip(RoundedCornerShape(10.dp))
                     .clickable { onSet(parts, !groupOn) }
                     .padding(horizontal = 4.dp),
@@ -1191,12 +1334,12 @@ private fun LazyListScope.parasiticSection(
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.padding(top = 4.dp, bottom = 8.dp))
     }
-    items(P.terms, key = { it.id }) { t ->
+    itemsIndexed(P.terms, key = { _, t -> t.id }) { i, t ->
         val on = picked == t.id
         Surface(
             color = if (on) MaterialTheme.colorScheme.secondaryContainer else Color.Transparent,
             shape = RoundedCornerShape(8.dp),
-            modifier = Modifier.fillMaxWidth().padding(vertical = 1.dp)
+            modifier = Modifier.fillMaxWidth().padding(vertical = 1.dp).tourTarget("par:$i")
                 .clickable { onPick(if (on) null else t) }) {
             Column(Modifier.padding(horizontal = 8.dp, vertical = 7.dp)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
@@ -1232,8 +1375,13 @@ private fun LazyListScope.parasiticSection(
 }
 
 @Composable
-private fun SpecsTab(scene: Scene, picked: String?, onPick: (Parasitic?) -> Unit) {
-    LazyColumn(contentPadding = PaddingValues(bottom = 16.dp)) {
+private fun SpecsTab(scene: Scene, picked: String?, showPar: Int = 0, onPick: (Parasitic?) -> Unit) {
+    val list = rememberLazyListState()
+    // Each bump of showPar scrolls to the capacitance table (the header item after the dims).
+    LaunchedEffect(showPar) {
+        if (showPar > 0 && scene.par != null) list.animateScrollToItem(1 + scene.dims.size)
+    }
+    LazyColumn(state = list, contentPadding = PaddingValues(bottom = 16.dp)) {
         item {
             Text(scene.blurb, fontFamily = PlexSans, fontSize = 13.sp, lineHeight = 19.sp,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
