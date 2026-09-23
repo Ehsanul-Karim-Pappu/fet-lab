@@ -44,6 +44,9 @@ so a section reads like a real cross-section rather than a shell.
 
 <img src="docs/compare.png" alt="Four inverter layouts side by side at one scale">
 
+On Android, a guided tour on first launch shows the gestures and every tool, with an
+animated hand doing each one; replay it from **?** › Help & features.
+
 ## What it shows—and what it does not
 
 - FinFET: a tri-gate example with discrete fin-count sizing.

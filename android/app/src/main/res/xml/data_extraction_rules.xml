@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Tour completion is local; exclude preferences from cloud backup and device transfer. -->
+<!-- Tour completion and sheet see-through are local; exclude preferences from cloud backup and device transfer. -->
 <data-extraction-rules>
     <cloud-backup>
         <exclude domain="root" />

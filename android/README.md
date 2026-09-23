@@ -29,8 +29,18 @@ reads, so regenerating the geometry updates both.
   four-way footprint comparison.
 - **Inverter mode** — an illustrative CMOS inverter in each architecture, with an
   input toggle that lights the conducting path and dims the transistor that is off.
-- Per-layer visibility grouped by process module, three section planes with solid capped
-  cut faces, an exploded view, and tap-to-identify on any layer.
+- **Layout mode** — schematic inverter layouts with simplified stacks and exaggerated
+  vertical dimensions.
+- Five tabs in a sheet that floats over the model on phones (drag it between peek, open
+  and expanded; its see-through is adjustable): **Views** presets, **Section** planes with
+  solid capped cut faces plus the exploded view and display switches, **Layers** grouped
+  by process module with per-group and master switches, **Specs** dimensions and
+  geometry-only capacitance estimates that highlight the coupling they model, and
+  **Story** background. Tap any layer in 3D to identify it.
+- Each scene remembers its camera, cuts, view and hidden layers for the session.
+- A first-launch **guided tour** (spotlight plus an animated hand that performs each
+  gesture) and a searchable feature list, both under **?** in the header.
+- Light or dark follows the system setting.
 
 Gestures: one finger orbits, two fingers pan and pinch-zoom, a tap identifies the layer
 under your finger.
@@ -41,7 +51,10 @@ under your finger.
 Scene.kt      data model + the devices.json parser (org.json, no dependency)
 Renderer.kt   GLSurfaceView.Renderer — shaders, VBOs, section caps, ray picking, logic shading
 AppUi.kt      all Compose UI: header, chips, GL stage, overlays, control panel tabs
+Guide.kt      guided tour (spotlight, hand, card), feature list, tour targets, guide.json parser
+Story.kt      the Story tab's text blocks
 Theme.kt      Material 3 colour schemes and type
+AppInfo.kt    name, developer, links and attributions in one place
 MainActivity.kt
 ```
 
@@ -63,8 +76,9 @@ something actually changes, which keeps it off the battery.
 - Callout labels are positioned by projecting their anchor each frame but are not
   de-overlapped the way the web version does it, so on a small screen a couple of them can
   sit on top of each other. Turning callouts off in the Section tab is the workaround.
-- Tour completion is saved locally. Scene controls are not durable user preferences;
-  Android may restore temporary activity state. See the root privacy policy.
+- Tour completion and the sheet's see-through are saved locally. Per-scene state lasts
+  for the session only; other scene controls are not durable user preferences. See the
+  root privacy policy.
 
 Technical references are bundled in `references.json` and linked from About. These
 educational models do not reproduce a foundry recipe or simulate electrical performance.

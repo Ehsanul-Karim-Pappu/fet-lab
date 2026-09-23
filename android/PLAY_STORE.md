@@ -92,8 +92,9 @@ Play requires screenshots **of the actual app**. Not mockups, not the web versio
 - Take them with Android Studio's **Running Devices** screenshot button, or
   `adb exec-out screencap -p > shot.png`.
 
-Suggested set, in order: the isometric nanosheet device, the across-channel section with
-callouts, a layout figure, an inverter with the logic bar visible, and the four-way
+Suggested set, in order: the nanosheet device in 3D overview, the across-channel section with
+callouts (turn on Section › Display › Dimension callouts; they start off), a layout
+figure, an inverter with the logic bar visible, the guided tour mid-step, and the four-way
 compare.
 
 A 7-inch and 10-inch tablet screenshot each is optional but the listing looks unfinished

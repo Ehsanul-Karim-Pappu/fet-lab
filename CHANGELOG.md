@@ -3,7 +3,32 @@
 All notable changes to FET Lab. Dates are the release date; versions follow
 [semantic versioning](https://semver.org).
 
-## Unreleased
+## 1.2.0 — 2026-09-23
+
+A guided tour and a full-size model on phones. Scenes now remember how you left them,
+and the app follows the system's light or dark setting.
+
+### Guided tour and feature list
+
+A first-launch tour walks through the app in eight steps: modes, architectures, the 3D
+view's gestures, then the Views, Section, Layers, Specs and Story tabs. A spotlight moves
+from section to section and an animated hand really does each thing: it switches
+architecture, orbits and pinches the model, drags a section cut and the sheet's
+see-through, scrolls down to Spacers and turns them off and on, and scrolls to the
+capacitance table and highlights a row. Every step changes something from what is on
+screen, and the tour puts the scene, camera, layers and sheet back as they were when it
+ends. Replay it from ? › Help & features, which also lists every feature and jumps
+straight to it.
+
+### Full-size stage on phones
+
+The control sheet floats over the model instead of shrinking it, and can be dragged
+between peek, open and expanded heights.
+
+### Layers tab
+
+Every layer group has its own Hide / Show switch, and a master switch hides or shows the
+whole scene. Layers are listed two to a row on phones, with names wrapping to two lines.
 
 ### Scenes remember where you left them
 
@@ -53,6 +78,12 @@ junction-area proxy. Removed claims that architecture ratios or a monotonic rank
 are validated. A zero junction proxy does not mean a real device has zero junction
 capacitance. Added analytic and grid-convergence tests. See
 [the audit](docs/CONTENT_AUDIT.md) for assumptions and before/after values.
+
+### Fixed
+
+- Separating the layers far enough cut the outer ones off: the section plane that stood
+  for "no cut" sat at the model's edge, so exploded layers past it were clipped.
+- On Inverter and Layout scenes the IN 0/1 switch covered the selected layer's card.
 
 ## 1.1.0 — 2026-09-13
 
