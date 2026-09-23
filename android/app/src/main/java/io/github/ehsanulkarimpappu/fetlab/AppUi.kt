@@ -25,6 +25,7 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.gestures.Orientation
 import androidx.compose.foundation.gestures.awaitEachGesture
@@ -70,6 +71,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.platform.LocalHapticFeedback
@@ -1349,63 +1351,79 @@ private fun LayersTab(lib: Library, scene: Scene, tick: Int, list: LazyListState
             .filter { it.second.isNotEmpty() }
     }
     val anyVisible = scene.parts.any { it.visible }
-    LazyColumn(state = list, contentPadding = PaddingValues(bottom = 14.dp),
-        modifier = Modifier.tourTarget("list:layers")) {
-        // A master switch for the whole scene, and one per group below — the same
-        // any-on-means-hide-all-else-show-all rule the web viewer already uses.
-        item(key = "_all") {
-            Row(Modifier.fillMaxWidth().heightIn(min = 44.dp)
-                .clip(RoundedCornerShape(12.dp))
-                .clickable { onSet(scene.parts, !anyVisible) }
-                .padding(horizontal = 4.dp),
-                verticalAlignment = Alignment.CenterVertically) {
-                Text("${scene.parts.count { it.visible }} of ${scene.parts.size} layers visible",
-                    fontFamily = Mono, fontSize = 11.sp, modifier = Modifier.weight(1f),
-                    color = MaterialTheme.colorScheme.onSurfaceVariant)
-                Text(if (anyVisible) "Hide all" else "Show all",
-                    fontFamily = PlexSans, fontSize = 12.5f.sp, fontWeight = FontWeight.SemiBold,
-                    color = MaterialTheme.colorScheme.primary)
-            }
-            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant,
-                modifier = Modifier.padding(top = 6.dp))
-        }
-        grouped.forEachIndexed { gi, (g, parts) ->
-            item(key = "h_$g") {
-                val groupOn = parts.any { it.visible }
-                Row(Modifier.fillMaxWidth().heightIn(min = 36.dp).tourTarget("group:$gi")
-                    .clip(RoundedCornerShape(10.dp))
-                    .clickable { onSet(parts, !groupOn) }
+    // Two columns of layers wherever a half-width cell still fits a name; one on narrow
+    // screens and the tablet side panel.
+    BoxWithConstraints {
+        val cols = if (maxWidth >= 300.dp) 2 else 1
+        LazyColumn(state = list, contentPadding = PaddingValues(bottom = 14.dp),
+            modifier = Modifier.tourTarget("list:layers")) {
+            // A master switch for the whole scene, and one per group below — the same
+            // any-on-means-hide-all-else-show-all rule the web viewer already uses.
+            item(key = "_all") {
+                Row(Modifier.fillMaxWidth().heightIn(min = 44.dp)
+                    .clip(RoundedCornerShape(12.dp))
+                    .clickable { onSet(scene.parts, !anyVisible) }
                     .padding(horizontal = 4.dp),
                     verticalAlignment = Alignment.CenterVertically) {
-                    Text(g, style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.weight(1f).padding(top = 12.dp, bottom = 2.dp))
-                    Text(if (groupOn) "Hide" else "Show",
-                        fontFamily = Mono, fontSize = 10.5f.sp,
+                    Text("${scene.parts.count { it.visible }} of ${scene.parts.size} layers visible",
+                        fontFamily = Mono, fontSize = 11.sp, modifier = Modifier.weight(1f),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(if (anyVisible) "Hide all" else "Show all",
+                        fontFamily = PlexSans, fontSize = 12.5f.sp, fontWeight = FontWeight.SemiBold,
                         color = MaterialTheme.colorScheme.primary)
                 }
+                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant,
+                    modifier = Modifier.padding(top = 6.dp))
             }
-            items(parts, key = { it.id }) { p ->
-                val alpha by animateFloatAsState(if (p.visible) 1f else 0.42f,
-                    tween(200), label = "layerAlpha")
-                Row(Modifier.fillMaxWidth().heightIn(min = 48.dp)
-                    .clip(RoundedCornerShape(12.dp))
-                    .clickable { onSet(listOf(p), !p.visible) }
-                    .padding(horizontal = 4.dp),
-                    verticalAlignment = Alignment.CenterVertically) {
-                    Checkbox(checked = p.visible, onCheckedChange = { onSet(listOf(p), it) })
-                    Spacer(Modifier.width(4.dp))
-                    Box(Modifier.size(13.dp).clip(RoundedCornerShape(4.dp))
-                        .graphicsLayer { this.alpha = alpha }
-                        .background(matColor(lib, p.material)))
-                    Spacer(Modifier.width(11.dp))
-                    Text(p.name, fontFamily = PlexSans, fontSize = 13.sp, maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier.graphicsLayer { this.alpha = alpha },
-                        color = MaterialTheme.colorScheme.onSurface)
+            grouped.forEachIndexed { gi, (g, parts) ->
+                item(key = "h_$g") {
+                    val groupOn = parts.any { it.visible }
+                    Row(Modifier.fillMaxWidth().heightIn(min = 36.dp).tourTarget("group:$gi")
+                        .clip(RoundedCornerShape(10.dp))
+                        .clickable { onSet(parts, !groupOn) }
+                        .padding(horizontal = 4.dp),
+                        verticalAlignment = Alignment.CenterVertically) {
+                        Text(g, style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.weight(1f).padding(top = 12.dp, bottom = 2.dp))
+                        Text(if (groupOn) "Hide" else "Show",
+                            fontFamily = Mono, fontSize = 10.5f.sp,
+                            color = MaterialTheme.colorScheme.primary)
+                    }
+                }
+                items(parts.chunked(cols), key = { it.first().id }) { row ->
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        for (p in row) LayerCell(lib, p, p.visible, Modifier.weight(1f)) { onSet(listOf(p), it) }
+                        repeat(cols - row.size) { Spacer(Modifier.weight(1f)) }
+                    }
                 }
             }
         }
+    }
+}
+
+/** One layer: the whole cell toggles it. Names get two lines, since a half-width
+ *  cell would cut most of them off at one. [visible] is passed rather than read off
+ *  [p], which is not snapshot state, so a toggle always redraws the cell. */
+@Composable
+private fun LayerCell(lib: Library, p: Part, visible: Boolean, modifier: Modifier, onSet: (Boolean) -> Unit) {
+    val alpha by animateFloatAsState(if (visible) 1f else 0.42f, tween(200), label = "layerAlpha")
+    Row(modifier.heightIn(min = 48.dp)
+        .clip(RoundedCornerShape(12.dp))
+        .toggleable(value = visible, role = Role.Checkbox, onValueChange = onSet)
+        .padding(horizontal = 4.dp, vertical = 4.dp),
+        verticalAlignment = Alignment.CenterVertically) {
+        // Drawn only: the cell is the touch target, so the box needs no 48dp of its own.
+        Checkbox(checked = visible, onCheckedChange = null)
+        Spacer(Modifier.width(8.dp))
+        Box(Modifier.size(11.dp).clip(RoundedCornerShape(3.dp))
+            .graphicsLayer { this.alpha = alpha }
+            .background(matColor(lib, p.material)))
+        Spacer(Modifier.width(8.dp))
+        Text(p.name, fontFamily = PlexSans, fontSize = 12.5f.sp, lineHeight = 15.sp, maxLines = 2,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.graphicsLayer { this.alpha = alpha },
+            color = MaterialTheme.colorScheme.onSurface)
     }
 }
 
