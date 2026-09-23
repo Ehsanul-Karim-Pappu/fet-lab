@@ -14,7 +14,7 @@ provided the fonts are not sold on their own.
 ## Images
 
 The guided tour's hand (`android/app/src/main/res/drawable-nodpi/tour_hand.png`) was
-supplied by the developer, cropped and with its tap rings removed. Its source and licence
+supplied by the developer and cropped. Its source and licence
 must be confirmed before a public release.
 
 ## Libraries
