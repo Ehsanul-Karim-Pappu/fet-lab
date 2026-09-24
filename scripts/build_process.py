@@ -962,10 +962,10 @@ def pitch_routes(F, T, g):
 # out of the flow and ending with the stack etch that follows it, so the lesson and the
 # route are the same steps and cannot drift apart.
 LESSONS = dict(
-    sadp=dict(name="SADP · self-aligned double patterning",
+    sadp=dict(name="SADP · double patterning",
               branch="SADP splits the printed pitch once, P to P/2: every core leaves two spacer "
                      "lines [R21]. The SAQP chip splits it twice."),
-    saqp=dict(name="SAQP · self-aligned quadruple patterning",
+    saqp=dict(name="SAQP · quadruple patterning",
               branch="SAQP splits the printed pitch twice, P to P/4: the first spacer image becomes "
                      "a second set of cores, and each of those leaves two spacer lines [R19][R20]. "
                      "The SADP chip splits it once."))
@@ -985,7 +985,8 @@ def lesson(mode):
         dev = type("Lesson", (), dict(key=mode, name=LESSONS[mode]["name"], parts=[]))
         return dev, steps, dict(
             lesson=True, name=dev.name, bounds=steps[0]["bounds"],
-            scope=f"{route['name']} on its own: the steps the Nanosheet flow shows when its stack "
+            scope=f"{route['name']} ({'self-aligned double' if mode == 'sadp' else 'self-aligned quadruple'} "
+                  f"patterning) on its own: the steps the Nanosheet flow shows when its stack "
                   f"patterning route is set to {route['name']}, from the film stack to the stack etch. "
                   "“The direct route” is that flow's default, a single exposure. A patterning concept "
                   "applied to an illustrative layer, the nanosheet tile's Si/SiGe multilayer: the "

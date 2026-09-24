@@ -33,7 +33,8 @@ forksheet and CFET flows are shown as coming. The flow is a teaching sequence wi
 illustrative materials, not a foundry recipe.
 
 The Steps tab can switch how the stack hard mask is patterned: **Direct print** (the
-default), **SADP** or **SAQP**. The spacer routes replace operations 4.1–4.6 with their own
+default), **SADP** or **SAQP**, from a picker in the step list where the routes part, between
+step 3 and operation 4.1. The spacer routes replace operations 4.1–4.6 with their own
 steps on the field of lines around the tile, a patterning concept applied to an illustrative
 layer. SADP prints four cores at twice the final pitch, coats them with a conformal spacer,
 etches it back and removes the cores, leaving eight lines at P/2. SAQP starts from cores at
@@ -47,6 +48,8 @@ their own colours. P, P/2 and P/4 are ideal; pitch walk is described, not modell
 claims that this stack is patterned by SADP or SAQP. Each spacer route also has a Process
 chip of its own, **SADP** and **SAQP**: the same steps, generated from the route, taken out
 of the flow and ending with the stack etch.
+
+Long scene names in the header shrink to fit on one line instead of being cut off.
 
 The renderer's depth range now fits the scene on screen, which removes a sawtooth along
 thin layers' edges when zoomed far out.

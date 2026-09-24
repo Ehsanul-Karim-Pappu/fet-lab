@@ -63,6 +63,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.BiasAlignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset as GOffset
@@ -806,9 +807,7 @@ fun FetLabApp(lib: Library, renderer: Renderer) {
                 Mark(Modifier.size(30.dp).clip(RoundedCornerShape(8.dp)))
                 Spacer(Modifier.width(12.dp))
                 Column(Modifier.weight(1f)) {
-                    Text(scene.name, style = MaterialTheme.typography.titleLarge,
-                        color = MaterialTheme.colorScheme.onBackground,
-                        maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    FitTitle(scene.name, MaterialTheme.colorScheme.onBackground)
                     Text(scene.step?.tag(scene.flow?.routeOr(route) ?: route) ?: scene.tag,
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -1519,6 +1518,45 @@ private fun StepSource(flow: ProcessFlow, st: ProcessStep) {
     notes("NOT SHOWN HERE", st.omitted)
 }
 
+/** The scene's name on one line: shrinks to fit (down to 14 sp) before it ellipsises, and
+ *  stays invisible until it has settled so the size does not flicker. */
+@Composable
+private fun FitTitle(text: String, color: Color) {
+    val base = MaterialTheme.typography.titleLarge
+    var size by remember(text) { mutableStateOf(base.fontSize.value) }
+    var ready by remember(text) { mutableStateOf(false) }
+    Text(text, style = base.copy(fontSize = size.sp, lineHeight = (size * 1.2f).sp), color = color,
+        maxLines = 1, softWrap = false, overflow = TextOverflow.Ellipsis,
+        modifier = Modifier.drawWithContent { if (ready) drawContent() },
+        onTextLayout = { r ->
+            if ((r.hasVisualOverflow || r.isLineEllipsized(0)) && size > 14f) size = maxOf(14f, size - 1f)
+            else ready = true
+        })
+}
+
+/** The choice of route through the operations that follow: how the stack hard mask is made. */
+@Composable
+private fun RoutePicker(flow: ProcessFlow, here: String, onRoute: (String) -> Unit) {
+    Surface(color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.55f),
+        shape = RoundedCornerShape(14.dp),
+        modifier = Modifier.fillMaxWidth().padding(start = 14.dp, top = 6.dp, bottom = 6.dp).tourTarget("routes")) {
+        Column(Modifier.padding(horizontal = 12.dp, vertical = 10.dp)) {
+            Text("HOW THE STACK LINES ARE PRINTED", style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text("Pick a route: the substeps below change to match, then rejoin at the stack etch.",
+                fontFamily = PlexSans, fontSize = 11.5f.sp, lineHeight = 16.sp,
+                color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(top = 2.dp, bottom = 8.dp))
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                for (r in flow.routes) Chip(r.name, r.id == here, Modifier.weight(1f)) { onRoute(r.id) }
+            }
+            flow.routes.firstOrNull { it.id == here }?.let {
+                Text(it.note, fontFamily = PlexSans, fontSize = 11.5f.sp, lineHeight = 16.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(top = 8.dp))
+            }
+        }
+    }
+}
+
 /** Process mode's fourth tab: the scope, every step (the current one open), the sources. */
 @Composable
 private fun StepsTab(lib: Library, flow: ProcessFlow, index: Int, list: LazyListState,
@@ -1548,23 +1586,13 @@ private fun StepsTab(lib: Library, flow: ProcessFlow, index: Int, list: LazyList
                     }
                     Switch(checked = showOps, onCheckedChange = null)
                 }
-                // The routes are operations too, so the choice shows only with them.
-                if (showOps && flow.routes.isNotEmpty()) {
-                    SectionLabel("STACK PATTERNING")
-                    Row(Modifier.fillMaxWidth().tourTarget("routes"),
-                        horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                        for (r in flow.routes)
-                            Chip(r.name, r.id == here, Modifier.weight(1f)) { onRoute(r.id) }
-                    }
-                    flow.routes.firstOrNull { it.id == here }?.let {
-                        Text(it.note, fontFamily = PlexSans, fontSize = 11.5f.sp, lineHeight = 16.sp,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.padding(top = 6.dp))
-                    }
-                }
             }
         }
+        // Where the routes part: the choice sits in the list at that point, so it is in view
+        // whenever the steps around it are.
+        val fork = flow.steps.indexOfFirst { it.route != null }
         itemsIndexed(flow.steps, key = { _, st -> st.id }) { i, st ->
+            if (i == fork && showOps && flow.routes.isNotEmpty()) RoutePicker(flow, here, onRoute)
             if (st.isOp && !showOps || !flow.onRoute(i, here)) return@itemsIndexed
             val on = i == index
             Surface(color = if (on) MaterialTheme.colorScheme.secondaryContainer else Color.Transparent,
