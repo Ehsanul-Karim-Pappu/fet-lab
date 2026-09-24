@@ -3,8 +3,8 @@
     {
       "id": "modes",
       "category": "Getting around",
-      "title": "Device, Inverter, Layout",
-      "body": "Explore device structures, illustrative CMOS inverter circuits and schematic layouts. The selected architecture carries across modes. Layout simplifies the layer stack and vertical geometry.",
+      "title": "Device, Inverter, Layout, Process",
+      "body": "Explore device structures, illustrative CMOS inverter circuits, schematic layouts and, in Process, how a device is made. The selected architecture carries across modes. Layout simplifies the layer stack and vertical geometry.",
       "gesture": "tap"
     },
     {
@@ -50,6 +50,14 @@
       "category": "Tools",
       "title": "Specs",
       "body": "Read model dimensions and design notes. On individual Device scenes, tap a capacitance row to highlight the modeled coupling. Values are geometry-only estimates, not measurements or a field-solver extraction.",
+      "tab": 3,
+      "gesture": "tap"
+    },
+    {
+      "id": "steps",
+      "category": "Tools",
+      "title": "Steps (Process mode)",
+      "body": "In Process, the Steps tab takes the place of Specs: every fabrication step with what it shows, the source it follows and what the model leaves out. Step with the arrows on the stage or press play. Show every operation adds the resist, exposure, etch and fill substeps; between nanosheet steps 3 and 4.1, choose how the stack lines are printed: direct print, SADP or SAQP. The SADP and SAQP chips show those routes on their own. So far the nanosheet has a flow; the other architectures are coming.",
       "tab": 3,
       "gesture": "tap"
     },

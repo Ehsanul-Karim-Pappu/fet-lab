@@ -19,12 +19,15 @@ FinFET, nanosheet, forksheet and CFET transistors in interactive 3D.
 FET Lab explores transistor architectures in interactive 3D: FinFET, gate-all-around
 nanosheet, inner-wall forksheet and CFET. Learn device concepts and ideal CMOS inverter logic.
 
-THREE VIEWS OF THE SUBJECT
+FOUR VIEWS OF THE SUBJECT
 
 Device — illustrative cross-sections with section planes, layer visibility and exploded views.
 Inverter — nFET/pFET connections, rails and ideal IN/OUT states. This is not circuit simulation.
 Layout — schematic layouts with simplified layers and exaggerated vertical spacing. The
 nanosheet layout shows two representative sheets; the technical scene shows three.
+Process — how a nanosheet FET is made, step by step: films, lithography, etch and fill,
+with the stack lines printed directly or by SADP or SAQP pitch splitting. A teaching
+sequence that follows one published integration route, not a foundry recipe.
 
 UNDERSTAND THE TRADE-OFFS
 

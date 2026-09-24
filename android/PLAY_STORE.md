@@ -94,7 +94,8 @@ Play requires screenshots **of the actual app**. Not mockups, not the web versio
 
 Suggested set, in order: the nanosheet device in 3D overview, the across-channel section with
 callouts (turn on Section › Display › Dimension callouts; they start off), a layout
-figure, an inverter with the logic bar visible, the guided tour mid-step, and the four-way
+figure, an inverter with the logic bar visible, a Process step (the 2 × 2 tile at
+exposure, or an SADP spacer image from above), the guided tour mid-step, and the four-way
 compare.
 
 A 7-inch and 10-inch tablet screenshot each is optional but the listing looks unfinished

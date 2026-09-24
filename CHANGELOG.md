@@ -3,7 +3,11 @@
 All notable changes to FET Lab. Dates are the release date; versions follow
 [semantic versioning](https://semver.org).
 
-## Unreleased
+## 1.3.0 — 2026-09-24
+
+Process mode: how a nanosheet FET is made, step by step, with a choice of how its stack
+lines are printed and SADP and SAQP lessons of their own. Process mode is in the Android
+app; the web version follows.
 
 ### Process mode: how the transistor is made
 
@@ -49,7 +53,8 @@ claims that this stack is patterned by SADP or SAQP. Each spacer route also has 
 chip of its own, **SADP** and **SAQP**: the same steps, generated from the route, taken out
 of the flow and ending with the stack etch.
 
-Long scene names in the header shrink to fit on one line instead of being cut off.
+Long scene names in the header shrink to fit on one line instead of being cut off. The
+feature list under Help describes Process mode and its Steps tab.
 
 The renderer's depth range now fits the scene on screen, which removes a sawtooth along
 thin layers' edges when zoomed far out.
