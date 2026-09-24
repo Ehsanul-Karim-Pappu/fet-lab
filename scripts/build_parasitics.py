@@ -222,7 +222,7 @@ TERMS = [
         "body",
         None,
         "S/D → body proxy",
-        "Contacted-area proxy: epsilon(Si) times the drawn S/D-to-body contact area divided by an assumed 5nm depletion width. Channel-to-body area is excluded. Zero means no such interface is drawn, not zero junction or substrate coupling in a real transistor."
+        "Junction-contribution proxy: epsilon(Si) times the drawn S/D-to-body contact area divided by an assumed 5nm depletion width. It counts only a direct S/D-to-substrate junction; channel-to-body area is excluded. Zero means no such junction is drawn (for example under full bottom dielectric isolation). That does not imply zero total parasitic capacitance: S/D-to-substrate coupling through dielectric and fringe fields remains, and is not estimated here."
     ]
 ]
 

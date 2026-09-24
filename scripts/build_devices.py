@@ -125,14 +125,17 @@ def build_ns():
     hz1,hz2,hz3 = hz+TIL, hz+TIL+THK, hz+TIL+THK+TTIN   # 16 18 21
     hzmo=hz3+5.0; ymo=ys[-1]+HY3+9.0; ycap=ymo+6.0
     ysd=ys[-1]+HYS+3.0; ynisi=ysd+5.0; yplug=92.0; ym2=102.0
-    zsub=42.0
+    zsub=42.0; SUBFIN=8.0
 
-    d.add("substrate","Si substrate","silicon",[box(-48,48,-26,0,-zsub,zsub)],"Substrate & isolation",[0,-1.2,0])
-    # Under the gate and spacers it isolates the stack from the substrate; beside the
-    # source/drain it is the trench oxide the stack was patterned into.
-    d.add("sti","STI / bottom isolation","sio2",[box(-XSP,XSP,0,STI,-zsub,zsub),
-          box(-XSD,-XSP,0,STI,hz,zsub), box(-XSD,-XSP,0,STI,-zsub,-hz),
-          box(XSP,XSD,0,STI,hz,zsub), box(XSP,XSD,0,STI,-zsub,-hz)],"Substrate & isolation",[0,-.8,0])
+    # The stack sits on a short Si sub-fin. The trench oxide beside it stops level with
+    # the bottom of the BDI: in the flow it is recessed that far so the sacrificial bottom
+    # layer's sidewalls are open for the etch that replaces it with the BDI.
+    d.add("substrate","Si substrate","silicon",[box(-48,48,-26,-SUBFIN,-zsub,zsub),
+          box(-48,48,-SUBFIN,0,-hz,hz)],"Substrate & isolation",[0,-1.2,0])
+    d.add("sti","STI oxide","sio2",[box(-48,48,-SUBFIN,0,hz,zsub), box(-48,48,-SUBFIN,0,-zsub,-hz)],
+          "Substrate & isolation",[0,-.8,0])
+    d.add("bdi","Bottom dielectric isolation (BDI)","sio2",[box(-XSD,XSD,0,STI,-hz,hz)],
+          "Substrate & isolation",[0,-.8,0])
     for i,yc in enumerate(ys):
         d.add(f"sheet{i+1}",f"Si nanosheet {i+1}","silicon",[box(-XSP,XSP,yc-HYS,yc+HYS,-hz,hz)],"Channel stack",[0,0,0])
     for i,yc in enumerate(ys):
@@ -141,20 +144,22 @@ def build_ns():
         d.add(f"hk{i+1}",f"HfO₂ high-κ · sheet {i+1}","highk",ring4(yc,HY1,hz1,THK,XG),"Gate-all-around films",["radial",yc,2.1])
     for i,yc in enumerate(ys):
         d.add(f"tin{i+1}",f"TiN work-function metal · sheet {i+1}","tin",ring4(yc,HY2,hz2,TTIN,XG),"Gate-all-around films",["radial",yc,3.3])
-    mo=[box(-XG,XG,STI,ymo,hz3,hzmo), box(-XG,XG,STI,ymo,-hzmo,-hz3)]
+    # Beside the BDI the gate reaches down to the STI, where the dummy gate was.
+    mo=[box(-XG,XG,STI,ymo,hz3,hzmo), box(-XG,XG,STI,ymo,-hzmo,-hz3),
+        box(-XG,XG,0,STI,hz,hzmo), box(-XG,XG,0,STI,-hzmo,-hz)]
     for a,b in gaps(STI,ymo,[(y-HY3,y+HY3) for y in ys]):
         mo.append(box(-XG,XG,a,b,-hz3,hz3))
     d.add("mo","Mo gate fill","mo",mo,"Gate electrode",[0,1.0,0])
     d.add("gatecap","TiN gate cap","tin",[box(-XG,XG,ymo,ycap,-hzmo,hzmo)],"Gate electrode",[0,1.4,0])
     d.add("gatew","W gate contact","tungsten",[box(-XG,XG,ycap,ym2,-20,20)],"Gate electrode",[0,1.8,0])
     for s,t in ((-1,"source"),(1,"drain")):
-        sp=[box(*sorted((s*XG,s*XSP)),STI,ycap,hz,hzmo), box(*sorted((s*XG,s*XSP)),STI,ycap,-hzmo,-hz)]
+        sp=[box(*sorted((s*XG,s*XSP)),0,ycap,hz,hzmo), box(*sorted((s*XG,s*XSP)),0,ycap,-hzmo,-hz)]
         for a,b in gaps(STI,ycap,[(y-HYS,y+HYS) for y in ys]):
             sp.append(box(*sorted((s*XG,s*XSP)),a,b,-hz,hz))
         d.add(f"spacer_{t}",f"Si₃N₄ spacer · {t} side","si3n4",sp,"Spacers",[s*1.3,0,0])
     for s,T in ((-1,"Source"),(1,"Drain")):
         xa,xb=sorted((s*XSP,s*XSD)); xc=(xa+xb)/2
-        d.add(f"epi_{T.lower()}",f"{T} epi (Si:P)","silicon",[box(xa,xb,0,ysd,-hz,hz)],"Source / drain",[s*1.6,0,0])
+        d.add(f"epi_{T.lower()}",f"{T} epi (Si:P)","silicon",[box(xa,xb,STI,ysd,-hz,hz)],"Source / drain",[s*1.6,0,0])
         d.add(f"nisi_{T.lower()}",f"{T} NiSi silicide","nisi",[box(xa,xb,ysd,ynisi,-hz,hz)],"Source / drain",[s*1.9,.3,0])
         d.add(f"ni_{T.lower()}",f"{T} Ni contact plug","nickel",[box(xc-8,xc+8,ynisi,yplug,-12,12)],"Source / drain",[s*2.1,.8,0])
         d.add(f"w_{T.lower()}",f"{T} W metal","tungsten",[box(xa,xb,yplug,ym2,-hz,hz)],"Source / drain",[s*2.3,1.3,0])

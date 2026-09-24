@@ -115,6 +115,20 @@ class Flow:
 
 
 # ============================================================== NANOSHEET ===
+NS_SCOPE = ("Representative silicon nanosheet nFET fabrication using a replacement metal "
+            "gate; selected isolation scheme (full bottom dielectric isolation) and "
+            "illustrative materials. Not a verified foundry recipe.")
+
+# A cut through the gate centre seen at an angle, so the cavities read as open space
+# rather than as the spacer wall behind them.
+CUTAWAY = dict(n="Gate cutaway", s="through the gate centre, at an angle",
+               az=1.02, el=.34, r=255, tgt=[0, 44, 0], clip=[0, None, None])
+# The same idea along the channel: cut at the middle of the sheets' width, seen at an
+# angle, so the SiGe indents read as empty pockets under the spacers.
+INDENT = dict(n="Channel cutaway", s="along the channel, at an angle",
+              az=-.62, el=.30, r=225, tgt=[0, 44, 0], clip=[None, None, 0])
+
+
 def flow_ns():
     dev = bd.build_ns()
     F = Flow(dev)
@@ -123,19 +137,16 @@ def flow_ns():
     sheets = [lim(P[f"sheet{i}"]["boxes"][0]) for i in (1, 2, 3)]
     hz = sheets[0][5]
     ys = [(s[2], s[3]) for s in sheets]
-    sti = lim(P["sti"]["boxes"][0]); STI = sti[3]; zsub = sti[5]
+    bdi = lim(P["bdi"]["boxes"][0]); STI = bdi[3]
+    sub = lim(P["substrate"]["boxes"][0]); zsub = sub[5]
     cap = lim(P["gatecap"]["boxes"][0]); ymo, ycap, hzmo = cap[2], cap[3], cap[5]
     top = ys[-1][1]
     sige = bd.gaps(STI, top, ys)                       # the layers between the sheets
+    TOX = 1.0                                          # dummy-gate oxide
 
-    def stack(x0, x1, z0=-hz, z1=hz, bottom=True, sheets_final=False):
-        """The Si/SiGe superlattice over x0..x1: an optional high-Ge bottom layer,
-        then SiGe and Si alternating up to the top sheet."""
-        F.drop("bsige", "sige1", "sige2", "sige3", "si1", "si2", "si3",
-               "sheet1", "sheet2", "sheet3")
-        if bottom:
-            F.put(tmp("bsige", "SiGe, high Ge · sacrificial bottom layer", "sige", "Superlattice",
-                      [box(x0, x1, 0, STI, z0, z1)], (0, -.6, 0)))
+    def layers(x0, x1, z0=-hz, z1=hz, sheets_final=False):
+        """Sacrificial SiGe and Si alternating from the bottom layer up to the top sheet."""
+        F.drop("sige1", "sige2", "sige3", "si1", "si2", "si3", "sheet1", "sheet2", "sheet3")
         for i, (a, b) in enumerate(sige):
             F.put(tmp(f"sige{i+1}", f"SiGe · sacrificial layer {i+1}", "sige", "Superlattice",
                       [box(x0, x1, a, b, z0, z1)]))
@@ -144,108 +155,146 @@ def flow_ns():
             else: F.put(tmp(f"si{i+1}", f"Si · future nanosheet {i+1}", "silicon", "Superlattice",
                             [box(x0, x1, a, b, z0, z1)]))
 
-    def sige_only(x0, x1):
-        for i, (a, b) in enumerate(sige):
-            F.put(tmp(f"sige{i+1}", f"SiGe · sacrificial layer {i+1}", "sige", "Superlattice",
-                      [box(x0, x1, a, b, -hz, hz)]))
+    def bottom(x0, x1, z0=-hz, z1=hz):
+        F.put(tmp("bsige", "SiGe, high Ge · sacrificial bottom layer", "sige", "Superlattice",
+                  [box(x0, x1, 0, STI, z0, z1)], (0, -.6, 0)))
+
+    def ild_around():
+        others = [b for p in F.now.values() if p["id"] != "ild" for b in p["boxes"]]
+        F.put(tmp("ild", "Interlayer dielectric (ILD)", "ild", "Interlayer dielectric",
+                  subtract((-XSD, XSD, 0, ycap, -zsub, zsub), others), (0, .6, 0)))
 
     # 1
-    F.add("substrate")
+    F.put(tmp("wafer", "Si substrate (unpatterned)", "silicon", "Substrate & isolation",
+              [box(sub[0], sub[1], sub[2], 0, -zsub, zsub)], (0, -1.2, 0)))
     F.snap("substrate", "Silicon substrate",
-        "The flow starts from a bulk silicon wafer. Everything above it is built up, or "
-        "etched back, in the steps that follow.")
+        "A crystalline silicon wafer, cleaned and prepared for epitaxy. The flow must also stop "
+        "current leaking through the silicon beneath the channels: this model uses full bottom "
+        "dielectric isolation (BDI) for that; a doped punch-through stopper is another published "
+        "approach.")
     # 2
-    stack(-XSD, XSD, -zsub, zsub)
-    F.snap("superlattice", "Si/SiGe superlattice epitaxy",
-        "Alternating SiGe and Si layers are grown epitaxially across the wafer. The Si "
-        "layers become the nanosheets; the SiGe between them is sacrificial and holds the "
-        "gaps open until the gate goes in. The bottom SiGe, richer in Ge here, is removed "
-        "separately later on, to isolate the stack from the substrate.")
+    bottom(-XSD, XSD, -zsub, zsub)
+    layers(-XSD, XSD, -zsub, zsub)
+    F.snap("superlattice", "Si/SiGe multilayer epitaxy",
+        "Alternating SiGe and Si layers are grown as one solid crystalline stack. The Si layers "
+        "become the nanosheets; the SiGe occupies the future gate spaces and is removed from the "
+        "gate region later. The bottom SiGe, richer in Ge, belongs to the chosen isolation "
+        "scheme: it can be etched selectively against the other SiGe layers.")
     # 3
-    stack(-XSD, XSD)
-    F.put(tmp("sti_side", "STI oxide", "sio2", "Substrate & isolation",
-              [box(-XSD, XSD, 0, STI, hz, zsub), box(-XSD, XSD, 0, STI, -zsub, -hz)], (0, -.8, 0)))
+    bottom(-XSD, XSD)
+    layers(-XSD, XSD)
+    F.drop("wafer"); F.add("substrate", "sti")
     F.snap("pattern", "Stack patterning and STI",
-        "The superlattice is etched into a narrow stack, the width of the future sheets, and "
-        "shallow-trench-isolation oxide fills the trenches beside it up to the bottom of the "
-        "stack.")
+        "Lithography and etch cut the multilayer into narrow stacks, and on into the substrate as a "
+        "short sub-fin; the mask sets the sheet width. Trench oxide is deposited, planarised and "
+        "recessed: shallow trench isolation (STI) separates neighbouring devices sideways. Here it "
+        "is recessed to the bottom of the high-Ge layer, leaving that layer's sidewalls open for "
+        "its later removal. How the stack pattern is made depends on the layer, pitch and process: "
+        "EUV single exposure allows different sheet widths, and dense arrays can also use "
+        "spacer-based pitch splitting (SADP/SAQP), shown as an example in the FinFET flow.")
     # 4
-    poly = subtract((-XG, XG, STI, ymo, -hzmo, hzmo), F.boxes())
+    dox = subtract((-XG, XG, 0, top + TOX, -hz - TOX, hz + TOX), F.boxes())
+    F.put(tmp("dox", "Dummy-gate oxide (sacrificial)", "sio2", "Dummy gate", dox, (0, .6, 0)))
+    poly = subtract((-XG, XG, 0, ymo, -hzmo, hzmo), F.boxes())
     F.put(tmp("dummy", "Dummy gate · polysilicon", "poly", "Dummy gate", poly, (0, 1.0, 0)))
     F.put(tmp("hardmask", "SiN hard mask", "si3n4", "Dummy gate",
               [box(-XG, XG, ymo, ycap, -hzmo, hzmo)], (0, 1.4, 0)))
-    F.snap("dummy", "Dummy gate and hard mask",
-        "A polysilicon placeholder is patterned across the stack where the gate will be, "
-        "capped by a nitride hard mask. It fixes the gate position and length now; the real "
-        "high-κ/metal gate replaces it near the end (a replacement-metal-gate flow).")
+    F.snap("dummy", "Dummy gate stack",
+        "A thin sacrificial oxide, a polysilicon placeholder gate and a nitride hard mask are "
+        "deposited and patterned across the stack. The dummy gate fixes where the gate goes and "
+        "its length; the real high-κ/metal gate replaces it near the end (replacement metal gate).")
     # 5
     F.drop("bsige")
-    F.put(tmp("bdi", "Bottom dielectric isolation", "sio2", "Substrate & isolation",
-              [box(-XSD, XSD, 0, STI, -hz, hz)], (0, -.8, 0)))
+    F.snap("bottom", "Bottom-layer removal",
+        "Where the stack is not covered by the dummy gate, its sidewalls are exposed (any covering "
+        "liner is cleared first), including the high-Ge bottom layer's, which the STI recess left "
+        "open. A selective etch removes that layer, working in from the exposed sides and on "
+        "underneath the dummy gate, which holds the stack up over the open cavity. This follows "
+        "one published early-BDI route [R13].", view="cutb")
+    # 6
+    F.add("bdi")
     for s, t in ((-1, "source"), (1, "drain")):
         xa, xb = sorted((s*XG, s*XSP))
         F.put(tmp(f"spo_{t}", f"Si₃N₄ gate spacer · {t} side", "si3n4", "Spacers",
-                  subtract((xa, xb, STI, ycap, -hzmo, hzmo), F.boxes()), (s*1.3, 0, 0)))
-    F.snap("spacers", "Gate spacers and bottom isolation",
-        "Nitride spacers are formed on both sides of the dummy gate; they set how far the "
-        "source and drain sit from the gate. In this model the high-Ge bottom layer is also "
-        "removed selectively and replaced by oxide, cutting the stack off from the substrate.")
-    # 6
-    stack(-XSP, XSP, bottom=False, sheets_final=True)
-    F.drop("sti_side", "bdi"); F.add("sti")
-    F.snap("recess", "Source/drain recess",
-        "The stack is etched away outside the spacers, down to the substrate, exposing the "
-        "ends of every Si and SiGe layer. What remains under the gate and spacers is the "
-        "channel region.")
+                  subtract((xa, xb, 0, ycap, -hzmo, hzmo), F.boxes()), (s*1.3, 0, 0)))
+    F.snap("spacers", "Spacer dielectric fill and etch-back",
+        "A conformal spacer dielectric is deposited: it fills the cavity under the stack and coats "
+        "everything else. Etch-back then clears it from the top and sides, leaving the outer "
+        "spacers on the dummy-gate sidewalls and the bottom dielectric isolation (BDI) under the "
+        "whole stack [R13]. In that route one dielectric forms both (SiOC, SiCN, SiOCN and SiBCN "
+        "are its examples); the oxide BDI and nitride spacers here are illustrative substitutes.", view="cutb")
     # 7
-    sige_only(-XG, XG)
-    F.drop("spo_source", "spo_drain"); F.add("spacer_source", "spacer_drain")
-    F.snap("inner", "SiGe indent and inner spacers",
-        "The SiGe layers are etched sideways from the exposed ends, back to the gate edge, and "
-        "the pockets are filled with nitride. These inner spacers separate the future gate "
-        "from the source and drain between the sheets.")
+    layers(-XSP, XSP, sheets_final=True)
+    F.snap("recess", "Source/drain recess",
+        "The stack outside the gate and spacers is etched away, stopping on the bottom isolation, "
+        "which stays under the future source and drain. The ends of every Si and SiGe layer are "
+        "now exposed at the recess walls.")
     # 8
-    F.add("epi_source", "epi_drain")
-    F.snap("epi", "Source/drain epitaxy",
-        "Doped silicon (Si:P for this nFET) is grown from the exposed sheet ends and the "
-        "substrate, forming the source and drain that every sheet connects to.")
+    for i, (a, b) in enumerate(sige):
+        F.put(tmp(f"sige{i+1}", f"SiGe · sacrificial layer {i+1}", "sige", "Superlattice",
+                  [box(-XG, XG, a, b, -hz, hz)]))
+    F.snap("indent", "SiGe indent",
+        "A selective etch recesses the exposed SiGe ends sideways, leaving the Si sheet ends in "
+        "place. The small cavities it opens, under the spacers, set the inner-spacer geometry; "
+        "stopping at the gate edge is a schematic target, not a perfect alignment. This is a "
+        "partial recess, not the channel release.", view="cutb")
     # 9
-    ild = subtract((-XSD, XSD, 0, ycap, -zsub, zsub), F.boxes())
-    F.put(tmp("ild", "Interlayer dielectric (ILD)", "ild", "Interlayer dielectric", ild, (0, .6, 0)))
-    F.snap("ild", "ILD fill and planarisation",
-        "Oxide is deposited over everything and polished flat (CMP) down to the top of the "
-        "gate stack. The source and drain are now buried; hide the ILD in Layers to see them.")
+    F.drop("spo_source", "spo_drain"); F.add("spacer_source", "spacer_drain")
+    F.snap("inner", "Inner-spacer deposition and etch-back",
+        "Dielectric is deposited into the cavities, where it also coats every exposed surface, then "
+        "etched back so it stays only in the cavities and the Si sheet ends are exposed again. The "
+        "inner spacers separate the future gate from the source and drain between the sheets.",
+        view="cutb")
     # 10
-    F.drop("dummy", "hardmask")
-    F.snap("pull", "Dummy gate removal",
-        "The hard mask and the polysilicon are etched out, leaving a trench between the "
-        "spacers. At its bottom the Si/SiGe stack is exposed again.", view="c")
+    F.add("epi_source", "epi_drain")
+    F.snap("epi", "Source/drain epitaxy and anneal",
+        "After a surface clean, doped silicon (Si:P for this nFET; B-doped SiGe is typical for "
+        "pFETs) grows from the exposed Si sheet ends. The oxide below is not a crystal seed, so "
+        "growth starts at the sheets and merges into one shared source on one side and one shared "
+        "drain on the other, joining the sheet ends. The "
+        "activation anneal that follows needs no separate step in this model, but it does change "
+        "the device: dopant activation and diffusion shape the junction profile.")
     # 11
+    ild_around()
+    F.snap("ild", "ILD fill and planarisation",
+        "Interlayer dielectric is deposited over everything and polished flat (CMP), stopping on "
+        "the hard mask. The source and drain are now buried; hide the ILD in Layers to see them.")
+    # 12
+    F.drop("hardmask", "dummy", "dox")
+    F.snap("pull", "Hard-mask opening and dummy-gate removal",
+        "The hard mask is opened, the polysilicon is etched out selectively against the spacers "
+        "and ILD, and the sacrificial oxide is cleared. The trench left behind is the replacement-"
+        "gate cavity; the Si/SiGe stack is still intact at its bottom.", view="cut")
+    # 13
     F.drop("sige1", "sige2", "sige3")
     F.snap("release", "Channel release",
-        "A selective etch removes the SiGe between the sheets inside the trench. The Si "
-        "nanosheets are left suspended between the inner spacers, open on all four sides "
-        "for the gate to wrap.", view="c")
-    # 12
+        "A selective etch removes the SiGe inside the cavity, including under the lowest sheet. "
+        "The Si nanosheets stay connected to the source and drain at their ends, with their gate "
+        "surfaces now open above, below and beside each sheet. Etch selectivity, residues and "
+        "sheets sticking together are real concerns; both wet and dry etches are used.", view="cut")
+    # 14
     F.add(*[f"{k}{i}" for k in ("il", "hk", "tin") for i in (1, 2, 3)], "mo", "gatecap")
     F.snap("hkmg", "High-κ / metal gate",
-        "An interfacial oxide, HfO₂ and a TiN work-function layer coat each sheet all the "
-        "way round, and Mo fills the rest of the trench, with a cap on top. This is the "
-        "gate-all-around.", view="c")
-    # 13
+        "After a surface clean, a thin interfacial oxide is formed on the released Si by "
+        "oxidation. A high-κ dielectric and a work-function layer are then deposited conformally "
+        "all round each sheet (for example by ALD), and a gate-fill metal joins them into one gate, "
+        "with a cap on top. Materials here are illustrative: SiO₂, HfO₂, "
+        "TiN and Mo stand for the interfacial, high-κ, work-function and fill layers; real stacks "
+        "depend on device type and target threshold voltage.", view="cut")
+    # 15
     F.add("nisi_source", "nisi_drain", "ni_source", "ni_drain", "w_source", "w_drain", "gatew")
-    F.put(tmp("ild", "Interlayer dielectric (ILD)", "ild", "Interlayer dielectric",
-              subtract((-XSD, XSD, 0, ycap, -zsub, zsub),
-                       [b for p in F.now.values() if p["id"] != "ild" for b in p["boxes"]]), (0, .6, 0)))
-    F.snap("contacts", "Contacts and metal",
-        "Openings are etched through the ILD, silicide forms on the source and drain, and "
-        "metal fills the contact holes, with a contact onto the gate.")
-    # 14
+    ild_around()
+    F.snap("contacts", "Middle-of-line contacts",
+        "Contact openings are etched through the ILD, the semiconductor contact interface is formed "
+        "(a silicide here) and metal fills the openings, with a contact onto the gate. These are "
+        "middle-of-line structures; the routing metal and vias above them (back end of line) are "
+        "not modelled.")
+    # 16
     F.drop("ild")
     F.snap("done", "The finished device",
-        "The ILD is left out here, as in the Device view, so the structure shows. Compare "
-        "with Device mode: this is the same model, part for part.")
-    return dev, F.done()
+        "The same model as Device mode, part for part. The ILD is hidden here only for viewing, as "
+        "in the Device view; it is not removed in fabrication.")
+    return dev, F.done(), dict(scope=NS_SCOPE, refs=["R13"], views=dict(cut=CUTAWAY, cutb=INDENT))
 
 
 FLOWS = {"ns": flow_ns}
@@ -254,8 +303,8 @@ FLOWS = {"ns": flow_ns}
 def main():
     out = {}
     for key, fn in FLOWS.items():
-        dev, steps = fn()
-        out[key] = dict(steps=steps)
+        dev, steps, extra = fn()
+        out[key] = dict(extra, steps=steps)
         temp = {p["id"] for s in steps for p in s["parts"] if not isinstance(p, str)}
         print(f"{key:10s} steps={len(steps):2d}  temporary parts={len(temp)}  max solids/voxel=1")
     blob = json.dumps(dict(flows=out), ensure_ascii=False, separators=(",", ":"))

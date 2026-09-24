@@ -29,10 +29,37 @@ class ContentTests(unittest.TestCase):
         self.assertNotIn('(a) Isometric', legacy)
         self.assertIn('GEO.order.map', legacy)
 
+    def test_process_flows(self):
+        """Every flow step resolves: its parts, its view and every reference it cites; the
+        last step is the finished device. (Tiling is checked when the flows are built.)"""
+        proc = json.loads((ROOT / 'data/process.json').read_text())
+        ids = {r['id'] for r in self.refs['sources']}
+        devs = {d['key']: d for d in self.data['devices']}
+        self.assertTrue(proc['flows'])
+        for key, flow in proc['flows'].items():
+            dev = devs[key]
+            final = {p['id'] for p in dev['parts']}
+            views = {**dev['views'], **flow.get('views', {})}
+            self.assertTrue(flow['scope'])
+            cited = set()
+            for step in flow['steps']:
+                self.assertTrue(step['title'] and step['body'])
+                self.assertIn(step['view'], views)
+                for part in step['parts']:
+                    if isinstance(part, str):
+                        self.assertIn(part, final)
+                    else:
+                        self.assertNotIn(part['id'], final)
+                        self.assertIn(part['material'], self.data['materials'])
+                cited |= set(re.findall(r'\bR\d+\b', step['body']))
+            self.assertLessEqual(cited, set(flow.get('refs', [])))
+            self.assertLessEqual(set(flow.get('refs', [])), ids)
+            self.assertEqual(sorted(flow['steps'][-1]['parts']), sorted(final))
+
     def test_references_and_scope(self):
         ids = [r['id'] for r in self.refs['sources']]
         self.assertEqual(len(ids), len(set(ids)))
-        self.assertEqual(len(ids), 12)
+        self.assertEqual(len(ids), 13)
         for ref in self.refs['sources']:
             self.assertTrue(ref['url'].startswith('https://'))
             self.assertTrue(ref['supports'])

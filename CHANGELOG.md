@@ -3,6 +3,19 @@
 All notable changes to FET Lab. Dates are the release date; versions follow
 [semantic versioning](https://semver.org).
 
+## Unreleased
+
+### Nanosheet model: full bottom dielectric isolation
+
+The nanosheet now sits on a full bottom dielectric isolation (BDI) layer under both the
+channel and the source/drain, on a short Si sub-fin, with STI along the stack recessed to
+the BDI's bottom and the gate and spacers reaching down beside it. That is one consistent
+isolation scheme for the fabrication steps being added. Its source/drain epitaxy no longer
+touches the substrate, so the Specs table's C_j* proxy, which counts only a direct
+S/D-to-substrate junction, is now 0 aF for the nanosheet, as it already was for the FinFET.
+Zero junction contribution in this proxy does not mean zero total parasitic capacitance.
+No other value changed; see the [audit](docs/CONTENT_AUDIT.md).
+
 ## 1.2.0 — 2026-09-23
 
 A guided tour and a full-size model on phones. Scenes now remember how you left them,

@@ -76,6 +76,15 @@ matrix. Adding these terms does not produce a characterized cell input capacitan
    area. Only explicitly drawn S/D-to-body contact area now enters the proxy.
    The FinFET proxy therefore becomes zero because this interface is not drawn,
    **not because a real FinFET has no junction capacitance**.
+4. **Nanosheet isolation (after the audit):** the nanosheet model now uses full bottom
+   dielectric isolation (BDI) on a short Si sub-fin, with the STI recessed to the BDI's
+   bottom and the gate and spacers reaching down beside it, as its fabrication-process
+   steps require. The source/drain epitaxy sits on the BDI, so no S/D-to-substrate
+   junction is drawn and the Cj* proxy, which counts only that junction contribution, is
+   now 0.00aF (was 27.35aF). Zero junction contribution in this proxy does not imply zero
+   total parasitic capacitance: S/D-to-substrate coupling through the dielectric and
+   fringe fields remains and is not estimated. No other value changed.
+   `CONTENT_AUDIT.pdf` is the audit as first published and still shows the old value.
 
 ### Equations and sanity checks
 
@@ -98,7 +107,7 @@ was a thickness-extraction artifact, not a physical correction to the plate mode
 | Scene | Cox before → after (aF) | Cgc before → after (aF) | Cge after (aF) | Cj* after (aF) |
 | --- | ---: | ---: | ---: | ---: |
 | FinFET | 85.88 → 88.10 | 15.46 → 15.46 | 17.61 | 0.00 |
-| Nanosheet | 75.12 → 80.30 | 7.83 → 5.09 | 16.51 | 27.35 |
+| Nanosheet | 75.12 → 80.30 | 7.83 → 5.09 | 16.51 | 0.00 (27.35 before BDI; see 4.) |
 | Forksheet | 107.08 → 112.42 | 10.60 → 6.95 | 24.21 | 40.11 |
 | Monolithic CFET | 69.83 → 76.48 | 4.63 → 3.22 | 12.52 | 0.00 |
 | Sequential CFET | 69.83 → 76.48 | 4.63 → 3.22 | 12.52 | 0.00 |
@@ -121,8 +130,9 @@ they are experimentally verified.
 
 ## Privacy and provenance
 
-Android saves the guided-tour completion flag locally. Scene controls are not durable
-profiles, although Android can restore temporary activity state. Android has no
+Android saves two preferences locally: the guided-tour completion flag and the control
+sheet's see-through. Per-scene state is held in memory for the session only; other scene
+controls are not durable profiles, although Android can restore temporary activity state. Android has no
 INTERNET permission; reference/support links open external apps. Backup is disabled
 and shared preferences are explicitly excluded in extraction rules.
 
