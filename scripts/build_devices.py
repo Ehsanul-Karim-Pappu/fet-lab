@@ -221,8 +221,11 @@ def build_fin():
     for i in range(0,len(edges),2):
         if edges[i+1]>edges[i]: sti.append(box(-XSDf,XSDf,0,STI,edges[i],edges[i+1]))
     d.add("sti","STI (fin reveal)","sio2",sti,"Substrate & isolation",[0,-.8,0])
+    # Outside the spacers each fin is recessed to the STI top, and the source/drain grows
+    # from the recess: full height only under the gate and spacers, a stub below the epi.
     for i,z in enumerate(zf):
-        d.add(f"fin{i+1}",f"Si fin {i+1}","silicon",[box(-XSDf,XSDf,0,ytop,z-wh,z+wh)],"Fins",[0,0,0])
+        d.add(f"fin{i+1}",f"Si fin {i+1}","silicon",[box(-XSPf,XSPf,0,ytop,z-wh,z+wh),
+              box(-XSDf,-XSPf,0,STI,z-wh,z+wh),box(XSPf,XSDf,0,STI,z-wh,z+wh)],"Fins",[0,0,0])
     for i,z in enumerate(zf):
         d.add(f"il{i+1}",f"SiO₂ interfacial layer · fin {i+1}","sio2",finwrap(z,wh,STI,ytop,TIL,XGf),"Tri-gate films",["radial",(STI+ytop)/2,1.0,z])
     for i,z in enumerate(zf):
@@ -247,10 +250,10 @@ def build_fin():
         xa,xb=sorted((sx*XSPf,sx*XSDf))
         ep=[];ns=[]
         for z in zf:
-            ep += [box(xa,xb,STI,ytop,z-10,z-wh), box(xa,xb,STI,ytop,z+wh,z+10),
-                   box(xa,xb,ytop,yepi,z-10,z+10)]
+            # grown from the recessed fin: narrow at the seed, faceted out above the STI
+            ep += [box(xa,xb,STI,STI+6,z-wh-2,z+wh+2), box(xa,xb,STI+6,yepi,z-10,z+10)]
             ns.append(box(xa,xb,yepi,ynisi,z-10,z+10))
-        d.add(f"epi_{T.lower()}",f"{T} raised epi (Si:P)","silicon",ep,"Source / drain",[sx*1.6,.2,0])
+        d.add(f"epi_{T.lower()}",f"{T} epi (Si:P) · grown in the recess","silicon",ep,"Source / drain",[sx*1.6,.2,0])
         d.add(f"nisi_{T.lower()}",f"{T} NiSi silicide","nisi",ns,"Source / drain",[sx*1.9,.5,0])
         d.add(f"ni_{T.lower()}",f"{T} Ni trench contact","nickel",
               [box(xa,xb,ynisi,yplug,-hzenv,hzenv)],"Source / drain",[sx*2.1,.9,0])

@@ -7,17 +7,34 @@ All notable changes to FET Lab. Dates are the release date; versions follow
 
 ### Process mode: the FinFET
 
-The FinFET chip in Process mode now has a flow: 12 steps from the bare wafer to the finished
-device, gate last. Fins are cut from the wafer through a hard mask on a 2 × 2 tile of an nFET
-and a pFET pair, the trenches are filled, polished and recessed, and a dummy gate crosses the
-fins; then spacers, Si:P epitaxy on the fins, the ILD, the dummy gate's removal, the
-interfacial layer and HfO₂, the TiN work-function metal and Mo fill, and the contacts. Fin
-patterning has the same route picker as the nanosheet, defaulting to **SAQP**, the route
-reported for fins at this 27 nm pitch; direct print and SADP stay selectable, and the spacer
-routes' cut pattern also removes the dummy fin between the two sites. No step is mapped to a
-source figure yet: each says so ("Textbook state; no source figure mapped yet"), and the
-audit lists the model's own choices, such as epitaxy on the unrecessed fin. The route picker
-now remembers a choice per flow and uses each flow's own wording.
+The FinFET chip in Process mode now has a flow: 15 steps from the bare wafer to the finished
+device, gate last, following the stages of one disclosed FinFET route (US 10,505,021 B2)
+where it describes them, each step naming its own source and figure (source-described,
+artwork not compared). Fins are cut from the wafer through a hard mask on a 2 × 2 tile of an
+nFET pair in a p-well and a pFET pair in an n-well, shown as context only; the trenches are
+filled, polished and recessed (57 nm etched, 45 nm exposed above the STI). Gate lithography
+has its own states (resist, exposure, hard-mask etch, dummy-gate etch). Then gate spacers,
+by a conventional deposition and etch-back that the audit marks as differing from the
+patent's selective spacers; a **source/drain fin recess** with the channel kept whole under
+the gate; Si:P epitaxy grown from the recess; an etch-stop layer, ILD and CMP; dummy-gate
+removal; the interfacial layer and HfO₂; the TiN work-function metal, Mo fill and cap; a
+second ILD with separate source/drain and gate openings; silicide; and the contact fill.
+
+Fin patterning defaults to **SAQP**, following a published N7 fin-patterning example
+(96 → 48 → 24 nm; this model's 108 → 54 → 27 nm is an adaptation); SADP and a hypothetical
+single-exposure direct print stay selectable, and the spacer routes' cut removes the extra
+mask line between the two fin groups before the fin etch. Sub-fin leakage, wells' doping,
+the pFET's own steps and the gate cut are named where they are left out. The route picker
+remembers a choice per flow, uses each flow's wording, and each step shows which reference
+its figures belong to. Five FinFET references are added (R24–R27, and R22 now points at the
+SAQP paper's authors' copy).
+
+### FinFET model: source/drain grown from a recess
+
+To match its fabrication steps, the FinFET model's fins are now recessed outside the spacers
+and the Si:P source/drain grows from the recess, instead of cladding a full-height fin. The
+gate-to-epitaxy estimate changes from 17.61 aF to 15.79 aF (total gate parasitic 31.24 aF,
+35% of C_ox); no other value changed. See the [audit](docs/CONTENT_AUDIT.md).
 
 ## 1.3.0 — 2026-09-24
 

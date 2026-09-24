@@ -86,6 +86,14 @@ matrix. Adding these terms does not produce a characterized cell input capacitan
    total parasitic capacitance: S/D-to-substrate coupling through the dielectric and
    fringe fields remains and is not estimated. No other value changed.
    `CONTENT_AUDIT.pdf` is the audit as first published and still shows the old value.
+5. **FinFET source/drain (after the audit):** the FinFET model now recesses each fin
+   outside the spacers to the STI top and grows the Si:P source/drain from the recess, as
+   its fabrication steps do (following the stages of US 10,505,021 B2's route), instead of
+   cladding epitaxy on a full-height fin. The epitaxy's facing area to the gate changed, so
+   Cge is now 15.79aF (was 17.61aF) and the gate parasitic total 31.24aF, 35% of Cox (was
+   33.06aF, 37.5%). The epitaxy sits on the recessed fin stub, not the substrate, so the
+   Cj* proxy stays 0.00aF; that is the proxy's definition, not an absence of junction
+   capacitance. No other value changed.
 
 ### Equations and sanity checks
 
@@ -107,7 +115,7 @@ was a thickness-extraction artifact, not a physical correction to the plate mode
 
 | Scene | Cox before → after (aF) | Cgc before → after (aF) | Cge after (aF) | Cj* after (aF) |
 | --- | ---: | ---: | ---: | ---: |
-| FinFET | 85.88 → 88.10 | 15.46 → 15.46 | 17.61 | 0.00 |
+| FinFET | 85.88 → 88.10 | 15.46 → 15.46 | 15.79 (17.61 before the S/D recess; see 5.) | 0.00 |
 | Nanosheet | 75.12 → 80.30 | 7.83 → 5.09 | 16.51 | 0.00 (27.35 before BDI; see 4.) |
 | Forksheet | 107.08 → 112.42 | 10.60 → 6.95 | 24.21 | 40.11 |
 | Monolithic CFET | 69.83 → 76.48 | 4.63 → 3.22 | 12.52 | 0.00 |

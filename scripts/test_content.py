@@ -114,9 +114,13 @@ class ContentTests(unittest.TestCase):
                 self.assertEqual({steps[i]['of'] for i in idx}, {steps[runs['direct'][0]]['of']}, r)
                 self.assertEqual(key_parts(steps[idx[-1]]), end, r)
                 if r != 'direct':
-                    for i in idx: self.assertEqual(steps[i]['match'], 'pattern', steps[i]['id'])
+                    # A spacer route is a patterning concept (the nanosheet's), a teaching
+                    # reconstruction, or a published example with its own source (SAQP fins).
+                    for i in idx:
+                        self.assertIn(steps[i]['match'], ('pattern', 'teach', 'source'), steps[i]['id'])
+                        if steps[i]['match'] == 'source': self.assertTrue(steps[i].get('src'), steps[i]['id'])
             self.assertIn('saqp_core2', [steps[i]['id'] for i in runs['saqp']])
-            self.assertIn('illustrative layer', flow['match']['pattern'])
+            if 'pattern' in flow['match']: self.assertIn('illustrative layer', flow['match']['pattern'])
             nxt = steps[last + 1]
             self.assertEqual(set(nxt['labels']), set(ids))
             # At most one route is the default; the FinFET's fins default to SAQP.
@@ -141,19 +145,26 @@ class ContentTests(unittest.TestCase):
             skipped = set(flow['skipped'])
             for step in flow['steps']:
                 self.assertIn(step['match'], flow['match'])
-                if step['match'] not in ('concept', 'pattern', 'generic'):
+                if step['match'] not in ('concept', 'pattern', 'teach'):
                     self.assertTrue(step['figs'], step['id'])
                 self.assertFalse(skipped & set(step['figs']), step['id'])
                 for text in [step['body']] + step['subs'] + step['omitted']:
                     self.assertNotRegex(text.lower(), r'exact (match|reconstruction)|as in fig')
                 self.assertIn('| ' + step['title'] + ' |', audit)
+            # Once a flow names a source per step, every figure number says whose it is.
+            refs = set(flow['refs'])
+            if any('src' in st for st in flow['steps']):
+                for st in flow['steps']:
+                    if st['figs']: self.assertTrue(st.get('src'), st['id'])
+            for st in flow['steps']:
+                self.assertLessEqual(set(st.get('src', [])), refs, st['id'])
             for fig in skipped:
                 self.assertIn('Fig. ' + fig, audit)
 
     def test_references_and_scope(self):
         ids = [r['id'] for r in self.refs['sources']]
         self.assertEqual(len(ids), len(set(ids)))
-        self.assertEqual(len(ids), 23)
+        self.assertEqual(len(ids), 27)
         for ref in self.refs['sources']:
             self.assertTrue(ref['url'].startswith('https://'))
             self.assertTrue(ref['supports'])

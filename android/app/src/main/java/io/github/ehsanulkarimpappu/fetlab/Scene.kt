@@ -95,7 +95,9 @@ class ProcessStep(val id: String, val title: String, val body: String, val view:
                   val scale: String,
                   /** The patterning route this operation belongs to, or null if every route
                    *  passes through it; [labels] numbers a shared one along each route. */
-                  val route: String?, val labels: Map<String, String>) {
+                  val route: String?, val labels: Map<String, String>,
+                  /** The references [figs] belong to, when a flow draws on more than one. */
+                  val src: List<String> = emptyList()) {
     val isOp get() = level == "op"
     fun labelIn(route: String) = labels[route] ?: label
     /** Shown on the header under the device's name. */
@@ -273,7 +275,7 @@ class Library(val materials: Map<String, Material>, val order: List<String>, val
                         sj.optString("view", "iso"), list("figs"), sj.optString("match", ""),
                         list("subs"), list("omitted"), sj.optString("level", "core"), sj.optString("of", ""),
                         sj.optString("label", "${i + 1}"), scale,
-                        sj.optString("route", "").ifEmpty { null }, labels))
+                        sj.optString("route", "").ifEmpty { null }, labels, list("src")))
                     val parts = ArrayList<Part>()
                     val pa = sj.getJSONArray("parts")
                     for (j in 0 until pa.length()) {

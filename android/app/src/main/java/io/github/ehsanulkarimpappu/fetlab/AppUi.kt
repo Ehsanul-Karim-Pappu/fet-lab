@@ -1504,7 +1504,12 @@ private fun BarIcon(glyph: BarGlyph, enabled: Boolean, ink: Color, dim: Color, l
 @Composable
 private fun StepSource(flow: ProcessFlow, st: ProcessStep) {
     val label = flow.match[st.match] ?: st.match
-    val figs = if (st.figs.isEmpty()) "" else "Fig. " + st.figs.joinToString(", ") + " · "
+    val src = if (st.src.isEmpty()) "" else st.src.joinToString("") { "[$it]" } + " "
+    val figs = when {
+        st.figs.isNotEmpty() -> src + "Fig. " + st.figs.joinToString(", ") + " · "
+        src.isNotEmpty() -> "$src· "
+        else -> ""
+    }
     if (label.isNotEmpty() || figs.isNotEmpty())
         Text(figs + label, fontFamily = Mono, fontSize = 10.5f.sp, lineHeight = 15.sp,
             color = MaterialTheme.colorScheme.primary, modifier = Modifier.padding(top = 8.dp))
