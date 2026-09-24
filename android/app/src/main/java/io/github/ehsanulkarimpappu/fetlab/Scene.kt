@@ -28,7 +28,9 @@ class Part(
 class ViewPreset(
     val key: String, val label: String, val sub: String,
     val az: Float, val el: Float, val r: Float,
-    val tgt: FloatArray, val clip: Array<Float?>?, val off: Set<String>
+    val tgt: FloatArray, val clip: Array<Float?>?, val off: Set<String>,
+    /** For process views: the scale they frame ("site" or "tile"). */
+    val scale: String = "site"
 )
 
 /** One parasitic term, and the two conductor groups it couples. */
@@ -85,13 +87,28 @@ class Material(val key: String, val label: String, val color: FloatArray, val no
  *  [ProcessFlow.match]), the model's substitutions, and what this view leaves out. */
 class ProcessStep(val id: String, val title: String, val body: String, val view: String,
                   val figs: List<String>, val match: String,
-                  val subs: List<String>, val omitted: List<String>)
+                  val subs: List<String>, val omitted: List<String>,
+                  /** "core", or "op" for an operation substep leading into core step [of]. */
+                  val level: String, val of: String, val label: String,
+                  /** "site" for the single device, "tile" for the 2 x 2 patterning context. */
+                  val scale: String) {
+    val isOp get() = level == "op"
+}
 
 /** A device's fabrication flow. Every step is a scene of its own, keyed [keys]. [figures]
  *  and [branch] qualify every figure mapping and are shown with the steps. */
 class ProcessFlow(val device: String, val scope: String, val figures: String, val branch: String,
                   val match: Map<String, String>, val refs: List<String>,
-                  val steps: List<ProcessStep>, val keys: List<String>)
+                  val steps: List<ProcessStep>, val keys: List<String>) {
+    val coreCount get() = steps.count { !it.isOp }
+    /** The next step from [from] in direction [dir] (+1 or -1), skipping operation
+     *  substeps unless [ops]; null at either end. */
+    fun next(from: Int, dir: Int, ops: Boolean): Int? {
+        var i = from + dir
+        while (i in steps.indices) { if (ops || !steps[i].isOp) return i; i += dir }
+        return null
+    }
+}
 
 class Reference(val id: String, val title: String, val publisher: String, val url: String)
 
@@ -215,9 +232,11 @@ class Library(val materials: Map<String, Material>, val order: List<String>, val
                 for (i in 0 until sa.length()) {
                     val sj = sa.getJSONObject(i)
                     fun list(k: String) = (sj.optJSONArray(k) ?: JSONArray()).toStringList()
+                    val scale = sj.optString("scale", "site")
                     steps.add(ProcessStep(sj.getString("id"), sj.getString("title"), sj.getString("body"),
                         sj.optString("view", "iso"), list("figs"), sj.optString("match", ""),
-                        list("subs"), list("omitted")))
+                        list("subs"), list("omitted"), sj.optString("level", "core"), sj.optString("of", ""),
+                        sj.optString("label", "${i + 1}"), scale))
                     val parts = ArrayList<Part>()
                     val pa = sj.getJSONArray("parts")
                     for (j in 0 until pa.length()) {
@@ -229,9 +248,17 @@ class Library(val materials: Map<String, Material>, val order: List<String>, val
                     val present = parts.map { it.group }.toSet()
                     val groups = base.groups.filter { it in present } +
                         parts.map { it.group }.distinct().filter { it !in base.groups }
-                    val sc = Scene(stepKey(dk, i), base.name, "Process · step ${i + 1} of ${sa.length()}",
-                        sj.getString("title"), "", false, base.style, base.lo, base.hi, parts, views,
-                        emptyList(), groups)
+                    // A step carries its own bounds when it frames more than the one site.
+                    val bj = sj.optJSONObject("bounds")
+                    val lo = bj?.let { floatArrayOf(it.getJSONArray("x").getDouble(0).toFloat(),
+                        it.getJSONArray("y").getDouble(0).toFloat(), it.getJSONArray("z").getDouble(0).toFloat()) } ?: base.lo
+                    val hi = bj?.let { floatArrayOf(it.getJSONArray("x").getDouble(1).toFloat(),
+                        it.getJSONArray("y").getDouble(1).toFloat(), it.getJSONArray("z").getDouble(1).toFloat()) } ?: base.hi
+                    val label = steps.last().label
+                    val tag = if (scale == "tile") "Process · 2 × 2 tile · step $label" else "Process · step $label"
+                    val sc = Scene(stepKey(dk, i), base.name, tag,
+                        sj.getString("title"), "", false, base.style, lo, hi, parts,
+                        views.filter { it.scale == scale }, emptyList(), groups)
                     sc.story = base.story
                     sc.stepIndex = i
                     stepScenes.add(sc)
@@ -280,7 +307,7 @@ class Library(val materials: Map<String, Material>, val order: List<String>, val
                 (v.opt("off") as? JSONArray)?.let { for (c in 0 until it.length()) off.add(it.getString(c)) }
                 views.add(ViewPreset(vk, v.getString("n"), v.getString("s"),
                     v.getDouble("az").toFloat(), v.getDouble("el").toFloat(), v.getDouble("r").toFloat(),
-                    v.getJSONArray("tgt").toFloats(), clip, off))
+                    v.getJSONArray("tgt").toFloats(), clip, off, v.optString("scale", "site")))
             }
             return views
         }

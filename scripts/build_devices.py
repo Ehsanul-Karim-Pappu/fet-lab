@@ -28,6 +28,11 @@ MAT = {
  "ild":     dict(label="SiO₂ · interlayer dielectric", color="#C9776C", note="Oxide around the device during processing; left out of the finished models, as their notes say"),
  "poly":    dict(label="Si dummy gate (poly/amorphous)", color="#8FA67A", note="Placeholder gate in the process steps; removed before the metal gate goes in. Poly and amorphous Si are both used; illustrative"),
  "pts":     dict(label="p-type Si (punch-through stopper)", color="#D9A6C8", note="Implanted doping under the nFET channels; extent illustrative, real profiles are graded"),
+ "pts_n":   dict(label="n-type Si (punch-through stopper)", color="#A7B8E4", note="Implanted doping under the pFET region; extent illustrative, real profiles are graded"),
+ "resist":  dict(label="Photoresist", color="#F08A3C", note="Light-sensitive film for patterning; positive tone in this example"),
+ "resist_exp": dict(label="Photoresist (exposed)", color="#F9D4B4", note="Resist made soluble by exposure; the developer removes it (positive tone)"),
+ "chrome":  dict(label="Reticle chrome (not to scale)", color="#8E959E", note="The reticle's opaque pattern. It sits in the scanner, not on the wafer; drawn above it only to show what blocks the light"),
+ "liner":   dict(label="Protective liner", color="#6FC7B5", note="Thin film that protects one region while the other is processed"),
  # --- schematic-layout palette, used by the showcase inverters ---
  "pwell":   dict(label="P Well",             color="#7FC9EA", note="p-type well / substrate"),
  "nwell":   dict(label="N Well",             color="#EFE53A", note="n-type well under the pMOS"),
@@ -40,7 +45,7 @@ MAT = {
  "m0":      dict(label="Metal 0",            color="#F2C1A2", note="First routing level"),
 }
 ORDER = ["silicon","sige","sio2","highk","si3n4","wall","mdi","bond",
-         "tin","mo","nisi","nickel","tungsten","poly","ild","pts",
+         "tin","mo","nisi","nickel","tungsten","poly","ild","pts","pts_n","resist","resist_exp","chrome","liner",
          "pwell","nwell","fox","nanowire","md","po","vd","vg","m0"]
 
 # ---------------------------------------------------------------- shared CDs

@@ -40,7 +40,9 @@ reads, so regenerating the geometry updates both.
 - Each scene remembers its camera, cuts, view and hidden layers for the session.
 - **Process mode** — a representative fabrication flow as real geometry, one scene per
   step, read from `app/src/main/assets/process.json` (built by `scripts/build_process.py`).
-  So far the nanosheet (18 steps); the other architectures are listed as coming. Each step
+  So far the nanosheet: 18 core steps, plus operation substeps (resist, exposure, etch,
+  fill...) that zoom out to a 2 × 2 tile of sites; the other architectures are listed as
+  coming. Each step
   carries its source figures, match level, substitutions and omissions, shown in the Steps
   tab and audited in `docs/PROCESS_AUDIT.md`.
 - A first-launch **guided tour** (spotlight plus an animated hand that performs each

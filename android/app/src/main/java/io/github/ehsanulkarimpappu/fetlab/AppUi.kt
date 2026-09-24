@@ -54,6 +54,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Switch
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
@@ -423,6 +424,8 @@ fun FetLabApp(lib: Library, renderer: Renderer) {
     // The step each flow was last left on, so coming back resumes it.
     val procAt = remember { mutableStateMapOf<String, Int>() }
     var playing by remember { mutableStateOf(false) }
+    // Operation substeps (litho, etch, fill...) between the core steps; on by default.
+    var showOps by rememberSaveable { mutableStateOf(true) }
     var glowJob by remember { mutableStateOf<Job?>(null) }
     /** The flow for [tech], if one has been written: the device key it is filed under. */
     fun flowFor(tech: String): String? =
@@ -444,22 +447,28 @@ fun FetLabApp(lib: Library, renderer: Renderer) {
         val sc = lib.scene(key)
         val hidden = old.parts.filter { !it.visible }.map { it.id }.toSet()
         val before = old.parts.associateBy { it.id }
+        // Moving between the tile and the single site is a zoom, not a process change.
+        val rescale = old.step?.scale != sc.step?.scale
         sceneKey = key; procAt[f.device] = n
         renderer.scene = sc
         selected = null; renderer.highlight = null
         val v = sc.views.firstOrNull { it.key == sc.step?.view }
-        if (v != null && v.key != viewKey) goToView(sc, v, animate = true)
+        if (v != null && (rescale || v.key != viewKey)) goToView(sc, v, animate = true)
         else {
             for (p in sc.parts) p.visible = p.id !in hidden
             layerTick++
             renderer.clip = clipPlanes(sc, cx, cy, cz)
         }
-        // New parts, and old ones this step reshaped (the stack after the recess, say).
-        renderer.fresh = sc.parts.filter { p ->
-            val q = before[p.id]
-            q == null || q.boxes.size != p.boxes.size ||
-                q.boxes.indices.any { !q.boxes[it].contentEquals(p.boxes[it]) }
-        }.toSet()
+        fun same(a: Part, b: Part) = a.boxes.size == b.boxes.size &&
+            a.boxes.indices.all { a.boxes[it].contentEquals(b.boxes[it]) }
+        val after = sc.parts.associateBy { it.id }
+        // New parts, and old ones this step reshaped (the stack after the recess, say), glow;
+        // what it removed or reshaped fades out where it was.
+        renderer.fresh = if (rescale) emptySet()
+            else sc.parts.filter { p -> before[p.id]?.let { same(it, p) } != true }.toSet()
+        renderer.fadeScene = old
+        renderer.fadeParts = if (rescale) emptyList()
+            else old.parts.filter { q -> q.visible && after[q.id]?.let { same(q, it) } != true }
         glowJob?.cancel()
         glowJob = scope.launch {
             var t0 = 0L
@@ -468,6 +477,7 @@ fun FetLabApp(lib: Library, renderer: Renderer) {
                 if (t0 == 0L) t0 = now
                 val t = ((now - t0) / 1_400_000_000f).coerceIn(0f, 1f)
                 renderer.freshGlow = (1f - t) * (1f - t)
+                renderer.fadeAlpha = (1f - t) * (1f - t)
                 draw()
                 if (t >= 1f) break
             }
@@ -499,9 +509,17 @@ fun FetLabApp(lib: Library, renderer: Renderer) {
         if (!playing) return@LaunchedEffect
         val sc = lib.scene(sceneKey)
         val f = sc.flow
-        if (f == null || sc.stepIndex >= f.steps.lastIndex) { playing = false; return@LaunchedEffect }
+        val nxt = f?.next(sc.stepIndex, 1, showOps)
+        if (nxt == null) { playing = false; return@LaunchedEffect }
         delay(4200)
-        goStep(sc.stepIndex + 1)
+        goStep(nxt)
+    }
+    // Hiding the operations while on one jumps to the core step it leads into.
+    LaunchedEffect(showOps) {
+        val sc = lib.scene(sceneKey)
+        val f = sc.flow ?: return@LaunchedEffect
+        val st = sc.step ?: return@LaunchedEffect
+        if (!showOps && st.isOp) goStep(f.steps.indexOfFirst { it.id == st.of }.coerceAtLeast(0))
     }
     fun openUrl(url: String) {
         try { ctx.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url))) }
@@ -985,13 +1003,16 @@ fun FetLabApp(lib: Library, renderer: Renderer) {
                 if (flow != null) shown.value = scene
                 val sc = shown.value
                 val f = sc.flow
-                if (f != null) ProcessBar(sc.stepIndex, f.steps.size, sc.step?.title ?: "", playing,
+                val prev = f?.next(sc.stepIndex, -1, showOps)
+                val next = f?.next(sc.stepIndex, 1, showOps)
+                if (f != null) ProcessBar(sc.step?.label ?: "", f.coreCount, sc.step?.title ?: "",
+                    sc.step?.isOp == true, prev != null, next != null, playing,
                     glass, line, ink, dim,
-                    onPrev = { playing = false; goStep(sc.stepIndex - 1) },
-                    onNext = { playing = false; goStep(sc.stepIndex + 1) },
+                    onPrev = { playing = false; prev?.let { goStep(it) } },
+                    onNext = { playing = false; next?.let { goStep(it) } },
                     onPlay = {
                         // From the last step, play starts again at the first.
-                        if (!playing && sc.stepIndex == f.steps.lastIndex) goStep(0)
+                        if (!playing && next == null) goStep(0)
                         playing = !playing
                     },
                     onTitle = { selectTab(3) })
@@ -1046,7 +1067,8 @@ fun FetLabApp(lib: Library, renderer: Renderer) {
                         2 -> LayersTab(lib, scene, layerTick, layersList) { parts, visible -> setVisible(parts, visible) }
                         3 -> {
                             val f = scene.flow
-                            if (f != null) StepsTab(lib, f, scene.stepIndex, stepsList,
+                            if (f != null) StepsTab(lib, f, scene.stepIndex, stepsList, showOps,
+                                onOps = { showOps = it },
                                 onPick = { playing = false; goStep(it) }, onRef = { openUrl(it) })
                             else SpecsTab(scene, parPick, specsList) { t -> pickPar(t) }
                         }
@@ -1404,17 +1426,19 @@ private fun LogicBar(input: Int, glass: Color, line: Color, ink: Color, dim: Col
 
 /** The fabrication stepper on the stage: back, the step and its name, play, forward. */
 @Composable
-private fun ProcessBar(index: Int, total: Int, title: String, playing: Boolean,
+private fun ProcessBar(label: String, cores: Int, title: String, isOp: Boolean,
+                       hasPrev: Boolean, hasNext: Boolean, playing: Boolean,
                        glass: Color, line: Color, ink: Color, dim: Color,
                        onPrev: () -> Unit, onNext: () -> Unit, onPlay: () -> Unit, onTitle: () -> Unit) {
     Surface(color = glass, shape = RoundedCornerShape(24.dp), border = BorderStroke(1.dp, line),
         modifier = Modifier.padding(start = 12.dp, end = 12.dp, bottom = 14.dp).widthIn(max = 520.dp)
             .fillMaxWidth().tourTarget("procbar")) {
         Row(Modifier.padding(4.dp), verticalAlignment = Alignment.CenterVertically) {
-            BarIcon(BarGlyph.Back, index > 0, ink, dim, "Previous step", onPrev)
+            BarIcon(BarGlyph.Back, hasPrev, ink, dim, "Previous step", onPrev)
             Column(Modifier.weight(1f).clip(RoundedCornerShape(14.dp)).clickable(onClick = onTitle)
                 .padding(horizontal = 8.dp, vertical = 5.dp)) {
-                Text("STEP ${index + 1} / $total", color = dim, fontFamily = Mono, fontSize = 10.sp)
+                Text((if (isOp) "OPERATION " else "STEP ") + "$label / $cores", color = dim,
+                    fontFamily = Mono, fontSize = 10.sp)
                 AnimatedContent(targetState = title, label = "stepTitle",
                     transitionSpec = { fadeIn(tween(220)) togetherWith fadeOut(tween(160)) }) { t ->
                     Text(t, color = ink, fontFamily = PlexSans, fontSize = 13.5f.sp,
@@ -1423,7 +1447,7 @@ private fun ProcessBar(index: Int, total: Int, title: String, playing: Boolean,
             }
             BarIcon(if (playing) BarGlyph.Pause else BarGlyph.Play, true, ink, dim,
                 if (playing) "Pause" else "Play the steps", onPlay)
-            BarIcon(BarGlyph.Next, index < total - 1, ink, dim, "Next step", onNext)
+            BarIcon(BarGlyph.Next, hasNext, ink, dim, "Next step", onNext)
         }
     }
 }
@@ -1486,6 +1510,7 @@ private fun StepSource(flow: ProcessFlow, st: ProcessStep) {
 /** Process mode's fourth tab: the scope, every step (the current one open), the sources. */
 @Composable
 private fun StepsTab(lib: Library, flow: ProcessFlow, index: Int, list: LazyListState,
+                     showOps: Boolean, onOps: (Boolean) -> Unit,
                      onPick: (Int) -> Unit, onRef: (String) -> Unit) {
     // Keep the current step in view as the stepper or play moves it.
     LaunchedEffect(index) { list.animateScrollToItem(index + 1, scrollOffset = -24) }
@@ -1497,24 +1522,38 @@ private fun StepsTab(lib: Library, flow: ProcessFlow, index: Int, list: LazyList
                     Text(t, fontFamily = PlexSans, fontSize = 12.sp, lineHeight = 17.sp,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.padding(bottom = 6.dp))
+                Row(Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp))
+                    .toggleable(value = showOps, role = Role.Switch, onValueChange = onOps)
+                    .padding(vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Column(Modifier.weight(1f)) {
+                        Text("Show every operation", fontFamily = PlexSans, fontSize = 13.sp,
+                            color = MaterialTheme.colorScheme.onSurface)
+                        Text("Resist, exposure, etch and fill between the main steps, some on a 2 × 2 tile",
+                            fontFamily = PlexSans, fontSize = 11.5f.sp, lineHeight = 16.sp,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                    Switch(checked = showOps, onCheckedChange = null)
+                }
             }
         }
         itemsIndexed(flow.steps, key = { _, st -> st.id }) { i, st ->
+            if (st.isOp && !showOps) return@itemsIndexed
             val on = i == index
             Surface(color = if (on) MaterialTheme.colorScheme.secondaryContainer else Color.Transparent,
                 shape = RoundedCornerShape(12.dp),
-                modifier = Modifier.fillMaxWidth().padding(vertical = 1.dp).tourTarget("step:$i")) {
+                modifier = Modifier.fillMaxWidth().padding(vertical = 1.dp)
+                    .padding(start = if (st.isOp) 14.dp else 0.dp).tourTarget("step:$i")) {
                 Column(Modifier.clip(RoundedCornerShape(12.dp)).clickable { onPick(i) }
                     .padding(horizontal = 10.dp, vertical = 9.dp)) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text("${i + 1}", fontFamily = Mono, fontSize = 12.sp,
-                            color = MaterialTheme.colorScheme.primary, modifier = Modifier.width(28.dp))
-                        Text(st.title, fontFamily = PlexSans, fontSize = 13.5f.sp,
+                        Text(st.label, fontFamily = Mono, fontSize = if (st.isOp) 11.sp else 12.sp,
+                            color = MaterialTheme.colorScheme.primary, modifier = Modifier.width(34.dp))
+                        Text(st.title, fontFamily = PlexSans, fontSize = if (st.isOp) 12.5f.sp else 13.5f.sp,
                             fontWeight = if (on) FontWeight.SemiBold else FontWeight.Normal,
                             color = MaterialTheme.colorScheme.onSurface)
                     }
                     AnimatedVisibility(visible = on) {
-                        Column(Modifier.padding(start = 28.dp, top = 5.dp)) {
+                        Column(Modifier.padding(start = 34.dp, top = 5.dp)) {
                             Text(st.body, fontFamily = PlexSans, fontSize = 12.5f.sp, lineHeight = 18.sp,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant)
                             StepSource(flow, st)

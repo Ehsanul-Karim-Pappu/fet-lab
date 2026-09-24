@@ -99,6 +99,10 @@ class Renderer(private val lib: Library) : GLSurfaceView.Renderer {
     /** Parts a process step has just added or reshaped, and how strongly they still glow. */
     @Volatile var fresh: Set<Part> = emptySet()
     @Volatile var freshGlow = 0f
+    /** Parts a step removed or reshaped, drawn as a fading ghost of [fadeScene]'s geometry. */
+    @Volatile var fadeScene: Scene? = null
+    @Volatile var fadeParts: List<Part> = emptyList()
+    @Volatile var fadeAlpha = 0f
     @Volatile var capsDirty = true
     @Volatile var texture = true
     @Volatile var edges = true
@@ -311,6 +315,18 @@ class Renderer(private val lib: Library) : GLSurfaceView.Renderer {
             G.glUniform3f(uTex, if (texture) 0.05f else 0f, 0.34f, 0f)
             bindCaps(); G.glDrawArrays(G.GL_TRIANGLES, 0, capVerts)
             bindMain(); G.glBindBuffer(G.GL_ELEMENT_ARRAY_BUFFER, vbo[4]); G.glUniform1f(uClip, 1f)
+        }
+        // What the step just removed fades out where it was, instead of simply vanishing.
+        val fs = fadeScene; val fp = fadeParts; val fa = fadeAlpha
+        if (fs != null && fa > 0.01f && fp.isNotEmpty()) {
+            mainBase = fs.vbase * 12; bindMain(); G.glBindBuffer(G.GL_ELEMENT_ARRAY_BUFFER, vbo[4])
+            G.glDepthMask(false); G.glUniform3f(uTex, 0f, 1f, 0f); G.glUniform3f(uAdd, 0f, 0f, 0f)
+            for (p in fp) {
+                G.glUniform1f(uA, 0.5f * fa); G.glUniform1f(uTint, 1.15f)
+                G.glDrawElements(G.GL_TRIANGLES, p.count, G.GL_UNSIGNED_SHORT, p.start * 2)
+            }
+            G.glDepthMask(true)
+            mainBase = sc.vbase * 12; bindMain(); G.glBindBuffer(G.GL_ELEMENT_ARRAY_BUFFER, vbo[4])
         }
         if (ghost) {
             G.glDepthMask(false); G.glUniform3f(uTex, 0f, 1f, 0f)

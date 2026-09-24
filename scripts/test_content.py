@@ -42,9 +42,18 @@ class ContentTests(unittest.TestCase):
             views = {**dev['views'], **flow.get('views', {})}
             self.assertTrue(flow['scope'])
             cited = set()
-            for step in flow['steps']:
+            labels = [step['label'] for step in flow['steps']]
+            self.assertEqual(len(labels), len(set(labels)))
+            for n, step in enumerate(flow['steps']):
                 self.assertTrue(step['title'] and step['body'])
                 self.assertIn(step['view'], views)
+                # A step's view frames its own scale; a tile step brings its own bounds.
+                self.assertEqual(views[step['view']].get('scale', 'site'), step['scale'])
+                self.assertEqual('bounds' in step, step['scale'] != 'site')
+                if step['level'] == 'op':
+                    nxt = next(s for s in flow['steps'][n + 1:] if s['level'] == 'core')
+                    self.assertEqual(step['of'], nxt['id'])
+                    self.assertTrue(step['label'].startswith(nxt['label'] + '.'))
                 for part in step['parts']:
                     if isinstance(part, str):
                         self.assertIn(part, final)

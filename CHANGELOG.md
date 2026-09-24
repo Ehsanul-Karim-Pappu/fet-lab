@@ -16,7 +16,16 @@ channel release and the high-κ/metal gate to middle-of-line contacts. Each step
 source figures it corresponds to and how closely (published stage, intermediate teaching
 reconstruction or concept only), the model's material substitutions and what it leaves
 out; none claims to reproduce a drawing. [docs/PROCESS_AUDIT.md](docs/PROCESS_AUDIT.md),
-generated from the same data, audits every step. Every tool works on every
+generated from the same data, audits every step.
+
+Operation substeps (on by default, one switch in the Steps tab) zoom out to a 2 × 2 tile,
+two stack lines (nFET and pFET) crossed by two gate lines, to show how the pattern is made:
+hard mask, resist coat, exposure through the reticle (positive tone, drawn above the wafer
+and not to scale), development, hard-mask etch, resist strip, stack etch, STI fill, CMP and
+recess; then dummy-gate patterning across both lines; then the protective liner and the
+mask that keeps the pFET sealed while the nFET's base layer is removed. The flow then zooms
+back to the selected site, which the build checks against the tile. Removed material
+fades out where it was instead of vanishing. Every tool works on every
 step: orbit, section, hide layers, tap to identify. A stepper on the stage moves back and
 forward or plays the flow, parts a step adds or reshapes glow briefly, and the Steps tab
 lists every step with its explanation, the flow's scope and the sources it cites. FinFET,
