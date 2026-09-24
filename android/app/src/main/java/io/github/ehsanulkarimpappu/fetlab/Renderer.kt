@@ -194,7 +194,8 @@ class Renderer(private val lib: Library) : GLSurfaceView.Renderer {
                                      cy + (if (k and 2 != 0) hy else -hy),
                                      cz + (if (k and 4 != 0) hz else -hz))
                     }
-                    for ((ea, eb) in edgePairs) {
+                    // A doped region has no sharp boundary, so it gets no edge outline.
+                    if (p.material != "pts") for ((ea, eb) in edgePairs) {
                         for (c2 in intArrayOf(ea, eb)) {
                             lposB.put(corner[c2][0]).put(corner[c2][1]).put(corner[c2][2])
                             lexpB.put(ev[0]).put(ev[1]).put(ev[2])

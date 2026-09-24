@@ -56,10 +56,30 @@ class ContentTests(unittest.TestCase):
             self.assertLessEqual(set(flow.get('refs', [])), ids)
             self.assertEqual(sorted(flow['steps'][-1]['parts']), sorted(final))
 
+    def test_process_source_labels(self):
+        """Every state says how it relates to its source, never claims a drawing match, and
+        never maps to a figure the flow says it skips (the patent's pFET-only steps)."""
+        proc = json.loads((ROOT / 'data/process.json').read_text())
+        audit = (ROOT / 'docs/PROCESS_AUDIT.md').read_text()
+        for key, flow in proc['flows'].items():
+            self.assertIn('not available for visual comparison', flow['figures'])
+            self.assertTrue(flow['branch'])
+            skipped = set(flow['skipped'])
+            for step in flow['steps']:
+                self.assertIn(step['match'], flow['match'])
+                if step['match'] != 'concept':
+                    self.assertTrue(step['figs'], step['id'])
+                self.assertFalse(skipped & set(step['figs']), step['id'])
+                for text in [step['body']] + step['subs'] + step['omitted']:
+                    self.assertNotRegex(text.lower(), r'exact (match|reconstruction)|as in fig')
+                self.assertIn('| ' + step['title'] + ' |', audit)
+            for fig in skipped:
+                self.assertIn('Fig. ' + fig, audit)
+
     def test_references_and_scope(self):
         ids = [r['id'] for r in self.refs['sources']]
         self.assertEqual(len(ids), len(set(ids)))
-        self.assertEqual(len(ids), 13)
+        self.assertEqual(len(ids), 21)
         for ref in self.refs['sources']:
             self.assertTrue(ref['url'].startswith('https://'))
             self.assertTrue(ref['supports'])

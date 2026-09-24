@@ -30,6 +30,22 @@ References support device concepts, not this model's exact dimensions, complete 
 
 - **R13** [Single stack dual channel gate-all-around nanosheet with strained PFET and bottom dielectric isolation NFET (US 12,568,683 B2)](https://patents.google.com/patent/US12568683B2/en) — IBM (assignee), US patent. nFET process, Figs. 5A–9B and 12A–13B (10A–11B are pFET steps). One early bottom-dielectric-isolation route for stacked nanosheets: STI at the bottom of a high-Ge sacrificial layer, its selective removal after dummy-gate formation, a conformal spacer dielectric that also fills the bottom cavity, a source/drain recess that preserves the isolation, and epitaxy from the exposed channel ends. A disclosed integration option, not evidence of any foundry's manufacturing flow.
 
+- **R14** [A Novel Dry Selective Etch of SiGe for the Enablement of High Performance Logic Stacked Gate-All-Around NanoSheet Devices](https://research.ibm.com/publications/a-novel-dry-selective-etch-of-sige-for-the-enablement-of-high-performance-logic-stacked-gate-all-around-nanosheet-devices) — IBM Research (Loubet et al.), IEDM 2019. Two distinct uses of selective SiGe etch: a partial lateral recess at the exposed ends before inner-spacer fill, and the later channel release in the gate cavity. Its selectivity and device results belong to the studied process, not to this model.
+
+- **R15** [Full Bottom Dielectric Isolation to Enable Stacked Nanosheet Transistor for Low Power and High Performance Applications](https://research.ibm.com/publications/full-bottom-dielectric-isolation-to-enable-stacked-nanosheet-transistor-for-low-power-and-high-performance-applications) — IBM Research (Zhang et al.), IEDM 2019. Why bottom isolation matters: compares full BDI with a punch-through-stopper scheme for sub-channel leakage and effective capacitance. Not evidence that its sequence matches R13's.
+
+- **R16** [Lithography principles](https://www.asml.com/en/technology/lithography-principles) — ASML. A mask or reticle pattern is projected into photoresist; exposure changes the resist's solubility, development leaves protected and open regions, and a separate etch transfers the pattern into the film below.
+
+- **R17** [Six crucial steps in semiconductor manufacturing](https://www.asml.com/en/company/stories/2021/semiconductor-manufacturing-process-steps) — ASML. Deposition, resist coating, lithography, development, etch and ion implantation as the repeating steps that build a chip.
+
+- **R18** [Nanosheet technology for the computing era of AI and 5G](https://research.ibm.com/blog/nanosheet-technology-ai-5g) — IBM Research. Conceptual support for adjustable sheet width, growth-controlled sheet thickness, full BDI under gate and source/drain, and tight selective-etch control.
+
+- **R19** [First EUV lithography high-volume manufacturing solution for N5 BEOL](https://www.imec-int.com/en/imec-magazine/imec-magazine-march-2017/first-euv-lithography-high-volume-manufacturing-solution-for-n5-beol) — imec. A back-end metal-line example of SAQP mechanics: core lines, first spacer and etch, core removal, reuse as the second core, second spacer and core removal, transfer to a hard mask, then a separate block pattern. An illustration of SAQP, not evidence of how R13 patterns its layers.
+
+- **R20** [Advanced in-line metrology strategy for self-aligned quadruple patterning](https://research.ibm.com/publications/advanced-in-line-metrology-strategy-for-self-aligned-quadruple-patterning) — IBM Research. Repeated sidewall-spacer image transfers give roughly a quarter of the original pitch in a periodic array, with accumulated variation such as pitch walk and CD variation.
+
+- **R21** [Spacer defined double patterning for sub-72 nm pitch logic technology](https://research.ibm.com/publications/spacer-defined-double-patterning-for-sub-72-nm-pitch-logic-technology) — IBM Research. Mandrels and a single spacer-defined pitch split (SADP).
+
 ## Unverified historical credit
 
 Earlier versions cited S. Rathore et al., Semiconductor Science and Technology (2021), without a title, DOI or figure number. The exact source has not been established. Retained here for provenance, not presented as a verified reference or silently replaced with a different paper.

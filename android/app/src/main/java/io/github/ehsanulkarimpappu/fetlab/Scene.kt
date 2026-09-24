@@ -80,11 +80,17 @@ class Scene(
 
 class Material(val key: String, val label: String, val color: FloatArray, val note: String)
 
-/** One stage of a fabrication flow: what happens, and the view that shows it best. */
-class ProcessStep(val id: String, val title: String, val body: String, val view: String)
+/** One stage of a fabrication flow: what happens, and the view that shows it best, with
+ *  how it relates to its source: the source's figure identifiers, a match level (a key of
+ *  [ProcessFlow.match]), the model's substitutions, and what this view leaves out. */
+class ProcessStep(val id: String, val title: String, val body: String, val view: String,
+                  val figs: List<String>, val match: String,
+                  val subs: List<String>, val omitted: List<String>)
 
-/** A device's fabrication flow. Every step is a scene of its own, keyed [keys]. */
-class ProcessFlow(val device: String, val scope: String, val refs: List<String>,
+/** A device's fabrication flow. Every step is a scene of its own, keyed [keys]. [figures]
+ *  and [branch] qualify every figure mapping and are shown with the steps. */
+class ProcessFlow(val device: String, val scope: String, val figures: String, val branch: String,
+                  val match: Map<String, String>, val refs: List<String>,
                   val steps: List<ProcessStep>, val keys: List<String>)
 
 class Reference(val id: String, val title: String, val publisher: String, val url: String)
@@ -208,8 +214,10 @@ class Library(val materials: Map<String, Material>, val order: List<String>, val
                 val stepScenes = ArrayList<Scene>()
                 for (i in 0 until sa.length()) {
                     val sj = sa.getJSONObject(i)
+                    fun list(k: String) = (sj.optJSONArray(k) ?: JSONArray()).toStringList()
                     steps.add(ProcessStep(sj.getString("id"), sj.getString("title"), sj.getString("body"),
-                        sj.optString("view", "iso")))
+                        sj.optString("view", "iso"), list("figs"), sj.optString("match", ""),
+                        list("subs"), list("omitted")))
                     val parts = ArrayList<Part>()
                     val pa = sj.getJSONArray("parts")
                     for (j in 0 until pa.length()) {
@@ -228,7 +236,10 @@ class Library(val materials: Map<String, Material>, val order: List<String>, val
                     sc.stepIndex = i
                     stepScenes.add(sc)
                 }
-                val flow = ProcessFlow(dk, fj.optString("scope", ""),
+                val match = HashMap<String, String>()
+                fj.optJSONObject("match")?.let { m -> for (k in m.keys()) match[k] = m.getString(k) }
+                val flow = ProcessFlow(dk, fj.optString("scope", ""), fj.optString("figures", ""),
+                    fj.optString("branch", ""), match,
                     (fj.optJSONArray("refs") ?: JSONArray()).toStringList(), steps, stepScenes.map { it.key })
                 for (sc in stepScenes) sc.flow = flow
                 scenes.addAll(stepScenes)

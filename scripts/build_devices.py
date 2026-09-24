@@ -26,7 +26,8 @@ MAT = {
  "nisi":    dict(label="Nickel silicide (NiSi)", color="#E6E2F0", note="Simplified silicide contact layer; SiGe contacts can require different alloy/phase treatment"),
  "tin":     dict(label="Titanium nitride (TiN)", color="#BE5518", note="Illustrative work-function region/cap; effective work function is not modeled"),
  "ild":     dict(label="SiO₂ · interlayer dielectric", color="#C9776C", note="Oxide around the device during processing; left out of the finished models, as their notes say"),
- "poly":    dict(label="Polysilicon (dummy gate)", color="#8FA67A", note="Placeholder gate in the process steps; removed before the metal gate goes in"),
+ "poly":    dict(label="Si dummy gate (poly/amorphous)", color="#8FA67A", note="Placeholder gate in the process steps; removed before the metal gate goes in. Poly and amorphous Si are both used; illustrative"),
+ "pts":     dict(label="p-type Si (punch-through stopper)", color="#D9A6C8", note="Implanted doping under the nFET channels; extent illustrative, real profiles are graded"),
  # --- schematic-layout palette, used by the showcase inverters ---
  "pwell":   dict(label="P Well",             color="#7FC9EA", note="p-type well / substrate"),
  "nwell":   dict(label="N Well",             color="#EFE53A", note="n-type well under the pMOS"),
@@ -39,7 +40,7 @@ MAT = {
  "m0":      dict(label="Metal 0",            color="#F2C1A2", note="First routing level"),
 }
 ORDER = ["silicon","sige","sio2","highk","si3n4","wall","mdi","bond",
-         "tin","mo","nisi","nickel","tungsten","poly","ild",
+         "tin","mo","nisi","nickel","tungsten","poly","ild","pts",
          "pwell","nwell","fox","nanowire","md","po","vd","vg","m0"]
 
 # ---------------------------------------------------------------- shared CDs
@@ -130,11 +131,16 @@ def build_ns():
     # The stack sits on a short Si sub-fin. The trench oxide beside it stops level with
     # the bottom of the BDI: in the flow it is recessed that far so the sacrificial bottom
     # layer's sidewalls are open for the etch that replaces it with the BDI.
-    d.add("substrate","Si substrate","silicon",[box(-48,48,-26,-SUBFIN,-zsub,zsub),
-          box(-48,48,-SUBFIN,0,-hz,hz)],"Substrate & isolation",[0,-1.2,0])
+    # The sub-fin carries the p-type punch-through stopper implanted before the stack was
+    # grown; drawn as its own part with an illustrative extent (real profiles are graded).
+    d.add("substrate","Si substrate","silicon",[box(-48,48,-26,-SUBFIN,-zsub,zsub)],
+          "Substrate & isolation",[0,-1.2,0])
+    d.add("pts","p-type punch-through stopper (sub-fin)","pts",[box(-48,48,-SUBFIN,0,-hz,hz)],
+          "Substrate & isolation",[0,-1.0,0])
     d.add("sti","STI oxide","sio2",[box(-48,48,-SUBFIN,0,hz,zsub), box(-48,48,-SUBFIN,0,-zsub,-hz)],
           "Substrate & isolation",[0,-.8,0])
-    d.add("bdi","Bottom dielectric isolation (BDI)","sio2",[box(-XSD,XSD,0,STI,-hz,hz)],
+    # Formed by the same conformal deposition as the outer spacers, so the same material.
+    d.add("bdi","Bottom dielectric isolation (BDI) · spacer dielectric","si3n4",[box(-XSD,XSD,0,STI,-hz,hz)],
           "Substrate & isolation",[0,-.8,0])
     for i,yc in enumerate(ys):
         d.add(f"sheet{i+1}",f"Si nanosheet {i+1}","silicon",[box(-XSP,XSP,yc-HYS,yc+HYS,-hz,hz)],"Channel stack",[0,0,0])

@@ -21,7 +21,7 @@ W_DEP = 5.0                      # junction depletion width, nm — an assumptio
 
 # Relative permittivity. Conductors get None and are never used as a gap filler.
 EPS_R = {
-    "sio2": 3.9, "si3n4": 7.5, "highk": 22.0, "silicon": 11.7, "sige": 13.0,
+    "sio2": 3.9, "si3n4": 7.5, "highk": 22.0, "silicon": 11.7, "pts": 11.7, "sige": 13.0,
     "mdi": 4.2, "bond": 3.9, "wall": 7.5,
     "mo": None, "tin": None, "tungsten": None, "nickel": None, "nisi": None,
 }

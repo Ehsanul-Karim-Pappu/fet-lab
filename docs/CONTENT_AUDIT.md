@@ -77,9 +77,10 @@ matrix. Adding these terms does not produce a characterized cell input capacitan
    The FinFET proxy therefore becomes zero because this interface is not drawn,
    **not because a real FinFET has no junction capacitance**.
 4. **Nanosheet isolation (after the audit):** the nanosheet model now uses full bottom
-   dielectric isolation (BDI) on a short Si sub-fin, with the STI recessed to the BDI's
-   bottom and the gate and spacers reaching down beside it, as its fabrication-process
-   steps require. The source/drain epitaxy sits on the BDI, so no S/D-to-substrate
+   dielectric isolation (BDI), formed from the spacer dielectric, on a short Si sub-fin
+   that carries a p-type punch-through stopper (drawn as a region of illustrative extent),
+   with the STI recessed to the BDI's bottom and the gate and spacers reaching down beside
+   it, as its fabrication-process steps require. The source/drain epitaxy sits on the BDI, so no S/D-to-substrate
    junction is drawn and the Cj* proxy, which counts only that junction contribution, is
    now 0.00aF (was 27.35aF). Zero junction contribution in this proxy does not imply zero
    total parasitic capacitance: S/D-to-substrate coupling through the dielectric and

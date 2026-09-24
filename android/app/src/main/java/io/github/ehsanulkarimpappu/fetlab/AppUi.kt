@@ -1462,6 +1462,27 @@ private fun BarIcon(glyph: BarGlyph, enabled: Boolean, ink: Color, dim: Color, l
     }
 }
 
+/** How a step relates to its source: figure identifiers and match level, then the model's
+ *  own choices and what this view leaves out. Nothing here claims to match a drawing. */
+@Composable
+private fun StepSource(flow: ProcessFlow, st: ProcessStep) {
+    val label = flow.match[st.match] ?: st.match
+    val figs = if (st.figs.isEmpty()) "" else "Fig. " + st.figs.joinToString(", ") + " · "
+    if (label.isNotEmpty() || figs.isNotEmpty())
+        Text(figs + label, fontFamily = Mono, fontSize = 10.5f.sp, lineHeight = 15.sp,
+            color = MaterialTheme.colorScheme.primary, modifier = Modifier.padding(top = 8.dp))
+    @Composable
+    fun notes(head: String, items: List<String>) {
+        if (items.isEmpty()) return
+        Text(head, style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(top = 8.dp))
+        for (t in items) Text("·  $t", fontFamily = PlexSans, fontSize = 12.sp, lineHeight = 17.sp,
+            color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(top = 2.dp))
+    }
+    notes("MODEL CHOICES", st.subs)
+    notes("NOT SHOWN HERE", st.omitted)
+}
+
 /** Process mode's fourth tab: the scope, every step (the current one open), the sources. */
 @Composable
 private fun StepsTab(lib: Library, flow: ProcessFlow, index: Int, list: LazyListState,
@@ -1471,9 +1492,12 @@ private fun StepsTab(lib: Library, flow: ProcessFlow, index: Int, list: LazyList
     LazyColumn(state = list, contentPadding = PaddingValues(bottom = 16.dp),
         modifier = Modifier.tourTarget("list:steps")) {
         item {
-            Text(flow.scope, fontFamily = PlexSans, fontSize = 12.sp, lineHeight = 17.sp,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(top = 2.dp, bottom = 10.dp))
+            Column(Modifier.padding(top = 2.dp, bottom = 10.dp)) {
+                for (t in listOf(flow.scope, flow.branch, flow.figures)) if (t.isNotEmpty())
+                    Text(t, fontFamily = PlexSans, fontSize = 12.sp, lineHeight = 17.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(bottom = 6.dp))
+            }
         }
         itemsIndexed(flow.steps, key = { _, st -> st.id }) { i, st ->
             val on = i == index
@@ -1490,9 +1514,11 @@ private fun StepsTab(lib: Library, flow: ProcessFlow, index: Int, list: LazyList
                             color = MaterialTheme.colorScheme.onSurface)
                     }
                     AnimatedVisibility(visible = on) {
-                        Text(st.body, fontFamily = PlexSans, fontSize = 12.5f.sp, lineHeight = 18.sp,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.padding(start = 28.dp, top = 5.dp))
+                        Column(Modifier.padding(start = 28.dp, top = 5.dp)) {
+                            Text(st.body, fontFamily = PlexSans, fontSize = 12.5f.sp, lineHeight = 18.sp,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            StepSource(flow, st)
+                        }
                     }
                 }
             }

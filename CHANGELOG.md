@@ -8,9 +8,15 @@ All notable changes to FET Lab. Dates are the release date; versions follow
 ### Process mode: how the transistor is made
 
 A fourth mode, Process, steps through a representative fabrication flow as real
-geometry, starting with the nanosheet: 16 steps from the Si/SiGe multilayer through the
-dummy gate, bottom dielectric isolation, inner spacers, source/drain epitaxy, channel
-release and the high-κ/metal gate to middle-of-line contacts. Every tool works on every
+geometry, starting with the nanosheet: 18 steps following the nFET branch of one
+disclosed integration route, from the punch-through-stopper implant and the Si/SiGe
+multilayer through the dummy gate, bottom dielectric isolation (the conformal spacer
+deposition that fills the cavity, then its etch-back), inner spacers, source/drain epitaxy,
+channel release and the high-κ/metal gate to middle-of-line contacts. Each step names the
+source figures it corresponds to and how closely (published stage, intermediate teaching
+reconstruction or concept only), the model's material substitutions and what it leaves
+out; none claims to reproduce a drawing. [docs/PROCESS_AUDIT.md](docs/PROCESS_AUDIT.md),
+generated from the same data, audits every step. Every tool works on every
 step: orbit, section, hide layers, tap to identify. A stepper on the stage moves back and
 forward or plays the flow, parts a step adds or reshapes glow briefly, and the Steps tab
 lists every step with its explanation, the flow's scope and the sources it cites. FinFET,
@@ -20,8 +26,10 @@ illustrative materials, not a foundry recipe.
 ### Nanosheet model: full bottom dielectric isolation
 
 The nanosheet now sits on a full bottom dielectric isolation (BDI) layer under both the
-channel and the source/drain, on a short Si sub-fin, with STI along the stack recessed to
-the BDI's bottom and the gate and spacers reaching down beside it. That is one consistent
+channel and the source/drain, on a short Si sub-fin that carries a p-type punch-through
+stopper, with STI along the stack recessed to the BDI's bottom and the gate and spacers
+reaching down beside it. The BDI is the spacer dielectric, since one conformal deposition
+forms both in the route followed. That is one consistent
 isolation scheme for the fabrication steps being added. Its source/drain epitaxy no longer
 touches the substrate, so the Specs table's C_j* proxy, which counts only a direct
 S/D-to-substrate junction, is now 0 aF for the nanosheet, as it already was for the FinFET.

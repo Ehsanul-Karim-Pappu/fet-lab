@@ -92,6 +92,62 @@
       "publisher": "IBM (assignee), US patent",
       "url": "https://patents.google.com/patent/US12568683B2/en",
       "supports": "nFET process, Figs. 5A–9B and 12A–13B (10A–11B are pFET steps). One early bottom-dielectric-isolation route for stacked nanosheets: STI at the bottom of a high-Ge sacrificial layer, its selective removal after dummy-gate formation, a conformal spacer dielectric that also fills the bottom cavity, a source/drain recess that preserves the isolation, and epitaxy from the exposed channel ends. A disclosed integration option, not evidence of any foundry's manufacturing flow."
+    },
+    {
+      "id": "R14",
+      "title": "A Novel Dry Selective Etch of SiGe for the Enablement of High Performance Logic Stacked Gate-All-Around NanoSheet Devices",
+      "publisher": "IBM Research (Loubet et al.), IEDM 2019",
+      "url": "https://research.ibm.com/publications/a-novel-dry-selective-etch-of-sige-for-the-enablement-of-high-performance-logic-stacked-gate-all-around-nanosheet-devices",
+      "supports": "Two distinct uses of selective SiGe etch: a partial lateral recess at the exposed ends before inner-spacer fill, and the later channel release in the gate cavity. Its selectivity and device results belong to the studied process, not to this model."
+    },
+    {
+      "id": "R15",
+      "title": "Full Bottom Dielectric Isolation to Enable Stacked Nanosheet Transistor for Low Power and High Performance Applications",
+      "publisher": "IBM Research (Zhang et al.), IEDM 2019",
+      "url": "https://research.ibm.com/publications/full-bottom-dielectric-isolation-to-enable-stacked-nanosheet-transistor-for-low-power-and-high-performance-applications",
+      "supports": "Why bottom isolation matters: compares full BDI with a punch-through-stopper scheme for sub-channel leakage and effective capacitance. Not evidence that its sequence matches R13's."
+    },
+    {
+      "id": "R16",
+      "title": "Lithography principles",
+      "publisher": "ASML",
+      "url": "https://www.asml.com/en/technology/lithography-principles",
+      "supports": "A mask or reticle pattern is projected into photoresist; exposure changes the resist's solubility, development leaves protected and open regions, and a separate etch transfers the pattern into the film below."
+    },
+    {
+      "id": "R17",
+      "title": "Six crucial steps in semiconductor manufacturing",
+      "publisher": "ASML",
+      "url": "https://www.asml.com/en/company/stories/2021/semiconductor-manufacturing-process-steps",
+      "supports": "Deposition, resist coating, lithography, development, etch and ion implantation as the repeating steps that build a chip."
+    },
+    {
+      "id": "R18",
+      "title": "Nanosheet technology for the computing era of AI and 5G",
+      "publisher": "IBM Research",
+      "url": "https://research.ibm.com/blog/nanosheet-technology-ai-5g",
+      "supports": "Conceptual support for adjustable sheet width, growth-controlled sheet thickness, full BDI under gate and source/drain, and tight selective-etch control."
+    },
+    {
+      "id": "R19",
+      "title": "First EUV lithography high-volume manufacturing solution for N5 BEOL",
+      "publisher": "imec",
+      "url": "https://www.imec-int.com/en/imec-magazine/imec-magazine-march-2017/first-euv-lithography-high-volume-manufacturing-solution-for-n5-beol",
+      "supports": "A back-end metal-line example of SAQP mechanics: core lines, first spacer and etch, core removal, reuse as the second core, second spacer and core removal, transfer to a hard mask, then a separate block pattern. An illustration of SAQP, not evidence of how R13 patterns its layers."
+    },
+    {
+      "id": "R20",
+      "title": "Advanced in-line metrology strategy for self-aligned quadruple patterning",
+      "publisher": "IBM Research",
+      "url": "https://research.ibm.com/publications/advanced-in-line-metrology-strategy-for-self-aligned-quadruple-patterning",
+      "supports": "Repeated sidewall-spacer image transfers give roughly a quarter of the original pitch in a periodic array, with accumulated variation such as pitch walk and CD variation."
+    },
+    {
+      "id": "R21",
+      "title": "Spacer defined double patterning for sub-72 nm pitch logic technology",
+      "publisher": "IBM Research",
+      "url": "https://research.ibm.com/publications/spacer-defined-double-patterning-for-sub-72-nm-pitch-logic-technology",
+      "supports": "Mandrels and a single spacer-defined pitch split (SADP)."
     }
   ],
   "unverified_legacy_credit": "Earlier versions cited S. Rathore et al., Semiconductor Science and Technology (2021), without a title, DOI or figure number. The exact source has not been established. Retained here for provenance, not presented as a verified reference or silently replaced with a different paper."
