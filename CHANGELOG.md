@@ -23,7 +23,9 @@ second ILD with separate source/drain and gate openings; silicide; and the conta
 Fin patterning defaults to **SAQP**, following a published N7 fin-patterning example
 (96 → 48 → 24 nm; this model's 108 → 54 → 27 nm is an adaptation); SADP and a hypothetical
 single-exposure direct print stay selectable, and the spacer routes' cut removes the extra
-mask line between the two fin groups before the fin etch. Sub-fin leakage, wells' doping,
+mask line between the two fin groups before the fin etch. The hard mask is deposited at the
+tile before the routes part, so the flow zooms out in two stages (site, tile, then the fin
+field), and every change of scale flies the camera more slowly, in both flows. Sub-fin leakage, wells' doping,
 the pFET's own steps and the gate cut are named where they are left out. The route picker
 remembers a choice per flow, uses each flow's wording, and each step shows which reference
 its figures belong to. Five FinFET references are added (R24–R27, and R22 now points at the

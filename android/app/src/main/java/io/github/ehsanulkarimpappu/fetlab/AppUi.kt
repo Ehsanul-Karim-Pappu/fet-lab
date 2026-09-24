@@ -337,7 +337,9 @@ fun FetLabApp(lib: Library, renderer: Renderer) {
             if (c?.get(2) != null) frac(c[2]!!, sc.lo[2], sc.hi[2]) else 1f)
     }
 
-    fun goToView(sc: Scene, v: ViewPreset, animate: Boolean) {
+    /** [slow] for a change of scale (site, tile, line field), which moves the camera much
+     *  farther and changes the whole scene: a longer flight keeps it readable. */
+    fun goToView(sc: Scene, v: ViewPreset, animate: Boolean, slow: Boolean = false) {
         viewKey = v.key
         for (p in sc.parts) p.visible = !v.off.contains(p.id)
         layerTick++
@@ -347,7 +349,7 @@ fun FetLabApp(lib: Library, renderer: Renderer) {
         val from = cameraNow()
         flight = scope.launch {
             var t0 = 0L
-            val dur = 520_000_000f
+            val dur = if (slow) 1_100_000_000f else 520_000_000f
             while (true) {
                 val now = withFrameNanos { it }
                 if (t0 == 0L) t0 = now
@@ -458,7 +460,7 @@ fun FetLabApp(lib: Library, renderer: Renderer) {
         renderer.scene = sc
         selected = null; renderer.highlight = null
         val v = sc.views.firstOrNull { it.key == sc.step?.view }
-        if (v != null && (rescale || v.key != viewKey)) goToView(sc, v, animate = true)
+        if (v != null && (rescale || v.key != viewKey)) goToView(sc, v, animate = true, slow = rescale)
         else {
             for (p in sc.parts) p.visible = p.id !in hidden
             layerTick++

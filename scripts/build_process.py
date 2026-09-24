@@ -830,11 +830,12 @@ def pitch_routes(F, T, g):
     mand = [(c[2 * i] + W / 2, c[2 * i + 1] - W / 2) for i in range(n // 2)]
     base(S, z0, z1)
     S.put(tmp("f_man", "Mandrel film", "mandrel", GP, [box(X0, X1, yman, yman + MAN, z0, z1)], (0, 1.6, 0)))
-    S.snap("sadp_films", "Hard mask and mandrel film",
+    S.snap("sadp_films", "Mandrel film" if g.get("hm_shared") else "Hard mask and mandrel film",
         "Zoomed out past the tile to the array of lines around it: the tile sits in the middle, "
-        f"and the lines beyond it belong to neighbouring devices. The {w} hard mask is deposited "
-        "as in the direct route, then a mandrel film for the cores. This route changes only how "
-        "the hard-mask lines are made.", view="sadpfield", of=of, match="pattern",
+        f"and the lines beyond it belong to neighbouring devices. " + (
+            f"Over the {w} hard mask goes a mandrel film for the cores. " if g.get("hm_shared") else
+            f"The {w} hard mask is deposited as in the direct route, then a mandrel film for the cores. ") +
+        "This route changes only how the hard-mask lines are made.", view="sadpfield", of=of, match="pattern",
         subs=[FIELD_SUB, "Mandrel material and thickness are illustrative"])
     S.put(tmp("f_res", "Photoresist cores", "resist", GP,
               [box(X0, X1, yman + MAN, yman + MAN + RES, a, b) for a, b in mand], (0, 2.0, 0)))
@@ -896,9 +897,10 @@ def pitch_routes(F, T, g):
     base(S, z0, z1)
     S.put(tmp("f_man2", "Second-core film", "mandrel2", GP, [box(X0, X1, yman, y1, z0, z1)], (0, 1.5, 0)))
     S.put(tmp("f_man1", "First-core film", "mandrel", GP, [box(X0, X1, y1, y1 + MAN1, z0, z1)], (0, 1.8, 0)))
-    S.snap("saqp_films", "Hard mask and two core films",
+    S.snap("saqp_films", "Two core films" if g.get("hm_shared") else "Hard mask and two core films",
         "Zoomed out past the tile to the array of lines around it. SAQP needs a second core "
-        f"layer: over the {w} hard mask go a second-core film and then a first-core film [R19].",
+        f"layer: over the {w} hard mask go a second-core film and then a first-core film [R19]" +
+        (", two layers the tile's hard mask did not have." if g.get("hm_shared") else "."),
         view="saqpfield", of=of, match="pattern",
         subs=[FIELD_SUB, "Core materials and thicknesses are illustrative"])
     S.put(tmp("f_res", "Photoresist cores", "resist", GP,
@@ -1142,7 +1144,6 @@ def flow_fin(done):
                   [box(WX0, WX1, 0, top, WZ0, WZ1)]))
         T.put(tmp("t_hm", "Fin hard mask (blanket)", "si3n4", GP,
                   [box(WX0, WX1, top, top + HMT, WZ0, WZ1)], (0, 1.3, 0)))
-        T.route = "direct"
         T.snap("hm", "Hard-mask deposition",
             "Zoomed out to a tile of four sites: an nFET pair of fins in a p-well through the "
             "selected site, and a pFET pair in an n-well beside it, each crossed later by two gate "
@@ -1152,6 +1153,7 @@ def flow_fin(done):
             subs=TILE_SUBS + ["The wells are named regions only, not doping profiles",
                               "Hard-mask material and thickness are illustrative"],
             omitted=["The pad oxide, and the well implants and anneal"])
+        T.route = "direct"          # the routes part here: how the hard mask gets its lines
         t_resist("t_res", "Photoresist (coated)", "resist", [box(WX0, WX1, top + HMT, top + HMT + RT, WZ0, WZ1)])
         T.snap("coat", "Resist coat",
             "A light-sensitive photoresist is spun on over the hard mask [R16].", view="tile",
@@ -1194,7 +1196,7 @@ def flow_fin(done):
             what="fin", of="fins", group=GFN, anchor=ZMID, drop=[ZMID],
             cut_note=", and the extra line between the nFET and pFET fin groups, so no fin is "
                      "ever etched there",
-            lines="four fin lines", films=(16.0, 26.0, 8.0), hz=hw, PS=FP, win=(WX0, WX1, WZ0, WZ1),
+            lines="four fin lines", films=(16.0, 26.0, 8.0), hm_shared=True, hz=hw, PS=FP, win=(WX0, WX1, WZ0, WZ1),
             top=top, HMT=HMT, ysub=sub[2],
             layers=[("fl", "Si · upper substrate (fins to be)", "silicon", 0, top, (0, 0, 0))]))
         # The spacer routes' provenance: SAQP for fins is a published research example (F3,

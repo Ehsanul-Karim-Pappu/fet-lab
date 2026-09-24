@@ -1,4 +1,4 @@
-const CACHE = "fetlab-v47";
+const CACHE = "fetlab-v48";
 const ASSETS = ["./", "./index.html", "./manifest.webmanifest",
   "./icon-192.png", "./icon-512.png", "./icon-maskable-512.png", "./apple-touch-icon.png"];
 self.addEventListener("install", e => {
