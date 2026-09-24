@@ -135,7 +135,7 @@ class Stage:
     def boxes(self, but=()):
         return [b for p in self.now.values() if p["id"] not in but for b in p["boxes"]]
 
-    def snap(self, sid, title, body, view="iso", *, match, figs=(), subs=(), omitted=(), of=None, src=(), deposit=()):
+    def snap(self, sid, title, body, view="iso", *, match, figs=(), subs=(), omitted=(), of=None, src=(), deposit=(), bounds=None):
         """[match] says how the state relates to its source (a MATCH key); [figs] are the
         source's figure identifiers; [subs] the model's material or dimension substitutions;
         [omitted] what the source shows at this stage that this view leaves out. [of] makes
@@ -156,6 +156,7 @@ class Stage:
         if deposit: step["deposit"] = list(deposit)   # films the viewer shows rising, in order
         if self.route: step["route"] = self.route
         if self.scale != "site": step["bounds"] = self.bounds
+        elif bounds: step["bounds"] = bounds         # a site step drawing tools above the device
         self.flow.steps.append(step)
 
 
@@ -456,7 +457,30 @@ def flow_ns(done):
             "deposited over everything and planarised, and a gate hard mask goes on top.",
             view="tile", of="dummy", match="intermediate", figs=["6A/B"],
             subs=["The patent suggests amorphous Si; the model's dummy Si is illustrative"])
-        T.drop("t_dsi", "t_dhm", "t_dox_n", "t_dox_p")
+        gl = [(xg - XG, xg + XG) for xg in GATES]
+        t_resist("t_gres", "Photoresist (coated)", "resist", [box(WX0, WX1, ycap, ycap + RT, WZ0, WZ1)])
+        T.snap("gcoat", "Gate resist coat",
+            "Resist is spun on over the gate hard mask, as for the stacks [R16].", view="tile",
+            of="dummy", match="concept", deposit=["t_gres"])
+        T.drop("t_gres")
+        t_resist("t_gres", "Photoresist (unexposed: over the gates)", "resist",
+                 [box(a, b, ycap, ycap + RT, WZ0, WZ1) for a, b in gl])
+        t_resist("t_gres_x", "Photoresist (exposed: made soluble)", "resist_exp",
+                 [box(a, b, ycap, ycap + RT, WZ0, WZ1) for a, b in bd.gaps(WX0, WX1, gl)])
+        T.put(tmp("t_greticle", "Reticle chrome (in the scanner; not to scale)", "chrome", "Patterning",
+                  [box(a, b, RY, RY + 2.0, WZ0, WZ1) for a, b in gl], (0, 2.0, 0)))
+        T.snap("gexpose", "Gate exposure",
+            "The gate lines are exposed crossways to the stacks: the reticle's chrome keeps the resist "
+            "over each future gate dark, and the rest becomes soluble [R16].", view="tile",
+            of="dummy", match="concept", subs=["Exposure is simplified, as for the stacks"])
+        T.drop("t_greticle", "t_gres_x", "t_dhm")
+        for g, (a, b) in enumerate(gl):
+            T.put(tmp(f"t_ghm{g}", f"Gate hard mask {g + 1}", "si3n4", "Dummy gate",
+                      [box(a, b, ymo, ycap, WZ0, WZ1)], (0, 1.4, 0)))
+        T.snap("ghm", "Development and gate hard-mask etch",
+            "The developer clears the exposed resist, and a directional etch transfers the resist "
+            "lines into the gate hard mask.", view="tile", of="dummy", match="intermediate", figs=["6A/B"])
+        T.drop("t_gres", "t_dsi", "t_dox_n", "t_dox_p")
         for g, xg in enumerate(GATES):
             for zc, k in LINES:
                 T.put(tmp(f"t_dox_{k}{g}", "Dummy-gate oxide", "sio2", "Dummy gate",
@@ -466,15 +490,13 @@ def flow_ns(done):
                       subtract((xg - XG, xg + XG, 0, ymo, WZ0, WZ1), T.boxes()), (0, 1.0, 0)))
             T.put(tmp(f"t_ghm{g}", f"Gate hard mask {g + 1}", "si3n4", "Dummy gate",
                       [box(xg - XG, xg + XG, ymo, ycap, WZ0, WZ1)], (0, 1.4, 0)))
-        T.snap("gatepat", "Gate patterning",
-            "The gate lines are patterned with the same sequence as the stacks (resist, exposure, "
-            "development, hard-mask etch), now in the crossing direction, and the dummy stack is "
-            "etched down to the STI. Two gate lines cross both stack lines: four sites. On each "
+        T.snap("gatepat", "Dummy-gate etch and resist strip",
+            "With the gate hard mask as the etch mask, the dummy stack is etched down to the STI and "
+            "the resist is stripped. Two gate lines cross both stack lines: four sites. On each "
             "line the two sites share the source/drain between their gates. Next, the view returns "
             "to the selected site, which shows its gate only across its own stack.",
             view="tile", of="dummy", match="context", figs=["6A/B"],
-            omitted=["The gate layer's own lithography steps (as for the stacks)",
-                     "The gate cut between the lines, which the patent makes later (Fig. 17)"])
+            omitted=["The gate cut between the lines, which the patent makes later (Fig. 17)"])
 
     def tile_open():
         """Opening the nFET region while the pFET is protected (the core step 'bottom')."""
@@ -485,16 +507,31 @@ def flow_ns(done):
             view="tile", of="bottom", match="intermediate", figs=["7A/B"],
             subs=["Liner material and thickness are illustrative"])
         liner = T.now["t_liner"]
+        t_resist("t_bres", "Photoresist (coated)", "resist",
+                 subtract((WX0, WX1, 0, ycap + 12.0, WZ0, WZ1), T.boxes()))
+        T.snap("bcoat", "Block-mask resist coat",
+            "Resist is spun on over the whole tile, filling in around the gates [R16].",
+            view="tile", of="bottom", match="concept", deposit=["t_bres"])
+        T.drop("t_bres")
+        others = T.boxes()
+        t_resist("t_block", "Photoresist block over the pFET region", "resist",
+                 subtract((WX0, WX1, 0, ycap + 12.0, WZ0, ZMID), others))
+        t_resist("t_bres_x", "Photoresist (exposed: made soluble)", "resist_exp",
+                 subtract((WX0, WX1, 0, ycap + 12.0, ZMID, WZ1), others))
+        T.put(tmp("t_breticle", "Reticle chrome (in the scanner; not to scale)", "chrome", "Patterning",
+                  [box(WX0, WX1, RY, RY + 2.0, WZ0, ZMID)], (0, 2.0, 0)))
+        T.snap("bexpose", "Block-mask exposure",
+            "The reticle's chrome covers the pFET region: the resist there stays as it was, and over "
+            "the nFET region it becomes soluble [R16].", view="tile", of="bottom", match="concept",
+            subs=["Exposure is simplified, as for the stacks"])
+        T.drop("t_breticle", "t_bres_x")
         T.put(tmp("t_liner", "Protective liner · pFET region", "liner", "Patterning",
                   clip(liner["boxes"], (WX0, WX1, 0, ycap + 1.5, WZ0, ZMID)), (0, .8, 0)))
-        t_resist("t_block", "Photoresist block over the pFET region", "resist",
-                 subtract((WX0, WX1, 0, ycap + 12.0, WZ0, ZMID), T.boxes()))
         T.snap("mask", "nFET-open mask",
-            "A resist block is patterned over the pFET region, and the liner is etched away where the "
-            "resist is open: over the nFET region. The pFET line stays sealed; the nFET line's "
-            "sidewalls, including its high-Ge base layer's, are exposed [R13].",
-            view="tile", of="bottom", match="context", figs=["7A/B"],
-            omitted=["The mask's own lithography steps"])
+            "The developer clears the exposed resist, leaving a block over the pFET region, and the "
+            "liner is etched away where the resist is open: over the nFET region. The pFET line stays "
+            "sealed; the nFET line's sidewalls, including its high-Ge base layer's, are exposed [R13].",
+            view="tile", of="bottom", match="context", figs=["7A/B"])
         T.drop("t_ml_base_n")
         T.snap("base", "nFET base-layer removal",
             "A selective etch removes the high-Ge base layer from the nFET line only, working in from "
@@ -800,6 +837,57 @@ def pitch_routes(F, T, g):
             S.put(tmp("f_" + pid, name + " · beyond the tile", mat, GL, subtract((X0, X1, a, b, z0, z1), win), ex))
         hm(S, [(z0, z1)], f"{w.capitalize()} hard mask (blanket)")
 
+    def litho(S, mode, ytop, cores, z0, z1, ex, text, subs):
+        """Core lithography as the direct route does it: coat, then an exposure with the
+        reticle drawn above the wafer; the development step follows."""
+        RYF = ytop + RES + 30.0                          # reticle height (not to scale)
+        S.put(tmp("f_res", "Photoresist (coated)", "resist", GP, [box(X0, X1, ytop, ytop + RES, z0, z1)], ex))
+        S.snap(f"{mode}_coat", "Core resist coat", "Photoresist is spun on over the core film [R16].",
+               view=f"{mode}field", of=of, match="pattern", deposit=["f_res"])
+        S.drop("f_res")
+        S.put(tmp("f_res", "Photoresist (unexposed: over the cores)", "resist", GP,
+                  [box(X0, X1, ytop, ytop + RES, a, b) for a, b in cores], ex))
+        S.put(tmp("f_res_x", "Photoresist (exposed: made soluble)", "resist_exp", GP,
+                  [box(X0, X1, ytop, ytop + RES, a, b) for a, b in bd.gaps(z0, z1, cores)], ex))
+        S.put(tmp("f_ret", "Reticle chrome (in the scanner; not to scale)", "chrome", GP,
+                  [box(X0, X1, RYF, RYF + 2.0, a, b) for a, b in cores], (0, 2.6, 0)))
+        S.snap(f"{mode}_expose", "Core exposure", text, view=f"{mode}field", of=of, match="pattern",
+               subs=["Exposure is simplified: no optics, proximity, dose or overlay effects"] + subs)
+        S.drop("f_ret", "f_res_x", "f_res")
+        S.put(tmp("f_res", "Photoresist cores", "resist", GP,
+                  [box(X0, X1, ytop, ytop + RES, a, b) for a, b in cores], ex))
+
+    def cutmask(S, mode, spans, z0, z1, what):
+        """The cut (or block) pattern's own lithography: resist over the hard-mask lines, and a
+        second reticle whose chrome keeps the resist over the lines that stay, cut to length."""
+        keep = cut(spans)
+        regs = []                                      # each kept line, out to half the gap either side
+        for a, b in keep:
+            i = spans.index((a, b))
+            regs.append(((spans[i - 1][1] + a) / 2 if i else a, (b + spans[i + 1][0]) / 2 if i + 1 < len(spans) else b))
+        y0, y1 = top, top + HMT + RES
+        hmb = S.now["t_hm"]["boxes"]
+        keepb = [box(WX0, WX1, y0, y1, a, b) for a, b in regs]
+        S.put(tmp("f_cres", "Photoresist (coated)", "resist", GP, subtract((X0, X1, y0, y1, z0, z1), hmb), (0, 2.0, 0)))
+        S.snap(f"{mode}_cutcoat", f"Spacer strip and {what}-mask resist",
+            "The spacers are stripped, and resist is spun on over the hard-mask lines for a second, "
+            f"separately printed pattern: the {what} mask [R16].", view=f"{mode}field", of=of,
+            match="pattern", deposit=["f_cres"])
+        S.drop("f_cres")
+        S.put(tmp("f_cres", "Photoresist (unexposed: over the lines that stay)", "resist", GP,
+                  [c for kb in keepb for c in subtract(tuple(lim(kb)), hmb)], (0, 2.0, 0)))
+        S.put(tmp("f_cres_x", "Photoresist (exposed: made soluble)", "resist_exp", GP,
+                  subtract((X0, X1, y0, y1, z0, z1), hmb + keepb), (0, 2.0, 0)))
+        RYC = y1 + 30.0
+        S.put(tmp("f_cret", "Reticle chrome (in the scanner; not to scale)", "chrome", GP,
+                  [box(WX0, WX1, RYC, RYC + 2.0, a, b) for a, b in regs], (0, 2.6, 0)))
+        S.snap(f"{mode}_cutexpose", f"{what.capitalize()}-mask exposure",
+            f"A second reticle is imaged onto this resist. Its chrome keeps the resist dark over the "
+            f"lines that stay, cut to length; over the line ends and the lines at the edge of the "
+            f"array{g['cut_note']} the resist becomes soluble [R16][R19].", view=f"{mode}field",
+            of=of, match="pattern", subs=["Exposure is simplified: no optics, proximity, dose or overlay effects"])
+        S.drop("f_cret", "f_cres_x", "f_cres")
+
     def film(S, name, t, y0, y1, z0, z1, ex):
         S.put(tmp("f_spfilm", name, "patspacer", GP, conformal(S.boxes(), t, (X0, X1, y0, y1, z0, z1)), ex))
 
@@ -842,13 +930,14 @@ def pitch_routes(F, T, g):
             f"The {w} hard mask is deposited as in the direct route, then a mandrel film for the cores. ") +
         "This route changes only how the hard-mask lines are made.", view="sadpfield", of=of, match="pattern",
         subs=[FIELD_SUB, "Mandrel material and thickness are illustrative"], deposit=["f_man"])
-    S.put(tmp("f_res", "Photoresist cores", "resist", GP,
-              [box(X0, X1, yman + MAN, yman + MAN + RES, a, b) for a, b in mand], (0, 2.0, 0)))
-    S.snap("sadp_litho", "Core lithography",
-        f"Resist is coated, exposed and developed as in the direct route, but it prints only the "
-        f"cores: four lines at pitch P = {2 * P2:g} nm, twice the final pitch, which one exposure "
-        "resolves more easily [R16][R21].", view="sadpfield", of=of, match="pattern",
-        subs=["The core count, width and pitch are illustrative"])
+    litho(S, "sadp", yman + MAN, mand, z0, z1, (0, 2.0, 0),
+        "The scanner images the reticle's pattern onto the resist, as in the direct route, but it "
+        f"prints only the cores: the chrome keeps four lines dark at pitch P = {2 * P2:g} nm, twice "
+        "the final pitch, which one exposure resolves more easily; the rest becomes soluble "
+        "[R16][R21].", ["The core count, width and pitch are illustrative"])
+    S.snap("sadp_litho", "Core development",
+        "The developer dissolves the exposed resist, leaving four resist cores on the mandrel "
+        "film [R16].", view="sadpfield", of=of, match="pattern")
     S.drop("f_man", "f_res")
     S.put(tmp("f_man", "Mandrels (cores)", "mandrel", GP,
               [box(X0, X1, yman, yman + MAN, a, b) for a, b in mand], (0, 1.6, 0)))
@@ -880,13 +969,14 @@ def pitch_routes(F, T, g):
         "With the spacers as the etch mask, the hard mask is etched where it is exposed. The "
         "spacer image is now a hard-mask image.", view="sadpcut", of=of, match="pattern")
     S.drop("f_sp")
+    cutmask(S, "sadp", sp, z0, z1, "cut")
     hm(S, cut(sp), f"{w.capitalize()} hard mask (patterned)", WX0, WX1)
     check(S, "SADP")
-    S.snap("sadp_cut", "Spacer strip and cut pattern",
-        "The spacers are stripped, and a separately printed cut pattern trims the hard-mask lines "
-        "to length and removes the two at the edge of the array" + g["cut_note"] + ". Which lines "
-        "a cut removes is an integration choice [R19].", view="sadpfield", of=of, match="pattern",
-        subs=["Which lines are cut is illustrative"])
+    S.snap("sadp_cut", "Cut etch and resist strip",
+        "The developer clears the exposed resist, the hard mask left open is etched away and the "
+        "resist is stripped: the lines are trimmed to length and the two at the edge of the array "
+        "are gone" + g["cut_note"] + ". Which lines a cut removes is an integration choice [R19].",
+        view="sadpfield", of=of, match="pattern", subs=["Which lines are cut is illustrative"])
     back("sadp", "SADP")
 
     # ---------------------------------------------------------------- SAQP --
@@ -908,12 +998,13 @@ def pitch_routes(F, T, g):
         (", two layers the tile's hard mask did not have." if g.get("hm_shared") else "."),
         view="saqpfield", of=of, match="pattern",
         subs=[FIELD_SUB, "Core materials and thicknesses are illustrative"], deposit=["f_man2", "f_man1"])
-    S.put(tmp("f_res", "Photoresist cores", "resist", GP,
-              [box(X0, X1, y1 + MAN1, y1 + MAN1 + RES, a, b) for a, b in man1], (0, 2.2, 0)))
-    S.snap("saqp_litho", "Core lithography",
-        f"Four cores are printed at pitch P = {4 * P2:g} nm, four times the final pitch [R16].",
-        view="saqpfield", of=of, match="pattern",
-        subs=["The core count, width and pitch are illustrative"])
+    litho(S, "saqp", y1 + MAN1, man1, z0, z1, (0, 2.2, 0),
+        "The scanner images the reticle's pattern onto the resist: the chrome keeps four cores "
+        f"dark at pitch P = {4 * P2:g} nm, four times the final pitch, and the rest becomes "
+        "soluble [R16].", ["The core count, width and pitch are illustrative"])
+    S.snap("saqp_litho", "Core development",
+        "The developer dissolves the exposed resist, leaving four resist cores on the first-core "
+        "film [R16].", view="saqpfield", of=of, match="pattern")
     S.drop("f_man1", "f_res")
     S.put(tmp("f_man1", "First cores", "mandrel", GP, [box(X0, X1, y1, y1 + MAN1, a, b) for a, b in man1], (0, 1.8, 0)))
     S.snap("saqp_core1", "First-core etch and resist strip",
@@ -963,12 +1054,14 @@ def pitch_routes(F, T, g):
         "With the second spacers as the etch mask, the pattern goes into the hard mask.",
         view="saqpcut", of=of, match="pattern")
     S.drop("f_sp2")
+    cutmask(S, "saqp", sp2, z0, z1, "block")
     hm(S, cut(sp2), f"{w.capitalize()} hard mask (patterned)", WX0, WX1)
     check(S, "SAQP")
-    S.snap("saqp_cut", "Spacer strip and block pattern",
-        "The spacers are stripped, and a separately printed block pattern trims the hard-mask "
-        "lines to length and removes the edge lines" + g["cut_note"] + ". In a real integration the block pattern also "
-        "decides which lines become devices; imec's metal-line example keeps groups of six [R19].",
+    S.snap("saqp_cut", "Block etch and resist strip",
+        "The developer clears the exposed resist, the hard mask left open is etched away and the "
+        "resist is stripped: the lines are trimmed to length and the edge lines are gone" + g["cut_note"] +
+        ". In a real integration the block pattern also decides which lines become devices; imec's "
+        "metal-line example keeps groups of six [R19].",
         view="saqpfield", of=of, match="pattern", subs=["Which lines are cut is illustrative"])
     back("saqp", "SAQP")
 
@@ -1055,6 +1148,8 @@ FIN_ROUTES = [
 ]
 FIN_CUT = dict(n="Gate cutaway", s="through the gate centre, at an angle",
                az=1.02, el=.34, r=205, tgt=[0, 38, 0], clip=[0, None, None])
+FIN_CEXP = dict(n="Contact mask", s="resist and reticle over the site", az=-0.78, el=0.40, r=330,
+                tgt=[0, 62, 0], clip=None)
 FIN_SD = dict(n="Across the source/drain", s="section through the drain", az=1.5708, el=0.12,
               r=230, tgt=[27, 40, 0], clip=[27, None, None])
 FIN_TILE_VIEWS = dict(
@@ -1209,22 +1304,30 @@ def flow_fin(done):
             layers=[("fl", "Si · upper substrate (fins to be)", "silicon", 0, top, (0, 0, 0))]))
         # The spacer routes' provenance: SAQP for fins is a published research example (F3,
         # its Fig. 1); SADP for these fins is a teaching reconstruction.
+        LITHO = ("_coat", "_expose", "_litho", "_cutcoat", "_cutexpose")   # resist steps: concept only
         for st in F.steps:
             r = st.get("route")
+            if r in ("sadp", "saqp") and st["id"].endswith(LITHO):
+                st["match"] = "concept"
+                if st["id"] == "saqp_cutexpose":
+                    st["subs"] = st["subs"] + ["The extra mask line removed here is not a fabricated dummy "
+                                               "fin: some flows deliberately build dielectric dummy fins [R25]"]
+                if st["id"] == "saqp_expose":
+                    st["subs"] = st["subs"] + ["F3's example runs 96 → 48 → 24 nm; this model's 108 → 54 → "
+                                               "27 nm is an illustrative adaptation [R22]"]
+                continue
             if r == "sadp": st["match"] = "teach"
             if r == "saqp":
-                if st["id"] == "saqp_back": st["match"] = "teach"; continue
+                if st["id"] in ("saqp_back", "saqp_cut"): st["match"] = "teach"; continue   # F3 shows no block
                 st["match"], st["figs"], st["src"] = "source", ["1"], [F3]
                 if st["id"] == "saqp_films":
                     st["subs"] = st["subs"] + ["F3 uses carbon first cores, an oxide first spacer and an "
                                                "amorphous-Si second core over a silicon nitride hard mask; "
                                                "the materials here are illustrative"]
-                if st["id"] in ("saqp_litho", "saqp_pull2"):
+                if st["id"] == "saqp_pull2":
                     st["subs"] = st["subs"] + ["F3's example runs 96 → 48 → 24 nm; this model's 108 → 54 → "
                                                "27 nm is an illustrative adaptation"]
-                if st["id"] == "saqp_cut":
-                    st["subs"] = st["subs"] + ["The extra mask line removed here is not a fabricated dummy "
-                                               "fin: some flows deliberately build dielectric dummy fins [R25]"]
+
         T.drop("t_fl")
         for zc, k in PAIRS:
             for i, z in enumerate(ZF):
@@ -1428,15 +1531,42 @@ def flow_fin(done):
               "[R26]", "TiN alone does not set an nFET threshold voltage"],
         omitted=["The pFET's separate work-function metal, applied with the nFET masked"])
     # 12
+    ild_around(ym2)
+    CRT = 10.0; RYC = ym2 + CRT + 14.0                 # contact resist; reticle height (not to scale)
+    foot = [lim(b) for k in ("ni_source", "ni_drain", "gatew") for b in P[k]["boxes"]]   # hole outlines
+    CBOUNDS = dict(dev.bounds, y=[dev.bounds["y"][0], RYC + 4.0])     # tall enough for the reticle
+    F.put(tmp("c_res", "Photoresist (coated)", "resist", "Interlayer dielectric",
+              [box(-XSD, XSD, ym2, ym2 + CRT, -zsub, zsub)], (0, 1.6, 0)))
+    F.snap("ccoat", "Second ILD and contact resist",
+        "More dielectric goes on top and is polished flat, then resist is spun on for the contact "
+        "pattern [R16][R24].", view="cexp", of="openings", match="concept", deposit=["c_res"],
+        bounds=CBOUNDS)
+    F.drop("c_res")
+    holes_r = [box(b[0], b[1], ym2, ym2 + CRT, b[4], b[5]) for b in foot]
+    F.put(tmp("c_res", "Photoresist (unexposed)", "resist", "Interlayer dielectric",
+              subtract((-XSD, XSD, ym2, ym2 + CRT, -zsub, zsub), holes_r), (0, 1.6, 0)))
+    F.put(tmp("c_res_x", "Photoresist (exposed: over the contacts)", "resist_exp", "Interlayer dielectric",
+              holes_r, (0, 1.6, 0)))
+    F.put(tmp("c_ret", "Reticle chrome (in the scanner; not to scale)", "chrome", "Interlayer dielectric",
+              subtract((-XSD, XSD, RYC, RYC + 2.0, -zsub, zsub),
+                       [box(b[0], b[1], RYC, RYC + 2.0, b[4], b[5]) for b in foot]), (0, 2.0, 0)))
+    F.snap("cexpose", "Contact exposure",
+        "This reticle is chrome everywhere except over the contacts, so only the resist above each "
+        "future hole is exposed and becomes soluble: one opening over the gate, one over each "
+        "source/drain [R16].", view="cexp", of="openings", match="concept", bounds=CBOUNDS,
+        subs=["Exposure is simplified: no optics, proximity, dose or overlay effects",
+              "One exposure is drawn for all three openings; flows often print gate and source/drain "
+              "contacts with separate masks"])
+    F.drop("c_ret", "c_res_x")
     ild_around(ym2, HOLES)
     F.put(tmp("cesl", "Contact etch-stop layer (CESL)", "si3n4", "Interlayer dielectric",
               [c for b in cesl for c in subtract(tuple(lim(b)), HOLES)], (0, .3, 0)))
-    F.snap("openings", "Second ILD and contact openings",
-        "More dielectric goes on top, and contact holes are etched: for the source and drain through "
-        "the ILD and the etch-stop film down to the epitaxy, and a separate opening onto the gate. "
-        "Each hole is its own mask and etch, so the gate and the source/drain never share one [R24].",
-        view="sd", match="source", figs=["21A", "21B", "21C"], src=[F1],
-        subs=["The openings are drawn at their final shape; their lithography is not repeated"])
+    F.drop("c_res")
+    F.snap("openings", "Contact openings",
+        "The developer opens the resist over each contact, the holes are etched through the ILD and "
+        "the etch-stop film, down to the epitaxy for the source and drain and onto the gate, and the "
+        "resist is stripped. The gate and the source/drain never share an opening [R24].",
+        view="sd", match="source", figs=["21A", "21B", "21C"], src=[F1])
     # 13
     F.add("nisi_source", "nisi_drain")
     ild_around(ym2, HOLES)
@@ -1490,7 +1620,7 @@ def flow_fin(done):
         match={k: v for k, v in dict(MATCH, **PAT_MATCH, **FIN_MATCH).items() if k in used},
         routes=FIN_ROUTES,
         route_title="How the fins are printed", route_join="the fin etch",
-        views=dict(cut=FIN_CUT, sd=FIN_SD, **FIN_TILE_VIEWS, **FIN_FIELD_VIEWS))
+        views=dict(cut=FIN_CUT, sd=FIN_SD, cexp=FIN_CEXP, **FIN_TILE_VIEWS, **FIN_FIELD_VIEWS))
 
 
 FLOWS = {"ns": flow_ns, "fin": flow_fin, "sadp": lesson("sadp"), "saqp": lesson("saqp")}

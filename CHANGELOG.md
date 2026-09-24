@@ -31,7 +31,15 @@ view's size to the new one while the camera pulls back, and only then do the ste
 face in turn. The nanosheet works the same way: its hard mask is now one step at the tile
 before the routes part, its blanket multilayer, hard mask and resist span the whole tile,
 and its patterning route defaults to **SADP** (a teaching choice; the sources do not say
-the stack is patterned that way). The SADP and SAQP chips start from that hard-mask step. Sub-fin leakage, wells' doping,
+the stack is patterned that way). The SADP and SAQP chips start from that hard-mask step.
+
+Every patterning step now shows its lithography the way the gate exposure does: a resist
+coat, then an exposure with the reticle's chrome drawn above the wafer (not to scale) over
+unexposed and exposed resist, then development. That covers the SADP and SAQP core
+lithography and their cut and block masks in both flows, the nanosheet's gate patterning
+and nFET-open block mask, and the FinFET's contact openings, whose dark-field reticle is
+open only over the three contacts. These resist steps are labelled as lithography concepts
+[R16], not as figures of the sources. Sub-fin leakage, wells' doping,
 the pFET's own steps and the gate cut are named where they are left out. The route picker
 remembers a choice per flow, uses each flow's wording, and each step shows which reference
 its figures belong to. Five FinFET references are added (R24–R27, and R22 now points at the

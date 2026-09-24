@@ -55,7 +55,9 @@ class ContentTests(unittest.TestCase):
                 self.assertIn(step['view'], views)
                 # A step's view frames its own scale; a tile step brings its own bounds.
                 self.assertEqual(views[step['view']].get('scale', 'site'), step['scale'])
-                self.assertEqual('bounds' in step, step['scale'] != 'site')
+                # Tile and field steps bring their own bounds; a site step may, to draw a
+                # reticle above the device.
+                if step['scale'] != 'site': self.assertIn('bounds', step)
                 if step['level'] == 'op':
                     nxt = next(s for s in flow['steps'][n + 1:] if s['level'] == 'core')
                     self.assertEqual(step['of'], nxt['id'])
@@ -122,7 +124,7 @@ class ContentTests(unittest.TestCase):
                     # A spacer route is a patterning concept (the nanosheet's), a teaching
                     # reconstruction, or a published example with its own source (SAQP fins).
                     for i in idx:
-                        self.assertIn(steps[i]['match'], ('pattern', 'teach', 'source'), steps[i]['id'])
+                        self.assertIn(steps[i]['match'], ('pattern', 'teach', 'source', 'concept'), steps[i]['id'])
                         if steps[i]['match'] == 'source': self.assertTrue(steps[i].get('src'), steps[i]['id'])
             self.assertIn('saqp_core2', [steps[i]['id'] for i in runs['saqp']])
             if 'pattern' in flow['match']: self.assertIn('illustrative layer', flow['match']['pattern'])
