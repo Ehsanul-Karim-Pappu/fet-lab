@@ -14,46 +14,75 @@ The patent builds a pFET and an nFET from one shared stack. This lesson follows 
 - **Intermediate teaching reconstruction** (`intermediate`)
 - **Concept-only operation** (`concept`)
 - **Published stage, adapted view with pFET context** (`context`)
+- **Patterning concept applied to an illustrative layer** (`pattern`)
 
 ## States
 
 Steps numbered n.k are operation substeps leading into core step n; those at tile scale show a 2 × 2 context of two stack lines (nFET and pFET) crossed by two gate lines, with the selected nFET site at the single-site model's origin. The build checks that the tile, cropped to that site, matches the single-site model at steps 4, 5 and 6.
 
-| # | Scale | State | Source figures | Match | What changes | Model choices | Not shown |
-|---|---|---|---|---|---|---|---|
-| 1 | site | Silicon substrate | Fig. 2A/B | Published stage, adapted nFET view | + Si substrate (unpatterned) | — | — |
-| 2 | site | Punch-through-stopper implant | Fig. 3A/B | Published stage, adapted nFET view | + p-type punch-through stopper (implanted); reshaped: Si substrate (unpatterned) | Stopper depth and a uniform doped region are illustrative | The pFET region and its n-type stopper |
-| 3 | site | Si/SiGe multilayer epitaxy | Fig. 4A/B | Published stage, adapted nFET view | + SiGe, high Ge · sacrificial base layer, SiGe, lower Ge · sacrificial layer 1, SiGe, lower Ge · sacrificial layer 2, SiGe, lower Ge · sacrificial layer 3, Si · future nanosheet 1, Si · future nanosheet 2, Si · future nanosheet 3 | Layer thicknesses and Ge contents are illustrative, not the patent's examples | The pFET's use of the same stack |
-| 4.1 | tile | Hard-mask deposition | Fig. 3A/B, Fig. 5A/B | Intermediate teaching reconstruction | zoom out to the 2 × 2 tile | Pitches are illustrative: the gate pitch is one site's length, the stack pitch its width<br>Hard-mask material and thickness are illustrative | The masks that kept each stopper implant to its own region |
-| 4.2 | tile | Resist coat | — | Concept-only operation | + Photoresist (coated) | Resist thickness is illustrative | — |
-| 4.3 | tile | Exposure | — | Concept-only operation | + Photoresist (exposed: made soluble), Reticle chrome (in the scanner; not to scale); reshaped: Photoresist (unexposed: over the stack lines) | Positive-tone resist is chosen for the example; a negative-tone resist reverses which areas remain<br>Exposure is simplified: no optics, proximity, dose or overlay effects | — |
-| 4.4 | tile | Development | — | Concept-only operation | − Photoresist (exposed: made soluble), Reticle chrome (in the scanner; not to scale) | — | — |
-| 4.5 | tile | Hard-mask etch | Fig. 5A/B | Intermediate teaching reconstruction | reshaped: Stack hard mask (patterned) | — | — |
-| 4.6 | tile | Resist strip | Fig. 5A/B | Intermediate teaching reconstruction | − Photoresist (unexposed: over the stack lines) | — | — |
-| 4.7 | tile | Stack etch | Fig. 5A/B | Intermediate teaching reconstruction | + SiGe, high Ge · sacrificial base layer · nFET line, SiGe, lower Ge · layer 1 · nFET line, SiGe, lower Ge · layer 2 · nFET line, SiGe, lower Ge · layer 3 · nFET line, Si · layer 1 · nFET line, Si · layer 2 · nFET line, Si · layer 3 · nFET line, SiGe, high Ge · sacrificial base layer · pFET line, SiGe, lower Ge · layer 1 · pFET line, SiGe, lower Ge · layer 2 · pFET line, SiGe, lower Ge · layer 3 · pFET line, Si · layer 1 · pFET line, Si · layer 2 · pFET line, Si · layer 3 · pFET line; − SiGe, high Ge · sacrificial base layer, SiGe, lower Ge · layer 1, SiGe, lower Ge · layer 2, SiGe, lower Ge · layer 3, Si · layer 1, Si · layer 2, Si · layer 3; reshaped: p-type punch-through stopper · nFET sub-fin, n-type punch-through stopper · pFET sub-fin | — | — |
-| 4.8 | tile | STI fill and CMP | Fig. 5A/B | Intermediate teaching reconstruction | + STI oxide (filled and polished) | — | — |
-| 4.9 | tile | STI recess and hard-mask removal | Fig. 5A/B | Published stage, adapted view with pFET context | − Stack hard mask (patterned); reshaped: STI oxide | The hard mask is removed here for clarity; flows differ on when it goes | — |
-| 4 | site | Stack patterning and STI | Fig. 5A/B | Published stage, adapted nFET view | zoom to the selected site | Stack width, pitch and trench depth are illustrative | — |
-| 5.1 | tile | Dummy-gate stack deposition | Fig. 6A/B | Intermediate teaching reconstruction | zoom out to the 2 × 2 tile | The patent suggests amorphous Si; the model's dummy Si is illustrative | — |
-| 5.2 | tile | Gate patterning | Fig. 6A/B | Published stage, adapted view with pFET context | + Dummy-gate oxide, Dummy-gate oxide, Dummy-gate oxide, Dummy-gate oxide, Dummy gate 1 · Si, Gate hard mask 1, Dummy gate 2 · Si, Gate hard mask 2; − Dummy-gate oxide (grown on the stack), Dummy-gate oxide (grown on the stack), Dummy gate Si (as deposited), Gate hard mask (blanket) | — | The gate layer's own lithography steps (as for the stacks)<br>The gate cut between the lines, which the patent makes later (Fig. 17) |
-| 5 | site | Dummy gate stack | Fig. 6A/B | Published stage, adapted nFET view | zoom to the selected site | The patent suggests amorphous Si under a nitride/oxide hard mask; this model's dummy Si and nitride hard mask are illustrative | — |
-| 6.1 | tile | Protective liner | Fig. 7A/B | Intermediate teaching reconstruction | zoom out to the 2 × 2 tile | Liner material and thickness are illustrative | — |
-| 6.2 | tile | nFET-open mask | Fig. 7A/B | Published stage, adapted view with pFET context | + Photoresist block over the pFET region; reshaped: Protective liner · pFET region | — | The mask's own lithography steps |
-| 6.3 | tile | nFET base-layer removal | Fig. 8A/B | Published stage, adapted view with pFET context | − SiGe, high Ge · sacrificial base layer · nFET line | The etch front is not modelled: only the before and after shapes are drawn | — |
-| 6.4 | tile | Mask strip | Fig. 8A/B | Intermediate teaching reconstruction | − Photoresist block over the pFET region | — | What happens to the pFET line next (Figs. 10–11, 15) |
-| 6 | site | nFET opening and base-layer removal | Fig. 7A/B, Fig. 8A/B | Published stage, adapted nFET view | zoom to the selected site | The etch front is not modelled: only the before and after shapes are drawn | The protective liner and mask over the pFET region (Fig. 7) |
-| 7 | site | Conformal spacer deposition | Fig. 9A/B | Published stage, adapted nFET view | + Spacer dielectric (as deposited) | The patent's examples for this one film are SiOC, SiCN, SiOCN and SiBCN; nitride is drawn, for the spacers and the BDI alike | — |
-| 8 | site | Spacer etch-back | Fig. 9A/B, Fig. 12A/B | Intermediate teaching reconstruction | + Bottom dielectric isolation (BDI) · spacer dielectric, Si₃N₄ gate spacer · source side, Si₃N₄ gate spacer · drain side; − Spacer dielectric (as deposited) | A separate etch-back state between the deposition (Fig. 9) and the recess (Fig. 12) is a teaching reconstruction<br>Nitride spacers and BDI stand for the patent's single spacer dielectric | — |
-| 9 | site | nFET source/drain recess | Fig. 12A/B | Published stage, adapted nFET view | + Si nanosheet 1, Si nanosheet 2, Si nanosheet 3; − Si · future nanosheet 1, Si · future nanosheet 2, Si · future nanosheet 3; reshaped: SiGe, lower Ge · sacrificial layer 1, SiGe, lower Ge · sacrificial layer 2, SiGe, lower Ge · sacrificial layer 3 | — | The pFET's own recess and epitaxy (Figs. 10–11) and the nFET protective mask |
-| 10 | site | SiGe indent | Fig. 13A/B | Intermediate teaching reconstruction | reshaped: SiGe, lower Ge · sacrificial layer 1, SiGe, lower Ge · sacrificial layer 2, SiGe, lower Ge · sacrificial layer 3 | — | — |
-| 11 | site | Inner-spacer deposition and etch-back | Fig. 13A/B | Intermediate teaching reconstruction | + Si₃N₄ spacer · source side, Si₃N₄ spacer · drain side; − Si₃N₄ gate spacer · source side, Si₃N₄ gate spacer · drain side | Inner spacers are drawn in the outer spacers' nitride | — |
-| 12 | site | Source/drain epitaxy and anneal | Fig. 13A/B | Published stage, adapted nFET view | + Source epi (Si:P), Drain epi (Si:P) | The anneal is a conventional concept, not a separately described patent state; no dopant profile, diffusion or stress is calculated | — |
-| 13 | site | ILD fill and planarisation | Fig. 14A/B | Intermediate teaching reconstruction | + Interlayer dielectric (ILD) | — | — |
-| 14 | site | Hard-mask opening and dummy-gate removal | Fig. 14A/B | Published stage, adapted nFET view | − Dummy-gate oxide (sacrificial), Dummy gate · Si, SiN hard mask | — | — |
-| 15 | site | nFET channel release | Fig. 16A/B | Published stage, adapted nFET view | − SiGe, lower Ge · sacrificial layer 1, SiGe, lower Ge · sacrificial layer 2, SiGe, lower Ge · sacrificial layer 3 | — | The pFET's channel preparation (Fig. 15) |
-| 16 | site | High-κ / metal gate | Fig. 17A/B | Published stage, adapted nFET view | + SiO₂ interfacial layer · sheet 1, SiO₂ interfacial layer · sheet 2, SiO₂ interfacial layer · sheet 3, HfO₂ high-κ · sheet 1, HfO₂ high-κ · sheet 2, HfO₂ high-κ · sheet 3, TiN work-function metal · sheet 1, TiN work-function metal · sheet 2, TiN work-function metal · sheet 3, Mo gate fill, TiN gate cap | SiO₂, HfO₂, TiN and Mo stand for the interfacial, high-κ, work-function and fill layers; the patent does not verify this combination, its thicknesses or its work function | The patent's separate pFET and nFET work-function treatments, gate cut and self-aligned cap |
-| 17 | site | Middle-of-line contacts | Fig. 18A/B | Published stage, adapted nFET view | + Source NiSi silicide, Drain NiSi silicide, Source Ni contact plug, Drain Ni contact plug, Source W metal, Drain W metal, W gate contact; reshaped: Interlayer dielectric (ILD) | The NiSi, Ni and W contact stack is illustrative; the patent says the metal contact may include a silicide | Fig. 19A/B, an alternative shared-gate arrangement, not a later step |
-| 18 | site | The finished device | Fig. 18A/B | Published stage, adapted nFET view | − Interlayer dielectric (ILD) | The ILD is hidden for viewing only | The patent's final figures show the pFET beside this nFET |
+Operations marked with a route are alternatives: the viewer shows one route at a time and numbers each route's operations on their own, so a shared operation after them carries one number per route. Field-scale states zoom out to the lines around the tile. Every route ends in the same tile state, which the build checks.
+
+- **Direct print** (`direct`): One exposure prints the stack lines at their final pitch, EUV for example. A printed line can differ in width from its neighbours, which the adjustable sheet widths of nanosheets use [R18]; spacer routes make every line one film thickness wide.
+- **SADP** (`sadp`): Self-aligned double patterning: cores printed at twice the final pitch, then one spacer pitch split [R21]. A patterning concept applied to an illustrative layer: the sources do not say this stack is patterned this way.
+- **SAQP** (`saqp`): Self-aligned quadruple patterning: cores at four times the final pitch and two spacer pitch splits, the first spacer image becoming the second cores [R19][R20]. A patterning concept applied to an illustrative layer: the sources do not say this stack is patterned this way.
+
+| # | Route | Scale | State | Source figures | Match | What changes | Model choices | Not shown |
+|---|---|---|---|---|---|---|---|---|
+| 1 | all | site | Silicon substrate | Fig. 2A/B | Published stage, adapted nFET view | + Si substrate (unpatterned) | — | — |
+| 2 | all | site | Punch-through-stopper implant | Fig. 3A/B | Published stage, adapted nFET view | + p-type punch-through stopper (implanted); reshaped: Si substrate (unpatterned) | Stopper depth and a uniform doped region are illustrative | The pFET region and its n-type stopper |
+| 3 | all | site | Si/SiGe multilayer epitaxy | Fig. 4A/B | Published stage, adapted nFET view | + SiGe, high Ge · sacrificial base layer, SiGe, lower Ge · sacrificial layer 1, SiGe, lower Ge · sacrificial layer 2, SiGe, lower Ge · sacrificial layer 3, Si · future nanosheet 1, Si · future nanosheet 2, Si · future nanosheet 3 | Layer thicknesses and Ge contents are illustrative, not the patent's examples | The pFET's use of the same stack |
+| 4.1 | Direct print | tile | Hard-mask deposition | Fig. 3A/B, Fig. 5A/B | Intermediate teaching reconstruction | zoom to the 2 × 2 tile | Pitches are illustrative: the gate pitch is one site's length, the stack pitch its width<br>Hard-mask material and thickness are illustrative | The masks that kept each stopper implant to its own region |
+| 4.2 | Direct print | tile | Resist coat | — | Concept-only operation | + Photoresist (coated) | Resist thickness is illustrative | — |
+| 4.3 | Direct print | tile | Exposure | — | Concept-only operation | + Photoresist (exposed: made soluble), Reticle chrome (in the scanner; not to scale); reshaped: Photoresist (unexposed: over the stack lines) | Positive-tone resist is chosen for the example; a negative-tone resist reverses which areas remain<br>Exposure is simplified: no optics, proximity, dose or overlay effects | — |
+| 4.4 | Direct print | tile | Development | — | Concept-only operation | − Photoresist (exposed: made soluble), Reticle chrome (in the scanner; not to scale) | — | — |
+| 4.5 | Direct print | tile | Hard-mask etch | Fig. 5A/B | Intermediate teaching reconstruction | reshaped: Stack hard mask (patterned) | — | — |
+| 4.6 | Direct print | tile | Resist strip | Fig. 5A/B | Intermediate teaching reconstruction | − Photoresist (unexposed: over the stack lines) | — | — |
+| 4.1 | SADP | field | Hard mask and mandrel film | — | Patterning concept applied to an illustrative layer | zoom out to the line field around the tile | The field around the tile is illustrative: its lines stand for neighbouring devices, and implants outside the tile are not drawn<br>Mandrel material and thickness are illustrative | — |
+| 4.2 | SADP | field | Core lithography | — | Patterning concept applied to an illustrative layer | + Photoresist cores | The core count, width and pitch are illustrative | — |
+| 4.3 | SADP | field | Mandrel etch and resist strip | — | Patterning concept applied to an illustrative layer | − Photoresist cores; reshaped: Mandrels (cores) | — | — |
+| 4.4 | SADP | field | Conformal spacer deposition | — | Patterning concept applied to an illustrative layer | + Patterning spacer film (as deposited) | — | — |
+| 4.5 | SADP | field | Spacer etch-back | — | Patterning concept applied to an illustrative layer | + Patterning spacers; − Patterning spacer film (as deposited) | — | — |
+| 4.6 | SADP | field | Mandrel removal: the spacer image | — | Patterning concept applied to an illustrative layer | − Mandrels (cores) | Ideal spacing; in practice alternate spaces can differ (pitch walk) [R20] | — |
+| 4.7 | SADP | field | Transfer into the hard mask | — | Patterning concept applied to an illustrative layer | reshaped: Stack hard mask (patterned) | — | — |
+| 4.8 | SADP | field | Spacer strip and cut pattern | — | Patterning concept applied to an illustrative layer | − Patterning spacers; reshaped: Stack hard mask (patterned) | Which lines are cut is illustrative | — |
+| 4.9 | SADP | tile | Back to the tile: the same hard-mask lines | — | Patterning concept applied to an illustrative layer | zoom to the 2 × 2 tile | — | — |
+| 4.1 | SAQP | field | Hard mask and two core films | — | Patterning concept applied to an illustrative layer | zoom out to the line field around the tile | The field around the tile is illustrative: its lines stand for neighbouring devices, and implants outside the tile are not drawn<br>Core materials and thicknesses are illustrative | — |
+| 4.2 | SAQP | field | Core lithography | — | Patterning concept applied to an illustrative layer | + Photoresist cores | The core count, width and pitch are illustrative | — |
+| 4.3 | SAQP | field | First-core etch and resist strip | — | Patterning concept applied to an illustrative layer | − Photoresist cores; reshaped: First cores | — | — |
+| 4.4 | SAQP | field | First spacer deposition | — | Patterning concept applied to an illustrative layer | + First patterning spacer film (as deposited) | — | — |
+| 4.5 | SAQP | field | First spacer etch-back | — | Patterning concept applied to an illustrative layer | + First patterning spacers; − First patterning spacer film (as deposited) | — | — |
+| 4.6 | SAQP | field | First-core removal: the first spacer image | — | Patterning concept applied to an illustrative layer | − First cores | Ideal spacing; in practice alternate spaces can differ (pitch walk) [R20] | — |
+| 4.7 | SAQP | field | Second cores: the first image transferred | — | Patterning concept applied to an illustrative layer | − First patterning spacers; reshaped: Second cores | — | — |
+| 4.8 | SAQP | field | Second spacer deposition | — | Patterning concept applied to an illustrative layer | + Second patterning spacer film (as deposited) | — | — |
+| 4.9 | SAQP | field | Second spacer etch-back | — | Patterning concept applied to an illustrative layer | + Second patterning spacers; − Second patterning spacer film (as deposited) | — | — |
+| 4.10 | SAQP | field | Second-core removal: the final spacer image | — | Patterning concept applied to an illustrative layer | − Second cores | Ideal spacing; in practice alternate spaces can differ (pitch walk), and the variation adds up over the two generations [R20] | — |
+| 4.11 | SAQP | field | Transfer into the hard mask | — | Patterning concept applied to an illustrative layer | reshaped: Stack hard mask (patterned) | — | — |
+| 4.12 | SAQP | field | Spacer strip and block pattern | — | Patterning concept applied to an illustrative layer | − Second patterning spacers; reshaped: Stack hard mask (patterned) | Which lines are cut is illustrative | — |
+| 4.13 | SAQP | tile | Back to the tile: the same hard-mask lines | — | Patterning concept applied to an illustrative layer | zoom to the 2 × 2 tile | — | — |
+| Direct print 4.7 · SADP 4.10 · SAQP 4.14 | all | tile | Stack etch | Fig. 5A/B | Intermediate teaching reconstruction | + SiGe, high Ge · sacrificial base layer · nFET line, SiGe, lower Ge · layer 1 · nFET line, SiGe, lower Ge · layer 2 · nFET line, SiGe, lower Ge · layer 3 · nFET line, Si · layer 1 · nFET line, Si · layer 2 · nFET line, Si · layer 3 · nFET line, SiGe, high Ge · sacrificial base layer · pFET line, SiGe, lower Ge · layer 1 · pFET line, SiGe, lower Ge · layer 2 · pFET line, SiGe, lower Ge · layer 3 · pFET line, Si · layer 1 · pFET line, Si · layer 2 · pFET line, Si · layer 3 · pFET line; − SiGe, high Ge · sacrificial base layer, SiGe, lower Ge · layer 1, SiGe, lower Ge · layer 2, SiGe, lower Ge · layer 3, Si · layer 1, Si · layer 2, Si · layer 3; reshaped: p-type punch-through stopper · nFET sub-fin, n-type punch-through stopper · pFET sub-fin | — | — |
+| Direct print 4.8 · SADP 4.11 · SAQP 4.15 | all | tile | STI fill and CMP | Fig. 5A/B | Intermediate teaching reconstruction | + STI oxide (filled and polished) | — | — |
+| Direct print 4.9 · SADP 4.12 · SAQP 4.16 | all | tile | STI recess and hard-mask removal | Fig. 5A/B | Published stage, adapted view with pFET context | − Stack hard mask (patterned); reshaped: STI oxide | The hard mask is removed here for clarity; flows differ on when it goes | — |
+| 4 | all | site | Stack patterning and STI | Fig. 5A/B | Published stage, adapted nFET view | zoom to the selected site | Stack width, pitch and trench depth are illustrative | — |
+| 5.1 | all | tile | Dummy-gate stack deposition | Fig. 6A/B | Intermediate teaching reconstruction | zoom to the 2 × 2 tile | The patent suggests amorphous Si; the model's dummy Si is illustrative | — |
+| 5.2 | all | tile | Gate patterning | Fig. 6A/B | Published stage, adapted view with pFET context | + Dummy-gate oxide, Dummy-gate oxide, Dummy-gate oxide, Dummy-gate oxide, Dummy gate 1 · Si, Gate hard mask 1, Dummy gate 2 · Si, Gate hard mask 2; − Dummy-gate oxide (grown on the stack), Dummy-gate oxide (grown on the stack), Dummy gate Si (as deposited), Gate hard mask (blanket) | — | The gate layer's own lithography steps (as for the stacks)<br>The gate cut between the lines, which the patent makes later (Fig. 17) |
+| 5 | all | site | Dummy gate stack | Fig. 6A/B | Published stage, adapted nFET view | zoom to the selected site | The patent suggests amorphous Si under a nitride/oxide hard mask; this model's dummy Si and nitride hard mask are illustrative | — |
+| 6.1 | all | tile | Protective liner | Fig. 7A/B | Intermediate teaching reconstruction | zoom to the 2 × 2 tile | Liner material and thickness are illustrative | — |
+| 6.2 | all | tile | nFET-open mask | Fig. 7A/B | Published stage, adapted view with pFET context | + Photoresist block over the pFET region; reshaped: Protective liner · pFET region | — | The mask's own lithography steps |
+| 6.3 | all | tile | nFET base-layer removal | Fig. 8A/B | Published stage, adapted view with pFET context | − SiGe, high Ge · sacrificial base layer · nFET line | The etch front is not modelled: only the before and after shapes are drawn | — |
+| 6.4 | all | tile | Mask strip | Fig. 8A/B | Intermediate teaching reconstruction | − Photoresist block over the pFET region | — | What happens to the pFET line next (Figs. 10–11, 15) |
+| 6 | all | site | nFET opening and base-layer removal | Fig. 7A/B, Fig. 8A/B | Published stage, adapted nFET view | zoom to the selected site | The etch front is not modelled: only the before and after shapes are drawn | The protective liner and mask over the pFET region (Fig. 7) |
+| 7 | all | site | Conformal spacer deposition | Fig. 9A/B | Published stage, adapted nFET view | + Spacer dielectric (as deposited) | The patent's examples for this one film are SiOC, SiCN, SiOCN and SiBCN; nitride is drawn, for the spacers and the BDI alike | — |
+| 8 | all | site | Spacer etch-back | Fig. 9A/B, Fig. 12A/B | Intermediate teaching reconstruction | + Bottom dielectric isolation (BDI) · spacer dielectric, Si₃N₄ gate spacer · source side, Si₃N₄ gate spacer · drain side; − Spacer dielectric (as deposited) | A separate etch-back state between the deposition (Fig. 9) and the recess (Fig. 12) is a teaching reconstruction<br>Nitride spacers and BDI stand for the patent's single spacer dielectric | — |
+| 9 | all | site | nFET source/drain recess | Fig. 12A/B | Published stage, adapted nFET view | + Si nanosheet 1, Si nanosheet 2, Si nanosheet 3; − Si · future nanosheet 1, Si · future nanosheet 2, Si · future nanosheet 3; reshaped: SiGe, lower Ge · sacrificial layer 1, SiGe, lower Ge · sacrificial layer 2, SiGe, lower Ge · sacrificial layer 3 | — | The pFET's own recess and epitaxy (Figs. 10–11) and the nFET protective mask |
+| 10 | all | site | SiGe indent | Fig. 13A/B | Intermediate teaching reconstruction | reshaped: SiGe, lower Ge · sacrificial layer 1, SiGe, lower Ge · sacrificial layer 2, SiGe, lower Ge · sacrificial layer 3 | — | — |
+| 11 | all | site | Inner-spacer deposition and etch-back | Fig. 13A/B | Intermediate teaching reconstruction | + Si₃N₄ spacer · source side, Si₃N₄ spacer · drain side; − Si₃N₄ gate spacer · source side, Si₃N₄ gate spacer · drain side | Inner spacers are drawn in the outer spacers' nitride | — |
+| 12 | all | site | Source/drain epitaxy and anneal | Fig. 13A/B | Published stage, adapted nFET view | + Source epi (Si:P), Drain epi (Si:P) | The anneal is a conventional concept, not a separately described patent state; no dopant profile, diffusion or stress is calculated | — |
+| 13 | all | site | ILD fill and planarisation | Fig. 14A/B | Intermediate teaching reconstruction | + Interlayer dielectric (ILD) | — | — |
+| 14 | all | site | Hard-mask opening and dummy-gate removal | Fig. 14A/B | Published stage, adapted nFET view | − Dummy-gate oxide (sacrificial), Dummy gate · Si, SiN hard mask | — | — |
+| 15 | all | site | nFET channel release | Fig. 16A/B | Published stage, adapted nFET view | − SiGe, lower Ge · sacrificial layer 1, SiGe, lower Ge · sacrificial layer 2, SiGe, lower Ge · sacrificial layer 3 | — | The pFET's channel preparation (Fig. 15) |
+| 16 | all | site | High-κ / metal gate | Fig. 17A/B | Published stage, adapted nFET view | + SiO₂ interfacial layer · sheet 1, SiO₂ interfacial layer · sheet 2, SiO₂ interfacial layer · sheet 3, HfO₂ high-κ · sheet 1, HfO₂ high-κ · sheet 2, HfO₂ high-κ · sheet 3, TiN work-function metal · sheet 1, TiN work-function metal · sheet 2, TiN work-function metal · sheet 3, Mo gate fill, TiN gate cap | SiO₂, HfO₂, TiN and Mo stand for the interfacial, high-κ, work-function and fill layers; the patent does not verify this combination, its thicknesses or its work function | The patent's separate pFET and nFET work-function treatments, gate cut and self-aligned cap |
+| 17 | all | site | Middle-of-line contacts | Fig. 18A/B | Published stage, adapted nFET view | + Source NiSi silicide, Drain NiSi silicide, Source Ni contact plug, Drain Ni contact plug, Source W metal, Drain W metal, W gate contact; reshaped: Interlayer dielectric (ILD) | The NiSi, Ni and W contact stack is illustrative; the patent says the metal contact may include a silicide | Fig. 19A/B, an alternative shared-gate arrangement, not a later step |
+| 18 | all | site | The finished device | Fig. 18A/B | Published stage, adapted nFET view | − Interlayer dielectric (ILD) | The ILD is hidden for viewing only | The patent's final figures show the pFET beside this nFET |
 
 ## Source figures not mapped to a state
 
@@ -67,6 +96,7 @@ Steps numbered n.k are operation substeps leading into core step n; those at til
 - **Every figure mapping.** The patent's drawings have not been compared with these views; orientation, composition and labels may differ from the published artwork.
 - Views, cut directions and left/right are the app's own; the patent's section lines (X1–X1, X2–X2, Y1–Y1, Y2–Y2) are not yet mapped onto the app's axes.
 - The lithography operations (resist, exposure, development) are concept-level: no optics, dose, resist chemistry, overlay or mask count is modelled or claimed.
+- **Patterning routes.** SADP and SAQP are a patterning concept applied to an illustrative layer: the sources do not say this stack is patterned that way. P, P/2 and P/4 are ideal (real spacer images show pitch walk); core, spacer and film materials and thicknesses are illustrative; which lines a cut or block pattern removes is integration-dependent, and no overlay or placement error is modelled.
 
 ## Sources cited
 
@@ -75,62 +105,107 @@ Steps numbered n.k are operation substeps leading into core step n; those at til
 - **[R14]** A Novel Dry Selective Etch of SiGe for the Enablement of High Performance Logic Stacked Gate-All-Around NanoSheet Devices — IBM Research (Loubet et al.), IEDM 2019. <https://research.ibm.com/publications/a-novel-dry-selective-etch-of-sige-for-the-enablement-of-high-performance-logic-stacked-gate-all-around-nanosheet-devices>
 - **[R15]** Full Bottom Dielectric Isolation to Enable Stacked Nanosheet Transistor for Low Power and High Performance Applications — IBM Research (Zhang et al.), IEDM 2019. <https://research.ibm.com/publications/full-bottom-dielectric-isolation-to-enable-stacked-nanosheet-transistor-for-low-power-and-high-performance-applications>
 - **[R16]** Lithography principles — ASML. <https://www.asml.com/en/technology/lithography-principles>
+- **[R18]** Nanosheet technology for the computing era of AI and 5G — IBM Research. <https://research.ibm.com/blog/nanosheet-technology-ai-5g>
+- **[R19]** First EUV lithography high-volume manufacturing solution for N5 BEOL — imec. <https://www.imec-int.com/en/imec-magazine/imec-magazine-march-2017/first-euv-lithography-high-volume-manufacturing-solution-for-n5-beol>
+- **[R20]** Advanced in-line metrology strategy for self-aligned quadruple patterning — IBM Research. <https://research.ibm.com/publications/advanced-in-line-metrology-strategy-for-self-aligned-quadruple-patterning>
+- **[R21]** Spacer defined double patterning for sub-72 nm pitch logic technology — IBM Research. <https://research.ibm.com/publications/spacer-defined-double-patterning-for-sub-72-nm-pitch-logic-technology>
 
-# Process audit: Pitch splitting (SADP · SAQP)
+# Process audit: SADP · self-aligned double patterning
 
 Generated by `scripts/build_process.py` from `data/process.json`; do not edit by hand.
 
-Spacer-based pitch splitting: a patterning concept applied to an illustrative layer, the Si/SiGe multilayer that the nanosheet tile patterns into stacks. It shows how the mechanics work, not how any particular flow patterns its layers: the route the nanosheet lesson follows [R13] does not establish SADP or SAQP for its stack or gate masks, and EUV single exposure is another way to print them.
+SADP on its own: the steps the Nanosheet flow shows when its stack patterning route is set to SADP, from the film stack to the stack etch. “The direct route” is that flow's default, a single exposure. A patterning concept applied to an illustrative layer, the nanosheet tile's Si/SiGe multilayer: the sources do not say this stack is patterned this way, and a direct print (EUV single exposure, for example) is another way to make it [R18].
 
-Two modules: SADP splits the core pitch once (P to P/2); SAQP splits it twice (P to P/4), cutting a second set of cores from the first spacer image [R19][R21].
+SADP splits the printed pitch once, P to P/2: every core leaves two spacer lines [R21]. The SAQP chip splits it twice.
 
-**Concept lesson: no step corresponds to a figure of the patent. Pitches and counts are ideal and illustrative; real line ends, cuts and edge exclusions change how many lines survive, and small variations in core width or spacer thickness make alternate spaces differ (pitch walk) [R20].**
+**Every step but the last is a patterning concept and corresponds to no figure. The last, the stack etch, is the nanosheet flow's own, a teaching reconstruction of the patent's Fig. 5A/B [R13], whose drawings were not available for visual comparison.**
 
 ## Match levels
 
+- **Intermediate teaching reconstruction** (`intermediate`)
 - **Patterning concept applied to an illustrative layer** (`pattern`)
 
 ## States
 
-Every state is a concept operation on an illustrative line field, sized so that the final lines have the nanosheet tile's stack width (30 nm) and pitch (84 nm). The build checks that each module's last state, cropped to the tile's window, has the same multilayer lines as the nanosheet tile's operation 4.7.
+This lesson is generated from the nanosheet flow's route of the same name and its stack etch, so every state, check and caveat below is that route's (see the nanosheet audit above).
 
-| # | Scale | State | Source figures | Match | What changes | Model choices | Not shown |
-|---|---|---|---|---|---|---|---|
-| 1 | field | SADP · Film stack | — | Patterning concept applied to an illustrative layer | + Si substrate, SiGe, high Ge · base layer, SiGe, lower Ge · layer 1, SiGe, lower Ge · layer 2, SiGe, lower Ge · layer 3, Si · layer 1, Si · layer 2, Si · layer 3, Hard mask (receives the final pattern), Mandrel film | — | — |
-| 2 | field | SADP · Core lithography | — | Patterning concept applied to an illustrative layer | + Photoresist cores | Four cores, their width and pitch are illustrative | — |
-| 3 | field | SADP · Mandrel etch and resist strip | — | Patterning concept applied to an illustrative layer | − Photoresist cores; reshaped: Mandrels (cores) | — | — |
-| 4 | field | SADP · Conformal spacer deposition | — | Patterning concept applied to an illustrative layer | + Spacer film (as deposited) | — | — |
-| 5 | field | SADP · Spacer etch-back | — | Patterning concept applied to an illustrative layer | + Sidewall spacers; − Spacer film (as deposited) | — | — |
-| 6 | field | SADP · Mandrel removal: the spacer image | — | Patterning concept applied to an illustrative layer | − Mandrels (cores) | Ideal spacing; in practice alternate spaces can differ (pitch walk) | — |
-| 7 | field | SADP · Transfer into the hard mask | — | Patterning concept applied to an illustrative layer | reshaped: Hard mask (patterned) | — | — |
-| 8 | field | SADP · Spacer strip and target etch | — | Patterning concept applied to an illustrative layer | − Sidewall spacers; reshaped: SiGe, high Ge · base layer, SiGe, lower Ge · layer 1, SiGe, lower Ge · layer 2, SiGe, lower Ge · layer 3, Si · layer 1, Si · layer 2, Si · layer 3 | — | — |
-| 9 | field | SADP · Cut (block) pattern | — | Patterning concept applied to an illustrative layer | reshaped: SiGe, high Ge · base layer, SiGe, lower Ge · layer 1, SiGe, lower Ge · layer 2, SiGe, lower Ge · layer 3, Si · layer 1, Si · layer 2, Si · layer 3, Hard mask (patterned) | Which lines are cut is illustrative | — |
-| 10 | field | SADP · The nanosheet tile's two lines | — | Patterning concept applied to an illustrative layer | reshaped: Si substrate, SiGe, high Ge · base layer, SiGe, lower Ge · layer 1, SiGe, lower Ge · layer 2, SiGe, lower Ge · layer 3, Si · layer 1, Si · layer 2, Si · layer 3, Hard mask (patterned) | — | — |
-| 11 | field | SAQP · Film stack | — | Patterning concept applied to an illustrative layer | + Second-core film, First-core film; reshaped: Si substrate, SiGe, high Ge · base layer, SiGe, lower Ge · layer 1, SiGe, lower Ge · layer 2, SiGe, lower Ge · layer 3, Si · layer 1, Si · layer 2, Si · layer 3, Hard mask (receives the final pattern) | Layer materials and thicknesses are illustrative | — |
-| 12 | field | SAQP · Core lithography | — | Patterning concept applied to an illustrative layer | + Photoresist cores | Four cores, their width and pitch are illustrative | — |
-| 13 | field | SAQP · First-core etch and resist strip | — | Patterning concept applied to an illustrative layer | − Photoresist cores; reshaped: First cores | — | — |
-| 14 | field | SAQP · First spacer deposition | — | Patterning concept applied to an illustrative layer | + First spacer film (as deposited) | — | — |
-| 15 | field | SAQP · First spacer etch-back | — | Patterning concept applied to an illustrative layer | + First spacers; − First spacer film (as deposited) | — | — |
-| 16 | field | SAQP · First-core removal: the first spacer image | — | Patterning concept applied to an illustrative layer | − First cores | Ideal spacing; in practice alternate spaces can differ (pitch walk) | — |
-| 17 | field | SAQP · Second cores: the first image transferred | — | Patterning concept applied to an illustrative layer | − First spacers; reshaped: Second cores | — | — |
-| 18 | field | SAQP · Second spacer deposition | — | Patterning concept applied to an illustrative layer | + Second spacer film (as deposited) | — | — |
-| 19 | field | SAQP · Second spacer etch-back | — | Patterning concept applied to an illustrative layer | + Second spacers; − Second spacer film (as deposited) | — | — |
-| 20 | field | SAQP · Second-core removal: the final spacer image | — | Patterning concept applied to an illustrative layer | − Second cores | Ideal spacing; in practice the spaces vary, and the variation accumulates over the two generations (pitch walk) | — |
-| 21 | field | SAQP · Transfer into the hard mask | — | Patterning concept applied to an illustrative layer | reshaped: Hard mask (patterned) | — | — |
-| 22 | field | SAQP · Spacer strip and target etch | — | Patterning concept applied to an illustrative layer | − Second spacers; reshaped: SiGe, high Ge · base layer, SiGe, lower Ge · layer 1, SiGe, lower Ge · layer 2, SiGe, lower Ge · layer 3, Si · layer 1, Si · layer 2, Si · layer 3 | — | — |
-| 23 | field | SAQP · Cut (block) pattern | — | Patterning concept applied to an illustrative layer | reshaped: SiGe, high Ge · base layer, SiGe, lower Ge · layer 1, SiGe, lower Ge · layer 2, SiGe, lower Ge · layer 3, Si · layer 1, Si · layer 2, Si · layer 3, Hard mask (patterned) | Which lines are cut is illustrative | — |
-| 24 | field | SAQP · The nanosheet tile's two lines | — | Patterning concept applied to an illustrative layer | reshaped: Si substrate, SiGe, high Ge · base layer, SiGe, lower Ge · layer 1, SiGe, lower Ge · layer 2, SiGe, lower Ge · layer 3, Si · layer 1, Si · layer 2, Si · layer 3, Hard mask (patterned) | — | — |
+| # | Route | Scale | State | Source figures | Match | What changes | Model choices | Not shown |
+|---|---|---|---|---|---|---|---|---|
+| 1 | all | field | Hard mask and mandrel film | — | Patterning concept applied to an illustrative layer | + Si substrate, p-type punch-through stopper · nFET region, n-type punch-through stopper · pFET region, SiGe, high Ge · sacrificial base layer, SiGe, lower Ge · layer 1, SiGe, lower Ge · layer 2, SiGe, lower Ge · layer 3, Si · layer 1, Si · layer 2, Si · layer 3, Si substrate · beyond the tile, SiGe, high Ge · sacrificial base layer · beyond the tile, SiGe, lower Ge · layer 1 · beyond the tile, SiGe, lower Ge · layer 2 · beyond the tile, SiGe, lower Ge · layer 3 · beyond the tile, Si · layer 1 · beyond the tile, Si · layer 2 · beyond the tile, Si · layer 3 · beyond the tile, Stack hard mask (blanket), Mandrel film | The field around the tile is illustrative: its lines stand for neighbouring devices, and implants outside the tile are not drawn<br>Mandrel material and thickness are illustrative | — |
+| 2 | all | field | Core lithography | — | Patterning concept applied to an illustrative layer | + Photoresist cores | The core count, width and pitch are illustrative | — |
+| 3 | all | field | Mandrel etch and resist strip | — | Patterning concept applied to an illustrative layer | − Photoresist cores; reshaped: Mandrels (cores) | — | — |
+| 4 | all | field | Conformal spacer deposition | — | Patterning concept applied to an illustrative layer | + Patterning spacer film (as deposited) | — | — |
+| 5 | all | field | Spacer etch-back | — | Patterning concept applied to an illustrative layer | + Patterning spacers; − Patterning spacer film (as deposited) | — | — |
+| 6 | all | field | Mandrel removal: the spacer image | — | Patterning concept applied to an illustrative layer | − Mandrels (cores) | Ideal spacing; in practice alternate spaces can differ (pitch walk) [R20] | — |
+| 7 | all | field | Transfer into the hard mask | — | Patterning concept applied to an illustrative layer | reshaped: Stack hard mask (patterned) | — | — |
+| 8 | all | field | Spacer strip and cut pattern | — | Patterning concept applied to an illustrative layer | − Patterning spacers; reshaped: Stack hard mask (patterned) | Which lines are cut is illustrative | — |
+| 9 | all | tile | Back to the tile: the same hard-mask lines | — | Patterning concept applied to an illustrative layer | zoom to the 2 × 2 tile | — | — |
+| 10 | all | tile | Stack etch | Fig. 5A/B | Intermediate teaching reconstruction | + SiGe, high Ge · sacrificial base layer · nFET line, SiGe, lower Ge · layer 1 · nFET line, SiGe, lower Ge · layer 2 · nFET line, SiGe, lower Ge · layer 3 · nFET line, Si · layer 1 · nFET line, Si · layer 2 · nFET line, Si · layer 3 · nFET line, SiGe, high Ge · sacrificial base layer · pFET line, SiGe, lower Ge · layer 1 · pFET line, SiGe, lower Ge · layer 2 · pFET line, SiGe, lower Ge · layer 3 · pFET line, Si · layer 1 · pFET line, Si · layer 2 · pFET line, Si · layer 3 · pFET line; − SiGe, high Ge · sacrificial base layer, SiGe, lower Ge · layer 1, SiGe, lower Ge · layer 2, SiGe, lower Ge · layer 3, Si · layer 1, Si · layer 2, Si · layer 3; reshaped: p-type punch-through stopper · nFET sub-fin, n-type punch-through stopper · pFET sub-fin | — | — |
 
 ## Not yet verified
 
-- **Pitch values.** P, P/2 and P/4 are ideal; real spacer images show pitch walk, and the core, spacer and hard-mask materials and thicknesses here are illustrative.
-- **Cut and block patterns** are integration-dependent; which lines are removed is illustrative, and no cut-mask overlay or placement error is modelled.
-- **Where this is used.** The lesson applies the patterning concept to the nanosheet tile's stack lines as an illustrative layer; it does not claim that a given product patterns that layer by SADP or SAQP.
+- **Every figure mapping.** The patent's drawings have not been compared with these views; orientation, composition and labels may differ from the published artwork.
+- Views, cut directions and left/right are the app's own; the patent's section lines (X1–X1, X2–X2, Y1–Y1, Y2–Y2) are not yet mapped onto the app's axes.
+- The lithography operations (resist, exposure, development) are concept-level: no optics, dose, resist chemistry, overlay or mask count is modelled or claimed.
+- **Patterning routes.** SADP and SAQP are a patterning concept applied to an illustrative layer: the sources do not say this stack is patterned that way. P, P/2 and P/4 are ideal (real spacer images show pitch walk); core, spacer and film materials and thicknesses are illustrative; which lines a cut or block pattern removes is integration-dependent, and no overlay or placement error is modelled.
 
 ## Sources cited
 
 - **[R13]** Single stack dual channel gate-all-around nanosheet with strained PFET and bottom dielectric isolation NFET (US 12,568,683 B2) — IBM (assignee), US patent. <https://patents.google.com/patent/US12568683B2/en>
 - **[R16]** Lithography principles — ASML. <https://www.asml.com/en/technology/lithography-principles>
+- **[R18]** Nanosheet technology for the computing era of AI and 5G — IBM Research. <https://research.ibm.com/blog/nanosheet-technology-ai-5g>
+- **[R19]** First EUV lithography high-volume manufacturing solution for N5 BEOL — imec. <https://www.imec-int.com/en/imec-magazine/imec-magazine-march-2017/first-euv-lithography-high-volume-manufacturing-solution-for-n5-beol>
+- **[R20]** Advanced in-line metrology strategy for self-aligned quadruple patterning — IBM Research. <https://research.ibm.com/publications/advanced-in-line-metrology-strategy-for-self-aligned-quadruple-patterning>
+- **[R21]** Spacer defined double patterning for sub-72 nm pitch logic technology — IBM Research. <https://research.ibm.com/publications/spacer-defined-double-patterning-for-sub-72-nm-pitch-logic-technology>
+
+# Process audit: SAQP · self-aligned quadruple patterning
+
+Generated by `scripts/build_process.py` from `data/process.json`; do not edit by hand.
+
+SAQP on its own: the steps the Nanosheet flow shows when its stack patterning route is set to SAQP, from the film stack to the stack etch. “The direct route” is that flow's default, a single exposure. A patterning concept applied to an illustrative layer, the nanosheet tile's Si/SiGe multilayer: the sources do not say this stack is patterned this way, and a direct print (EUV single exposure, for example) is another way to make it [R18].
+
+SAQP splits the printed pitch twice, P to P/4: the first spacer image becomes a second set of cores, and each of those leaves two spacer lines [R19][R20]. The SADP chip splits it once.
+
+**Every step but the last is a patterning concept and corresponds to no figure. The last, the stack etch, is the nanosheet flow's own, a teaching reconstruction of the patent's Fig. 5A/B [R13], whose drawings were not available for visual comparison.**
+
+## Match levels
+
+- **Intermediate teaching reconstruction** (`intermediate`)
+- **Patterning concept applied to an illustrative layer** (`pattern`)
+
+## States
+
+This lesson is generated from the nanosheet flow's route of the same name and its stack etch, so every state, check and caveat below is that route's (see the nanosheet audit above).
+
+| # | Route | Scale | State | Source figures | Match | What changes | Model choices | Not shown |
+|---|---|---|---|---|---|---|---|---|
+| 1 | all | field | Hard mask and two core films | — | Patterning concept applied to an illustrative layer | + Si substrate, p-type punch-through stopper · nFET region, n-type punch-through stopper · pFET region, SiGe, high Ge · sacrificial base layer, SiGe, lower Ge · layer 1, SiGe, lower Ge · layer 2, SiGe, lower Ge · layer 3, Si · layer 1, Si · layer 2, Si · layer 3, Si substrate · beyond the tile, SiGe, high Ge · sacrificial base layer · beyond the tile, SiGe, lower Ge · layer 1 · beyond the tile, SiGe, lower Ge · layer 2 · beyond the tile, SiGe, lower Ge · layer 3 · beyond the tile, Si · layer 1 · beyond the tile, Si · layer 2 · beyond the tile, Si · layer 3 · beyond the tile, Stack hard mask (blanket), Second-core film, First-core film | The field around the tile is illustrative: its lines stand for neighbouring devices, and implants outside the tile are not drawn<br>Core materials and thicknesses are illustrative | — |
+| 2 | all | field | Core lithography | — | Patterning concept applied to an illustrative layer | + Photoresist cores | The core count, width and pitch are illustrative | — |
+| 3 | all | field | First-core etch and resist strip | — | Patterning concept applied to an illustrative layer | − Photoresist cores; reshaped: First cores | — | — |
+| 4 | all | field | First spacer deposition | — | Patterning concept applied to an illustrative layer | + First patterning spacer film (as deposited) | — | — |
+| 5 | all | field | First spacer etch-back | — | Patterning concept applied to an illustrative layer | + First patterning spacers; − First patterning spacer film (as deposited) | — | — |
+| 6 | all | field | First-core removal: the first spacer image | — | Patterning concept applied to an illustrative layer | − First cores | Ideal spacing; in practice alternate spaces can differ (pitch walk) [R20] | — |
+| 7 | all | field | Second cores: the first image transferred | — | Patterning concept applied to an illustrative layer | − First patterning spacers; reshaped: Second cores | — | — |
+| 8 | all | field | Second spacer deposition | — | Patterning concept applied to an illustrative layer | + Second patterning spacer film (as deposited) | — | — |
+| 9 | all | field | Second spacer etch-back | — | Patterning concept applied to an illustrative layer | + Second patterning spacers; − Second patterning spacer film (as deposited) | — | — |
+| 10 | all | field | Second-core removal: the final spacer image | — | Patterning concept applied to an illustrative layer | − Second cores | Ideal spacing; in practice alternate spaces can differ (pitch walk), and the variation adds up over the two generations [R20] | — |
+| 11 | all | field | Transfer into the hard mask | — | Patterning concept applied to an illustrative layer | reshaped: Stack hard mask (patterned) | — | — |
+| 12 | all | field | Spacer strip and block pattern | — | Patterning concept applied to an illustrative layer | − Second patterning spacers; reshaped: Stack hard mask (patterned) | Which lines are cut is illustrative | — |
+| 13 | all | tile | Back to the tile: the same hard-mask lines | — | Patterning concept applied to an illustrative layer | zoom to the 2 × 2 tile | — | — |
+| 14 | all | tile | Stack etch | Fig. 5A/B | Intermediate teaching reconstruction | + SiGe, high Ge · sacrificial base layer · nFET line, SiGe, lower Ge · layer 1 · nFET line, SiGe, lower Ge · layer 2 · nFET line, SiGe, lower Ge · layer 3 · nFET line, Si · layer 1 · nFET line, Si · layer 2 · nFET line, Si · layer 3 · nFET line, SiGe, high Ge · sacrificial base layer · pFET line, SiGe, lower Ge · layer 1 · pFET line, SiGe, lower Ge · layer 2 · pFET line, SiGe, lower Ge · layer 3 · pFET line, Si · layer 1 · pFET line, Si · layer 2 · pFET line, Si · layer 3 · pFET line; − SiGe, high Ge · sacrificial base layer, SiGe, lower Ge · layer 1, SiGe, lower Ge · layer 2, SiGe, lower Ge · layer 3, Si · layer 1, Si · layer 2, Si · layer 3; reshaped: p-type punch-through stopper · nFET sub-fin, n-type punch-through stopper · pFET sub-fin | — | — |
+
+## Not yet verified
+
+- **Every figure mapping.** The patent's drawings have not been compared with these views; orientation, composition and labels may differ from the published artwork.
+- Views, cut directions and left/right are the app's own; the patent's section lines (X1–X1, X2–X2, Y1–Y1, Y2–Y2) are not yet mapped onto the app's axes.
+- The lithography operations (resist, exposure, development) are concept-level: no optics, dose, resist chemistry, overlay or mask count is modelled or claimed.
+- **Patterning routes.** SADP and SAQP are a patterning concept applied to an illustrative layer: the sources do not say this stack is patterned that way. P, P/2 and P/4 are ideal (real spacer images show pitch walk); core, spacer and film materials and thicknesses are illustrative; which lines a cut or block pattern removes is integration-dependent, and no overlay or placement error is modelled.
+
+## Sources cited
+
+- **[R13]** Single stack dual channel gate-all-around nanosheet with strained PFET and bottom dielectric isolation NFET (US 12,568,683 B2) — IBM (assignee), US patent. <https://patents.google.com/patent/US12568683B2/en>
+- **[R16]** Lithography principles — ASML. <https://www.asml.com/en/technology/lithography-principles>
+- **[R18]** Nanosheet technology for the computing era of AI and 5G — IBM Research. <https://research.ibm.com/blog/nanosheet-technology-ai-5g>
 - **[R19]** First EUV lithography high-volume manufacturing solution for N5 BEOL — imec. <https://www.imec-int.com/en/imec-magazine/imec-magazine-march-2017/first-euv-lithography-high-volume-manufacturing-solution-for-n5-beol>
 - **[R20]** Advanced in-line metrology strategy for self-aligned quadruple patterning — IBM Research. <https://research.ibm.com/publications/advanced-in-line-metrology-strategy-for-self-aligned-quadruple-patterning>
 - **[R21]** Spacer defined double patterning for sub-72 nm pitch logic technology — IBM Research. <https://research.ibm.com/publications/spacer-defined-double-patterning-for-sub-72-nm-pitch-logic-technology>

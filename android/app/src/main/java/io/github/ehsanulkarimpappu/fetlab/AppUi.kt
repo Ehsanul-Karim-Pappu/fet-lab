@@ -112,7 +112,7 @@ private val SHOW_KEYS = listOf("show_fin" to "FinFET", "show_ns" to "Nanosheet",
     "show_fs" to "Forksheet", "show_cfet" to "CFET", "show_cmp" to "Compare")
 /** Process-mode chips name a technology; the flow behind each is looked up at runtime. */
 private val PROC_KEYS = listOf("proc_fin" to "FinFET", "proc_ns" to "Nanosheet",
-    "proc_fs" to "Forksheet", "proc_cfet" to "CFET", "proc_sadp" to "SADP · SAQP")
+    "proc_fs" to "Forksheet", "proc_cfet" to "CFET", "proc_sadp" to "SADP", "proc_saqp" to "SAQP")
 private val MODES = listOf("Device", "Inverter", "Layout", "Process")
 private const val PROCESS = 3
 private val TABS = listOf("Views", "Section", "Layers", "Specs", "Story")
@@ -426,6 +426,8 @@ fun FetLabApp(lib: Library, renderer: Renderer) {
     var playing by remember { mutableStateOf(false) }
     // Operation substeps (litho, etch, fill...) between the core steps; on by default.
     var showOps by rememberSaveable { mutableStateOf(true) }
+    // How the stack hard mask is patterned: "direct", "sadp" or "saqp" (see Route).
+    var route by rememberSaveable { mutableStateOf("direct") }
     var glowJob by remember { mutableStateOf<Job?>(null) }
     /** The flow for [tech], if one has been written: the device key it is filed under. */
     fun flowFor(tech: String): String? =
@@ -509,7 +511,7 @@ fun FetLabApp(lib: Library, renderer: Renderer) {
         if (!playing) return@LaunchedEffect
         val sc = lib.scene(sceneKey)
         val f = sc.flow
-        val nxt = f?.next(sc.stepIndex, 1, showOps)
+        val nxt = f?.next(sc.stepIndex, 1, showOps, route)
         if (nxt == null) { playing = false; return@LaunchedEffect }
         delay(4200)
         goStep(nxt)
@@ -807,7 +809,8 @@ fun FetLabApp(lib: Library, renderer: Renderer) {
                     Text(scene.name, style = MaterialTheme.typography.titleLarge,
                         color = MaterialTheme.colorScheme.onBackground,
                         maxLines = 1, overflow = TextOverflow.Ellipsis)
-                    Text(scene.tag, style = MaterialTheme.typography.bodySmall,
+                    Text(scene.step?.tag(scene.flow?.routeOr(route) ?: route) ?: scene.tag,
+                        style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         maxLines = 1, overflow = TextOverflow.Ellipsis)
                 }
@@ -1003,9 +1006,9 @@ fun FetLabApp(lib: Library, renderer: Renderer) {
                 if (flow != null) shown.value = scene
                 val sc = shown.value
                 val f = sc.flow
-                val prev = f?.next(sc.stepIndex, -1, showOps)
-                val next = f?.next(sc.stepIndex, 1, showOps)
-                if (f != null) ProcessBar(sc.step?.label ?: "", f.coreCount, sc.step?.title ?: "",
+                val prev = f?.next(sc.stepIndex, -1, showOps, route)
+                val next = f?.next(sc.stepIndex, 1, showOps, route)
+                if (f != null) ProcessBar(sc.step?.labelIn(f.routeOr(route)) ?: "", f.coreCount, sc.step?.title ?: "",
                     sc.step?.isOp == true, prev != null, next != null, playing,
                     glass, line, ink, dim,
                     onPrev = { playing = false; prev?.let { goStep(it) } },
@@ -1067,8 +1070,17 @@ fun FetLabApp(lib: Library, renderer: Renderer) {
                         2 -> LayersTab(lib, scene, layerTick, layersList) { parts, visible -> setVisible(parts, visible) }
                         3 -> {
                             val f = scene.flow
-                            if (f != null) StepsTab(lib, f, scene.stepIndex, stepsList, showOps,
+                            if (f != null) StepsTab(lib, f, scene.stepIndex, stepsList, showOps, route,
                                 onOps = { showOps = it },
+                                onRoute = { r ->
+                                    // Off the new route (on another route's operation), start
+                                    // the new route at its first operation.
+                                    route = r
+                                    if (!f.onRoute(scene.stepIndex, r)) {
+                                        playing = false
+                                        goStep(f.steps.indexOfFirst { it.route == f.routeOr(r) }.coerceAtLeast(0))
+                                    }
+                                },
                                 onPick = { playing = false; goStep(it) }, onRef = { openUrl(it) })
                             else SpecsTab(scene, parPick, specsList) { t -> pickPar(t) }
                         }
@@ -1510,8 +1522,9 @@ private fun StepSource(flow: ProcessFlow, st: ProcessStep) {
 /** Process mode's fourth tab: the scope, every step (the current one open), the sources. */
 @Composable
 private fun StepsTab(lib: Library, flow: ProcessFlow, index: Int, list: LazyListState,
-                     showOps: Boolean, onOps: (Boolean) -> Unit,
+                     showOps: Boolean, route: String, onOps: (Boolean) -> Unit, onRoute: (String) -> Unit,
                      onPick: (Int) -> Unit, onRef: (String) -> Unit) {
+    val here = flow.routeOr(route)
     // Keep the current step in view as the stepper or play moves it.
     LaunchedEffect(index) { list.animateScrollToItem(index + 1, scrollOffset = -24) }
     LazyColumn(state = list, contentPadding = PaddingValues(bottom = 16.dp),
@@ -1522,7 +1535,8 @@ private fun StepsTab(lib: Library, flow: ProcessFlow, index: Int, list: LazyList
                     Text(t, fontFamily = PlexSans, fontSize = 12.sp, lineHeight = 17.sp,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.padding(bottom = 6.dp))
-                Row(Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp))
+                // A flow with no operation substeps (the SADP and SAQP lessons) needs no switch.
+                if (flow.steps.any { it.isOp }) Row(Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp))
                     .toggleable(value = showOps, role = Role.Switch, onValueChange = onOps)
                     .padding(vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
                     Column(Modifier.weight(1f)) {
@@ -1534,10 +1548,24 @@ private fun StepsTab(lib: Library, flow: ProcessFlow, index: Int, list: LazyList
                     }
                     Switch(checked = showOps, onCheckedChange = null)
                 }
+                // The routes are operations too, so the choice shows only with them.
+                if (showOps && flow.routes.isNotEmpty()) {
+                    SectionLabel("STACK PATTERNING")
+                    Row(Modifier.fillMaxWidth().tourTarget("routes"),
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        for (r in flow.routes)
+                            Chip(r.name, r.id == here, Modifier.weight(1f)) { onRoute(r.id) }
+                    }
+                    flow.routes.firstOrNull { it.id == here }?.let {
+                        Text(it.note, fontFamily = PlexSans, fontSize = 11.5f.sp, lineHeight = 16.sp,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(top = 6.dp))
+                    }
+                }
             }
         }
         itemsIndexed(flow.steps, key = { _, st -> st.id }) { i, st ->
-            if (st.isOp && !showOps) return@itemsIndexed
+            if (st.isOp && !showOps || !flow.onRoute(i, here)) return@itemsIndexed
             val on = i == index
             Surface(color = if (on) MaterialTheme.colorScheme.secondaryContainer else Color.Transparent,
                 shape = RoundedCornerShape(12.dp),
@@ -1546,7 +1574,7 @@ private fun StepsTab(lib: Library, flow: ProcessFlow, index: Int, list: LazyList
                 Column(Modifier.clip(RoundedCornerShape(12.dp)).clickable { onPick(i) }
                     .padding(horizontal = 10.dp, vertical = 9.dp)) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text(st.label, fontFamily = Mono, fontSize = if (st.isOp) 11.sp else 12.sp,
+                        Text(st.labelIn(here), fontFamily = Mono, fontSize = if (st.isOp) 11.sp else 12.sp,
                             color = MaterialTheme.colorScheme.primary, modifier = Modifier.width(34.dp))
                         Text(st.title, fontFamily = PlexSans, fontSize = if (st.isOp) 12.5f.sp else 13.5f.sp,
                             fontWeight = if (on) FontWeight.SemiBold else FontWeight.Normal,

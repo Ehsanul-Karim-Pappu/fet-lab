@@ -37,24 +37,25 @@ class ContentTests(unittest.TestCase):
         devs = {d['key']: d for d in self.data['devices']}
         self.assertTrue(proc['flows'])
         for key, flow in proc['flows'].items():
-            # A lesson (SADP/SAQP) has no finished device behind it: every part is its own.
+            # A lesson (the SADP and SAQP chips) has no finished device behind it.
             lesson = flow.get('lesson', False)
             dev = dict(parts=[], views={}) if lesson else devs[key]
             final = {p['id'] for p in dev['parts']}
             views = {**dev['views'], **flow.get('views', {})}
             self.assertTrue(flow['scope'])
             cited = set()
-            labels = [step['label'] for step in flow['steps']]
-            self.assertEqual(len(labels), len(set(labels)))
+            # Routes are alternatives: along each one the labels are unique.
+            routes = [r['id'] for r in flow.get('routes', [])] or [None]
+            self.assertEqual(set(routes) - {None}, {s['route'] for s in flow['steps'] if 'route' in s})
+            for r in routes:
+                seq = [s.get('labels', {}).get(r, s['label']) for s in flow['steps'] if s.get('route') in (None, r)]
+                self.assertEqual(len(seq), len(set(seq)), r)
             for n, step in enumerate(flow['steps']):
                 self.assertTrue(step['title'] and step['body'])
                 self.assertIn(step['view'], views)
                 # A step's view frames its own scale; a tile step brings its own bounds.
                 self.assertEqual(views[step['view']].get('scale', 'site'), step['scale'])
                 self.assertEqual('bounds' in step, step['scale'] != 'site')
-                if lesson:
-                    self.assertEqual(step['match'], 'pattern')
-                    self.assertTrue(all(isinstance(p, dict) for p in step['parts']))
                 if step['level'] == 'op':
                     nxt = next(s for s in flow['steps'][n + 1:] if s['level'] == 'core')
                     self.assertEqual(step['of'], nxt['id'])
@@ -68,13 +69,56 @@ class ContentTests(unittest.TestCase):
                 cited |= set(re.findall(r'\bR\d+\b', step['body']))
             self.assertLessEqual(cited, set(flow.get('refs', [])))
             self.assertLessEqual(set(flow.get('refs', [])), ids)
-            if lesson:
-                # Each module ends mapped into the nanosheet tile's window.
-                ends = [s for s in flow['steps'] if s['view'] == 'fieldtile']
-                self.assertEqual([s['id'] for s in ends], ['sadp_tile', 'saqp_tile'])
-                self.assertIs(flow['steps'][-1], ends[-1])
-            else:
+            if not lesson:
                 self.assertEqual(sorted(flow['steps'][-1]['parts']), sorted(final))
+
+    def test_lessons_are_the_routes(self):
+        """The SADP and SAQP chips show the nanosheet flow's route of that name, state for
+        state, then its stack etch."""
+        flows = json.loads((ROOT / 'data/process.json').read_text())['flows']
+        ns = flows['ns']
+        lessons = {k: f for k, f in flows.items() if f.get('lesson')}
+        self.assertEqual(set(lessons), {'sadp', 'saqp'})
+        for key, flow in lessons.items():
+            want = [s for s in ns['steps'] if s.get('route') == key] + \
+                   [s for s in ns['steps'] if s['id'] == 'stacketch']
+            self.assertEqual([s['id'] for s in flow['steps']], [s['id'] for s in want])
+            for a, b in zip(flow['steps'], want):
+                self.assertEqual((a['parts'], a['body'], a['view'], a['match']),
+                                 (b['parts'], b['body'], b['view'], b['match']))
+                self.assertEqual(a['level'], 'core')
+            self.assertEqual([s['label'] for s in flow['steps']],
+                             [str(k) for k in range(1, len(want) + 1)])
+            self.assertIn('patterning concept applied to an illustrative layer', flow['scope'].lower())
+
+    def test_patterning_routes(self):
+        """Each route is one run of operations of the same core step, and every route ends in
+        the state the first (the direct print) ends in, so the shared step after them follows
+        any of them. SAQP shows its second-core transfer as a step of its own."""
+        proc = json.loads((ROOT / 'data/process.json').read_text())
+        for key, flow in proc['flows'].items():
+            if 'routes' not in flow: continue
+            steps = flow['steps']
+            ids = [r['id'] for r in flow['routes']]
+            self.assertEqual(ids[0], 'direct')
+            runs = {}
+            for i, s in enumerate(steps):
+                if 'route' in s: runs.setdefault(s['route'], []).append(i)
+            first = min(i for v in runs.values() for i in v)
+            last = max(i for v in runs.values() for i in v)
+            self.assertEqual(sorted(i for v in runs.values() for i in v), list(range(first, last + 1)))
+            key_parts = lambda s: sorted(json.dumps(p, sort_keys=True) for p in s['parts'])
+            end = key_parts(steps[runs['direct'][-1]])
+            for r, idx in runs.items():
+                self.assertEqual(idx, list(range(idx[0], idx[-1] + 1)), r)
+                self.assertEqual({steps[i]['of'] for i in idx}, {steps[runs['direct'][0]]['of']}, r)
+                self.assertEqual(key_parts(steps[idx[-1]]), end, r)
+                if r != 'direct':
+                    for i in idx: self.assertEqual(steps[i]['match'], 'pattern', steps[i]['id'])
+            self.assertIn('saqp_core2', [steps[i]['id'] for i in runs['saqp']])
+            self.assertIn('illustrative layer', flow['match']['pattern'])
+            nxt = steps[last + 1]
+            self.assertEqual(set(nxt['labels']), set(ids))
 
     def test_process_source_labels(self):
         """Every state says how it relates to its source, never claims a drawing match, and
@@ -82,14 +126,7 @@ class ContentTests(unittest.TestCase):
         proc = json.loads((ROOT / 'data/process.json').read_text())
         audit = (ROOT / 'docs/PROCESS_AUDIT.md').read_text()
         for key, flow in proc['flows'].items():
-            if flow.get('lesson'):
-                # A concept lesson maps to no figure and says the patterned layer is illustrative.
-                self.assertIn('no step corresponds to a figure', flow['figures'])
-                self.assertIn('patterning concept applied to an illustrative layer', flow['scope'])
-                self.assertEqual(set(flow['match']), {'pattern'})
-                self.assertFalse(flow['skipped'])
-            else:
-                self.assertIn('not available for visual comparison', flow['figures'])
+            self.assertIn('not available for visual comparison', flow['figures'])
             self.assertTrue(flow['branch'])
             skipped = set(flow['skipped'])
             for step in flow['steps']:

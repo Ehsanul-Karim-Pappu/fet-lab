@@ -42,8 +42,9 @@ reads, so regenerating the geometry updates both.
   step, read from `app/src/main/assets/process.json` (built by `scripts/build_process.py`).
   So far the nanosheet: 18 core steps, plus operation substeps (resist, exposure, etch,
   fill...) that zoom out to a 2 × 2 tile of sites; the other architectures are listed as
-  coming. A **SADP · SAQP** chip steps through spacer pitch splitting on a line field that
-  ends at the tile's two stack lines. Each step
+  coming. A route switch in the Steps tab patterns the stack hard mask by direct print, SADP
+  or SAQP, the spacer routes on a field of lines around the tile; **SADP** and **SAQP** chips
+  show each route on its own. Each step
   carries its source figures, match level, substitutions and omissions, shown in the Steps
   tab and audited in `docs/PROCESS_AUDIT.md`.
 - A first-launch **guided tour** (spotlight plus an animated hand that performs each

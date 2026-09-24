@@ -90,22 +90,44 @@ class ProcessStep(val id: String, val title: String, val body: String, val view:
                   val subs: List<String>, val omitted: List<String>,
                   /** "core", or "op" for an operation substep leading into core step [of]. */
                   val level: String, val of: String, val label: String,
-                  /** "site" for the single device, "tile" for the 2 x 2 patterning context. */
-                  val scale: String) {
+                  /** "site" for the single device, "tile" for the 2 x 2 patterning context,
+                   *  "field" for the lines around the tile. */
+                  val scale: String,
+                  /** The patterning route this operation belongs to, or null if every route
+                   *  passes through it; [labels] numbers a shared one along each route. */
+                  val route: String?, val labels: Map<String, String>) {
     val isOp get() = level == "op"
+    fun labelIn(route: String) = labels[route] ?: label
+    /** Shown on the header under the device's name. */
+    fun tag(route: String) = when (scale) {
+        "tile" -> "Process · 2 × 2 tile · step ${labelIn(route)}"
+        "field" -> "Process · line field · step ${labelIn(route)}"
+        else -> "Process · step ${labelIn(route)}"
+    }
 }
+
+/** One way through a run of operations: the stack hard mask printed directly, or made by
+ *  SADP or SAQP. Only the chosen route's operations are stepped through. */
+class Route(val id: String, val name: String, val note: String)
 
 /** A device's fabrication flow. Every step is a scene of its own, keyed [keys]. [figures]
  *  and [branch] qualify every figure mapping and are shown with the steps. */
 class ProcessFlow(val device: String, val scope: String, val figures: String, val branch: String,
                   val match: Map<String, String>, val refs: List<String>,
-                  val steps: List<ProcessStep>, val keys: List<String>) {
+                  val steps: List<ProcessStep>, val keys: List<String>, val routes: List<Route>) {
     val coreCount get() = steps.count { !it.isOp }
-    /** The next step from [from] in direction [dir] (+1 or -1), skipping operation
-     *  substeps unless [ops]; null at either end. */
-    fun next(from: Int, dir: Int, ops: Boolean): Int? {
+    /** [route] if this flow has it, else its first route (the default). */
+    fun routeOr(route: String) = if (routes.any { it.id == route }) route else routes.firstOrNull()?.id ?: ""
+    /** Whether step [i] is on [route]: shared steps are on every route. */
+    fun onRoute(i: Int, route: String): Boolean {
+        val r = steps[i].route ?: return true
+        return r == routeOr(route)
+    }
+    /** The next step from [from] in direction [dir] (+1 or -1) along [route], skipping
+     *  operation substeps unless [ops]; null at either end. */
+    fun next(from: Int, dir: Int, ops: Boolean, route: String): Int? {
         var i = from + dir
-        while (i in steps.indices) { if (ops || !steps[i].isOp) return i; i += dir }
+        while (i in steps.indices) { if ((ops || !steps[i].isOp) && onRoute(i, route)) return i; i += dir }
         return null
     }
 }
@@ -221,10 +243,9 @@ class Library(val materials: Map<String, Material>, val order: List<String>, val
             val proc = runCatching { JSONObject(asset("process.json")).getJSONObject("flows") }.getOrNull()
             if (proc != null) for (dk in proc.keys()) {
                 val fj = proc.getJSONObject(dk)
-                // A lesson (SADP · SAQP) has no finished device behind it: its name, bounds
-                // and views come with the flow, and every part is its own.
-                val lesson = fj.optBoolean("lesson", false)
-                val base = if (lesson) fj.getJSONObject("bounds").let { b ->
+                // A lesson (the SADP and SAQP chips) has no finished device behind it: its
+                // name, bounds and views come with the flow, and every part is its own.
+                val base = if (fj.optBoolean("lesson", false)) fj.getJSONObject("bounds").let { b ->
                     Scene(dk, fj.optString("name", dk), "", "", "", false, "",
                         floatArrayOf(b.getJSONArray("x").getDouble(0).toFloat(),
                             b.getJSONArray("y").getDouble(0).toFloat(), b.getJSONArray("z").getDouble(0).toFloat()),
@@ -242,10 +263,13 @@ class Library(val materials: Map<String, Material>, val order: List<String>, val
                     val sj = sa.getJSONObject(i)
                     fun list(k: String) = (sj.optJSONArray(k) ?: JSONArray()).toStringList()
                     val scale = sj.optString("scale", "site")
+                    val labels = HashMap<String, String>()
+                    sj.optJSONObject("labels")?.let { m -> for (k in m.keys()) labels[k] = m.getString(k) }
                     steps.add(ProcessStep(sj.getString("id"), sj.getString("title"), sj.getString("body"),
                         sj.optString("view", "iso"), list("figs"), sj.optString("match", ""),
                         list("subs"), list("omitted"), sj.optString("level", "core"), sj.optString("of", ""),
-                        sj.optString("label", "${i + 1}"), scale))
+                        sj.optString("label", "${i + 1}"), scale,
+                        sj.optString("route", "").ifEmpty { null }, labels))
                     val parts = ArrayList<Part>()
                     val pa = sj.getJSONArray("parts")
                     for (j in 0 until pa.length()) {
@@ -263,12 +287,7 @@ class Library(val materials: Map<String, Material>, val order: List<String>, val
                         it.getJSONArray("y").getDouble(0).toFloat(), it.getJSONArray("z").getDouble(0).toFloat()) } ?: base.lo
                     val hi = bj?.let { floatArrayOf(it.getJSONArray("x").getDouble(1).toFloat(),
                         it.getJSONArray("y").getDouble(1).toFloat(), it.getJSONArray("z").getDouble(1).toFloat()) } ?: base.hi
-                    val label = steps.last().label
-                    val tag = when (scale) {
-                        "tile" -> "Process · 2 × 2 tile · step $label"
-                        "field" -> "Process · line field · step $label"
-                        else -> "Process · step $label"
-                    }
+                    val tag = steps.last().tag(steps.last().route ?: "")     // the header re-reads it per route
                     val sc = Scene(stepKey(dk, i), base.name, tag,
                         sj.getString("title"), "", false, base.style, lo, hi, parts,
                         views.filter { it.scale == scale }, emptyList(), groups)
@@ -278,9 +297,15 @@ class Library(val materials: Map<String, Material>, val order: List<String>, val
                 }
                 val match = HashMap<String, String>()
                 fj.optJSONObject("match")?.let { m -> for (k in m.keys()) match[k] = m.getString(k) }
+                val routes = ArrayList<Route>()
+                fj.optJSONArray("routes")?.let { ra ->
+                    for (k in 0 until ra.length()) ra.getJSONObject(k).let { r ->
+                        routes.add(Route(r.getString("id"), r.getString("name"), r.optString("note", ""))) }
+                }
                 val flow = ProcessFlow(dk, fj.optString("scope", ""), fj.optString("figures", ""),
                     fj.optString("branch", ""), match,
-                    (fj.optJSONArray("refs") ?: JSONArray()).toStringList(), steps, stepScenes.map { it.key })
+                    (fj.optJSONArray("refs") ?: JSONArray()).toStringList(), steps, stepScenes.map { it.key },
+                    routes)
                 for (sc in stepScenes) sc.flow = flow
                 scenes.addAll(stepScenes)
                 flows[dk] = flow

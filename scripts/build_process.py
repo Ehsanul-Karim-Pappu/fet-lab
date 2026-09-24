@@ -122,6 +122,7 @@ class Stage:
     def __init__(self, flow, scale, bounds, grid=0.5):
         self.flow, self.scale, self.bounds, self.grid = flow, scale, bounds, grid
         self.now = {}
+        self.route = None           # set while snapping one route's operations (see ROUTES)
 
     def add(self, *ids):
         for i in ids: self.now[i] = self.flow.final[i]
@@ -140,7 +141,7 @@ class Stage:
         [omitted] what the source shows at this stage that this view leaves out. [of] makes
         it an operation substep of the core step with that id, which must come next."""
         key = self.flow.dev.key
-        if match not in (PAT_MATCH if isinstance(self.flow, Lesson) else MATCH):
+        if match not in MATCH and match not in PAT_MATCH:
             sys.exit(f"{key} step '{sid}': unknown match level {match!r}")
         parts = list(self.now.values())
         worst = overlap(parts, self.bounds, self.grid)
@@ -151,6 +152,7 @@ class Stage:
                     level="op" if of else "core", scale=self.scale,
                     parts=[p["id"] if self.flow.final.get(p["id"]) is p else p for p in parts])
         if of: step["of"] = of
+        if self.route: step["route"] = self.route
         if self.scale != "site": step["bounds"] = self.bounds
         self.flow.steps.append(step)
 
@@ -168,16 +170,24 @@ class Flow(Stage):
         if sorted(x for x in last if isinstance(x, str)) != sorted(self.final) or \
            any(not isinstance(x, str) for x in last):
             sys.exit(f"{self.dev.key}: the last step is not the finished device")
-        # Core steps count 1, 2, 3...; the operations leading to core step n are n.1, n.2...
-        core, ops = 0, 0
+        # Core steps count 1, 2, 3...; the operations leading to core step n are n.1, n.2...,
+        # counted along each route: an operation shared by every route after a route's own
+        # ones carries its number in each route ("labels"), the first route's as "label".
+        routes = list(dict.fromkeys(st["route"] for st in self.steps if st.get("route"))) or [None]
+        core, ops = 0, {}
         for k, st in enumerate(self.steps):
             if st["level"] == "core":
-                core += 1; ops = 0; st["label"] = str(core)
+                core += 1; ops = {r: 0 for r in routes}; st["label"] = str(core)
             else:
                 nxt = next((x for x in self.steps[k + 1:] if x["level"] == "core"), None)
                 if nxt is None or nxt["id"] != st["of"]:
                     sys.exit(f"{self.dev.key}: operation '{st['id']}' must lead into core step '{st['of']}'")
-                ops += 1; st["label"] = f"{core + 1}.{ops}"
+                lab = {}
+                for r in routes:
+                    if st.get("route") in (None, r):
+                        ops[r] += 1; lab[r] = f"{core + 1}.{ops[r]}"
+                st["label"] = lab[st.get("route") or routes[0]]
+                if not st.get("route") and len(set(lab.values())) > 1: st["labels"] = lab
         return self.steps
 
 
@@ -345,6 +355,7 @@ def flow_ns(done):
         t_multilayer(lines=False)
         T.put(tmp("t_hm", "Stack hard mask (blanket)", "si3n4", "Patterning",
                   [box(WX0, WX1, top, top + HMT, WZ0, WZ1)], (0, 1.3, 0)))
+        T.route = "direct"          # 4.1-4.6 are the direct print; SADP and SAQP follow as routes
         T.snap("hm", "Hard-mask deposition",
             "Zoomed out to a tile of four gate/stack sites: two stack lines will run along the "
             "channel, one for nFETs through the selected site and one for pFETs beside it, each "
@@ -394,6 +405,12 @@ def flow_ns(done):
         T.snap("strip", "Resist strip",
             "The remaining resist is stripped; the hard mask alone now defines the stack lines.",
             view="tilecut", of="pattern", match="intermediate", figs=["5A/B"])
+        T.route = None
+        pitch_routes(F, T, dict(
+            hz=hz, PS=PS, win=(WX0, WX1, WZ0, WZ1), top=top, HMT=HMT, ysub=sub[2],
+            layers=[("ml_base", "SiGe, high Ge · sacrificial base layer", "sige", 0, STI, (0, -.6, 0))] +
+                   [(f"ml_sige{i+1}", f"SiGe, lower Ge · layer {i+1}", "sige", a, b, (0, 0, 0)) for i, (a, b) in enumerate(sige)] +
+                   [(f"ml_si{i+1}", f"Si · layer {i+1}", "silicon", a, b, (0, 0, 0)) for i, (a, b) in enumerate(ys)]))
         t_multilayer(lines=True)
         T.drop("t_pts_n", "t_pts_p")
         for zc, k in LINES:
@@ -534,9 +551,10 @@ def flow_ns(done):
         "Trench oxide is deposited, planarised and recessed to the bottom of the high-Ge base "
         "layer, leaving its sidewalls open for its later removal [R13]. The STI isolates "
         "neighbouring devices sideways; it is not the bottom isolation. How the stack pattern is "
-        "made depends on the layer, pitch and process: EUV single exposure allows different "
-        "sheet widths, and dense arrays can also use spacer-based pitch splitting (SADP/SAQP); a "
-        "worked example is planned for this lesson.",
+        "made depends on the layer, pitch and process: a direct print (EUV single exposure, for "
+        "example) allows different sheet widths [R18], and dense arrays can use spacer-based "
+        "pitch splitting instead; the Steps tab's patterning route shows SADP and SAQP as "
+        "alternatives.",
         match="published", figs=["5A/B"],
         subs=["Stack width, pitch and trench depth are illustrative"])
     # 5
@@ -693,324 +711,368 @@ def flow_ns(done):
         subs=["The ILD is hidden for viewing only"],
         omitted=["The patent's final figures show the pFET beside this nFET"])
     return dev, F.done(), dict(scope=NS_SCOPE, figures=NS_FIGURES, branch=NS_BRANCH,
-                               skipped=NS_SKIPPED, refs=["R13", "R1", "R14", "R15", "R16"], match=MATCH,
-                               views=dict(cut=CUTAWAY, cutb=INDENT, **TILE_VIEWS))
+                               skipped=NS_SKIPPED, refs=["R13", "R1", "R14", "R15", "R16", "R18", "R19", "R20", "R21"],
+                               match=dict(MATCH, **PAT_MATCH), routes=ROUTES,
+                               views=dict(cut=CUTAWAY, cutb=INDENT, **TILE_VIEWS, **FIELD_VIEWS))
 
 
-# ====================================================== SADP / SAQP LESSON ===
-class Lesson(Flow):
-    """A concept flow with no finished device behind it: every part is its own."""
-    def __init__(self, key, name, bounds):
-        self.dev = type("Dev", (), dict(key=key, name=name, bounds=bounds, parts=[]))()
-        self.final = {}
-        self.steps = []
-        Stage.__init__(self, self, "field", bounds, grid=2.0)
-
-    def done(self):
-        for k, st in enumerate(self.steps, 1):
-            st["label"] = str(k)
-        return self.steps
-
-
+# ================================================= PITCH-SPLITTING ROUTES ===
+# How the stack hard mask gets its lines, as a choice of route through operations
+# 4.1-4.6: the direct print, or SADP or SAQP on the field of lines around the tile. Every
+# route ends with the same hard-mask lines in the tile, so the stack etch that follows is
+# the same step whichever route led to it.
 PAT_MATCH = {"pattern": "Patterning concept applied to an illustrative layer"}
-PAT_SCOPE = ("Spacer-based pitch splitting: a patterning concept applied to an illustrative layer, the Si/SiGe multilayer "
-             "that the nanosheet tile patterns into stacks. It shows how the mechanics work, not how "
-             "any particular flow patterns its layers: the route the nanosheet lesson follows [R13] "
-             "does not establish SADP or SAQP for its stack or gate masks, and EUV single exposure is "
-             "another way to print them.")
-PAT_FIGURES = ("Concept lesson: no step corresponds to a figure of the patent. Pitches and counts are "
-               "ideal and illustrative; real line ends, cuts and edge exclusions change how many lines "
-               "survive, and small variations in core width or spacer thickness make alternate spaces "
-               "differ (pitch walk) [R20].")
-PAT_BRANCH = ("Two modules: SADP splits the core pitch once (P to P/2); SAQP splits it twice (P to P/4), "
-              "cutting a second set of cores from the first spacer image [R19][R21].")
+ROUTES = [
+    dict(id="direct", name="Direct print",
+         note="One exposure prints the stack lines at their final pitch, EUV for example. A "
+              "printed line can differ in width from its neighbours, which the adjustable sheet "
+              "widths of nanosheets use [R18]; spacer routes make every line one film thickness "
+              "wide."),
+    dict(id="sadp", name="SADP",
+         note="Self-aligned double patterning: cores printed at twice the final pitch, then one "
+              "spacer pitch split [R21]. A patterning concept applied to an illustrative layer: "
+              "the sources do not say this stack is patterned this way."),
+    dict(id="saqp", name="SAQP",
+         note="Self-aligned quadruple patterning: cores at four times the final pitch and two "
+              "spacer pitch splits, the first spacer image becoming the second cores [R19][R20]. "
+              "A patterning concept applied to an illustrative layer: the sources do not say this "
+              "stack is patterned this way."),
+]
+FIELD_SUB = ("The field around the tile is illustrative: its lines stand for neighbouring devices, "
+             "and implants outside the tile are not drawn")
+FIELD_VIEWS = {}
+for _mod, _r in (("sadp", 1.0), ("saqp", 1.6)):
+    FIELD_VIEWS[_mod + "field"] = dict(n="Line field", s="the tile and the lines around it", az=-0.95,
+                                       el=0.55, r=1050 * _r, tgt=[-36.5, 60, -42], clip=None, scale="field")
+    FIELD_VIEWS[_mod + "cut"] = dict(n="Across the lines", s="section, mid-field", az=1.5708, el=0.08,
+                                     r=800 * _r, tgt=[-36.5, 70, -42], clip=[-36.5, None, None], scale="field")
+    FIELD_VIEWS[_mod + "plan"] = dict(n="From above", s="count the lines", az=1.5708, el=1.45,
+                                      r=950 * _r, tgt=[-36.5, 60, -42], clip=None, scale="field")
 
 
-def flow_sadp(done):
-    """SADP then SAQP on a field of parallel lines, sized so both end at the nanosheet tile's
-    stack lines: 30 nm wide at 84 nm pitch, one pair at z = 0 and z = -84 (the tile's frame)."""
-    W, P2 = 30.0, 84.0                     # final line width and pitch
-    dev_ns = bd.build_ns()
-    sheets = [lim(p["boxes"][0]) for p in dev_ns.parts if p["id"].startswith("sheet")]
-    ys = [(sh[2], sh[3]) for sh in sheets]; STI = lim(next(p for p in dev_ns.parts if p["id"] == "bdi")["boxes"][0])[3]
-    top = ys[-1][1]
-    sige = bd.gaps(STI, top, ys)
-    WX0, WX1, WZ0, WZ1 = -XSD - 2 * XSD, XSD, -42.0 - 84.0, 42.0      # the nanosheet tile's window
-    X0, X1 = WX0 - 50.0, WX1 + 50.0        # the field runs past the tile's window
-    SUB = -20.0; HM = 10.0; MAN = 40.0; MAN1 = 80.0; RES = 16.0
-    yhm, yman = top, top + HM
+def pitch_routes(F, T, g):
+    """SADP and SAQP as routes to the direct print's hard-mask lines, built on a field of
+    lines around the tile: the tile's own parts, plus the substrate and multilayer carrying
+    on beyond it. Each ends back in the tile with the direct route's state after its resist
+    strip, which the build checks the spacer image reproduces inside the tile's window."""
+    W, P2 = 2 * g["hz"], g["PS"]                     # final line width and pitch: the stacks'
+    WX0, WX1, WZ0, WZ1 = g["win"]
+    X0, X1 = WX0 - 50.0, WX1 + 50.0                  # the field runs past the tile's window
+    top, HMT, ysub = g["top"], g["HMT"], g["ysub"]
+    MAN, MAN1, RES = 40.0, 80.0, 16.0                # core films and resist: illustrative
+    yman = top + HMT
+    GS, GL, GP = "Substrate & isolation", "Superlattice", "Patterning"
+    strip = dict(T.now)                              # the direct route after its resist strip
+    tile_parts = [p for p in strip.values() if p["id"] != "t_hm"]
+    tile_hm = strip["t_hm"]
 
-    def centres(n):                        # n lines at pitch 84 with one pair at 0 and -84
-        return [-42.0 + P2 * (k - (n - 1) / 2) for k in range(n)]
+    def centres(n):                                  # n lines at the stack pitch, a pair at 0 and -P
+        return [-P2 / 2 + P2 * (k - (n - 1) / 2) for k in range(n)]
 
     def field(n):
         c = centres(n)
-        return (c[0] - W / 2 - 60, c[-1] + W / 2 + 60)
+        return c[0] - W / 2 - 60, c[-1] + W / 2 + 60
 
-    def base(L, z0, z1):
-        L.put(tmp("f_sub", "Si substrate", "silicon", "Substrate", [box(X0, X1, SUB, 0, z0, z1)], (0, -1.2, 0)))
-        L.put(tmp("f_base", "SiGe, high Ge · base layer", "sige", "Target layer", [box(X0, X1, 0, STI, z0, z1)]))
-        for i, (a, b) in enumerate(sige):
-            L.put(tmp(f"f_sige{i+1}", f"SiGe, lower Ge · layer {i+1}", "sige", "Target layer", [box(X0, X1, a, b, z0, z1)]))
-        for i, (a, b) in enumerate(ys):
-            L.put(tmp(f"f_si{i+1}", f"Si · layer {i+1}", "silicon", "Target layer", [box(X0, X1, a, b, z0, z1)]))
-        L.put(tmp("f_hm", "Hard mask (receives the final pattern)", "si3n4", "Masks", [box(X0, X1, yhm, yman, z0, z1)], (0, 1.2, 0)))
+    def hm(S, spans, name, x0=X0, x1=X1):
+        S.put(tmp("t_hm", name, "si3n4", GP, [box(x0, x1, top, top + HMT, a, b) for a, b in spans], (0, 1.3, 0)))
 
-    def etch_target(L, spans, x0=X0, x1=X1):
-        """Etch the multilayer (and the hard mask above it) everywhere but under [spans]."""
-        for pid in [k for k in list(L.now) if k in ("f_hm", "f_base") or k.startswith(("f_sige", "f_si"))]:
-            part = L.now[pid]; b = lim(part["boxes"][0])
-            L.put(dict(part, boxes=[[round(float(v), 4) for v in box(x0, x1, b[2], b[3], a, z)] for a, z in spans]))
+    def base(S, z0, z1):
+        for p in tile_parts: S.put(p)
+        S.put(tmp("f_sub", "Si substrate · beyond the tile", "silicon", GS,
+                  subtract((X0, X1, ysub, 0, z0, z1), [b for p in tile_parts if p["group"] == GS for b in p["boxes"]]),
+                  (0, -1.2, 0)))
+        win = [box(WX0, WX1, 0, top, WZ0, WZ1)]
+        for pid, name, mat, a, b, ex in g["layers"]:
+            S.put(tmp("f_" + pid, name + " · beyond the tile", mat, GL, subtract((X0, X1, a, b, z0, z1), win), ex))
+        hm(S, [(z0, z1)], "Stack hard mask (blanket)")
 
-    def crop_to_tile(L):
-        region = (WX0, WX1, SUB, 1e3, WZ0, WZ1)
-        for pid in list(L.now):
-            cut = clip(L.now[pid]["boxes"], region)
-            if cut: L.put(dict(L.now[pid], boxes=[[round(float(v), 4) for v in b] for b in cut]))
-            else: L.drop(pid)
+    def film(S, name, t, y0, y1, z0, z1, ex):
+        S.put(tmp("f_spfilm", name, "patspacer", GP, conformal(S.boxes(), t, (X0, X1, y0, y1, z0, z1)), ex))
 
-    def check_tile(L, what):
-        """The map into the tile is checked, not claimed: the same multilayer lines as the
-        nanosheet tile's operation 4.7, inside the tile's window."""
-        st = next(x for x in done["ns"]["steps"] if x["id"] == "stacketch")
-        tile, mine = {}, {}
-        for p in st["parts"]:
-            if isinstance(p, dict) and p["id"].startswith("t_ml_"): tile.setdefault(p["material"], []).extend(p["boxes"])
-        for p in L.now.values():
-            if p["id"] == "f_base" or p["id"].startswith(("f_sige", "f_si")): mine.setdefault(p["material"], []).extend(p["boxes"])
-        reg = (WX0, WX1, 0, top, WZ0, WZ1)
-        if volumes(tile, reg) != volumes(mine, reg):
-            sys.exit(f"{what}: the cropped lines differ from the nanosheet tile's\n"
-                     f"  tile {volumes(tile, reg)}\n  field {volumes(mine, reg)}")
+    def check(S, what):
+        """The spacer image, inside the tile's window, is the direct route's hard mask; and
+        nothing of the tile itself was touched on the way."""
+        reg = (WX0, WX1, top, top + HMT, WZ0, WZ1)
+        a = volumes({"si3n4": S.now["t_hm"]["boxes"]}, reg)
+        b = volumes({"si3n4": tile_hm["boxes"]}, reg)
+        if a != b:
+            sys.exit(f"{what}: the hard-mask lines in the tile differ from the direct route's\n  {a}\n  {b}")
+        for p in tile_parts:
+            if S.now.get(p["id"]) is not p: sys.exit(f"{what}: the tile's part {p['id']} changed")
+
+    def back(mode, what):
+        R = Stage(F, "tile", T.bounds)
+        R.route, R.now = mode, dict(strip)
+        R.snap(f"{mode}_back", "Back to the tile: the same hard-mask lines",
+            f"Back at the 2 × 2 tile. Inside its window the hard mask holds the same two stack lines "
+            f"as the direct route's, at the same width and pitch (checked when the data is built), so "
+            f"the flow goes on with the same stack etch. {what} changed only how the mask was made.",
+            view="tilecut", of="pattern", match="pattern")
+
+    def pull_sub(extra=""):
+        return [f"Ideal spacing; in practice alternate spaces can differ (pitch walk){extra} [R20]"]
 
     # ---------------------------------------------------------------- SADP --
     n = 8
     c = centres(n)
     z0, z1 = field(n)
-    TILEB = dict(x=[WX0, WX1], y=[SUB, yman + MAN + RES + 40], z=[WZ0, WZ1])
-    L = Lesson("sadp", "Pitch splitting (SADP · SAQP)", dict(x=[X0, X1], y=[SUB, yman + MAN + RES + 40], z=[z0, z1]))
-    mand = [(c[2 * i] + W / 2, c[2 * i + 1] - W / 2) for i in range(n // 2)]        # 54 wide, pitch 168
-    base(L, z0, z1)
-    L.put(tmp("f_man", "Mandrel film", "mandrel", "Masks", [box(X0, X1, yman, yman + MAN, z0, z1)], (0, 1.6, 0)))
-    L.snap("sadp_stack", "SADP · Film stack",
-        "The layer to be patterned, here the Si/SiGe multilayer the nanosheet stacks are cut from, is "
-        "covered by a hard mask that will receive the final pattern, and a mandrel film for the cores. "
-        "The materials are illustrative.", view="sadpfield", match="pattern")
-    L.put(tmp("f_res", "Photoresist cores", "resist", "Masks", [box(X0, X1, yman + MAN, yman + MAN + RES, a, b) for a, b in mand], (0, 2.0, 0)))
-    L.snap("sadp_litho", "SADP · Core lithography",
-        f"Lithography prints widely spaced core lines in resist: four here, at pitch P = {2*P2:g} nm "
-        "(coat, expose and develop, as in the nanosheet tile's operations 4.2–4.4) [R16][R21].",
-        view="sadpfield", match="pattern", subs=["Four cores, their width and pitch are illustrative"])
-    L.drop("f_man", "f_res")
-    L.put(tmp("f_man", "Mandrels (cores)", "mandrel", "Masks", [box(X0, X1, yman, yman + MAN, a, b) for a, b in mand], (0, 1.6, 0)))
-    L.snap("sadp_mandrel", "SADP · Mandrel etch and resist strip",
-        "The resist pattern is etched into the mandrel film and the resist is stripped, leaving durable "
-        "mandrels: the cores the spacers will form against.", view="sadpcut", match="pattern")
-    win = (X0, X1, yman, yman + MAN + W, z0, z1)
-    L.put(tmp("f_spfilm", "Spacer film (as deposited)", "patspacer", "Masks", conformal(L.boxes(), W, win), (0, 1.8, 0)))
-    L.snap("sadp_dep", "SADP · Conformal spacer deposition",
+    S = Stage(F, "field", dict(x=[X0, X1], y=[ysub, yman + MAN + RES + 40], z=[z0, z1]), grid=2.0)
+    S.route = "sadp"
+    mand = [(c[2 * i] + W / 2, c[2 * i + 1] - W / 2) for i in range(n // 2)]
+    base(S, z0, z1)
+    S.put(tmp("f_man", "Mandrel film", "mandrel", GP, [box(X0, X1, yman, yman + MAN, z0, z1)], (0, 1.6, 0)))
+    S.snap("sadp_films", "Hard mask and mandrel film",
+        "Zoomed out past the tile to the array of lines around it: the tile sits in the middle, "
+        "and the lines beyond it belong to neighbouring devices. The stack hard mask is deposited "
+        "as in the direct route, then a mandrel film for the cores. This route changes only how "
+        "the hard-mask lines are made.", view="sadpfield", of="pattern", match="pattern",
+        subs=[FIELD_SUB, "Mandrel material and thickness are illustrative"])
+    S.put(tmp("f_res", "Photoresist cores", "resist", GP,
+              [box(X0, X1, yman + MAN, yman + MAN + RES, a, b) for a, b in mand], (0, 2.0, 0)))
+    S.snap("sadp_litho", "Core lithography",
+        f"Resist is coated, exposed and developed as in the direct route, but it prints only the "
+        f"cores: four lines at pitch P = {2 * P2:g} nm, twice the final pitch, which one exposure "
+        "resolves more easily [R16][R21].", view="sadpfield", of="pattern", match="pattern",
+        subs=["The core count, width and pitch are illustrative"])
+    S.drop("f_man", "f_res")
+    S.put(tmp("f_man", "Mandrels (cores)", "mandrel", GP,
+              [box(X0, X1, yman, yman + MAN, a, b) for a, b in mand], (0, 1.6, 0)))
+    S.snap("sadp_mandrel", "Mandrel etch and resist strip",
+        "The resist pattern is etched into the mandrel film and the resist is stripped, leaving "
+        "durable mandrels: the cores the spacers will form against.",
+        view="sadpcut", of="pattern", match="pattern")
+    film(S, "Patterning spacer film (as deposited)", W, yman, yman + MAN + W, z0, z1, (0, 1.8, 0))
+    S.snap("sadp_dep", "Conformal spacer deposition",
         f"A spacer film {W:g} nm thick is deposited conformally: over the mandrel tops, down their "
-        "sidewalls and across the floor between them. Its thickness will set the final line width.",
-        view="sadpcut", match="pattern")
-    L.drop("f_spfilm")
-    spacers = [(a - W, a) for a, b in mand] + [(b, b + W) for a, b in mand]
-    L.put(tmp("f_sp", "Sidewall spacers", "patspacer", "Masks", [box(X0, X1, yman, yman + MAN, a, b) for a, b in sorted(spacers)], (0, 1.8, 0)))
-    L.snap("sadp_etch", "SADP · Spacer etch-back",
-        "A directional etch removes the film from every horizontal surface, the mandrel tops and the "
-        "floor, and leaves it standing on the mandrel sidewalls: two spacers per mandrel.",
-        view="sadpcut", match="pattern")
-    L.drop("f_man")
-    L.snap("sadp_pull", "SADP · Mandrel removal: the spacer image",
-        f"The mandrels are removed selectively, leaving only the spacers: eight lines from four cores, "
-        f"at about P/2 = {P2:g} nm. This is the doubled-density pattern; the layer below has not been "
-        "etched yet [R21].", view="sadpplan", match="pattern",
-        subs=["Ideal spacing; in practice alternate spaces can differ (pitch walk)"])
-    L.drop("f_hm")
-    L.put(tmp("f_hm", "Hard mask (patterned)", "si3n4", "Masks", [box(X0, X1, yhm, yman, a, b) for a, b in sorted(spacers)], (0, 1.2, 0)))
-    L.snap("sadp_hm", "SADP · Transfer into the hard mask",
-        "With the spacers as the active etch mask, the hard mask is etched where it is exposed. The "
-        "spacer image is now a hard-mask image.", view="sadpcut", match="pattern")
-    L.drop("f_sp")
-    lines = sorted(spacers)
-    etch_target(L, lines)
-    L.snap("sadp_target", "SADP · Spacer strip and target etch",
-        "The spacers are stripped and the hard mask alone carries the pattern into the multilayer: "
-        "eight stack lines, each capped by hard mask.", view="sadpfield", match="pattern")
-    etch_target(L, lines[1:-1], WX0, WX1)
-    L.snap("sadp_cut", "SADP · Cut (block) pattern",
-        "A separately printed cut pattern trims the lines to length and removes the two outermost, at "
-        "the edge of the pattern. Which lines survive is an integration choice [R19].",
-        view="sadpfield", match="pattern", subs=["Which lines are cut is illustrative"])
-    crop_to_tile(L)
-    L.bounds = TILEB
-    L.snap("sadp_tile", "SADP · The nanosheet tile's two lines",
-        "Cropped to the nanosheet tile's window, the pair of lines left matches that tile's two stack "
-        "lines in width, pitch and layers (checked when the data is built) (compare operation 4.7 of the nanosheet flow, where the etch "
-        "also goes on into the substrate). The crop is a view, not a process step.",
-        view="fieldtile", match="pattern")
-    check_tile(L, "SADP")
+        "sidewalls and across the floor between them. Its thickness will set the final line "
+        "width. This patterning spacer is a temporary mask, not the transistor's gate spacer.",
+        view="sadpcut", of="pattern", match="pattern")
+    S.drop("f_spfilm")
+    sp = sorted([(a - W, a) for a, b in mand] + [(b, b + W) for a, b in mand])
+    S.put(tmp("f_sp", "Patterning spacers", "patspacer", GP,
+              [box(X0, X1, yman, yman + MAN, a, b) for a, b in sp], (0, 1.8, 0)))
+    S.snap("sadp_etch", "Spacer etch-back",
+        "A directional etch removes the film from every horizontal surface, the mandrel tops and "
+        "the floor, and leaves it standing on the mandrel sidewalls: two spacers per mandrel.",
+        view="sadpcut", of="pattern", match="pattern")
+    S.drop("f_man")
+    S.snap("sadp_pull", "Mandrel removal: the spacer image",
+        f"The mandrels are removed selectively, leaving only the spacers: eight lines from four "
+        f"cores, at about P/2 = {P2:g} nm, the stacks' pitch [R21].", view="sadpplan", of="pattern",
+        match="pattern", subs=pull_sub())
+    hm(S, sp, "Stack hard mask (patterned)")
+    S.snap("sadp_hm", "Transfer into the hard mask",
+        "With the spacers as the etch mask, the hard mask is etched where it is exposed. The "
+        "spacer image is now a hard-mask image.", view="sadpcut", of="pattern", match="pattern")
+    S.drop("f_sp")
+    hm(S, sp[1:-1], "Stack hard mask (patterned)", WX0, WX1)
+    check(S, "SADP")
+    S.snap("sadp_cut", "Spacer strip and cut pattern",
+        "The spacers are stripped, and a separately printed cut pattern trims the hard-mask lines "
+        "to length and removes the two at the edge of the array. Which lines a cut removes is an "
+        "integration choice [R19].", view="sadpfield", of="pattern", match="pattern",
+        subs=["Which lines are cut is illustrative"])
+    back("sadp", "SADP")
+
     # ---------------------------------------------------------------- SAQP --
     n = 16
     c = centres(n)
     z0, z1 = field(n)
-    L.now = {}
-    L.bounds = dict(x=[X0, X1], y=[SUB, yman + MAN + MAN1 + RES + 60], z=[z0, z1])
-    man2 = [(c[2 * i] + W / 2, c[2 * i + 1] - W / 2) for i in range(n // 2)]         # 54 wide, pitch 168
-    T1 = man2[0][1] - man2[0][0]                                                     # first spacer = second core width
-    man1 = [(man2[2 * i][1], man2[2 * i + 1][0]) for i in range(n // 4)]              # 114 wide, pitch 336
-    y2, y1 = yman, yman + MAN                       # second-core film, then first-core film above it
-    base(L, z0, z1)
-    L.put(tmp("f_man2", "Second-core film", "mandrel2", "Masks", [box(X0, X1, y2, y2 + MAN, z0, z1)], (0, 1.5, 0)))
-    L.put(tmp("f_man1", "First-core film", "mandrel", "Masks", [box(X0, X1, y1, y1 + MAN1, z0, z1)], (0, 1.8, 0)))
-    L.snap("saqp_stack", "SAQP · Film stack",
-        "SAQP adds a second core layer: from the bottom, the multilayer, the hard mask that will receive "
-        "the final pattern, the second-core film, and the first-core film [R19].",
-        view="saqpfield", match="pattern", subs=["Layer materials and thicknesses are illustrative"])
-    L.put(tmp("f_res", "Photoresist cores", "resist", "Masks",
+    S = Stage(F, "field", dict(x=[X0, X1], y=[ysub, yman + MAN + MAN1 + RES + 60], z=[z0, z1]), grid=2.0)
+    S.route = "saqp"
+    man2 = [(c[2 * i] + W / 2, c[2 * i + 1] - W / 2) for i in range(n // 2)]     # the second cores
+    T1 = man2[0][1] - man2[0][0]                                                  # first spacer = their width
+    man1 = [(man2[2 * i][1], man2[2 * i + 1][0]) for i in range(n // 4)]          # the first cores
+    y1 = yman + MAN                                                               # first-core film
+    base(S, z0, z1)
+    S.put(tmp("f_man2", "Second-core film", "mandrel2", GP, [box(X0, X1, yman, y1, z0, z1)], (0, 1.5, 0)))
+    S.put(tmp("f_man1", "First-core film", "mandrel", GP, [box(X0, X1, y1, y1 + MAN1, z0, z1)], (0, 1.8, 0)))
+    S.snap("saqp_films", "Hard mask and two core films",
+        "Zoomed out past the tile to the array of lines around it. SAQP needs a second core "
+        "layer: over the stack hard mask go a second-core film and then a first-core film [R19].",
+        view="saqpfield", of="pattern", match="pattern",
+        subs=[FIELD_SUB, "Core materials and thicknesses are illustrative"])
+    S.put(tmp("f_res", "Photoresist cores", "resist", GP,
               [box(X0, X1, y1 + MAN1, y1 + MAN1 + RES, a, b) for a, b in man1], (0, 2.2, 0)))
-    L.snap("saqp_litho", "SAQP · Core lithography",
-        f"Four widely spaced cores are printed at pitch P = {4*P2:g} nm, twice the SADP example's [R16].",
-        view="saqpfield", match="pattern", subs=["Four cores, their width and pitch are illustrative"])
-    L.drop("f_man1", "f_res")
-    L.put(tmp("f_man1", "First cores", "mandrel", "Masks", [box(X0, X1, y1, y1 + MAN1, a, b) for a, b in man1], (0, 1.8, 0)))
-    L.snap("saqp_mandrel", "SAQP · First-core etch and resist strip",
-        "The pattern is etched into the first-core film and the resist stripped.", view="saqpcut", match="pattern")
-    L.put(tmp("f_spfilm", "First spacer film (as deposited)", "patspacer", "Masks",
-              conformal(L.boxes(), T1, (X0, X1, y1, y1 + MAN1 + T1, z0, z1)), (0, 2.0, 0)))
-    L.snap("saqp_dep1", "SAQP · First spacer deposition",
-        f"A first spacer film, {T1:g} nm thick, coats the first cores. Its thickness sets the width of the "
-        "second cores to come.", view="saqpcut", match="pattern")
-    L.drop("f_spfilm")
+    S.snap("saqp_litho", "Core lithography",
+        f"Four cores are printed at pitch P = {4 * P2:g} nm, four times the final pitch [R16].",
+        view="saqpfield", of="pattern", match="pattern",
+        subs=["The core count, width and pitch are illustrative"])
+    S.drop("f_man1", "f_res")
+    S.put(tmp("f_man1", "First cores", "mandrel", GP, [box(X0, X1, y1, y1 + MAN1, a, b) for a, b in man1], (0, 1.8, 0)))
+    S.snap("saqp_core1", "First-core etch and resist strip",
+        "The pattern is etched into the first-core film and the resist is stripped.",
+        view="saqpcut", of="pattern", match="pattern")
+    film(S, "First patterning spacer film (as deposited)", T1, y1, y1 + MAN1 + T1, z0, z1, (0, 2.0, 0))
+    S.snap("saqp_dep1", "First spacer deposition",
+        f"A first spacer film, {T1:g} nm thick, coats the first cores. Its thickness sets the "
+        "width of the second cores to come.", view="saqpcut", of="pattern", match="pattern")
+    S.drop("f_spfilm")
     sp1 = sorted([(a - T1, a) for a, b in man1] + [(b, b + T1) for a, b in man1])
-    L.put(tmp("f_sp1", "First spacers", "patspacer", "Masks", [box(X0, X1, y1, y1 + MAN1, a, b) for a, b in sp1], (0, 2.0, 0)))
-    L.snap("saqp_etch1", "SAQP · First spacer etch-back",
-        "Etch-back leaves the first spacers on the core sidewalls.", view="saqpcut", match="pattern")
-    L.drop("f_man1")
-    L.snap("saqp_pull1", "SAQP · First-core removal: the first spacer image",
-        f"With the first cores removed, eight spacer lines remain at about P/2 = {2*P2:g} nm: the "
-        "first-generation image [R20].", view="saqpplan", match="pattern",
-        subs=["Ideal spacing; in practice alternate spaces can differ (pitch walk)"])
-    L.drop("f_man2")
-    L.put(tmp("f_man2", "Second cores", "mandrel2", "Masks", [box(X0, X1, y2, y2 + MAN, a, b) for a, b in sp1], (0, 1.5, 0)))
-    L.drop("f_sp1")
-    L.snap("saqp_core2", "SAQP · Second cores: the first image transferred",
-        "The first spacer image is etched into the second-core film and the first spacers are removed. The "
-        "first-generation image has become the second set of cores; it is not etched into the target. This "
-        "transfer is one way to make the second cores; others exist [R19].", view="saqpcut", match="pattern")
-    L.put(tmp("f_spfilm", "Second spacer film (as deposited)", "patspacer", "Masks",
-              conformal(L.boxes(), W, (X0, X1, y2, y2 + MAN + W, z0, z1)), (0, 1.8, 0)))
-    L.snap("saqp_dep2", "SAQP · Second spacer deposition",
-        f"A second spacer film, {W:g} nm thick, coats the second cores; this thickness sets the final line "
-        "width.", view="saqpcut", match="pattern")
-    L.drop("f_spfilm")
+    S.put(tmp("f_sp1", "First patterning spacers", "patspacer", GP,
+              [box(X0, X1, y1, y1 + MAN1, a, b) for a, b in sp1], (0, 2.0, 0)))
+    S.snap("saqp_etch1", "First spacer etch-back",
+        "Etch-back leaves the first spacers on the core sidewalls.", view="saqpcut", of="pattern",
+        match="pattern")
+    S.drop("f_man1")
+    S.snap("saqp_pull1", "First-core removal: the first spacer image",
+        f"With the first cores removed, eight spacer lines remain at about P/2 = {2 * P2:g} nm: the "
+        "first-generation image [R20].", view="saqpplan", of="pattern", match="pattern", subs=pull_sub())
+    S.drop("f_man2", "f_sp1")
+    S.put(tmp("f_man2", "Second cores", "mandrel2", GP, [box(X0, X1, yman, y1, a, b) for a, b in sp1], (0, 1.5, 0)))
+    S.snap("saqp_core2", "Second cores: the first image transferred",
+        "The first spacer image is etched into the second-core film and the first spacers are "
+        "removed. The first-generation image has become the second set of cores; it is not etched "
+        "into the hard mask. This transfer is one way to make the second cores; others exist [R19].",
+        view="saqpcut", of="pattern", match="pattern")
+    film(S, "Second patterning spacer film (as deposited)", W, yman, y1 + W, z0, z1, (0, 1.8, 0))
+    S.snap("saqp_dep2", "Second spacer deposition",
+        f"A second spacer film, {W:g} nm thick, coats the second cores; this thickness sets the "
+        "final line width.", view="saqpcut", of="pattern", match="pattern")
+    S.drop("f_spfilm")
     sp2 = sorted([(a - W, a) for a, b in sp1] + [(b, b + W) for a, b in sp1])
-    L.put(tmp("f_sp2", "Second spacers", "patspacer", "Masks", [box(X0, X1, y2, y2 + MAN, a, b) for a, b in sp2], (0, 1.8, 0)))
-    L.snap("saqp_etch2", "SAQP · Second spacer etch-back",
-        "Etch-back leaves the second spacers on the second cores' sidewalls.", view="saqpcut", match="pattern")
-    L.drop("f_man2")
-    L.snap("saqp_pull2", "SAQP · Second-core removal: the final spacer image",
-        f"With the second cores removed, sixteen spacer lines remain at about P/4 = {P2:g} nm: four times the "
-        "density of the printed cores, from one lithography step [R20].", view="saqpplan", match="pattern",
-        subs=["Ideal spacing; in practice the spaces vary, and the variation accumulates over the two "
-              "generations (pitch walk)"])
-    L.drop("f_hm")
-    L.put(tmp("f_hm", "Hard mask (patterned)", "si3n4", "Masks", [box(X0, X1, yhm, yman, a, b) for a, b in sp2], (0, 1.2, 0)))
-    L.snap("saqp_hm", "SAQP · Transfer into the hard mask",
-        "With the second spacers as the active etch mask, the pattern goes into the hard mask.",
-        view="saqpcut", match="pattern")
-    L.drop("f_sp2")
-    etch_target(L, sp2)
-    L.snap("saqp_target", "SAQP · Spacer strip and target etch",
-        "The spacers are stripped and the hard mask carries the pattern into the multilayer: sixteen stack "
-        "lines.", view="saqpfield", match="pattern")
-    etch_target(L, sp2[1:-1], WX0, WX1)
-    L.snap("saqp_cut", "SAQP · Cut (block) pattern",
-        "A separately printed block pattern trims the lines to length and removes the edge lines. In a real "
-        "integration the block pattern also decides which lines become devices; imec's metal-line example "
-        "keeps groups of six [R19].", view="saqpfield", match="pattern",
-        subs=["Which lines are cut is illustrative"])
-    crop_to_tile(L)
-    L.bounds = TILEB
-    L.snap("saqp_tile", "SAQP · The nanosheet tile's two lines",
-        "Cropped to the tile's window, SAQP leaves the same pair of lines as SADP did: the nanosheet tile's "
-        "stack lines. Same final pattern, reached with one pitch split (SADP) or two (SAQP), from cores "
-        "printed at twice the pitch. The crop is a view, not a process step.",
-        view="fieldtile", match="pattern")
-    check_tile(L, "SAQP")
-    views = {}
-    for mod, r in (("sadp", 1.0), ("saqp", 1.6)):
-        views[mod + "field"] = dict(n="Line field", s="the whole pattern", az=-0.95, el=0.55, r=1050 * r,
-                                    tgt=[-36.5, 60, -42], clip=None, scale="field")
-        views[mod + "cut"] = dict(n="Across the lines", s="section, mid-field", az=1.5708, el=0.08, r=800 * r,
-                                  tgt=[-36.5, 70, -42], clip=[-36.5, None, None], scale="field")
-        views[mod + "plan"] = dict(n="From above", s="count the lines", az=1.5708, el=1.45, r=950 * r,
-                                   tgt=[-36.5, 60, -42], clip=None, scale="field")
-    views["fieldtile"] = dict(n="The tile's window", s="two lines, as in the nanosheet tile", az=-0.70,
-                              el=0.42, r=520, tgt=[-36.5, 45, -42], clip=None, scale="field")
-    return L.dev, L.done(), dict(lesson=True, name=L.dev.name, bounds=L.dev.bounds, scope=PAT_SCOPE, figures=PAT_FIGURES, branch=PAT_BRANCH, skipped={},
-                                 refs=["R13", "R16", "R19", "R20", "R21"], match=PAT_MATCH, views=views)
+    S.put(tmp("f_sp2", "Second patterning spacers", "patspacer", GP,
+              [box(X0, X1, yman, y1, a, b) for a, b in sp2], (0, 1.8, 0)))
+    S.snap("saqp_etch2", "Second spacer etch-back",
+        "Etch-back leaves the second spacers on the second cores' sidewalls.", view="saqpcut",
+        of="pattern", match="pattern")
+    S.drop("f_man2")
+    S.snap("saqp_pull2", "Second-core removal: the final spacer image",
+        f"With the second cores removed, sixteen spacer lines remain at about P/4 = {P2:g} nm, the "
+        "stacks' pitch: four times the density of the printed cores, from one exposure [R20].",
+        view="saqpplan", of="pattern", match="pattern",
+        subs=pull_sub(", and the variation adds up over the two generations"))
+    hm(S, sp2, "Stack hard mask (patterned)")
+    S.snap("saqp_hm", "Transfer into the hard mask",
+        "With the second spacers as the etch mask, the pattern goes into the hard mask.",
+        view="saqpcut", of="pattern", match="pattern")
+    S.drop("f_sp2")
+    hm(S, sp2[1:-1], "Stack hard mask (patterned)", WX0, WX1)
+    check(S, "SAQP")
+    S.snap("saqp_cut", "Spacer strip and block pattern",
+        "The spacers are stripped, and a separately printed block pattern trims the hard-mask "
+        "lines to length and removes the edge lines. In a real integration the block pattern also "
+        "decides which lines become devices; imec's metal-line example keeps groups of six [R19].",
+        view="saqpfield", of="pattern", match="pattern", subs=["Which lines are cut is illustrative"])
+    back("saqp", "SAQP")
 
 
-FLOWS = {"ns": flow_ns, "sadp": flow_sadp}
+# ============================================================ LESSON CHIPS ===
+# SADP and SAQP on their own chips: each is the nanosheet flow's route of that name, taken
+# out of the flow and ending with the stack etch that follows it, so the lesson and the
+# route are the same steps and cannot drift apart.
+LESSONS = dict(
+    sadp=dict(name="SADP · self-aligned double patterning",
+              branch="SADP splits the printed pitch once, P to P/2: every core leaves two spacer "
+                     "lines [R21]. The SAQP chip splits it twice."),
+    saqp=dict(name="SAQP · self-aligned quadruple patterning",
+              branch="SAQP splits the printed pitch twice, P to P/4: the first spacer image becomes "
+                     "a second set of cores, and each of those leaves two spacer lines [R19][R20]. "
+                     "The SADP chip splits it once."))
+
+
+def lesson(mode):
+    def build(done):
+        ns = done["ns"]
+        route = next(r for r in ns["routes"] if r["id"] == mode)
+        steps = [dict(s) for s in ns["steps"] if s.get("route") == mode]
+        steps.append(dict(next(s for s in ns["steps"] if s["id"] == "stacketch")))
+        for k, st in enumerate(steps, 1):
+            for key in ("of", "route", "labels"): st.pop(key, None)
+            st["level"], st["label"] = "core", str(k)
+        views = {k: v for k, v in dict(TILE_VIEWS, **FIELD_VIEWS).items()
+                 if k in {st["view"] for st in steps}}
+        dev = type("Lesson", (), dict(key=mode, name=LESSONS[mode]["name"], parts=[]))
+        return dev, steps, dict(
+            lesson=True, name=dev.name, bounds=steps[0]["bounds"],
+            scope=f"{route['name']} on its own: the steps the Nanosheet flow shows when its stack "
+                  f"patterning route is set to {route['name']}, from the film stack to the stack etch. "
+                  "“The direct route” is that flow's default, a single exposure. A patterning concept "
+                  "applied to an illustrative layer, the nanosheet tile's Si/SiGe multilayer: the "
+                  "sources do not say this stack is patterned this way, and a direct print (EUV single "
+                  "exposure, for example) is another way to make it [R18].",
+            figures="Every step but the last is a patterning concept and corresponds to no figure. "
+                    "The last, the stack etch, is the nanosheet flow's own, a teaching reconstruction "
+                    "of the patent's Fig. 5A/B [R13], whose drawings were not available for visual "
+                    "comparison.",
+            branch=LESSONS[mode]["branch"], skipped={},
+            refs=["R13", "R16", "R18", "R19", "R20", "R21"],
+            match={k: v for k, v in ns["match"].items() if k in {st["match"] for st in steps}},
+            views=views)
+    return build
+
+
+FLOWS = {"ns": flow_ns, "sadp": lesson("sadp"), "saqp": lesson("saqp")}
 
 
 def audit(key, dev, flow, refs):
     """docs/PROCESS_AUDIT.md: every state against its source, generated from the data."""
     final = {p["id"]: p for p in dev.parts}
     part = lambda x: final[x] if isinstance(x, str) else x
+    routes = {r["id"]: r for r in flow.get("routes", [])}
     md = [f"# Process audit: {dev.name}", "",
           "Generated by `scripts/build_process.py` from `data/process.json`; do not edit by hand.", "",
           flow["scope"], "", flow["branch"], "", "**" + flow["figures"] + "**", "",
           "## Match levels", ""]
     md += [f"- **{v}** (`{k}`)" for k, v in flow["match"].items()]
-    lesson = flow.get("lesson", False)
     md += ["", "## States", ""]
-    md += ["Every state is a concept operation on an illustrative line field, sized so that the "
-           "final lines have the nanosheet tile's stack width (30 nm) and pitch (84 nm). The build "
-           "checks that each module's last state, cropped to the tile's window, has the same "
-           "multilayer lines as the nanosheet tile's operation 4.7.", ""] if lesson else [
+    md += ["This lesson is generated from the nanosheet flow's route of the same name and its "
+           "stack etch, so every state, check and caveat below is that route's (see the "
+           "nanosheet audit above)."] if flow.get("lesson") else [
            "Steps numbered n.k are operation substeps leading into core step n; those at tile "
            "scale show a 2 × 2 context of two stack lines (nFET and pFET) crossed by two gate "
            "lines, with the selected nFET site at the single-site model's origin. The build checks "
-           "that the tile, cropped to that site, matches the single-site model at steps 4, 5 and 6.", ""]
-    md += ["| # | Scale | State | Source figures | Match | What changes | Model choices | Not shown |",
-           "|---|---|---|---|---|---|---|---|"]
-    prev, prev_scale = {}, None
+           "that the tile, cropped to that site, matches the single-site model at steps 4, 5 and 6."]
+    md += [""]
+    if routes:
+        md += ["Operations marked with a route are alternatives: the viewer shows one route at a "
+               "time and numbers each route's operations on their own, so a shared operation after "
+               "them carries one number per route. Field-scale states zoom out to the lines around "
+               "the tile. Every route ends in the same tile state, which the build checks.", ""]
+        md += [f"- **{r['name']}** (`{k}`): {r['note']}" for k, r in routes.items()] + [""]
+    md += ["| # | Route | Scale | State | Source figures | Match | What changes | Model choices | Not shown |",
+           "|---|---|---|---|---|---|---|---|---|"]
+    # Each route has its own "previous state": a route's first operation follows core step
+    # 3, and the shared operation after the routes follows each route's last one alike.
+    prev = {r: ({}, None) for r in (routes or {None: None})}
+    zoom = {"site": "zoom to the selected site", "tile": "zoom to the 2 × 2 tile",
+            "field": "zoom out to the line field around the tile"}
     for st in flow["steps"]:
         now = {part(x)["id"]: part(x) for x in st["parts"]}
-        if prev_scale is not None and st["scale"] != prev_scale:
-            chg = "zoom to the selected site" if st["scale"] == "site" else "zoom out to the 2 × 2 tile"
+        r = st.get("route")
+        was, was_scale = prev[r] if r else prev[next(iter(prev))]
+        if was_scale is not None and st["scale"] != was_scale:
+            chg = zoom[st["scale"]]
         else:
-            added = [now[k]["name"] for k in now if k not in prev]
-            gone = [prev[k]["name"] for k in prev if k not in now]
-            shaped = [now[k]["name"] for k in now if k in prev and now[k]["boxes"] != prev[k]["boxes"]]
+            added = [now[k]["name"] for k in now if k not in was]
+            gone = [was[k]["name"] for k in was if k not in now]
+            shaped = [now[k]["name"] for k in now if k in was and now[k]["boxes"] != was[k]["boxes"]]
             chg = "; ".join(x for x in ("+ " + ", ".join(added) if added else "",
                                         "− " + ", ".join(gone) if gone else "",
                                         "reshaped: " + ", ".join(shaped) if shaped else "") if x)
         cell = lambda xs: "<br>".join(xs) if xs else "—"
         figs = ", ".join("Fig. " + f for f in st["figs"]) or "—"
-        md.append(f"| {st['label']} | {st['scale']} | {st['title']} | {figs} | {flow['match'][st['match']]} "
-                  f"| {chg or '—'} | {cell(st['subs'])} | {cell(st['omitted'])} |")
-        prev, prev_scale = now, st["scale"]
-    if not lesson:
+        lab = " · ".join(f"{routes[k]['name']} {v}" for k, v in st["labels"].items()) if "labels" in st else st["label"]
+        md.append(f"| {lab} | {routes[r]['name'] if r else 'all'} | {st['scale']} | {st['title']} | {figs} "
+                  f"| {flow['match'][st['match']]} | {chg or '—'} | {cell(st['subs'])} | {cell(st['omitted'])} |")
+        for k in ([r] if r else list(prev)): prev[k] = (now, st["scale"])
+    if flow["skipped"]:
         md += ["", "## Source figures not mapped to a state", ""]
         md += [f"- **Fig. {k}**: {v}" for k, v in flow["skipped"].items()]
-    md += ["", "## Not yet verified", ""]
-    md += ["- **Pitch values.** P, P/2 and P/4 are ideal; real spacer images show pitch walk, and "
-           "the core, spacer and hard-mask materials and thicknesses here are illustrative.",
-           "- **Cut and block patterns** are integration-dependent; which lines are removed is "
-           "illustrative, and no cut-mask overlay or placement error is modelled.",
-           "- **Where this is used.** The lesson applies the patterning concept to the nanosheet "
-           "tile's stack lines as an illustrative layer; it does not claim that a given product "
-           "patterns that layer by SADP or SAQP.",
-           "", "## Sources cited", ""] if lesson else [
+    md += ["", "## Not yet verified", "",
            "- **Every figure mapping.** The patent's drawings have not been compared with these views; "
            "orientation, composition and labels may differ from the published artwork.",
            "- Views, cut directions and left/right are the app's own; the patent's section lines "
            "(X1–X1, X2–X2, Y1–Y1, Y2–Y2) are not yet mapped onto the app's axes.",
            "- The lithography operations (resist, exposure, development) are concept-level: no "
-           "optics, dose, resist chemistry, overlay or mask count is modelled or claimed.",
-           "", "## Sources cited", ""]
+           "optics, dose, resist chemistry, overlay or mask count is modelled or claimed."]
+    if routes or flow.get("lesson"):
+        md += ["- **Patterning routes.** SADP and SAQP are a patterning concept applied to an "
+               "illustrative layer: the sources do not say this stack is patterned that way. P, P/2 "
+               "and P/4 are ideal (real spacer images show pitch walk); core, spacer and film "
+               "materials and thicknesses are illustrative; which lines a cut or block pattern "
+               "removes is integration-dependent, and no overlay or placement error is modelled."]
+    md += ["", "## Sources cited", ""]
     md += [f"- **[{r}]** {refs[r]['title']} — {refs[r]['publisher']}. <{refs[r]['url']}>"
            for r in flow["refs"]]
     return "\n".join(md) + "\n"

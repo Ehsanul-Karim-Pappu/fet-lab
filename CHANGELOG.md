@@ -32,18 +32,24 @@ lists every step with its explanation, the flow's scope and the sources it cites
 forksheet and CFET flows are shown as coming. The flow is a teaching sequence with
 illustrative materials, not a foundry recipe.
 
-A second Process chip, **SADP · SAQP**, is a pitch-splitting lesson on a field of parallel
-lines: a patterning concept applied to an illustrative layer, the nanosheet tile's Si/SiGe
-multilayer. SADP prints four cores at pitch P, coats them with a conformal spacer, etches it
-back and removes the cores, leaving eight lines at P/2, which the hard mask carries into the
-layer. SAQP starts from cores at twice that pitch, transfers the first spacer image into a
-second set of cores (shown as its own step), and repeats, leaving sixteen lines at P/4 from
-one lithography step. A cut pattern then trims the lines, and the field is cropped to the
-tile's window, where the build checks that both modules leave the same two stack lines as
-the nanosheet tile. Patterning spacers are a pale grey distinct from the transistor's gate
-spacers, and the cores have their own colours. P, P/2 and P/4 are ideal; pitch walk is
-described, not modelled. Nothing claims that a given product patterns this layer by SADP
-or SAQP.
+The Steps tab can switch how the stack hard mask is patterned: **Direct print** (the
+default), **SADP** or **SAQP**. The spacer routes replace operations 4.1–4.6 with their own
+steps on the field of lines around the tile, a patterning concept applied to an illustrative
+layer. SADP prints four cores at twice the final pitch, coats them with a conformal spacer,
+etches it back and removes the cores, leaving eight lines at P/2. SAQP starts from cores at
+four times the pitch, transfers the first spacer image into a second set of cores (shown as
+its own step) and repeats, leaving sixteen lines at P/4 from one exposure. The spacer image
+goes into the hard mask, a cut pattern trims it, and the flow zooms back to the tile, where
+the build checks that the hard mask holds the same two lines as the direct route, so all
+three continue with the same stack etch. Each route numbers its own operations. Patterning
+spacers are a pale grey distinct from the transistor's gate spacers, and the cores have
+their own colours. P, P/2 and P/4 are ideal; pitch walk is described, not modelled. Nothing
+claims that this stack is patterned by SADP or SAQP. Each spacer route also has a Process
+chip of its own, **SADP** and **SAQP**: the same steps, generated from the route, taken out
+of the flow and ending with the stack etch.
+
+The renderer's depth range now fits the scene on screen, which removes a sawtooth along
+thin layers' edges when zoomed far out.
 
 ### Nanosheet model: full bottom dielectric isolation
 
