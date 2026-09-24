@@ -32,6 +32,19 @@ lists every step with its explanation, the flow's scope and the sources it cites
 forksheet and CFET flows are shown as coming. The flow is a teaching sequence with
 illustrative materials, not a foundry recipe.
 
+A second Process chip, **SADP · SAQP**, is a pitch-splitting lesson on a field of parallel
+lines: a patterning concept applied to an illustrative layer, the nanosheet tile's Si/SiGe
+multilayer. SADP prints four cores at pitch P, coats them with a conformal spacer, etches it
+back and removes the cores, leaving eight lines at P/2, which the hard mask carries into the
+layer. SAQP starts from cores at twice that pitch, transfers the first spacer image into a
+second set of cores (shown as its own step), and repeats, leaving sixteen lines at P/4 from
+one lithography step. A cut pattern then trims the lines, and the field is cropped to the
+tile's window, where the build checks that both modules leave the same two stack lines as
+the nanosheet tile. Patterning spacers are a pale grey distinct from the transistor's gate
+spacers, and the cores have their own colours. P, P/2 and P/4 are ideal; pitch walk is
+described, not modelled. Nothing claims that a given product patterns this layer by SADP
+or SAQP.
+
 ### Nanosheet model: full bottom dielectric isolation
 
 The nanosheet now sits on a full bottom dielectric isolation (BDI) layer under both the

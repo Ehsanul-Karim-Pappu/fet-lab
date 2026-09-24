@@ -112,7 +112,7 @@ private val SHOW_KEYS = listOf("show_fin" to "FinFET", "show_ns" to "Nanosheet",
     "show_fs" to "Forksheet", "show_cfet" to "CFET", "show_cmp" to "Compare")
 /** Process-mode chips name a technology; the flow behind each is looked up at runtime. */
 private val PROC_KEYS = listOf("proc_fin" to "FinFET", "proc_ns" to "Nanosheet",
-    "proc_fs" to "Forksheet", "proc_cfet" to "CFET")
+    "proc_fs" to "Forksheet", "proc_cfet" to "CFET", "proc_sadp" to "SADP · SAQP")
 private val MODES = listOf("Device", "Inverter", "Layout", "Process")
 private const val PROCESS = 3
 private val TABS = listOf("Views", "Section", "Layers", "Specs", "Story")

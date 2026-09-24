@@ -33,6 +33,9 @@ MAT = {
  "resist_exp": dict(label="Photoresist (exposed)", color="#F9D4B4", note="Resist made soluble by exposure; the developer removes it (positive tone)"),
  "chrome":  dict(label="Reticle chrome (not to scale)", color="#8E959E", note="The reticle's opaque pattern. It sits in the scanner, not on the wafer; drawn above it only to show what blocks the light"),
  "liner":   dict(label="Protective liner", color="#6FC7B5", note="Thin film that protects one region while the other is processed"),
+ "mandrel": dict(label="Mandrel (first core)", color="#5E86C1", note="Temporary core line whose sidewalls carry the spacers; removed after they form. Material illustrative"),
+ "mandrel2": dict(label="Second core", color="#9A7ED3", note="SAQP's second-generation core, cut from the first spacer image; removed after its own spacers form. Material illustrative"),
+ "patspacer": dict(label="Patterning spacer (temporary mask)", color="#EDEFF2", note="Spacer film used only as an etch mask for pitch splitting; not a transistor spacer. Material illustrative"),
  # --- schematic-layout palette, used by the showcase inverters ---
  "pwell":   dict(label="P Well",             color="#7FC9EA", note="p-type well / substrate"),
  "nwell":   dict(label="N Well",             color="#EFE53A", note="n-type well under the pMOS"),
@@ -45,7 +48,7 @@ MAT = {
  "m0":      dict(label="Metal 0",            color="#F2C1A2", note="First routing level"),
 }
 ORDER = ["silicon","sige","sio2","highk","si3n4","wall","mdi","bond",
-         "tin","mo","nisi","nickel","tungsten","poly","ild","pts","pts_n","resist","resist_exp","chrome","liner",
+         "tin","mo","nisi","nickel","tungsten","poly","ild","pts","pts_n","resist","resist_exp","chrome","liner","mandrel","mandrel2","patspacer",
          "pwell","nwell","fox","nanowire","md","po","vd","vg","m0"]
 
 # ---------------------------------------------------------------- shared CDs

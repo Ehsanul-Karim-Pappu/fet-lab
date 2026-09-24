@@ -42,7 +42,8 @@ reads, so regenerating the geometry updates both.
   step, read from `app/src/main/assets/process.json` (built by `scripts/build_process.py`).
   So far the nanosheet: 18 core steps, plus operation substeps (resist, exposure, etch,
   fill...) that zoom out to a 2 × 2 tile of sites; the other architectures are listed as
-  coming. Each step
+  coming. A **SADP · SAQP** chip steps through spacer pitch splitting on a line field that
+  ends at the tile's two stack lines. Each step
   carries its source figures, match level, substitutions and omissions, shown in the Steps
   tab and audited in `docs/PROCESS_AUDIT.md`.
 - A first-launch **guided tour** (spotlight plus an animated hand that performs each

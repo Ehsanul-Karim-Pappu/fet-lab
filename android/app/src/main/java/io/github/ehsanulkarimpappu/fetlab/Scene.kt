@@ -221,10 +221,19 @@ class Library(val materials: Map<String, Material>, val order: List<String>, val
             val proc = runCatching { JSONObject(asset("process.json")).getJSONObject("flows") }.getOrNull()
             if (proc != null) for (dk in proc.keys()) {
                 val fj = proc.getJSONObject(dk)
-                val d = devJson[dk] ?: continue
-                val base = scenes.firstOrNull { it.key == dk } ?: continue
+                // A lesson (SADP · SAQP) has no finished device behind it: its name, bounds
+                // and views come with the flow, and every part is its own.
+                val lesson = fj.optBoolean("lesson", false)
+                val base = if (lesson) fj.getJSONObject("bounds").let { b ->
+                    Scene(dk, fj.optString("name", dk), "", "", "", false, "",
+                        floatArrayOf(b.getJSONArray("x").getDouble(0).toFloat(),
+                            b.getJSONArray("y").getDouble(0).toFloat(), b.getJSONArray("z").getDouble(0).toFloat()),
+                        floatArrayOf(b.getJSONArray("x").getDouble(1).toFloat(),
+                            b.getJSONArray("y").getDouble(1).toFloat(), b.getJSONArray("z").getDouble(1).toFloat()),
+                        emptyList(), emptyList(), emptyList(), emptyList()).also { it.story = fj.optString("scope", "") }
+                } else scenes.firstOrNull { it.key == dk } ?: continue
                 val finalParts = HashMap<String, JSONObject>()
-                d.getJSONArray("parts").let { for (j in 0 until it.length()) it.getJSONObject(j).let { p -> finalParts[p.getString("id")] = p } }
+                devJson[dk]?.getJSONArray("parts")?.let { for (j in 0 until it.length()) it.getJSONObject(j).let { p -> finalParts[p.getString("id")] = p } }
                 val views = base.views + (fj.optJSONObject("views")?.let { parseViews(it) } ?: emptyList())
                 val sa = fj.getJSONArray("steps")
                 val steps = ArrayList<ProcessStep>()
@@ -255,7 +264,11 @@ class Library(val materials: Map<String, Material>, val order: List<String>, val
                     val hi = bj?.let { floatArrayOf(it.getJSONArray("x").getDouble(1).toFloat(),
                         it.getJSONArray("y").getDouble(1).toFloat(), it.getJSONArray("z").getDouble(1).toFloat()) } ?: base.hi
                     val label = steps.last().label
-                    val tag = if (scale == "tile") "Process · 2 × 2 tile · step $label" else "Process · step $label"
+                    val tag = when (scale) {
+                        "tile" -> "Process · 2 × 2 tile · step $label"
+                        "field" -> "Process · line field · step $label"
+                        else -> "Process · step $label"
+                    }
                     val sc = Scene(stepKey(dk, i), base.name, tag,
                         sj.getString("title"), "", false, base.style, lo, hi, parts,
                         views.filter { it.scale == scale }, emptyList(), groups)

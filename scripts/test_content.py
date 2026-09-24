@@ -37,7 +37,9 @@ class ContentTests(unittest.TestCase):
         devs = {d['key']: d for d in self.data['devices']}
         self.assertTrue(proc['flows'])
         for key, flow in proc['flows'].items():
-            dev = devs[key]
+            # A lesson (SADP/SAQP) has no finished device behind it: every part is its own.
+            lesson = flow.get('lesson', False)
+            dev = dict(parts=[], views={}) if lesson else devs[key]
             final = {p['id'] for p in dev['parts']}
             views = {**dev['views'], **flow.get('views', {})}
             self.assertTrue(flow['scope'])
@@ -50,6 +52,9 @@ class ContentTests(unittest.TestCase):
                 # A step's view frames its own scale; a tile step brings its own bounds.
                 self.assertEqual(views[step['view']].get('scale', 'site'), step['scale'])
                 self.assertEqual('bounds' in step, step['scale'] != 'site')
+                if lesson:
+                    self.assertEqual(step['match'], 'pattern')
+                    self.assertTrue(all(isinstance(p, dict) for p in step['parts']))
                 if step['level'] == 'op':
                     nxt = next(s for s in flow['steps'][n + 1:] if s['level'] == 'core')
                     self.assertEqual(step['of'], nxt['id'])
@@ -63,7 +68,13 @@ class ContentTests(unittest.TestCase):
                 cited |= set(re.findall(r'\bR\d+\b', step['body']))
             self.assertLessEqual(cited, set(flow.get('refs', [])))
             self.assertLessEqual(set(flow.get('refs', [])), ids)
-            self.assertEqual(sorted(flow['steps'][-1]['parts']), sorted(final))
+            if lesson:
+                # Each module ends mapped into the nanosheet tile's window.
+                ends = [s for s in flow['steps'] if s['view'] == 'fieldtile']
+                self.assertEqual([s['id'] for s in ends], ['sadp_tile', 'saqp_tile'])
+                self.assertIs(flow['steps'][-1], ends[-1])
+            else:
+                self.assertEqual(sorted(flow['steps'][-1]['parts']), sorted(final))
 
     def test_process_source_labels(self):
         """Every state says how it relates to its source, never claims a drawing match, and
@@ -71,12 +82,19 @@ class ContentTests(unittest.TestCase):
         proc = json.loads((ROOT / 'data/process.json').read_text())
         audit = (ROOT / 'docs/PROCESS_AUDIT.md').read_text()
         for key, flow in proc['flows'].items():
-            self.assertIn('not available for visual comparison', flow['figures'])
+            if flow.get('lesson'):
+                # A concept lesson maps to no figure and says the patterned layer is illustrative.
+                self.assertIn('no step corresponds to a figure', flow['figures'])
+                self.assertIn('patterning concept applied to an illustrative layer', flow['scope'])
+                self.assertEqual(set(flow['match']), {'pattern'})
+                self.assertFalse(flow['skipped'])
+            else:
+                self.assertIn('not available for visual comparison', flow['figures'])
             self.assertTrue(flow['branch'])
             skipped = set(flow['skipped'])
             for step in flow['steps']:
                 self.assertIn(step['match'], flow['match'])
-                if step['match'] != 'concept':
+                if step['match'] not in ('concept', 'pattern'):
                     self.assertTrue(step['figs'], step['id'])
                 self.assertFalse(skipped & set(step['figs']), step['id'])
                 for text in [step['body']] + step['subs'] + step['omitted']:
