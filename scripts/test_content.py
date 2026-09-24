@@ -60,6 +60,9 @@ class ContentTests(unittest.TestCase):
                     nxt = next(s for s in flow['steps'][n + 1:] if s['level'] == 'core')
                     self.assertEqual(step['of'], nxt['id'])
                     self.assertTrue(step['label'].startswith(nxt['label'] + '.'))
+                # Films a step shows depositing are its own parts.
+                ids_here = {p if isinstance(p, str) else p['id'] for p in step['parts']}
+                self.assertLessEqual(set(step.get('deposit', [])), ids_here, step['id'])
                 for part in step['parts']:
                     if isinstance(part, str):
                         self.assertIn(part, final)
@@ -80,7 +83,9 @@ class ContentTests(unittest.TestCase):
         lessons = {k: f for k, f in flows.items() if f.get('lesson')}
         self.assertEqual(set(lessons), {'sadp', 'saqp'})
         for key, flow in lessons.items():
-            want = [s for s in ns['steps'] if s.get('route') == key] + \
+            fork = next(i for i, s in enumerate(ns['steps']) if s.get('route'))
+            want = [s for s in ns['steps'][:fork] if s.get('of') == 'pattern'] + \
+                   [s for s in ns['steps'] if s.get('route') == key] + \
                    [s for s in ns['steps'] if s['id'] == 'stacketch']
             self.assertEqual([s['id'] for s in flow['steps']], [s['id'] for s in want])
             for a, b in zip(flow['steps'], want):
@@ -127,6 +132,7 @@ class ContentTests(unittest.TestCase):
             defaults = [r['id'] for r in flow['routes'] if r.get('default')]
             self.assertLessEqual(len(defaults), 1)
             if key == 'fin': self.assertEqual(defaults, ['saqp'])
+            if key == 'ns': self.assertEqual(defaults, ['sadp'])
             self.assertTrue(flow['route_title'] and flow['route_join'])
 
     def test_process_source_labels(self):

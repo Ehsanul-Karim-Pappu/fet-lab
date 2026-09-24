@@ -35,9 +35,9 @@ void main() { vec4 t = texture2D(uS, vT); if (t.a < 0.02) discard;
 
 private const val VS = """
 attribute vec3 aPos; attribute vec3 aNrm; attribute vec3 aCol; attribute vec3 aExp;
-uniform mat4 uVP; uniform float uE;
+uniform mat4 uVP; uniform float uE; uniform vec3 uGLo, uGHi;
 varying vec3 vN, vC, vW;
-void main() { vec3 p = aPos + aExp * uE; vW = p; vN = aNrm; vC = aCol;
+void main() { vec3 p = clamp(aPos + aExp * uE, uGLo, uGHi); vW = p; vN = aNrm; vC = aCol;
   gl_Position = uVP * vec4(p, 1.0); }
 """
 
@@ -104,6 +104,13 @@ class Renderer(private val lib: Library) : GLSurfaceView.Renderer {
     @Volatile var fadeScene: Scene? = null
     @Volatile var fadeParts: List<Part> = emptyList()
     @Volatile var fadeAlpha = 0f
+    /** While a step zooms out, the scene shows only inside this box (lo x y z, hi x y z),
+     *  which grows from the last scene's size to its own: every film is clamped to it, so
+     *  the wafer and its layers spread out rather than appear. Null when not growing. */
+    @Volatile var growBox: FloatArray? = null
+    /** Films a step deposits, and how far each has grown up from its bottom face (0..1);
+     *  one still at 0 is not drawn yet. Empty when nothing is being deposited. */
+    @Volatile var deposit: Map<Part, Float> = emptyMap()
     @Volatile var capsDirty = true
     @Volatile var texture = true
     @Volatile var edges = true
@@ -116,7 +123,7 @@ class Renderer(private val lib: Library) : GLSurfaceView.Renderer {
     private var aPos = 0; private var aNrm = 0; private var aCol = 0; private var aExp = 0
     private var uVP = 0; private var uE = 0; private var uHi = 0; private var uA = 0
     private var uTint = 0; private var uClip = 0; private var uAdd = 0
-    private var uFlat = 0; private var uTex = 0
+    private var uFlat = 0; private var uTex = 0; private var uGLo = 0; private var uGHi = 0
     private val vbo = IntArray(5)      // pos, nrm, col, exp, index
     private val lbo = IntArray(2)      // edge outlines: pos, exp
     private val cbo = IntArray(4)      // cap pos, nrm, col, exp
@@ -242,6 +249,7 @@ class Renderer(private val lib: Library) : GLSurfaceView.Renderer {
         uTint = G.glGetUniformLocation(prog, "uTint"); uClip = G.glGetUniformLocation(prog, "uClip")
         uAdd = G.glGetUniformLocation(prog, "uAdd")
         uFlat = G.glGetUniformLocation(prog, "uFlat"); uTex = G.glGetUniformLocation(prog, "uTex")
+        uGLo = G.glGetUniformLocation(prog, "uGLo"); uGHi = G.glGetUniformLocation(prog, "uGHi")
         G.glGenBuffers(5, vbo, 0); G.glGenBuffers(4, cbo, 0); G.glGenBuffers(2, lbo, 0)
         G.glGenBuffers(2, clbo, 0)
         upload(vbo[0], posB); upload(vbo[1], nrmB); upload(vbo[2], colB); upload(vbo[3], expB)
@@ -299,6 +307,8 @@ class Renderer(private val lib: Library) : GLSurfaceView.Renderer {
         G.glUniform3f(uHi, clip[0], clip[1], clip[2])
         G.glUniform1f(uClip, 1f)
         G.glUniform1f(uFlat, if (sch) 1f else 0f)
+        unclamped()
+        val gb = growBox; val dep = deposit
         mainBase = sc.vbase * 12
         bindMain()
         G.glBindBuffer(G.GL_ELEMENT_ARRAY_BUFFER, vbo[4])
@@ -310,6 +320,7 @@ class Renderer(private val lib: Library) : GLSurfaceView.Renderer {
         for (p in sc.parts) {
             if (!p.visible) continue
             if (ghost && p.material == "mo") continue
+            if (!clampPart(p, gb, dep)) continue
             val st = style(sc, p)
             val tx = texOf(p.material)
             G.glUniform3f(uTex, tx[0], tx[1], tx[2])
@@ -323,6 +334,7 @@ class Renderer(private val lib: Library) : GLSurfaceView.Renderer {
             G.glDrawElements(G.GL_TRIANGLES, p.count, G.GL_UNSIGNED_SHORT, p.start * 2)
         }
         G.glUniform3f(uAdd, 0f, 0f, 0f)
+        unclamped()
 
         if (capVerts > 0) {
             G.glUniform1f(uClip, 0f); G.glUniform1f(uA, 1f); G.glUniform1f(uTint, 1.02f)
@@ -346,10 +358,12 @@ class Renderer(private val lib: Library) : GLSurfaceView.Renderer {
             G.glDepthMask(false); G.glUniform3f(uTex, 0f, 1f, 0f)
             for (p in sc.parts) {
                 if (!p.visible || p.material != "mo") continue
+                if (!clampPart(p, gb, dep)) continue
                 G.glUniform1f(uA, 0.16f); G.glUniform1f(uTint, 1.3f)
                 G.glDrawElements(G.GL_TRIANGLES, p.count, G.GL_UNSIGNED_SHORT, p.start * 2)
             }
             G.glDepthMask(true)
+            unclamped()
         }
         if (edges) {
             G.glDisable(G.GL_POLYGON_OFFSET_FILL)
@@ -362,8 +376,10 @@ class Renderer(private val lib: Library) : GLSurfaceView.Renderer {
             G.glUniform3f(uAdd, ec[0], ec[1], ec[2])
             for (p in sc.parts) {
                 if (!p.visible || p.lineCount == 0) continue
+                if (!clampPart(p, gb, dep)) continue
                 G.glDrawArrays(G.GL_LINES, p.lineStart, p.lineCount)
             }
+            unclamped()
             if (capLineVerts > 0) {   // and round every cut face, so a section reads as a drawing
                 attach(clbo[0], aPos); attach(clbo[1], aExp)
                 G.glUniform1f(uClip, 0f)
@@ -375,6 +391,30 @@ class Renderer(private val lib: Library) : GLSurfaceView.Renderer {
         }
         drawSurfaceText()
         G.glDisable(G.GL_BLEND)
+    }
+
+    // ---- growing and depositing (process transitions) -----------------------
+    private val yRanges = HashMap<Part, FloatArray>()
+    private fun yRange(p: Part) = yRanges.getOrPut(p) {
+        floatArrayOf(p.boxes.minOf { it[1] - it[4] / 2f }, p.boxes.maxOf { it[1] + it[4] / 2f })
+    }
+    private fun unclamped() {
+        G.glUniform3f(uGLo, -1e7f, -1e7f, -1e7f); G.glUniform3f(uGHi, 1e7f, 1e7f, 1e7f)
+    }
+    /** Sets [p]'s clamp box from the growing region and its own deposition; false when the
+     *  part is a film not yet deposited, which is then not drawn. */
+    private fun clampPart(p: Part, gb: FloatArray?, dep: Map<Part, Float>): Boolean {
+        val d = dep[p]
+        if (gb == null && d == null) { unclamped(); return true }
+        if (d != null && d <= 0f) return false
+        var hy = gb?.get(4) ?: 1e7f
+        if (d != null) {
+            val r = yRange(p); val lift = (p.explode?.get(1) ?: 0f) * explode
+            hy = minOf(hy, r[0] + lift + (r[1] - r[0]) * d)
+        }
+        if (gb != null) { G.glUniform3f(uGLo, gb[0], gb[1], gb[2]); G.glUniform3f(uGHi, gb[3], hy, gb[5]) }
+        else { G.glUniform3f(uGLo, -1e7f, -1e7f, -1e7f); G.glUniform3f(uGHi, 1e7f, hy, 1e7f) }
+        return true
     }
 
     // ---- procedural surface texture ---------------------------------------

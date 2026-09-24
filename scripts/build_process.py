@@ -135,7 +135,7 @@ class Stage:
     def boxes(self, but=()):
         return [b for p in self.now.values() if p["id"] not in but for b in p["boxes"]]
 
-    def snap(self, sid, title, body, view="iso", *, match, figs=(), subs=(), omitted=(), of=None, src=()):
+    def snap(self, sid, title, body, view="iso", *, match, figs=(), subs=(), omitted=(), of=None, src=(), deposit=()):
         """[match] says how the state relates to its source (a MATCH key); [figs] are the
         source's figure identifiers; [subs] the model's material or dimension substitutions;
         [omitted] what the source shows at this stage that this view leaves out. [of] makes
@@ -153,6 +153,7 @@ class Stage:
                     parts=[p["id"] if self.flow.final.get(p["id"]) is p else p for p in parts])
         if of: step["of"] = of
         if src: step["src"] = list(src)          # which reference [figs] belong to, if not the flow's one
+        if deposit: step["deposit"] = list(deposit)   # films the viewer shows rising, in order
         if self.route: step["route"] = self.route
         if self.scale != "site": step["bounds"] = self.bounds
         self.flow.steps.append(step)
@@ -331,17 +332,18 @@ def flow_ns(done):
         On the pFET line the patent's route keeps different layers, so they are not named
         sacrificial there."""
         T.drop_prefix("t_ml_")
+        x0, x1 = (WX0, WX1) if lines else (SX0, SX1)        # blanket films cover the whole tile
         spans = [("all", WZ0, WZ1, "")] if not lines else \
                 [(k, zc - hz, zc + hz, " · " + ("nFET" if k == "n" else "pFET") + " line") for zc, k in LINES]
         for k, z0, z1, where in spans:
             T.put(tmp(f"t_ml_base_{k}", "SiGe, high Ge · sacrificial base layer" + where, "sige", GL,
-                      [box(WX0, WX1, 0, STI, z0, z1)], (0, -.6, 0)))
+                      [box(x0, x1, 0, STI, z0, z1)], (0, -.6, 0)))
             for i, (a, b) in enumerate(sige):
                 T.put(tmp(f"t_ml_sige{i+1}_{k}", f"SiGe, lower Ge · layer {i+1}" + where, "sige", GL,
-                          [box(WX0, WX1, a, b, z0, z1)]))
+                          [box(x0, x1, a, b, z0, z1)]))
             for i, (a, b) in enumerate(ys):
                 T.put(tmp(f"t_ml_si{i+1}_{k}", f"Si · layer {i+1}" + where, "silicon", GL,
-                          [box(WX0, WX1, a, b, z0, z1)]))
+                          [box(x0, x1, a, b, z0, z1)]))
 
     def t_resist(pid, name, mat, boxes):
         T.put(tmp(pid, name, mat, "Patterning", boxes, (0, 1.6, 0)))
@@ -355,8 +357,7 @@ def flow_ns(done):
                   [box(SX0, SX1, ypts, 0, WZ0, ZMID)], (0, -1.0, 0)))
         t_multilayer(lines=False)
         T.put(tmp("t_hm", "Stack hard mask (blanket)", "si3n4", "Patterning",
-                  [box(WX0, WX1, top, top + HMT, WZ0, WZ1)], (0, 1.3, 0)))
-        T.route = "direct"          # 4.1-4.6 are the direct print; SADP and SAQP follow as routes
+                  [box(SX0, SX1, top, top + HMT, WZ0, WZ1)], (0, 1.3, 0)))
         T.snap("hm", "Hard-mask deposition",
             "Zoomed out to a tile of four gate/stack sites: two stack lines will run along the "
             "channel, one for nFETs through the selected site and one for pFETs beside it, each "
@@ -365,19 +366,20 @@ def flow_ns(done):
             "n-type under the pFET line [R13].", view="tile", of="pattern",
             match="intermediate", figs=["3A/B", "5A/B"],
             subs=TILE_SUBS + ["Hard-mask material and thickness are illustrative"],
-            omitted=["The masks that kept each stopper implant to its own region"])
-        t_resist("t_res", "Photoresist (coated)", "resist", [box(WX0, WX1, top + HMT, top + HMT + RT, WZ0, WZ1)])
+            omitted=["The masks that kept each stopper implant to its own region"], deposit=["t_hm"])
+        T.route = "direct"          # the routes part here: how the hard mask gets its lines
+        t_resist("t_res", "Photoresist (coated)", "resist", [box(SX0, SX1, top + HMT, top + HMT + RT, WZ0, WZ1)])
         T.snap("coat", "Resist coat",
             "A light-sensitive photoresist is spun on over the hard mask. It will carry the "
             "pattern first; the hard mask then carries it into the stack [R16].", view="tile",
-            of="pattern", match="concept", subs=["Resist thickness is illustrative"])
+            of="pattern", match="concept", subs=["Resist thickness is illustrative"], deposit=["t_res"])
         T.drop("t_res")
         lines = [(zc - hz, zc + hz) for zc, _ in LINES]
-        gaps_z = bd.gaps(WZ0, WZ1, sorted(lines))
         t_resist("t_res", "Photoresist (unexposed: over the stack lines)", "resist",
                  [box(WX0, WX1, top + HMT, top + HMT + RT, a, b) for a, b in lines])
         t_resist("t_res_x", "Photoresist (exposed: made soluble)", "resist_exp",
-                 [box(WX0, WX1, top + HMT, top + HMT + RT, a, b) for a, b in gaps_z])
+                 subtract((SX0, SX1, top + HMT, top + HMT + RT, WZ0, WZ1),
+                          [box(WX0, WX1, top + HMT, top + HMT + RT, a, b) for a, b in lines]))
         T.put(tmp("t_reticle", "Reticle chrome (in the scanner; not to scale)", "chrome", "Patterning",
                   [box(WX0, WX1, RY, RY + 2.0, a, b) for a, b in lines], (0, 2.0, 0)))
         T.snap("expose", "Exposure",
@@ -409,6 +411,7 @@ def flow_ns(done):
         T.route = None
         pitch_routes(F, T, dict(
             what="stack", of="pattern", group=GL, anchor=0.0, drop=[], cut_note="",
+            hm_shared=True, layer_x=(SX0, SX1),
             lines="two stack lines", hz=hz, PS=PS, win=(WX0, WX1, WZ0, WZ1), top=top, HMT=HMT, ysub=sub[2],
             layers=[("ml_base", "SiGe, high Ge · sacrificial base layer", "sige", 0, STI, (0, -.6, 0))] +
                    [(f"ml_sige{i+1}", f"SiGe, lower Ge · layer {i+1}", "sige", a, b, (0, 0, 0)) for i, (a, b) in enumerate(sige)] +
@@ -529,8 +532,8 @@ def flow_ns(done):
         subs=["Stopper depth and a uniform doped region are illustrative"],
         omitted=["The pFET region and its n-type stopper"])
     # 3
-    bottom(-XSD, XSD, -zsub, zsub)
-    layers(-XSD, XSD, -zsub, zsub)
+    bottom(sub[0], sub[1], -zsub, zsub)
+    layers(sub[0], sub[1], -zsub, zsub)
     F.snap("superlattice", "Si/SiGe multilayer epitaxy",
         "One alternating stack is grown as a single crystal: a high-Ge SiGe base layer, then "
         "lower-Ge SiGe and Si in turn. For this nFET the Si layers become the channels and the "
@@ -731,10 +734,11 @@ ROUTES = [
               "printed line can differ in width from its neighbours, which the adjustable sheet "
               "widths of nanosheets use [R18]; spacer routes make every line one film thickness "
               "wide."),
-    dict(id="sadp", name="SADP",
+    dict(id="sadp", name="SADP", default=True,
          note="Self-aligned double patterning: cores printed at twice the final pitch, then one "
-              "spacer pitch split [R21]. A patterning concept applied to an illustrative layer: "
-              "the sources do not say this stack is patterned this way."),
+              "spacer pitch split [R21]. Shown by default as a teaching choice; a patterning "
+              "concept applied to an illustrative layer: the sources do not say this stack is "
+              "patterned this way."),
     dict(id="saqp", name="SAQP",
          note="Self-aligned quadruple patterning: cores at four times the final pitch and two "
               "spacer pitch splits, the first spacer image becoming the second cores [R19][R20]. "
@@ -790,7 +794,8 @@ def pitch_routes(F, T, g):
         S.put(tmp("f_sub", "Si substrate · beyond the tile", "silicon", GS,
                   subtract((X0, X1, ysub, 0, z0, z1), [b for p in tile_parts if p["group"] == GS for b in p["boxes"]]),
                   (0, -1.2, 0)))
-        win = [box(WX0, WX1, 0, top, WZ0, WZ1)]
+        lx0, lx1 = g.get("layer_x", (WX0, WX1))        # the tile's own layers span this in x
+        win = [box(lx0, lx1, 0, top, WZ0, WZ1)]
         for pid, name, mat, a, b, ex in g["layers"]:
             S.put(tmp("f_" + pid, name + " · beyond the tile", mat, GL, subtract((X0, X1, a, b, z0, z1), win), ex))
         hm(S, [(z0, z1)], f"{w.capitalize()} hard mask (blanket)")
@@ -836,7 +841,7 @@ def pitch_routes(F, T, g):
             f"Over the {w} hard mask goes a mandrel film for the cores. " if g.get("hm_shared") else
             f"The {w} hard mask is deposited as in the direct route, then a mandrel film for the cores. ") +
         "This route changes only how the hard-mask lines are made.", view="sadpfield", of=of, match="pattern",
-        subs=[FIELD_SUB, "Mandrel material and thickness are illustrative"])
+        subs=[FIELD_SUB, "Mandrel material and thickness are illustrative"], deposit=["f_man"])
     S.put(tmp("f_res", "Photoresist cores", "resist", GP,
               [box(X0, X1, yman + MAN, yman + MAN + RES, a, b) for a, b in mand], (0, 2.0, 0)))
     S.snap("sadp_litho", "Core lithography",
@@ -902,7 +907,7 @@ def pitch_routes(F, T, g):
         f"layer: over the {w} hard mask go a second-core film and then a first-core film [R19]" +
         (", two layers the tile's hard mask did not have." if g.get("hm_shared") else "."),
         view="saqpfield", of=of, match="pattern",
-        subs=[FIELD_SUB, "Core materials and thicknesses are illustrative"])
+        subs=[FIELD_SUB, "Core materials and thicknesses are illustrative"], deposit=["f_man2", "f_man1"])
     S.put(tmp("f_res", "Photoresist cores", "resist", GP,
               [box(X0, X1, y1 + MAN1, y1 + MAN1 + RES, a, b) for a, b in man1], (0, 2.2, 0)))
     S.snap("saqp_litho", "Core lithography",
@@ -986,7 +991,9 @@ def lesson(mode):
     def build(done):
         ns = done["ns"]
         route = next(r for r in ns["routes"] if r["id"] == mode)
-        steps = [dict(s) for s in ns["steps"] if s.get("route") == mode]
+        fork = next(i for i, s in enumerate(ns["steps"]) if s.get("route"))
+        shared = [dict(s) for s in ns["steps"][:fork] if s.get("of") == "pattern"]   # the hard mask
+        steps = shared + [dict(s) for s in ns["steps"] if s.get("route") == mode]
         steps.append(dict(next(s for s in ns["steps"] if s["id"] == "stacketch")))
         for k, st in enumerate(steps, 1):
             for key in ("of", "route", "labels"): st.pop(key, None)
@@ -1141,30 +1148,31 @@ def flow_fin(done):
         T.put(tmp("t_sub_p", "Si substrate · n-well region (pFET, context only)", "silicon", GS,
                   [box(SX0, SX1, sub[2], 0, WZ0, ZMID)], (0, -1.2, 0)))
         T.put(tmp("t_fl", "Si · upper substrate (fins to be)", "silicon", GFN,
-                  [box(WX0, WX1, 0, top, WZ0, WZ1)]))
+                  [box(SX0, SX1, 0, top, WZ0, WZ1)]))
         T.put(tmp("t_hm", "Fin hard mask (blanket)", "si3n4", GP,
-                  [box(WX0, WX1, top, top + HMT, WZ0, WZ1)], (0, 1.3, 0)))
+                  [box(SX0, SX1, top, top + HMT, WZ0, WZ1)], (0, 1.3, 0)))
         T.snap("hm", "Hard-mask deposition",
             "Zoomed out to a tile of four sites: an nFET pair of fins in a p-well through the "
             "selected site, and a pFET pair in an n-well beside it, each crossed later by two gate "
             "lines. A hard-mask film goes on the bare wafer, whose own silicon will become the "
             "fins. In practice a thin pad oxide usually sits under the nitride; it is a separate "
             "layer, not drawn here [R24].", view="tile", of="fins", match="source", figs=["2A"], src=[F1],
+            deposit=["t_hm"],
             subs=TILE_SUBS + ["The wells are named regions only, not doping profiles",
                               "Hard-mask material and thickness are illustrative"],
             omitted=["The pad oxide, and the well implants and anneal"])
         T.route = "direct"          # the routes part here: how the hard mask gets its lines
-        t_resist("t_res", "Photoresist (coated)", "resist", [box(WX0, WX1, top + HMT, top + HMT + RT, WZ0, WZ1)])
+        t_resist("t_res", "Photoresist (coated)", "resist", [box(SX0, SX1, top + HMT, top + HMT + RT, WZ0, WZ1)])
         T.snap("coat", "Resist coat",
             "A light-sensitive photoresist is spun on over the hard mask [R16].", view="tile",
-            of="fins", match="concept", subs=["Resist thickness is illustrative"])
+            of="fins", match="concept", subs=["Resist thickness is illustrative"], deposit=["t_res"])
         T.drop("t_res")
         lines = [(z - hw, z + hw) for z in KEPT]
-        gaps_z = bd.gaps(WZ0, WZ1, sorted(lines))
         t_resist("t_res", "Photoresist (unexposed: over the fins)", "resist",
                  [box(WX0, WX1, top + HMT, top + HMT + RT, a, b) for a, b in lines])
         t_resist("t_res_x", "Photoresist (exposed: made soluble)", "resist_exp",
-                 [box(WX0, WX1, top + HMT, top + HMT + RT, a, b) for a, b in gaps_z])
+                 subtract((SX0, SX1, top + HMT, top + HMT + RT, WZ0, WZ1),
+                          [box(WX0, WX1, top + HMT, top + HMT + RT, a, b) for a, b in lines]))
         T.put(tmp("t_reticle", "Reticle chrome (in the scanner; not to scale)", "chrome", GP,
                   [box(WX0, WX1, RY, RY + 2.0, a, b) for a, b in lines], (0, 2.0, 0)))
         T.snap("expose", "Exposure",
@@ -1196,7 +1204,7 @@ def flow_fin(done):
             what="fin", of="fins", group=GFN, anchor=ZMID, drop=[ZMID],
             cut_note=", and the extra line between the nFET and pFET fin groups, so no fin is "
                      "ever etched there",
-            lines="four fin lines", films=(16.0, 26.0, 8.0), hm_shared=True, hz=hw, PS=FP, win=(WX0, WX1, WZ0, WZ1),
+            lines="four fin lines", films=(16.0, 26.0, 8.0), hm_shared=True, layer_x=(SX0, SX1), hz=hw, PS=FP, win=(WX0, WX1, WZ0, WZ1),
             top=top, HMT=HMT, ysub=sub[2],
             layers=[("fl", "Si · upper substrate (fins to be)", "silicon", 0, top, (0, 0, 0))]))
         # The spacer routes' provenance: SAQP for fins is a published research example (F3,
@@ -1268,7 +1276,7 @@ def flow_fin(done):
         t_resist("t_gres", "Photoresist (coated)", "resist", [box(WX0, WX1, ycap, ycap + RT, WZ0, WZ1)])
         T.snap("gcoat", "Gate resist coat",
             "Resist is spun on over the gate hard mask, as for the fins [R16].", view="tile",
-            of="dummy", match="concept")
+            of="dummy", match="concept", deposit=["t_gres"])
         T.drop("t_gres")
         t_resist("t_gres", "Photoresist (unexposed: over the gates)", "resist",
                  [box(a, b, ycap, ycap + RT, WZ0, WZ1) for a, b in gl])

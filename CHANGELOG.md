@@ -24,8 +24,14 @@ Fin patterning defaults to **SAQP**, following a published N7 fin-patterning exa
 (96 → 48 → 24 nm; this model's 108 → 54 → 27 nm is an adaptation); SADP and a hypothetical
 single-exposure direct print stay selectable, and the spacer routes' cut removes the extra
 mask line between the two fin groups before the fin etch. The hard mask is deposited at the
-tile before the routes part, so the flow zooms out in two stages (site, tile, then the fin
-field), and every change of scale flies the camera more slowly, in both flows. Sub-fin leakage, wells' doping,
+tile before the routes part, and the zoom-outs are continuous: stepping from the site to the
+tile, or from the tile to the fin field, the wafer and its films spread out from the old
+view's size to the new one while the camera pulls back, and only then do the step's new films
+(the hard mask, the resist, the mandrel and core films) deposit, each rising from its bottom
+face in turn. The nanosheet works the same way: its hard mask is now one step at the tile
+before the routes part, its blanket multilayer, hard mask and resist span the whole tile,
+and its patterning route defaults to **SADP** (a teaching choice; the sources do not say
+the stack is patterned that way). The SADP and SAQP chips start from that hard-mask step. Sub-fin leakage, wells' doping,
 the pFET's own steps and the gate cut are named where they are left out. The route picker
 remembers a choice per flow, uses each flow's wording, and each step shows which reference
 its figures belong to. Five FinFET references are added (R24–R27, and R22 now points at the

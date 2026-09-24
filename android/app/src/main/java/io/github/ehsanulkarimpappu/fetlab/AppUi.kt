@@ -405,9 +405,17 @@ fun FetLabApp(lib: Library, renderer: Renderer) {
     }
 
     var sceneSwitch by remember { mutableStateOf<Job?>(null) }
+    // A step's entrance: the area growing out when the view zooms out, then its films
+    // depositing one after another.
+    var growJob by remember { mutableStateOf<Job?>(null) }
+    fun stopGrowth() {
+        growJob?.cancel(); growJob = null
+        renderer.growBox = null; renderer.deposit = emptyMap()
+    }
     fun switchScene(key: String) {
         if (key == sceneKey) return
         flight?.cancel()
+        stopGrowth()
         sceneSwitch?.cancel()
         memoScene()
         sceneSwitch = scope.launch {
@@ -451,6 +459,7 @@ fun FetLabApp(lib: Library, renderer: Renderer) {
         val key = f.keys[n]
         if (key == sceneKey) return
         flight?.cancel()
+        stopGrowth()
         val sc = lib.scene(key)
         val hidden = old.parts.filter { !it.visible }.map { it.id }.toSet()
         val before = old.parts.associateBy { it.id }
@@ -476,6 +485,36 @@ fun FetLabApp(lib: Library, renderer: Renderer) {
         renderer.fadeScene = old
         renderer.fadeParts = if (rescale) emptyList()
             else old.parts.filter { q -> q.visible && after[q.id]?.let { same(q, it) } != true }
+        // Zooming out (site to tile, tile to line field), the area grows from the last scene's
+        // size to this one's while the camera pulls back; then the films this step deposits
+        // rise one after another. Zooming back in simply flies.
+        val size = { s: Scene -> (0..2).fold(1f) { a, k -> a * (s.hi[k] - s.lo[k]) } }
+        val grows = rescale && size(sc) > size(old) * 1.05f
+        val films = sc.step?.deposit.orEmpty().mapNotNull { id -> sc.parts.firstOrNull { it.id == id } }
+        if (grows || films.isNotEmpty()) {
+            val from = FloatArray(6) { k -> if (k < 3) maxOf(old.lo[k], sc.lo[k]) else minOf(old.hi[k - 3], sc.hi[k - 3]) }
+            val to = FloatArray(6) { k -> if (k < 3) sc.lo[k] else sc.hi[k - 3] }
+            renderer.deposit = films.associateWith { 0f }
+            if (grows) renderer.growBox = from
+            growJob = scope.launch {
+                suspend fun run(ns: Float, frame: (Float) -> Unit) {
+                    var t0 = 0L
+                    while (true) {
+                        val now = withFrameNanos { it }
+                        if (t0 == 0L) t0 = now
+                        val raw = ((now - t0) / ns).coerceIn(0f, 1f)
+                        frame(raw * raw * (3f - 2f * raw)); draw()
+                        if (raw >= 1f) break
+                    }
+                }
+                if (grows) run(1_100_000_000f) { e ->
+                    renderer.growBox = FloatArray(6) { k -> from[k] + (to[k] - from[k]) * e }
+                }
+                renderer.growBox = null
+                for (p in films) run(650_000_000f) { e -> renderer.deposit = renderer.deposit + (p to e) }
+                renderer.deposit = emptyMap(); draw()
+            }
+        }
         glowJob?.cancel()
         glowJob = scope.launch {
             var t0 = 0L
