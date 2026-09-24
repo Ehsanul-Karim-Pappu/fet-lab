@@ -280,6 +280,12 @@ if __name__ == "__main__":
 
     for dev in G["devices"]:
         dev.pop("_all", None)
+        # Camera values come out of trigonometry, whose last digit can differ between
+        # machines; rounded, a rebuild anywhere writes the same bytes.
+        for v in dev["views"].values():
+            for k in ("az", "el", "r"):
+                v[k] = round(v[k], 4)
+            v["tgt"] = [round(t, 4) for t in v["tgt"]]
     json.dump(G, open(path, "w"), separators=(",", ":"))
     n = sum(1 for d in G["devices"] if "parasitics" in d)
     print(f"devices.json {os.path.getsize(path)//1024} KB — parasitics on {n} device scenes")

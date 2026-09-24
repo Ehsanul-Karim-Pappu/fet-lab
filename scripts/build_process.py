@@ -191,7 +191,7 @@ def flow_ns():
         "is recessed to the bottom of the high-Ge layer, leaving that layer's sidewalls open for "
         "its later removal. How the stack pattern is made depends on the layer, pitch and process: "
         "EUV single exposure allows different sheet widths, and dense arrays can also use "
-        "spacer-based pitch splitting (SADP/SAQP), shown as an example in the FinFET flow.")
+        "spacer-based pitch splitting (SADP/SAQP); an example is planned for the FinFET flow.")
     # 4
     dox = subtract((-XG, XG, 0, top + TOX, -hz - TOX, hz + TOX), F.boxes())
     F.put(tmp("dox", "Dummy-gate oxide (sacrificial)", "sio2", "Dummy gate", dox, (0, .6, 0)))

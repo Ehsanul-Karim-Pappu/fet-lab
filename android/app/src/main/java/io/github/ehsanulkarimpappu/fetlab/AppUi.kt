@@ -3,8 +3,10 @@ package io.github.ehsanulkarimpappu.fetlab
 import android.content.ActivityNotFoundException
 import android.content.Context
 import android.content.Intent
+import android.widget.Toast
 import android.net.Uri
 import android.opengl.GLSurfaceView
+import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.Crossfade
 import androidx.compose.animation.animateColorAsState
@@ -20,6 +22,7 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.Canvas
@@ -64,6 +67,8 @@ import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset as GOffset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size as GSize
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
@@ -104,16 +109,24 @@ private val INV_KEYS = listOf("inv_fin" to "FinFET", "inv_ns" to "Nanosheet",
     "inv_fs" to "Forksheet", "inv_cfet" to "CFET", "inv_cmp" to "Compare")
 private val SHOW_KEYS = listOf("show_fin" to "FinFET", "show_ns" to "Nanosheet",
     "show_fs" to "Forksheet", "show_cfet" to "CFET", "show_cmp" to "Compare")
-private val MODES = listOf("Device", "Inverter", "Layout")
+/** Process-mode chips name a technology; the flow behind each is looked up at runtime. */
+private val PROC_KEYS = listOf("proc_fin" to "FinFET", "proc_ns" to "Nanosheet",
+    "proc_fs" to "Forksheet", "proc_cfet" to "CFET")
+private val MODES = listOf("Device", "Inverter", "Layout", "Process")
+private const val PROCESS = 3
 private val TABS = listOf("Views", "Section", "Layers", "Specs", "Story")
+/** In Process mode the Specs tab lists the fabrication steps instead. */
+private val PROC_TABS = listOf("Views", "Section", "Layers", "Steps", "Story")
 
-private fun keysFor(mode: Int) = when (mode) { 0 -> DEV_KEYS; 1 -> INV_KEYS; else -> SHOW_KEYS }
+private fun keysFor(mode: Int) = when (mode) {
+    0 -> DEV_KEYS; 1 -> INV_KEYS; 2 -> SHOW_KEYS; else -> PROC_KEYS
+}
 private fun firstOf(mode: Int) = keysFor(mode).first().first
 
 /** The technology a scene shows, with the viewing mode stripped off. The two CFET
  *  scenes are one technology: only the device mode splits them into mono/sequential. */
 private fun techOf(key: String): String {
-    val k = key.removePrefix("inv_").removePrefix("show_")
+    val k = key.removePrefix("inv_").removePrefix("show_").removePrefix("proc_").substringBefore('@')
     return if (k.startsWith("cfet")) "cfet" else k
 }
 
@@ -287,6 +300,7 @@ fun FetLabApp(lib: Library, renderer: Renderer) {
     // Held here rather than in the tabs so the tour's finger can scroll them.
     val layersList = rememberLazyListState()
     val specsList = rememberLazyListState()
+    val stepsList = rememberLazyListState()
 
     val scene = lib.scene(sceneKey)
     val stageBg = if (lightBg) Stage.light else Stage.dark
@@ -358,14 +372,19 @@ fun FetLabApp(lib: Library, renderer: Renderer) {
     fun openScene(key: String, animate: Boolean) {
         val sc = lib.scene(key)
         sceneKey = key
-        mode = when { key.startsWith("inv_") -> 1; key.startsWith("show_") -> 2; else -> 0 }
+        mode = when {
+            key.startsWith("inv_") -> 1; key.startsWith("show_") -> 2
+            key.startsWith("proc_") -> PROCESS; else -> 0
+        }
         renderer.scene = sc
         val m = memos[key]
         if (m == null) {
             selected = null; renderer.highlight = null
             parPick = null; renderer.par = null      // a highlight must not outlive its scene
             explodeF = 0f; renderer.explode = 0f
-            goToView(sc, sc.views.first(), animate = false)
+            // A fabrication step opens on the view it suggests; any other scene on its first.
+            goToView(sc, sc.views.firstOrNull { it.key == sc.step?.view } ?: sc.views.first(),
+                animate = false)
         } else {
             flight?.cancel()
             viewKey = m.view
@@ -400,13 +419,94 @@ fun FetLabApp(lib: Library, renderer: Renderer) {
     /* ------------------------------------------------ actions ----------- */
     // One definition each, shared by the controls and the guided tour's hand.
 
+    /* --- fabrication process ---------------------------------------------- */
+    // The step each flow was last left on, so coming back resumes it.
+    val procAt = remember { mutableStateMapOf<String, Int>() }
+    var playing by remember { mutableStateOf(false) }
+    var glowJob by remember { mutableStateOf<Job?>(null) }
+    /** The flow for [tech], if one has been written: the device key it is filed under. */
+    fun flowFor(tech: String): String? =
+        (if (tech == "cfet") (if (cfetSeq) "cfet_seq" else "cfet_mono") else tech).takeIf { it in lib.flows }
+    fun openFlow(device: String) = switchScene(stepKey(device, procAt[device] ?: 0))
+    fun notWritten(label: String) = Toast.makeText(ctx,
+        if (label.isEmpty()) "No process flow has been written yet."
+        else "The $label process flow is still being written.", Toast.LENGTH_SHORT).show()
+
+    /** Moves to step [i] of the flow on screen, keeping the camera, the cuts and any layers
+     *  the user hid, unless the step suggests another view; then glows what it changed. */
+    fun goStep(i: Int) {
+        val old = lib.scene(sceneKey)
+        val f = old.flow ?: return
+        val n = i.coerceIn(0, f.steps.lastIndex)
+        val key = f.keys[n]
+        if (key == sceneKey) return
+        flight?.cancel()
+        val sc = lib.scene(key)
+        val hidden = old.parts.filter { !it.visible }.map { it.id }.toSet()
+        val before = old.parts.associateBy { it.id }
+        sceneKey = key; procAt[f.device] = n
+        renderer.scene = sc
+        selected = null; renderer.highlight = null
+        val v = sc.views.firstOrNull { it.key == sc.step?.view }
+        if (v != null && v.key != viewKey) goToView(sc, v, animate = true)
+        else {
+            for (p in sc.parts) p.visible = p.id !in hidden
+            layerTick++
+            renderer.clip = clipPlanes(sc, cx, cy, cz)
+        }
+        // New parts, and old ones this step reshaped (the stack after the recess, say).
+        renderer.fresh = sc.parts.filter { p ->
+            val q = before[p.id]
+            q == null || q.boxes.size != p.boxes.size ||
+                q.boxes.indices.any { !q.boxes[it].contentEquals(p.boxes[it]) }
+        }.toSet()
+        glowJob?.cancel()
+        glowJob = scope.launch {
+            var t0 = 0L
+            while (true) {
+                val now = withFrameNanos { it }
+                if (t0 == 0L) t0 = now
+                val t = ((now - t0) / 1_400_000_000f).coerceIn(0f, 1f)
+                renderer.freshGlow = (1f - t) * (1f - t)
+                draw()
+                if (t >= 1f) break
+            }
+        }
+        renderer.capsDirty = true; draw()
+    }
+
     fun selectMode(i: Int) {
         // Only the viewing mode changes: the technology on screen carries across.
         val tech = techOf(sceneKey)
+        if (i == PROCESS) {
+            val f = flowFor(tech) ?: lib.flows.keys.firstOrNull()
+            if (f == null) notWritten("") else openFlow(f)
+            return
+        }
         val next = sceneFor(i, tech) ?: firstOf(i)
         switchScene(if (i == 0 && tech == "cfet" && cfetSeq) "cfet_seq" else next)
     }
-    fun selectChip(k: String) = switchScene(if (k == "cfet_mono" && cfetSeq) "cfet_seq" else k)
+    fun selectChip(k: String) {
+        if (k.startsWith("proc_")) {
+            val f = flowFor(techOf(k))
+            if (f == null) notWritten(PROC_KEYS.firstOrNull { it.first == k }?.second ?: k) else openFlow(f)
+            return
+        }
+        switchScene(if (k == "cfet_mono" && cfetSeq) "cfet_seq" else k)
+    }
+    // Play steps through the flow at reading pace, stopping on the last step.
+    LaunchedEffect(playing, sceneKey) {
+        if (!playing) return@LaunchedEffect
+        val sc = lib.scene(sceneKey)
+        val f = sc.flow
+        if (f == null || sc.stepIndex >= f.steps.lastIndex) { playing = false; return@LaunchedEffect }
+        delay(4200)
+        goStep(sc.stepIndex + 1)
+    }
+    fun openUrl(url: String) {
+        try { ctx.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url))) }
+        catch (e: ActivityNotFoundException) { /* no browser */ }
+    }
     // Story reads long-form, so give it the reading height; every other tab just needs
     // to be open. Either way this never *closes* a sheet the user opened wider by hand.
     fun selectTab(i: Int) {
@@ -530,9 +630,12 @@ fun FetLabApp(lib: Library, renderer: Renderer) {
                     // The next architecture along from the one on screen, in whichever mode
                     // is open (chip keys differ per mode: "ns", "inv_ns", "show_ns").
                     val keys = keysFor(mode).map { it.first }.filter { !it.endsWith("cmp") }
+                        .filter { mode != PROCESS || flowFor(techOf(it)) != null }
                     val here = keys.indexOfFirst { techOf(it) == techOf(sceneKey) }
-                    val k = keys[(here + 1) % keys.size]
-                    tap("chip:$k") { selectChip(k) }
+                    if (keys.isNotEmpty()) {
+                        val k = keys[(here + 1) % keys.size]
+                        tap("chip:$k") { selectChip(k) }
+                    }
                     hideHand()
                 }
                 "stage" -> {
@@ -718,8 +821,12 @@ fun FetLabApp(lib: Library, renderer: Renderer) {
             LazyRow(contentPadding = PaddingValues(horizontal = 16.dp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 items(keysFor(mode)) { (k, label) ->
-                    val active = sceneKey == k || (k == "cfet_mono" && sceneKey == "cfet_seq")
-                    Chip(label, active, Modifier.tourTarget("chip:$k")) {
+                    val active = if (mode == PROCESS) techOf(sceneKey) == techOf(k)
+                                 else sceneKey == k || (k == "cfet_mono" && sceneKey == "cfet_seq")
+                    // A flow not written yet stays visible, dimmed, so the roadmap shows.
+                    val ready = mode != PROCESS || flowFor(techOf(k)) != null
+                    Chip(if (ready) label else "$label · soon", active,
+                        Modifier.tourTarget("chip:$k").graphicsLayer { alpha = if (ready) 1f else 0.55f }) {
                         haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                         selectChip(k)
                     }
@@ -831,7 +938,8 @@ fun FetLabApp(lib: Library, renderer: Renderer) {
             // On Inverter and Layout scenes the IN 0/1 bar owns the bottom edge, so the
             // selected-layer card sits just above it instead of on top of it.
             var logicBarH by remember { mutableStateOf(0.dp) }
-            val cardLift by animateDpAsState(if (scene.logic) logicBarH else 0.dp, tween(220), label = "cardLift")
+            val cardLift by animateDpAsState(if (scene.logic || scene.flow != null) logicBarH else 0.dp,
+                tween(220), label = "cardLift")
             AnimatedVisibility(visible = selected != null,
                 enter = fadeIn(tween(180)) + slideInVertically(tween(220)) { it / 3 },
                 exit = fadeOut(tween(140)) + slideOutVertically(tween(180)) { it / 3 },
@@ -867,6 +975,28 @@ fun FetLabApp(lib: Library, renderer: Renderer) {
                 }
             }
 
+            val flow = scene.flow
+            AnimatedVisibility(visible = flow != null,
+                enter = fadeIn() + slideInVertically { it }, exit = fadeOut() + slideOutVertically { it },
+                modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = stageInset)
+                    .onSizeChanged { logicBarH = with(density) { it.height.toDp() } }) {
+                // Kept while it slides away, so the bar does not blank mid-exit.
+                val shown = remember { mutableStateOf(scene) }
+                if (flow != null) shown.value = scene
+                val sc = shown.value
+                val f = sc.flow
+                if (f != null) ProcessBar(sc.stepIndex, f.steps.size, sc.step?.title ?: "", playing,
+                    glass, line, ink, dim,
+                    onPrev = { playing = false; goStep(sc.stepIndex - 1) },
+                    onNext = { playing = false; goStep(sc.stepIndex + 1) },
+                    onPlay = {
+                        // From the last step, play starts again at the first.
+                        if (!playing && sc.stepIndex == f.steps.lastIndex) goStep(0)
+                        playing = !playing
+                    },
+                    onTitle = { selectTab(3) })
+            }
+
             if (scrimA > 0.005f)
                 Box(Modifier.matchParentSize().background(stageBg.copy(alpha = scrimA)))
         }
@@ -876,7 +1006,7 @@ fun FetLabApp(lib: Library, renderer: Renderer) {
 
     val controlTabs = @Composable { mod: Modifier ->
         Box(mod) {
-            Segmented(TABS, tab, tag = "tab") { selectTab(it) }
+            Segmented(if (mode == PROCESS) PROC_TABS else TABS, tab, tag = "tab") { selectTab(it) }
         }
     }
 
@@ -914,7 +1044,12 @@ fun FetLabApp(lib: Library, renderer: Renderer) {
                                 goToView(scene, scene.views.first(), animate = true)
                             })
                         2 -> LayersTab(lib, scene, layerTick, layersList) { parts, visible -> setVisible(parts, visible) }
-                        3 -> SpecsTab(scene, parPick, specsList) { t -> pickPar(t) }
+                        3 -> {
+                            val f = scene.flow
+                            if (f != null) StepsTab(lib, f, scene.stepIndex, stepsList,
+                                onPick = { playing = false; goStep(it) }, onRef = { openUrl(it) })
+                            else SpecsTab(scene, parPick, specsList) { t -> pickPar(t) }
+                        }
                         else -> StoryTab(scene)
                     }
                 }
@@ -1262,6 +1397,114 @@ private fun LogicBar(input: Int, glass: Color, line: Color, ink: Color, dim: Col
                 Text("OUT ", color = dim, fontFamily = Mono, fontSize = 11.5f.sp)
                 Text((1 - input).toString(), color = outCol, fontFamily = Mono,
                     fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+            }
+        }
+    }
+}
+
+/** The fabrication stepper on the stage: back, the step and its name, play, forward. */
+@Composable
+private fun ProcessBar(index: Int, total: Int, title: String, playing: Boolean,
+                       glass: Color, line: Color, ink: Color, dim: Color,
+                       onPrev: () -> Unit, onNext: () -> Unit, onPlay: () -> Unit, onTitle: () -> Unit) {
+    Surface(color = glass, shape = RoundedCornerShape(24.dp), border = BorderStroke(1.dp, line),
+        modifier = Modifier.padding(start = 12.dp, end = 12.dp, bottom = 14.dp).widthIn(max = 520.dp)
+            .fillMaxWidth().tourTarget("procbar")) {
+        Row(Modifier.padding(4.dp), verticalAlignment = Alignment.CenterVertically) {
+            BarIcon(BarGlyph.Back, index > 0, ink, dim, "Previous step", onPrev)
+            Column(Modifier.weight(1f).clip(RoundedCornerShape(14.dp)).clickable(onClick = onTitle)
+                .padding(horizontal = 8.dp, vertical = 5.dp)) {
+                Text("STEP ${index + 1} / $total", color = dim, fontFamily = Mono, fontSize = 10.sp)
+                AnimatedContent(targetState = title, label = "stepTitle",
+                    transitionSpec = { fadeIn(tween(220)) togetherWith fadeOut(tween(160)) }) { t ->
+                    Text(t, color = ink, fontFamily = PlexSans, fontSize = 13.5f.sp,
+                        fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                }
+            }
+            BarIcon(if (playing) BarGlyph.Pause else BarGlyph.Play, true, ink, dim,
+                if (playing) "Pause" else "Play the steps", onPlay)
+            BarIcon(BarGlyph.Next, index < total - 1, ink, dim, "Next step", onNext)
+        }
+    }
+}
+
+private enum class BarGlyph { Back, Next, Play, Pause }
+
+/** Drawn rather than typed: the text arrows and play symbols can come out as emoji. */
+@Composable
+private fun BarIcon(glyph: BarGlyph, enabled: Boolean, ink: Color, dim: Color, label: String,
+                    onClick: () -> Unit) {
+    val col = if (enabled) ink else dim.copy(alpha = 0.45f)
+    Box(Modifier.size(44.dp).clip(CircleShape)
+        .clickable(enabled = enabled, onClickLabel = label, onClick = onClick),
+        contentAlignment = Alignment.Center) {
+        Canvas(Modifier.size(18.dp)) {
+            val w = size.width; val h = size.height; val sw = w * 0.14f
+            when (glyph) {
+                BarGlyph.Back -> {
+                    drawLine(col, GOffset(w * 0.65f, h * 0.15f), GOffset(w * 0.3f, h * 0.5f), sw, StrokeCap.Round)
+                    drawLine(col, GOffset(w * 0.3f, h * 0.5f), GOffset(w * 0.65f, h * 0.85f), sw, StrokeCap.Round)
+                }
+                BarGlyph.Next -> {
+                    drawLine(col, GOffset(w * 0.35f, h * 0.15f), GOffset(w * 0.7f, h * 0.5f), sw, StrokeCap.Round)
+                    drawLine(col, GOffset(w * 0.7f, h * 0.5f), GOffset(w * 0.35f, h * 0.85f), sw, StrokeCap.Round)
+                }
+                BarGlyph.Play -> drawPath(Path().apply {
+                    moveTo(w * 0.25f, h * 0.12f); lineTo(w * 0.85f, h * 0.5f)
+                    lineTo(w * 0.25f, h * 0.88f); close()
+                }, col)
+                BarGlyph.Pause -> {
+                    drawRect(col, GOffset(w * 0.22f, h * 0.14f), GSize(w * 0.2f, h * 0.72f))
+                    drawRect(col, GOffset(w * 0.58f, h * 0.14f), GSize(w * 0.2f, h * 0.72f))
+                }
+            }
+        }
+    }
+}
+
+/** Process mode's fourth tab: the scope, every step (the current one open), the sources. */
+@Composable
+private fun StepsTab(lib: Library, flow: ProcessFlow, index: Int, list: LazyListState,
+                     onPick: (Int) -> Unit, onRef: (String) -> Unit) {
+    // Keep the current step in view as the stepper or play moves it.
+    LaunchedEffect(index) { list.animateScrollToItem(index + 1, scrollOffset = -24) }
+    LazyColumn(state = list, contentPadding = PaddingValues(bottom = 16.dp),
+        modifier = Modifier.tourTarget("list:steps")) {
+        item {
+            Text(flow.scope, fontFamily = PlexSans, fontSize = 12.sp, lineHeight = 17.sp,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(top = 2.dp, bottom = 10.dp))
+        }
+        itemsIndexed(flow.steps, key = { _, st -> st.id }) { i, st ->
+            val on = i == index
+            Surface(color = if (on) MaterialTheme.colorScheme.secondaryContainer else Color.Transparent,
+                shape = RoundedCornerShape(12.dp),
+                modifier = Modifier.fillMaxWidth().padding(vertical = 1.dp).tourTarget("step:$i")) {
+                Column(Modifier.clip(RoundedCornerShape(12.dp)).clickable { onPick(i) }
+                    .padding(horizontal = 10.dp, vertical = 9.dp)) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text("${i + 1}", fontFamily = Mono, fontSize = 12.sp,
+                            color = MaterialTheme.colorScheme.primary, modifier = Modifier.width(28.dp))
+                        Text(st.title, fontFamily = PlexSans, fontSize = 13.5f.sp,
+                            fontWeight = if (on) FontWeight.SemiBold else FontWeight.Normal,
+                            color = MaterialTheme.colorScheme.onSurface)
+                    }
+                    AnimatedVisibility(visible = on) {
+                        Text(st.body, fontFamily = PlexSans, fontSize = 12.5f.sp, lineHeight = 18.sp,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(start = 28.dp, top = 5.dp))
+                    }
+                }
+            }
+        }
+        val refs = flow.refs.mapNotNull { lib.refs[it] }
+        if (refs.isNotEmpty()) item {
+            SectionLabel("Sources cited")
+            for (r in refs) {
+                Text("[${r.id}] ${r.title} — ${r.publisher}", fontFamily = PlexSans, fontSize = 12.sp,
+                    lineHeight = 17.sp, color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(8.dp))
+                        .clickable { onRef(r.url) }.padding(vertical = 6.dp))
             }
         }
     }

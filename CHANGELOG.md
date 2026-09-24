@@ -5,6 +5,18 @@ All notable changes to FET Lab. Dates are the release date; versions follow
 
 ## Unreleased
 
+### Process mode: how the transistor is made
+
+A fourth mode, Process, steps through a representative fabrication flow as real
+geometry, starting with the nanosheet: 16 steps from the Si/SiGe multilayer through the
+dummy gate, bottom dielectric isolation, inner spacers, source/drain epitaxy, channel
+release and the high-κ/metal gate to middle-of-line contacts. Every tool works on every
+step: orbit, section, hide layers, tap to identify. A stepper on the stage moves back and
+forward or plays the flow, parts a step adds or reshapes glow briefly, and the Steps tab
+lists every step with its explanation, the flow's scope and the sources it cites. FinFET,
+forksheet and CFET flows are shown as coming. The flow is a teaching sequence with
+illustrative materials, not a foundry recipe.
+
 ### Nanosheet model: full bottom dielectric isolation
 
 The nanosheet now sits on a full bottom dielectric isolation (BDI) layer under both the

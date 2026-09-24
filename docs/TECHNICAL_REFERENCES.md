@@ -28,7 +28,7 @@ References support device concepts, not this model's exact dimensions, complete 
 
 - **R12** [A view on the logic technology roadmap](https://www.imec-int.com/en/articles/view-logic-technology-roadmap) — imec. FEOL/MOL/BEOL, routing and standard-cell track height.
 
-- **R13** [US patent 12,568,683 B2 (nFET process, Figs. 5A–13B)](https://patents.google.com/patent/US12568683B2/en) — IBM (assignee), US patent. One early bottom-dielectric-isolation route for stacked nanosheets: STI at the bottom of a high-Ge sacrificial layer, its selective removal after dummy-gate formation, a conformal spacer dielectric that also fills the bottom cavity, a source/drain recess that preserves the isolation, and epitaxy from the exposed channel ends. A disclosed integration option, not evidence of any foundry's manufacturing flow.
+- **R13** [Single stack dual channel gate-all-around nanosheet with strained PFET and bottom dielectric isolation NFET (US 12,568,683 B2)](https://patents.google.com/patent/US12568683B2/en) — IBM (assignee), US patent. nFET process, Figs. 5A–9B and 12A–13B (10A–11B are pFET steps). One early bottom-dielectric-isolation route for stacked nanosheets: STI at the bottom of a high-Ge sacrificial layer, its selective removal after dummy-gate formation, a conformal spacer dielectric that also fills the bottom cavity, a source/drain recess that preserves the isolation, and epitaxy from the exposed channel ends. A disclosed integration option, not evidence of any foundry's manufacturing flow.
 
 ## Unverified historical credit
 

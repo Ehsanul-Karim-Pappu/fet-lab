@@ -96,6 +96,9 @@ class Renderer(private val lib: Library) : GLSurfaceView.Renderer {
     @Volatile var ghost = false
     @Volatile var input = 0
     @Volatile var highlight: Part? = null
+    /** Parts a process step has just added or reshaped, and how strongly they still glow. */
+    @Volatile var fresh: Set<Part> = emptySet()
+    @Volatile var freshGlow = 0f
     @Volatile var capsDirty = true
     @Volatile var texture = true
     @Volatile var edges = true
@@ -159,8 +162,12 @@ class Renderer(private val lib: Library) : GLSurfaceView.Renderer {
                                 4 to 6, 5 to 7, 0 to 4, 1 to 5, 2 to 6, 3 to 7)
         val ib = ByteBuffer.allocateDirect(boxCount * 36 * 2).order(ByteOrder.nativeOrder()).asShortBuffer()
         var v = 0; var idx = 0
+        // Indices are 16-bit, so each scene counts its vertices from its own first one
+        // (vbase) and the attribute pointers are offset to it when the scene is drawn.
+        // All the scenes together, fabrication steps included, can then pass 65,535.
         for (s in lib.scenes) {
             val c = s.centre
+            s.vbase = v
             for (p in s.parts) {
                 p.start = idx; p.lineStart = lv
                 val col = lib.materials[p.material]?.color ?: floatArrayOf(1f, 0f, 1f)
@@ -195,7 +202,8 @@ class Renderer(private val lib: Library) : GLSurfaceView.Renderer {
                         }
                     }
                     for (f in FACES) {
-                        val base = v
+                        val base = v - s.vbase
+                        check(base + 3 < 65536) { "scene ${s.key} has too many vertices for 16-bit indices" }
                         for (k in 0 until 4) {
                             val sx = f[3 + k * 3]; val sy = f[4 + k * 3]; val sz = f[5 + k * 3]
                             posB.put(cx + sx * hx).put(cy + sy * hy).put(cz + sz * hz)
@@ -272,12 +280,14 @@ class Renderer(private val lib: Library) : GLSurfaceView.Renderer {
         G.glUniform3f(uHi, clip[0], clip[1], clip[2])
         G.glUniform1f(uClip, 1f)
         G.glUniform1f(uFlat, if (sch) 1f else 0f)
+        mainBase = sc.vbase * 12
         bindMain()
         G.glBindBuffer(G.GL_ELEMENT_ARRAY_BUFFER, vbo[4])
         G.glEnable(G.GL_BLEND); G.glBlendFunc(G.GL_SRC_ALPHA, G.GL_ONE_MINUS_SRC_ALPHA)
         if (edges) { G.glEnable(G.GL_POLYGON_OFFSET_FILL); G.glPolygonOffset(1.2f, 1.2f) }
 
         val hot = highlight
+        val new = fresh; val glow = freshGlow
         for (p in sc.parts) {
             if (!p.visible) continue
             if (ghost && p.material == "mo") continue
@@ -285,7 +295,11 @@ class Renderer(private val lib: Library) : GLSurfaceView.Renderer {
             val tx = texOf(p.material)
             G.glUniform3f(uTex, tx[0], tx[1], tx[2])
             G.glUniform1f(uA, 1f)
-            G.glUniform1f(uTint, if (p === hot) st[0] * 1.28f else st[0])
+            G.glUniform1f(uTint, when {
+                p === hot -> st[0] * 1.28f
+                glow > 0f && p in new -> st[0] * (1f + 0.4f * glow)
+                else -> st[0]
+            })
             G.glUniform3f(uAdd, st[1], st[2], st[3])
             G.glDrawElements(G.GL_TRIANGLES, p.count, G.GL_UNSIGNED_SHORT, p.start * 2)
         }
@@ -871,16 +885,19 @@ class Renderer(private val lib: Library) : GLSurfaceView.Renderer {
     }
 
     // ---- gl helpers ------------------------------------------------------
+    /** Byte offset of the drawn scene's first vertex in the main buffers. */
+    private var mainBase = 0
     private fun bindMain() {
-        attach(vbo[0], aPos); attach(vbo[1], aNrm); attach(vbo[2], aCol); attach(vbo[3], aExp)
+        attach(vbo[0], aPos, mainBase); attach(vbo[1], aNrm, mainBase)
+        attach(vbo[2], aCol, mainBase); attach(vbo[3], aExp, mainBase)
     }
     private fun bindCaps() {
         attach(cbo[0], aPos); attach(cbo[1], aNrm); attach(cbo[2], aCol); attach(cbo[3], aExp)
     }
-    private fun attach(buf: Int, loc: Int) {
+    private fun attach(buf: Int, loc: Int, offset: Int = 0) {
         G.glBindBuffer(G.GL_ARRAY_BUFFER, buf)
         G.glEnableVertexAttribArray(loc)
-        G.glVertexAttribPointer(loc, 3, G.GL_FLOAT, false, 0, 0)
+        G.glVertexAttribPointer(loc, 3, G.GL_FLOAT, false, 0, offset)
     }
     private fun upload(buf: Int, data: FloatBuffer) {
         G.glBindBuffer(G.GL_ARRAY_BUFFER, buf)

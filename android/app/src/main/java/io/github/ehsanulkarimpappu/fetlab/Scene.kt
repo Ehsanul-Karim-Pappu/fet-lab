@@ -67,6 +67,12 @@ class Scene(
     var story: String = ""
     /** Parasitic capacitances derived from this scene's geometry. Device scenes only. */
     var par: Parasitics? = null
+    /** For a fabrication step: the flow it belongs to and where it sits in it. */
+    var flow: ProcessFlow? = null
+    var stepIndex = 0
+    val step: ProcessStep? get() = flow?.steps?.getOrNull(stepIndex)
+    /** First vertex of this scene in the renderer's shared buffers (renderer-owned). */
+    var vbase = 0
 
     val centre get() = floatArrayOf((lo[0] + hi[0]) / 2f, (lo[1] + hi[1]) / 2f, (lo[2] + hi[2]) / 2f)
     val span get() = maxOf(hi[0] - lo[0], hi[1] - lo[1], hi[2] - lo[2])
@@ -74,11 +80,25 @@ class Scene(
 
 class Material(val key: String, val label: String, val color: FloatArray, val note: String)
 
-class Library(val materials: Map<String, Material>, val order: List<String>, val scenes: List<Scene>) {
+/** One stage of a fabrication flow: what happens, and the view that shows it best. */
+class ProcessStep(val id: String, val title: String, val body: String, val view: String)
+
+/** A device's fabrication flow. Every step is a scene of its own, keyed [keys]. */
+class ProcessFlow(val device: String, val scope: String, val refs: List<String>,
+                  val steps: List<ProcessStep>, val keys: List<String>)
+
+class Reference(val id: String, val title: String, val publisher: String, val url: String)
+
+/** The scene key of step [i] of the flow for device [device]. */
+fun stepKey(device: String, i: Int) = "proc_$device@$i"
+
+class Library(val materials: Map<String, Material>, val order: List<String>, val scenes: List<Scene>,
+              val flows: Map<String, ProcessFlow>, val refs: Map<String, Reference>) {
     fun scene(key: String): Scene = scenes.first { it.key == key }
     companion object {
         fun load(ctx: Context): Library {
-            val txt = ctx.assets.open("devices.json").bufferedReader().use { it.readText() }
+            fun asset(name: String) = ctx.assets.open(name).bufferedReader().use { it.readText() }
+            val txt = asset("devices.json")
             val root = JSONObject(txt)
 
             val mats = HashMap<String, Material>()
@@ -91,9 +111,11 @@ class Library(val materials: Map<String, Material>, val order: List<String>, val
             val order = root.getJSONArray("order").toStringList()
 
             val scenes = ArrayList<Scene>()
+            val devJson = HashMap<String, JSONObject>()
             val darr = root.getJSONArray("devices")
             for (i in 0 until darr.length()) {
                 val d = darr.getJSONObject(i)
+                devJson[d.getString("key")] = d
                 val b = d.getJSONObject("bounds")
                 val lo = floatArrayOf(b.getJSONArray("x").getDouble(0).toFloat(),
                     b.getJSONArray("y").getDouble(0).toFloat(), b.getJSONArray("z").getDouble(0).toFloat())
@@ -102,41 +124,9 @@ class Library(val materials: Map<String, Material>, val order: List<String>, val
 
                 val parts = ArrayList<Part>()
                 val pa = d.getJSONArray("parts")
-                for (j in 0 until pa.length()) {
-                    val p = pa.getJSONObject(j)
-                    val boxes = ArrayList<FloatArray>()
-                    val ba = p.getJSONArray("boxes")
-                    for (k in 0 until ba.length()) boxes.add(ba.getJSONArray(k).toFloats())
-                    var fixed: FloatArray? = null
-                    var radial: FloatArray? = null
-                    val e = p.opt("explode")
-                    if (e is JSONArray && e.length() > 0) {
-                        if (e.get(0) is String) {
-                            radial = floatArrayOf(
-                                e.getDouble(1).toFloat(), e.getDouble(2).toFloat(),
-                                if (e.length() > 3) e.getDouble(3).toFloat() else 0f)
-                        } else fixed = e.toFloats()
-                    }
-                    parts.add(Part(p.getString("id"), p.getString("name"), p.getString("material"),
-                        p.optString("group", "Other"), p.optString("net", "body"), boxes, fixed, radial))
-                }
+                for (j in 0 until pa.length()) parts.add(parsePart(pa.getJSONObject(j)))
 
-                val views = ArrayList<ViewPreset>()
-                val vo = d.getJSONObject("views")
-                for (vk in vo.keys()) {
-                    val v = vo.getJSONObject(vk)
-                    val clipArr = v.opt("clip")
-                    var clip: Array<Float?>? = null
-                    if (clipArr is JSONArray) {
-                        clip = arrayOfNulls(3)
-                        for (c in 0 until 3) if (!clipArr.isNull(c)) clip[c] = clipArr.getDouble(c).toFloat()
-                    }
-                    val off = HashSet<String>()
-                    (v.opt("off") as? JSONArray)?.let { for (c in 0 until it.length()) off.add(it.getString(c)) }
-                    views.add(ViewPreset(vk, v.getString("n"), v.getString("s"),
-                        v.getDouble("az").toFloat(), v.getDouble("el").toFloat(), v.getDouble("r").toFloat(),
-                        v.getJSONArray("tgt").toFloats(), clip, off))
-                }
+                val views = parseViews(d.getJSONObject("views"))
 
                 val cal = ArrayList<Callout>()
                 (d.opt("callouts") as? JSONArray)?.let {
@@ -191,7 +181,97 @@ class Library(val materials: Map<String, Material>, val order: List<String>, val
                 }
                 scenes.add(sc)
             }
-            return Library(mats, order, scenes)
+
+            val refs = HashMap<String, Reference>()
+            runCatching {
+                val ra = JSONObject(asset("references.json")).getJSONArray("sources")
+                for (i in 0 until ra.length()) {
+                    val r = ra.getJSONObject(i)
+                    refs[r.getString("id")] = Reference(r.getString("id"), r.getString("title"),
+                        r.getString("publisher"), r.getString("url"))
+                }
+            }
+
+            // Each fabrication step becomes a scene of its own, with fresh Part objects, so
+            // hiding a layer in a step never touches the finished device in Device mode.
+            val flows = LinkedHashMap<String, ProcessFlow>()
+            val proc = runCatching { JSONObject(asset("process.json")).getJSONObject("flows") }.getOrNull()
+            if (proc != null) for (dk in proc.keys()) {
+                val fj = proc.getJSONObject(dk)
+                val d = devJson[dk] ?: continue
+                val base = scenes.firstOrNull { it.key == dk } ?: continue
+                val finalParts = HashMap<String, JSONObject>()
+                d.getJSONArray("parts").let { for (j in 0 until it.length()) it.getJSONObject(j).let { p -> finalParts[p.getString("id")] = p } }
+                val views = base.views + (fj.optJSONObject("views")?.let { parseViews(it) } ?: emptyList())
+                val sa = fj.getJSONArray("steps")
+                val steps = ArrayList<ProcessStep>()
+                val stepScenes = ArrayList<Scene>()
+                for (i in 0 until sa.length()) {
+                    val sj = sa.getJSONObject(i)
+                    steps.add(ProcessStep(sj.getString("id"), sj.getString("title"), sj.getString("body"),
+                        sj.optString("view", "iso")))
+                    val parts = ArrayList<Part>()
+                    val pa = sj.getJSONArray("parts")
+                    for (j in 0 until pa.length()) {
+                        val ref = pa.get(j)
+                        val pj = if (ref is String) finalParts[ref] ?: continue else ref as JSONObject
+                        parts.add(parsePart(pj))
+                    }
+                    // The device's group order, then whatever this step adds, in order.
+                    val present = parts.map { it.group }.toSet()
+                    val groups = base.groups.filter { it in present } +
+                        parts.map { it.group }.distinct().filter { it !in base.groups }
+                    val sc = Scene(stepKey(dk, i), base.name, "Process · step ${i + 1} of ${sa.length()}",
+                        sj.getString("title"), "", false, base.style, base.lo, base.hi, parts, views,
+                        emptyList(), groups)
+                    sc.story = base.story
+                    sc.stepIndex = i
+                    stepScenes.add(sc)
+                }
+                val flow = ProcessFlow(dk, fj.optString("scope", ""),
+                    (fj.optJSONArray("refs") ?: JSONArray()).toStringList(), steps, stepScenes.map { it.key })
+                for (sc in stepScenes) sc.flow = flow
+                scenes.addAll(stepScenes)
+                flows[dk] = flow
+            }
+            return Library(mats, order, scenes, flows, refs)
+        }
+
+        private fun parsePart(p: JSONObject): Part {
+            val boxes = ArrayList<FloatArray>()
+            val ba = p.getJSONArray("boxes")
+            for (k in 0 until ba.length()) boxes.add(ba.getJSONArray(k).toFloats())
+            var fixed: FloatArray? = null
+            var radial: FloatArray? = null
+            val e = p.opt("explode")
+            if (e is JSONArray && e.length() > 0) {
+                if (e.get(0) is String) {
+                    radial = floatArrayOf(
+                        e.getDouble(1).toFloat(), e.getDouble(2).toFloat(),
+                        if (e.length() > 3) e.getDouble(3).toFloat() else 0f)
+                } else fixed = e.toFloats()
+            }
+            return Part(p.getString("id"), p.getString("name"), p.getString("material"),
+                p.optString("group", "Other"), p.optString("net", "body"), boxes, fixed, radial)
+        }
+
+        private fun parseViews(vo: JSONObject): List<ViewPreset> {
+            val views = ArrayList<ViewPreset>()
+            for (vk in vo.keys()) {
+                val v = vo.getJSONObject(vk)
+                val clipArr = v.opt("clip")
+                var clip: Array<Float?>? = null
+                if (clipArr is JSONArray) {
+                    clip = arrayOfNulls(3)
+                    for (c in 0 until 3) if (!clipArr.isNull(c)) clip[c] = clipArr.getDouble(c).toFloat()
+                }
+                val off = HashSet<String>()
+                (v.opt("off") as? JSONArray)?.let { for (c in 0 until it.length()) off.add(it.getString(c)) }
+                views.add(ViewPreset(vk, v.getString("n"), v.getString("s"),
+                    v.getDouble("az").toFloat(), v.getDouble("el").toFloat(), v.getDouble("r").toFloat(),
+                    v.getJSONArray("tgt").toFloats(), clip, off))
+            }
+            return views
         }
 
         /** The data carries a little HTML for the web build; the app wants plain text. */
