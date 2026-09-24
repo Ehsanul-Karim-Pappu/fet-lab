@@ -19,6 +19,7 @@ import kotlin.math.abs
 import kotlin.math.cos
 import kotlin.math.hypot
 import kotlin.math.sin
+import kotlin.math.sqrt
 
 private const val TVS = """
 attribute vec3 aP; attribute vec2 aT; uniform mat4 uVP; varying vec2 vT;
@@ -270,7 +271,20 @@ class Renderer(private val lib: Library) : GLSurfaceView.Renderer {
         eye[1] = target[1] + dist * sin(el)
         eye[2] = target[2] + dist * ce * cos(az)
         val aspect = if (viewH == 0) 1f else viewW.toFloat() / viewH
-        Matrix.perspectiveM(proj, 0, 36f, aspect, 8f, 8000f)
+        // Near and far hug what is drawn: a fixed 8..8000 range left too little depth precision
+        // (often a 16-bit buffer) for 5 nm layers seen from a line field's distance, and the
+        // edge lines broke into a sawtooth against the faces. The step fading out counts too;
+        // the extra radius allows for explode.
+        var zn = Float.MAX_VALUE; var zf = 0f
+        for (s in listOfNotNull(sc, fadeScene)) {
+            val c = s.centre
+            val dc = sqrt((eye[0] - c[0]) * (eye[0] - c[0]) + (eye[1] - c[1]) * (eye[1] - c[1]) +
+                (eye[2] - c[2]) * (eye[2] - c[2]))
+            val rad = 0.5f * sqrt((s.hi[0] - s.lo[0]) * (s.hi[0] - s.lo[0]) +
+                (s.hi[1] - s.lo[1]) * (s.hi[1] - s.lo[1]) + (s.hi[2] - s.lo[2]) * (s.hi[2] - s.lo[2])) + 64f
+            zn = Math.min(zn, Math.max(8f, (dc - rad) * 0.9f)); zf = Math.max(zf, dc + rad * 1.1f)
+        }
+        Matrix.perspectiveM(proj, 0, 36f, aspect, zn, Math.max(zn * 4f, zf))
         Matrix.setLookAtM(view, 0, eye[0], eye[1], eye[2], target[0], target[1], target[2], 0f, 1f, 0f)
         Matrix.multiplyMM(vp, 0, proj, 0, view, 0)
         System.arraycopy(vp, 0, vpSnapshot, 0, 16)
