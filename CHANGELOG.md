@@ -3,6 +3,22 @@
 All notable changes to FET Lab. Dates are the release date; versions follow
 [semantic versioning](https://semver.org).
 
+## Unreleased
+
+### Process mode: the FinFET
+
+The FinFET chip in Process mode now has a flow: 12 steps from the bare wafer to the finished
+device, gate last. Fins are cut from the wafer through a hard mask on a 2 × 2 tile of an nFET
+and a pFET pair, the trenches are filled, polished and recessed, and a dummy gate crosses the
+fins; then spacers, Si:P epitaxy on the fins, the ILD, the dummy gate's removal, the
+interfacial layer and HfO₂, the TiN work-function metal and Mo fill, and the contacts. Fin
+patterning has the same route picker as the nanosheet, defaulting to **SAQP**, the route
+reported for fins at this 27 nm pitch; direct print and SADP stay selectable, and the spacer
+routes' cut pattern also removes the dummy fin between the two sites. No step is mapped to a
+source figure yet: each says so ("Textbook state; no source figure mapped yet"), and the
+audit lists the model's own choices, such as epitaxy on the unrecessed fin. The route picker
+now remembers a choice per flow and uses each flow's own wording.
+
 ## 1.3.0 — 2026-09-24
 
 Process mode: how a nanosheet FET is made, step by step, with a choice of how its stack

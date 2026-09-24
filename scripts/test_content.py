@@ -119,6 +119,11 @@ class ContentTests(unittest.TestCase):
             self.assertIn('illustrative layer', flow['match']['pattern'])
             nxt = steps[last + 1]
             self.assertEqual(set(nxt['labels']), set(ids))
+            # At most one route is the default; the FinFET's fins default to SAQP.
+            defaults = [r['id'] for r in flow['routes'] if r.get('default')]
+            self.assertLessEqual(len(defaults), 1)
+            if key == 'fin': self.assertEqual(defaults, ['saqp'])
+            self.assertTrue(flow['route_title'] and flow['route_join'])
 
     def test_process_source_labels(self):
         """Every state says how it relates to its source, never claims a drawing match, and
@@ -126,12 +131,17 @@ class ContentTests(unittest.TestCase):
         proc = json.loads((ROOT / 'data/process.json').read_text())
         audit = (ROOT / 'docs/PROCESS_AUDIT.md').read_text()
         for key, flow in proc['flows'].items():
-            self.assertIn('not available for visual comparison', flow['figures'])
+            # A flow that maps figures says the drawings were not compared; one that maps none
+            # (the FinFET, so far) says so instead.
+            if any(st['figs'] for st in flow['steps']):
+                self.assertIn('not available for visual comparison', flow['figures'])
+            else:
+                self.assertIn('No source figures are mapped', flow['figures'])
             self.assertTrue(flow['branch'])
             skipped = set(flow['skipped'])
             for step in flow['steps']:
                 self.assertIn(step['match'], flow['match'])
-                if step['match'] not in ('concept', 'pattern'):
+                if step['match'] not in ('concept', 'pattern', 'generic'):
                     self.assertTrue(step['figs'], step['id'])
                 self.assertFalse(skipped & set(step['figs']), step['id'])
                 for text in [step['body']] + step['subs'] + step['omitted']:
@@ -143,7 +153,7 @@ class ContentTests(unittest.TestCase):
     def test_references_and_scope(self):
         ids = [r['id'] for r in self.refs['sources']]
         self.assertEqual(len(ids), len(set(ids)))
-        self.assertEqual(len(ids), 21)
+        self.assertEqual(len(ids), 23)
         for ref in self.refs['sources']:
             self.assertTrue(ref['url'].startswith('https://'))
             self.assertTrue(ref['supports'])

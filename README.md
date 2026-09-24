@@ -34,7 +34,7 @@ so a section reads like a real cross-section rather than a shell.
 | **Device** | Technical cross-sections of each architecture — section planes, exploded view, tap-to-identify. |
 | **Inverter** | An illustrative CMOS inverter cell for each architecture. Drive the input and the conducting path lights up. |
 | **Layout** | Schematic inverter layouts with simplified film stacks and exaggerated vertical dimensions; two representative nanosheets instead of the technical model's three. |
-| **Process** | How a nanosheet FET is made, step by step, as real geometry: films, lithography, etch and fill on a 2 × 2 tile, then the selected site to the finished device. The stack lines can be printed directly or by SADP or SAQP. Android app for now; FinFET, forksheet and CFET flows are coming. |
+| **Process** | How a nanosheet FET or a FinFET is made, step by step, as real geometry: films, lithography, etch and fill on a 2 × 2 tile, then the selected site to the finished device. The stack lines or fins can be printed directly or by SADP or SAQP. Android app for now; forksheet and CFET flows are coming. |
 
 <table>
 <tr>

@@ -148,6 +148,20 @@
       "publisher": "IBM Research",
       "url": "https://research.ibm.com/publications/spacer-defined-double-patterning-for-sub-72-nm-pitch-logic-technology",
       "supports": "Mandrels and a single spacer-defined pitch split (SADP)."
+    },
+    {
+      "id": "R22",
+      "title": "N7 FinFET Self-Aligned Quadruple Patterning Modeling",
+      "publisher": "SISPAD 2018 paper, listed by Semiconductor Engineering",
+      "url": "https://semiengineering.com/n7-finfet-self-aligned-quadruple-patterning-modeling/",
+      "supports": "Advanced FinFET technologies use self-aligned quadruple patterning to define fins below the resolution of a single 193 nm immersion exposure; SAQP pitch variation (pitch walk) at an N7-class fin pitch."
+    },
+    {
+      "id": "R23",
+      "title": "SAQP Specs for 7nm finFETs",
+      "publisher": "Semiconductor Digest",
+      "url": "https://www.semiconductor-digest.com/saqp-specs-for-7nm-finfets/",
+      "supports": "SAQP for fin patterning at a 7 nm-class FinFET node, and the core-dimension control it needs to keep pitch walk acceptable."
     }
   ],
   "unverified_legacy_credit": "Earlier versions cited S. Rathore et al., Semiconductor Science and Technology (2021), without a title, DOI or figure number. The exact source has not been established. Retained here for provenance, not presented as a verified reference or silently replaced with a different paper."

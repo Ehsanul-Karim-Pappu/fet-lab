@@ -141,7 +141,7 @@ class Stage:
         [omitted] what the source shows at this stage that this view leaves out. [of] makes
         it an operation substep of the core step with that id, which must come next."""
         key = self.flow.dev.key
-        if match not in MATCH and match not in PAT_MATCH:
+        if match not in MATCH and match not in PAT_MATCH and match not in FIN_MATCH:
             sys.exit(f"{key} step '{sid}': unknown match level {match!r}")
         parts = list(self.now.values())
         worst = overlap(parts, self.bounds, self.grid)
@@ -407,7 +407,8 @@ def flow_ns(done):
             view="tilecut", of="pattern", match="intermediate", figs=["5A/B"])
         T.route = None
         pitch_routes(F, T, dict(
-            hz=hz, PS=PS, win=(WX0, WX1, WZ0, WZ1), top=top, HMT=HMT, ysub=sub[2],
+            what="stack", of="pattern", group=GL, anchor=0.0, drop=[], cut_note="",
+            lines="two stack lines", hz=hz, PS=PS, win=(WX0, WX1, WZ0, WZ1), top=top, HMT=HMT, ysub=sub[2],
             layers=[("ml_base", "SiGe, high Ge · sacrificial base layer", "sige", 0, STI, (0, -.6, 0))] +
                    [(f"ml_sige{i+1}", f"SiGe, lower Ge · layer {i+1}", "sige", a, b, (0, 0, 0)) for i, (a, b) in enumerate(sige)] +
                    [(f"ml_si{i+1}", f"Si · layer {i+1}", "silicon", a, b, (0, 0, 0)) for i, (a, b) in enumerate(ys)]))
@@ -713,6 +714,7 @@ def flow_ns(done):
     return dev, F.done(), dict(scope=NS_SCOPE, figures=NS_FIGURES, branch=NS_BRANCH,
                                skipped=NS_SKIPPED, refs=["R13", "R1", "R14", "R15", "R16", "R18", "R19", "R20", "R21"],
                                match=dict(MATCH, **PAT_MATCH), routes=ROUTES,
+                               route_title="How the stack lines are printed", route_join="the stack etch",
                                views=dict(cut=CUTAWAY, cutb=INDENT, **TILE_VIEWS, **FIELD_VIEWS))
 
 
@@ -755,19 +757,25 @@ def pitch_routes(F, T, g):
     lines around the tile: the tile's own parts, plus the substrate and multilayer carrying
     on beyond it. Each ends back in the tile with the direct route's state after its resist
     strip, which the build checks the spacer image reproduces inside the tile's window."""
-    W, P2 = 2 * g["hz"], g["PS"]                     # final line width and pitch: the stacks'
+    W, P2 = 2 * g["hz"], g["PS"]                     # final line width and pitch
+    w, of = g["what"], g["of"]                       # "stack" or "fin"; the core step they lead into
     WX0, WX1, WZ0, WZ1 = g["win"]
     X0, X1 = WX0 - 50.0, WX1 + 50.0                  # the field runs past the tile's window
     top, HMT, ysub = g["top"], g["HMT"], g["ysub"]
-    MAN, MAN1, RES = 40.0, 80.0, 16.0                # core films and resist: illustrative
+    MAN, MAN1, RES = g.get("films", (40.0, 80.0, 16.0))    # core films and resist: illustrative
     yman = top + HMT
-    GS, GL, GP = "Substrate & isolation", "Superlattice", "Patterning"
+    GS, GL, GP = "Substrate & isolation", g["group"], "Patterning"
     strip = dict(T.now)                              # the direct route after its resist strip
     tile_parts = [p for p in strip.values() if p["id"] != "t_hm"]
     tile_hm = strip["t_hm"]
 
-    def centres(n):                                  # n lines at the stack pitch, a pair at 0 and -P
-        return [-P2 / 2 + P2 * (k - (n - 1) / 2) for k in range(n)]
+    def centres(n):                                  # n lines at the final pitch, one at the anchor
+        return [g["anchor"] + P2 * (k - n // 2) for k in range(n)]
+
+    def cut(spans):
+        """The cut pattern: the lines at the edge of the array go, and any the tile does not
+        use (the dummy fin between the nFET and pFET sites, say)."""
+        return [(a, b) for a, b in spans[1:-1] if not any(a < d < b for d in g["drop"])]
 
     def field(n):
         c = centres(n)
@@ -784,7 +792,7 @@ def pitch_routes(F, T, g):
         win = [box(WX0, WX1, 0, top, WZ0, WZ1)]
         for pid, name, mat, a, b, ex in g["layers"]:
             S.put(tmp("f_" + pid, name + " · beyond the tile", mat, GL, subtract((X0, X1, a, b, z0, z1), win), ex))
-        hm(S, [(z0, z1)], "Stack hard mask (blanket)")
+        hm(S, [(z0, z1)], f"{w.capitalize()} hard mask (blanket)")
 
     def film(S, name, t, y0, y1, z0, z1, ex):
         S.put(tmp("f_spfilm", name, "patspacer", GP, conformal(S.boxes(), t, (X0, X1, y0, y1, z0, z1)), ex))
@@ -804,10 +812,10 @@ def pitch_routes(F, T, g):
         R = Stage(F, "tile", T.bounds)
         R.route, R.now = mode, dict(strip)
         R.snap(f"{mode}_back", "Back to the tile: the same hard-mask lines",
-            f"Back at the 2 × 2 tile. Inside its window the hard mask holds the same two stack lines "
+            f"Back at the 2 × 2 tile. Inside its window the hard mask holds the same {g['lines']} "
             f"as the direct route's, at the same width and pitch (checked when the data is built), so "
-            f"the flow goes on with the same stack etch. {what} changed only how the mask was made.",
-            view="tilecut", of="pattern", match="pattern")
+            f"the flow goes on with the same {w} etch. {what} changed only how the mask was made.",
+            view="tilecut", of=of, match="pattern")
 
     def pull_sub(extra=""):
         return [f"Ideal spacing; in practice alternate spaces can differ (pitch walk){extra} [R20]"]
@@ -823,16 +831,16 @@ def pitch_routes(F, T, g):
     S.put(tmp("f_man", "Mandrel film", "mandrel", GP, [box(X0, X1, yman, yman + MAN, z0, z1)], (0, 1.6, 0)))
     S.snap("sadp_films", "Hard mask and mandrel film",
         "Zoomed out past the tile to the array of lines around it: the tile sits in the middle, "
-        "and the lines beyond it belong to neighbouring devices. The stack hard mask is deposited "
+        f"and the lines beyond it belong to neighbouring devices. The {w} hard mask is deposited "
         "as in the direct route, then a mandrel film for the cores. This route changes only how "
-        "the hard-mask lines are made.", view="sadpfield", of="pattern", match="pattern",
+        "the hard-mask lines are made.", view="sadpfield", of=of, match="pattern",
         subs=[FIELD_SUB, "Mandrel material and thickness are illustrative"])
     S.put(tmp("f_res", "Photoresist cores", "resist", GP,
               [box(X0, X1, yman + MAN, yman + MAN + RES, a, b) for a, b in mand], (0, 2.0, 0)))
     S.snap("sadp_litho", "Core lithography",
         f"Resist is coated, exposed and developed as in the direct route, but it prints only the "
         f"cores: four lines at pitch P = {2 * P2:g} nm, twice the final pitch, which one exposure "
-        "resolves more easily [R16][R21].", view="sadpfield", of="pattern", match="pattern",
+        "resolves more easily [R16][R21].", view="sadpfield", of=of, match="pattern",
         subs=["The core count, width and pitch are illustrative"])
     S.drop("f_man", "f_res")
     S.put(tmp("f_man", "Mandrels (cores)", "mandrel", GP,
@@ -840,13 +848,13 @@ def pitch_routes(F, T, g):
     S.snap("sadp_mandrel", "Mandrel etch and resist strip",
         "The resist pattern is etched into the mandrel film and the resist is stripped, leaving "
         "durable mandrels: the cores the spacers will form against.",
-        view="sadpcut", of="pattern", match="pattern")
+        view="sadpcut", of=of, match="pattern")
     film(S, "Patterning spacer film (as deposited)", W, yman, yman + MAN + W, z0, z1, (0, 1.8, 0))
     S.snap("sadp_dep", "Conformal spacer deposition",
         f"A spacer film {W:g} nm thick is deposited conformally: over the mandrel tops, down their "
         "sidewalls and across the floor between them. Its thickness will set the final line "
         "width. This patterning spacer is a temporary mask, not the transistor's gate spacer.",
-        view="sadpcut", of="pattern", match="pattern")
+        view="sadpcut", of=of, match="pattern")
     S.drop("f_spfilm")
     sp = sorted([(a - W, a) for a, b in mand] + [(b, b + W) for a, b in mand])
     S.put(tmp("f_sp", "Patterning spacers", "patspacer", GP,
@@ -854,23 +862,23 @@ def pitch_routes(F, T, g):
     S.snap("sadp_etch", "Spacer etch-back",
         "A directional etch removes the film from every horizontal surface, the mandrel tops and "
         "the floor, and leaves it standing on the mandrel sidewalls: two spacers per mandrel.",
-        view="sadpcut", of="pattern", match="pattern")
+        view="sadpcut", of=of, match="pattern")
     S.drop("f_man")
     S.snap("sadp_pull", "Mandrel removal: the spacer image",
         f"The mandrels are removed selectively, leaving only the spacers: eight lines from four "
-        f"cores, at about P/2 = {P2:g} nm, the stacks' pitch [R21].", view="sadpplan", of="pattern",
+        f"cores, at about P/2 = {P2:g} nm, the {w}s' pitch [R21].", view="sadpplan", of=of,
         match="pattern", subs=pull_sub())
-    hm(S, sp, "Stack hard mask (patterned)")
+    hm(S, sp, f"{w.capitalize()} hard mask (patterned)")
     S.snap("sadp_hm", "Transfer into the hard mask",
         "With the spacers as the etch mask, the hard mask is etched where it is exposed. The "
-        "spacer image is now a hard-mask image.", view="sadpcut", of="pattern", match="pattern")
+        "spacer image is now a hard-mask image.", view="sadpcut", of=of, match="pattern")
     S.drop("f_sp")
-    hm(S, sp[1:-1], "Stack hard mask (patterned)", WX0, WX1)
+    hm(S, cut(sp), f"{w.capitalize()} hard mask (patterned)", WX0, WX1)
     check(S, "SADP")
     S.snap("sadp_cut", "Spacer strip and cut pattern",
         "The spacers are stripped, and a separately printed cut pattern trims the hard-mask lines "
-        "to length and removes the two at the edge of the array. Which lines a cut removes is an "
-        "integration choice [R19].", view="sadpfield", of="pattern", match="pattern",
+        "to length and removes the two at the edge of the array" + g["cut_note"] + ". Which lines "
+        "a cut removes is an integration choice [R19].", view="sadpfield", of=of, match="pattern",
         subs=["Which lines are cut is illustrative"])
     back("sadp", "SADP")
 
@@ -889,71 +897,71 @@ def pitch_routes(F, T, g):
     S.put(tmp("f_man1", "First-core film", "mandrel", GP, [box(X0, X1, y1, y1 + MAN1, z0, z1)], (0, 1.8, 0)))
     S.snap("saqp_films", "Hard mask and two core films",
         "Zoomed out past the tile to the array of lines around it. SAQP needs a second core "
-        "layer: over the stack hard mask go a second-core film and then a first-core film [R19].",
-        view="saqpfield", of="pattern", match="pattern",
+        f"layer: over the {w} hard mask go a second-core film and then a first-core film [R19].",
+        view="saqpfield", of=of, match="pattern",
         subs=[FIELD_SUB, "Core materials and thicknesses are illustrative"])
     S.put(tmp("f_res", "Photoresist cores", "resist", GP,
               [box(X0, X1, y1 + MAN1, y1 + MAN1 + RES, a, b) for a, b in man1], (0, 2.2, 0)))
     S.snap("saqp_litho", "Core lithography",
         f"Four cores are printed at pitch P = {4 * P2:g} nm, four times the final pitch [R16].",
-        view="saqpfield", of="pattern", match="pattern",
+        view="saqpfield", of=of, match="pattern",
         subs=["The core count, width and pitch are illustrative"])
     S.drop("f_man1", "f_res")
     S.put(tmp("f_man1", "First cores", "mandrel", GP, [box(X0, X1, y1, y1 + MAN1, a, b) for a, b in man1], (0, 1.8, 0)))
     S.snap("saqp_core1", "First-core etch and resist strip",
         "The pattern is etched into the first-core film and the resist is stripped.",
-        view="saqpcut", of="pattern", match="pattern")
+        view="saqpcut", of=of, match="pattern")
     film(S, "First patterning spacer film (as deposited)", T1, y1, y1 + MAN1 + T1, z0, z1, (0, 2.0, 0))
     S.snap("saqp_dep1", "First spacer deposition",
         f"A first spacer film, {T1:g} nm thick, coats the first cores. Its thickness sets the "
-        "width of the second cores to come.", view="saqpcut", of="pattern", match="pattern")
+        "width of the second cores to come.", view="saqpcut", of=of, match="pattern")
     S.drop("f_spfilm")
     sp1 = sorted([(a - T1, a) for a, b in man1] + [(b, b + T1) for a, b in man1])
     S.put(tmp("f_sp1", "First patterning spacers", "patspacer", GP,
               [box(X0, X1, y1, y1 + MAN1, a, b) for a, b in sp1], (0, 2.0, 0)))
     S.snap("saqp_etch1", "First spacer etch-back",
-        "Etch-back leaves the first spacers on the core sidewalls.", view="saqpcut", of="pattern",
+        "Etch-back leaves the first spacers on the core sidewalls.", view="saqpcut", of=of,
         match="pattern")
     S.drop("f_man1")
     S.snap("saqp_pull1", "First-core removal: the first spacer image",
         f"With the first cores removed, eight spacer lines remain at about P/2 = {2 * P2:g} nm: the "
-        "first-generation image [R20].", view="saqpplan", of="pattern", match="pattern", subs=pull_sub())
+        "first-generation image [R20].", view="saqpplan", of=of, match="pattern", subs=pull_sub())
     S.drop("f_man2", "f_sp1")
     S.put(tmp("f_man2", "Second cores", "mandrel2", GP, [box(X0, X1, yman, y1, a, b) for a, b in sp1], (0, 1.5, 0)))
     S.snap("saqp_core2", "Second cores: the first image transferred",
         "The first spacer image is etched into the second-core film and the first spacers are "
         "removed. The first-generation image has become the second set of cores; it is not etched "
         "into the hard mask. This transfer is one way to make the second cores; others exist [R19].",
-        view="saqpcut", of="pattern", match="pattern")
+        view="saqpcut", of=of, match="pattern")
     film(S, "Second patterning spacer film (as deposited)", W, yman, y1 + W, z0, z1, (0, 1.8, 0))
     S.snap("saqp_dep2", "Second spacer deposition",
         f"A second spacer film, {W:g} nm thick, coats the second cores; this thickness sets the "
-        "final line width.", view="saqpcut", of="pattern", match="pattern")
+        "final line width.", view="saqpcut", of=of, match="pattern")
     S.drop("f_spfilm")
     sp2 = sorted([(a - W, a) for a, b in sp1] + [(b, b + W) for a, b in sp1])
     S.put(tmp("f_sp2", "Second patterning spacers", "patspacer", GP,
               [box(X0, X1, yman, y1, a, b) for a, b in sp2], (0, 1.8, 0)))
     S.snap("saqp_etch2", "Second spacer etch-back",
         "Etch-back leaves the second spacers on the second cores' sidewalls.", view="saqpcut",
-        of="pattern", match="pattern")
+        of=of, match="pattern")
     S.drop("f_man2")
     S.snap("saqp_pull2", "Second-core removal: the final spacer image",
         f"With the second cores removed, sixteen spacer lines remain at about P/4 = {P2:g} nm, the "
-        "stacks' pitch: four times the density of the printed cores, from one exposure [R20].",
-        view="saqpplan", of="pattern", match="pattern",
+        f"{w}s' pitch: four times the density of the printed cores, from one exposure [R20].",
+        view="saqpplan", of=of, match="pattern",
         subs=pull_sub(", and the variation adds up over the two generations"))
-    hm(S, sp2, "Stack hard mask (patterned)")
+    hm(S, sp2, f"{w.capitalize()} hard mask (patterned)")
     S.snap("saqp_hm", "Transfer into the hard mask",
         "With the second spacers as the etch mask, the pattern goes into the hard mask.",
-        view="saqpcut", of="pattern", match="pattern")
+        view="saqpcut", of=of, match="pattern")
     S.drop("f_sp2")
-    hm(S, sp2[1:-1], "Stack hard mask (patterned)", WX0, WX1)
+    hm(S, cut(sp2), f"{w.capitalize()} hard mask (patterned)", WX0, WX1)
     check(S, "SAQP")
     S.snap("saqp_cut", "Spacer strip and block pattern",
         "The spacers are stripped, and a separately printed block pattern trims the hard-mask "
-        "lines to length and removes the edge lines. In a real integration the block pattern also "
+        "lines to length and removes the edge lines" + g["cut_note"] + ". In a real integration the block pattern also "
         "decides which lines become devices; imec's metal-line example keeps groups of six [R19].",
-        view="saqpfield", of="pattern", match="pattern", subs=["Which lines are cut is illustrative"])
+        view="saqpfield", of=of, match="pattern", subs=["Which lines are cut is illustrative"])
     back("saqp", "SAQP")
 
 
@@ -1003,7 +1011,351 @@ def lesson(mode):
     return build
 
 
-FLOWS = {"ns": flow_ns, "sadp": lesson("sadp"), "saqp": lesson("saqp")}
+# ================================================================ FINFET ===
+FIN_MATCH = {"generic": "Textbook state; no source figure mapped yet"}
+FIN_SCOPE = ("Representative bulk silicon FinFET nFET fabrication with a replacement metal gate "
+             "(gate last), ending at this app's FinFET model, with illustrative materials and "
+             "dimensions. Not a verified foundry recipe.")
+FIN_FIGURES = ("No source figures are mapped yet: every state is a textbook teaching "
+               "reconstruction of a generic gate-last bulk FinFET flow, and none reproduces a "
+               "published drawing. A figure-by-figure source is planned.")
+FIN_BRANCH = ("The flow follows the nFET. The tile shows a pFET site beside it; the pFET's own "
+              "steps (its source/drain epitaxy and work-function metal) are left out.")
+FIN_ROUTES = [
+    dict(id="direct", name="Direct print",
+         note="One exposure prints the fins at their final pitch. At this model's 27 nm fin pitch "
+              "that is far below what one immersion (193i) exposure resolves [R22]; it is shown "
+              "for comparison."),
+    dict(id="sadp", name="SADP",
+         note="Self-aligned double patterning: cores at twice the fin pitch, then one spacer "
+              "pitch split [R21]. Used for fins at wider pitches than this model's."),
+    dict(id="saqp", name="SAQP", default=True,
+         note="Self-aligned quadruple patterning: cores at four times the fin pitch and two "
+              "spacer pitch splits. Advanced FinFET nodes use it to print fins below what one "
+              "immersion exposure resolves [R22][R23]; the default here."),
+]
+FIN_CUT = dict(n="Gate cutaway", s="through the gate centre, at an angle",
+               az=1.02, el=.34, r=205, tgt=[0, 38, 0], clip=[0, None, None])
+FIN_TILE_VIEWS = dict(
+    tile=dict(n="Tile overview", s="two fin pairs, two gate lines", az=-0.70, el=0.42, r=560,
+              tgt=[-38, 30, -40.5], clip=None, scale="tile"),
+    tileplan=dict(n="Tile from above", s="plan view", az=0.0, el=1.45, r=500,
+                  tgt=[-38, 0, -40.5], clip=None, scale="tile"),
+    tilecut=dict(n="Across the fins", s="section through the selected gate", az=1.5708, el=0.14,
+                 r=400, tgt=[0, 32, -40.5], clip=[0, None, None], scale="tile"),
+    tilechan=dict(n="Along an nFET fin", s="section through fin 2", az=-0.62, el=0.30,
+                  r=330, tgt=[-38, 35, 13.5], clip=[None, None, 13.5], scale="tile"))
+FIN_FIELD_VIEWS = {}
+for _mod, _r in (("sadp", 1.0), ("saqp", 1.65)):
+    FIN_FIELD_VIEWS[_mod + "field"] = dict(n="Fin field", s="the tile and the fins around it", az=-0.95,
+                                           el=0.55, r=640 * _r, tgt=[-38, 45, -40.5], clip=None, scale="field")
+    FIN_FIELD_VIEWS[_mod + "cut"] = dict(n="Across the fins", s="section, mid-field", az=1.5708, el=0.08,
+                                         r=400 * _r, tgt=[-38, 60, -40.5], clip=[-38, None, None], scale="field")
+    FIN_FIELD_VIEWS[_mod + "plan"] = dict(n="From above", s="count the lines", az=1.5708, el=1.45,
+                                          r=560 * _r, tgt=[-38, 45, -40.5], clip=None, scale="field")
+
+
+def flow_fin(done):
+    dev = bd.build_fin()
+    F = Flow(dev)
+    P = F.final
+    fins = [lim(P[f"fin{i}"]["boxes"][0]) for i in (1, 2)]
+    hw = (fins[0][5] - fins[0][4]) / 2                 # fin half-width: 3
+    FP = (fins[1][4] + fins[1][5]) / 2 - (fins[0][4] + fins[0][5]) / 2    # fin pitch: 27
+    ZF = [(f[4] + f[5]) / 2 for f in fins]            # -13.5, 13.5
+    top = fins[0][3]                                   # 57, the fin top and the original surface
+    sub = lim(P["substrate"]["boxes"][0]); zsub = sub[5]
+    STI = max(lim(b)[3] for b in P["sti"]["boxes"])    # 12
+    XSD = fins[0][1]                                   # 38: the fin ends, the site's S/D edge
+    mo = [lim(b) for b in P["mo"]["boxes"]]
+    XG = mo[0][1]; ymo = max(b[3] for b in mo)         # 9, 75
+    cap = lim(P["gatecap"]["boxes"][0]); ycap, hzmo = cap[3], cap[5]      # 81, 27.5
+    XSP = max(lim(b)[1] for b in P["spacer_drain"]["boxes"])              # 16
+    TOX, TSP = 1.0, XSP - XG
+
+    def ild_around():
+        others = [b for p in F.now.values() if p["id"] != "ild" for b in p["boxes"]]
+        F.put(tmp("ild", "Interlayer dielectric (ILD)", "ild", "Interlayer dielectric",
+                  subtract((-XSD, XSD, 0, ycap, -zsub, zsub), others), (0, .6, 0)))
+
+    # ---------------------------------------------------------- the 2 x 2 tile ----
+    # Fins on one grid at the fin pitch; the nFET site's two fins at the origin's +-13.5,
+    # the pFET site's two three pitches away, and the grid line between them a dummy fin
+    # that is never kept. Two gate lines cross both pairs.
+    PG, PS = 2 * XSD, 3 * FP                  # gate pitch = a site's length; pFET site 81 nm over
+    GATES = (0.0, -PG)
+    PAIRS = ((0.0, "n"), (-PS, "p"))
+    ZMID = -PS / 2                            # the dummy fin's grid line, between the sites
+    WX0, WX1, WZ0, WZ1 = -XSD - PG, XSD, -PS - zsub, zsub
+    SX0, SX1 = sub[0] - PG, sub[1]
+    HMT, RT, RY = 6.0, 10.0, 120.0            # fin hard mask, resist; reticle height (not to scale)
+    T = Stage(F, "tile", dict(x=[SX0, SX1], y=[sub[2], RY + 2.0], z=[WZ0, WZ1]))
+    GS, GFN, GP = "Substrate & isolation", "Fins", "Patterning"
+    KEPT = [zc + z for zc, _ in PAIRS for z in ZF]     # the four fins the tile keeps
+    SITE2 = (-XSD, XSD, sub[2], RY + 2.0, -zsub, zsub)
+    SITE3 = (-XSD, XSD, sub[2], RY + 2.0, -hzmo, hzmo)
+    TILE_SUBS = ["Pitches are illustrative: the gate pitch is one site's length, and the two "
+                 "sites' fins sit three fin pitches apart"]
+
+    def t_resist(pid, name, mat, boxes):
+        T.put(tmp(pid, name, mat, GP, boxes, (0, 1.6, 0)))
+
+    def tile_fins():
+        """Fin patterning and isolation, operation by operation (the core step 'fins')."""
+        T.put(tmp("t_sub", "Si substrate", "silicon", GS, [box(SX0, SX1, sub[2], 0, WZ0, WZ1)], (0, -1.2, 0)))
+        T.put(tmp("t_fl", "Si · upper substrate (fins to be)", "silicon", GFN,
+                  [box(WX0, WX1, 0, top, WZ0, WZ1)]))
+        T.put(tmp("t_hm", "Fin hard mask (blanket)", "si3n4", GP,
+                  [box(WX0, WX1, top, top + HMT, WZ0, WZ1)], (0, 1.3, 0)))
+        T.route = "direct"
+        T.snap("hm", "Hard-mask deposition",
+            "Zoomed out to a tile of four sites: an nFET pair of fins through the selected site, a "
+            "pFET pair beside it, each crossed later by two gate lines. First a hard-mask film is "
+            "deposited on the bare silicon wafer; the fins will be cut from the wafer itself.",
+            view="tile", of="fins", match="generic",
+            subs=TILE_SUBS + ["The usual thin pad oxide under the nitride is not drawn; hard-mask "
+                              "material and thickness are illustrative"],
+            omitted=["Well implants, which set each region's doping first"])
+        t_resist("t_res", "Photoresist (coated)", "resist", [box(WX0, WX1, top + HMT, top + HMT + RT, WZ0, WZ1)])
+        T.snap("coat", "Resist coat",
+            "A light-sensitive photoresist is spun on over the hard mask [R16].", view="tile",
+            of="fins", match="concept", subs=["Resist thickness is illustrative"])
+        T.drop("t_res")
+        lines = [(z - hw, z + hw) for z in KEPT]
+        gaps_z = bd.gaps(WZ0, WZ1, sorted(lines))
+        t_resist("t_res", "Photoresist (unexposed: over the fins)", "resist",
+                 [box(WX0, WX1, top + HMT, top + HMT + RT, a, b) for a, b in lines])
+        t_resist("t_res_x", "Photoresist (exposed: made soluble)", "resist_exp",
+                 [box(WX0, WX1, top + HMT, top + HMT + RT, a, b) for a, b in gaps_z])
+        T.put(tmp("t_reticle", "Reticle chrome (in the scanner; not to scale)", "chrome", GP,
+                  [box(WX0, WX1, RY, RY + 2.0, a, b) for a, b in lines], (0, 2.0, 0)))
+        T.snap("expose", "Exposure",
+            "The scanner images the reticle's pattern onto the resist; the reticle is drawn above "
+            "the wafer only to show which areas its chrome keeps dark. With a positive-tone resist "
+            "the exposed resist between the future fins becomes soluble. At this 27 nm fin pitch "
+            "one immersion exposure could not resolve the lines: this route is shown for "
+            "comparison, and the spacer routes are how dense fins are made [R16][R22].",
+            view="tile", of="fins", match="concept",
+            subs=["Exposure is simplified: no optics, proximity, dose or overlay effects"])
+        T.drop("t_reticle", "t_res_x")
+        T.snap("develop", "Development",
+            "The developer dissolves the exposed resist, leaving resist lines over the four fins "
+            "to be and the hard mask bare in between [R16].", view="tilecut", of="fins", match="concept")
+        T.drop("t_hm")
+        T.put(tmp("t_hm", "Fin hard mask (patterned)", "si3n4", GP,
+                  [box(WX0, WX1, top, top + HMT, a, b) for a, b in lines], (0, 1.3, 0)))
+        T.snap("hmetch", "Hard-mask etch",
+            "A directional etch transfers the resist lines into the hard mask.", view="tilecut",
+            of="fins", match="generic")
+        T.drop("t_res")
+        T.snap("strip", "Resist strip",
+            "The resist is stripped; the hard mask alone now defines the fins.",
+            view="tilecut", of="fins", match="generic")
+        T.route = None
+        pitch_routes(F, T, dict(
+            what="fin", of="fins", group=GFN, anchor=ZMID, drop=[ZMID],
+            cut_note=", and the dummy fin between the nFET and pFET sites",
+            lines="four fin lines", films=(16.0, 26.0, 8.0), hz=hw, PS=FP, win=(WX0, WX1, WZ0, WZ1), top=top, HMT=HMT,
+            ysub=sub[2], layers=[("fl", "Si · upper substrate (fins to be)", "silicon", 0, top, (0, 0, 0))]))
+        T.drop("t_fl")
+        for zc, k in PAIRS:
+            for i, z in enumerate(ZF):
+                T.put(tmp(f"t_fin_{k}{i+1}", f"Si fin {i+1} · {'nFET' if k == 'n' else 'pFET'} site",
+                          "silicon", GFN, [box(WX0, WX1, 0, top, zc + z - hw, zc + z + hw)]))
+        T.snap("finetch", "Fin etch",
+            "A directional etch cuts the silicon between the hard-mask lines, leaving four fins "
+            f"{2 * hw:g} nm wide and {top:g} nm tall standing on the wafer, each capped by hard "
+            "mask. The fin is the transistor's channel: the gate will wrap its top and sides.",
+            view="tilecut", of="fins", match="generic",
+            subs=["Fins are drawn with vertical walls; etched fins taper"])
+        T.put(tmp("t_sti", "STI oxide (filled and polished)", "sio2", GS,
+                  subtract((SX0, SX1, 0, top + HMT, WZ0, WZ1), T.boxes()), (0, -.8, 0)))
+        T.snap("stifill", "STI fill and CMP",
+            "Oxide fills the trenches between the fins, overfilled and then polished flat (CMP), "
+            "stopping on the hard mask.", view="tilecut", of="fins", match="generic")
+        T.drop("t_sti", "t_hm")
+        T.put(tmp("t_sti", "STI oxide", "sio2", GS,
+                  subtract((SX0, SX1, 0, STI, WZ0, WZ1), T.boxes()), (0, -.8, 0)))
+        T.snap("stirecess", "STI recess and hard-mask removal",
+            f"The oxide is recessed to leave {top - STI:g} nm of each fin standing above it, the "
+            "height the gate will wrap, and the hard mask is removed. The oxide left between the "
+            "fins isolates them: shallow trench isolation. Next, the view returns to the selected site.",
+            view="tile", of="fins", match="generic",
+            subs=["Exposed fin height is the model's; it sets the effective width with the fin width"])
+
+    def tile_dummy():
+        """Dummy-gate patterning across both fin pairs (the core step 'dummy')."""
+        for zc, k in PAIRS:
+            for i, z in enumerate(ZF):
+                T.put(tmp(f"t_dox_{k}{i+1}", "Dummy-gate oxide (grown on the fin)", "sio2", "Dummy gate",
+                          subtract((WX0, WX1, STI, top + TOX, zc + z - hw - TOX, zc + z + hw + TOX), T.boxes()),
+                          (0, .6, 0)))
+        T.put(tmp("t_dsi", "Dummy gate Si (as deposited)", "poly", "Dummy gate",
+                  subtract((WX0, WX1, STI, ymo, WZ0, WZ1), T.boxes()), (0, 1.0, 0)))
+        T.put(tmp("t_dhm", "Gate hard mask (blanket)", "si3n4", "Dummy gate",
+                  [box(WX0, WX1, ymo, ycap, WZ0, WZ1)], (0, 1.4, 0)))
+        T.snap("dummydep", "Dummy-gate stack deposition",
+            "A thin oxide grows on the exposed fins, then silicon is deposited over everything and "
+            "planarised, and a gate hard mask goes on top.", view="tile", of="dummy", match="generic",
+            subs=["Dummy-gate Si (often polysilicon) and its nitride hard mask are illustrative"])
+        T.drop("t_dsi", "t_dhm", *[f"t_dox_{k}{i+1}" for _, k in PAIRS for i in range(len(ZF))])
+        for g, xg in enumerate(GATES):
+            for zc, k in PAIRS:
+                for i, z in enumerate(ZF):
+                    T.put(tmp(f"t_dox_{k}{i+1}_{g}", "Dummy-gate oxide", "sio2", "Dummy gate",
+                              subtract((xg - XG, xg + XG, STI, top + TOX, zc + z - hw - TOX, zc + z + hw + TOX),
+                                       T.boxes()), (0, .6, 0)))
+        for g, xg in enumerate(GATES):
+            T.put(tmp(f"t_dummy{g}", f"Dummy gate {g + 1} · Si", "poly", "Dummy gate",
+                      subtract((xg - XG, xg + XG, STI, ymo, WZ0, WZ1), T.boxes()), (0, 1.0, 0)))
+            T.put(tmp(f"t_ghm{g}", f"Gate hard mask {g + 1}", "si3n4", "Dummy gate",
+                      [box(xg - XG, xg + XG, ymo, ycap, WZ0, WZ1)], (0, 1.4, 0)))
+        T.snap("gatepat", "Gate patterning",
+            "The gate lines are patterned crossways to the fins, with the same resist, exposure, "
+            "development and hard-mask etch, and the dummy stack is etched down to the STI and "
+            "cleared off the fins between the gates. Two gate lines cross both fin pairs: four "
+            "sites, with the source/drain between two gates shared. Next, the view returns to the "
+            "selected site, which shows its gate only across its own fins.",
+            view="tile", of="dummy", match="generic",
+            omitted=["The gate layer's own lithography steps (as for the fins)",
+                     "The gate cut between the sites, made later in many flows"])
+
+    # 1
+    F.put(tmp("wafer", "Si substrate (unpatterned)", "silicon", GS,
+              [box(sub[0], sub[1], sub[2], top, -zsub, zsub)], (0, -1.2, 0)))
+    F.snap("substrate", "Silicon substrate",
+        "The flow starts from a bare, lightly doped silicon wafer. In a bulk FinFET the fins are "
+        "cut from the wafer itself, so the channel is the same single crystal as the substrate.",
+        match="generic",
+        omitted=["The well and punch-through-stopper implants under the fins, which this model does "
+                 "not draw"])
+    # 2
+    tile_fins()
+    F.drop("wafer"); F.add("substrate", "sti", "fin1", "fin2")
+    same_site(T, F, SITE2, "fin patterning")
+    F.snap("fins", "Fin patterning and STI",
+        "Fins are etched into the wafer through a hard mask, the trenches are filled with oxide "
+        "and polished, and the oxide is recessed so the top of each fin stands free. How the fin "
+        "lines are printed matters most here: at a 27 nm fin pitch they are made by spacer "
+        "pitch splitting, SAQP by default in this flow; the Steps tab's patterning route shows "
+        "it beside SADP and a direct print [R22][R23].",
+        match="generic", subs=["Fin width, height and pitch are the model's illustrative values"])
+    # 3
+    tile_dummy()
+    dox = []
+    for z in ZF:
+        dox += subtract((-XG, XG, STI, top + TOX, z - hw - TOX, z + hw + TOX), F.boxes())
+    F.put(tmp("dox", "Dummy-gate oxide (sacrificial)", "sio2", "Dummy gate", dox, (0, .6, 0)))
+    F.put(tmp("dummy", "Dummy gate · Si", "poly", "Dummy gate",
+              subtract((-XG, XG, STI, ymo, -hzmo, hzmo), F.boxes()), (0, 1.0, 0)))
+    F.put(tmp("hardmask", "SiN hard mask", "si3n4", "Dummy gate",
+              [box(-XG, XG, ymo, ycap, -hzmo, hzmo)], (0, 1.4, 0)))
+    same_site(T, F, SITE3, "dummy-gate patterning")
+    F.snap("dummy", "Dummy gate stack",
+        "A thin sacrificial oxide, a silicon placeholder gate and a hard mask are patterned across "
+        "both fins. The dummy gate fixes where the gate goes and its length; the real high-κ/metal "
+        "gate replaces it near the end (replacement metal gate, or gate last).",
+        view="iso", match="generic",
+        subs=["Dummy-gate materials and heights are illustrative"])
+    # 4
+    window = (-XSD, XSD, STI, ycap + TSP, -hzmo, hzmo)
+    F.put(tmp("spfilm", "Spacer dielectric (as deposited)", "si3n4", "Spacers",
+              conformal(F.boxes(), TSP, window), (0, .5, 0)))
+    F.snap("spacerdep", "Conformal spacer deposition",
+        f"A dielectric film {TSP:g} nm thick is deposited evenly over everything: the dummy gate's "
+        "top and sidewalls, the fins and the STI between them. Its thickness sets the spacer's width.",
+        view="iso", match="generic",
+        subs=["Low-κ spacer materials (SiOCN, SiBCN) are common; nitride stands in for them"])
+    # 5
+    F.drop("spfilm"); F.add("spacer_source", "spacer_drain")
+    F.snap("spaceretch", "Spacer etch-back",
+        "A directional etch clears the film from every horizontal surface and, with extra etch, "
+        "from the fins' sidewalls outside the gate, leaving spacers only on the dummy gate's two "
+        "sides. They set the gap between the gate and the source/drain.",
+        view="iso", match="generic",
+        subs=["The fin sidewall spacers are drawn fully removed; some flows keep a short remnant"])
+    # 6
+    F.add("epi_source", "epi_drain")
+    F.snap("epi", "Source/drain epitaxy and anneal",
+        "Phosphorus-doped silicon is grown epitaxially on the fins beside the spacers, cladding "
+        "each fin's top and sides; an anneal activates the dopant. The epitaxy lowers the "
+        "resistance from the contact into the fin.",
+        view="iso", match="generic",
+        subs=["The model grows the epitaxy on the unrecessed fin; many flows first recess the fin "
+              "and regrow the source/drain from it, often merging neighbouring fins"],
+        omitted=["The pFET's SiGe:B epitaxy and the mask that keeps each type to its own region"])
+    # 7
+    ild_around()
+    F.snap("ild", "ILD fill and planarisation",
+        "An interlayer dielectric fills around the gate and over the source/drain, and CMP "
+        "polishes it down until the dummy gate's hard mask is exposed.", view="iso", match="generic",
+        subs=["A contact etch-stop liner under the ILD is not drawn"])
+    # 8
+    F.drop("hardmask", "dummy", "dox")
+    F.snap("pull", "Dummy-gate removal",
+        "The hard mask is opened and the dummy silicon and its oxide are etched away, leaving a "
+        "trench between the spacers with the fins' top and sides bare at its bottom: the cavity "
+        "the real gate will fill.", view="cut", match="generic")
+    # 9
+    F.add("il1", "il2", "hk1", "hk2")
+    F.snap("hk", "Interfacial layer and high-κ",
+        "A thin interfacial oxide forms on the fin, then HfO₂ is deposited by atomic layer "
+        "deposition over the fins and the trench walls. High-κ keeps the gate's capacitance high "
+        "with less tunnelling than a thin SiO₂ alone [R7].", view="c", match="generic",
+        subs=["Films are drawn only where they wrap the fins"])
+    # 10
+    F.add("tin1", "tin2", "mo", "gatecap")
+    F.snap("metal", "Work-function metal, gate fill and cap",
+        "A TiN work-function metal sets the threshold voltage [R8]; molybdenum fills the rest of "
+        "the trench, is polished, recessed and capped. The metal wraps three faces of each fin: "
+        "the tri-gate.", view="c", match="generic",
+        subs=["TiN, Mo and a TiN cap are illustrative; the cap is often a dielectric (SiN) in "
+              "self-aligned-contact schemes"],
+        omitted=["The separate pFET work-function metal"])
+    # 11
+    F.add("nisi_source", "nisi_drain", "ni_source", "ni_drain", "w_source", "w_drain", "gatew")
+    ild_around()
+    F.snap("contacts", "Middle-of-line contacts",
+        "Trenches are etched through the ILD down to the source/drain epitaxy, a NiSi silicide "
+        "forms on it, and Ni and W fill the trenches; a W contact lands on the gate.",
+        view="iso", match="generic",
+        subs=["The NiSi, Ni and W contact stack is illustrative"])
+    # 12
+    F.drop("ild")
+    F.snap("done", "The finished device",
+        "The finished FinFET, with the ILD hidden: two fins, each wrapped on three faces by the "
+        "high-κ/metal gate, between Si:P source and drain.", view="iso", match="generic",
+        subs=["The ILD is hidden for viewing only"])
+    steps = F.done()
+    used = {st["match"] for st in steps}
+    return dev, steps, dict(scope=FIN_SCOPE, figures=FIN_FIGURES, branch=FIN_BRANCH, skipped={},
+                               audit_tile=(
+                                   "Steps numbered n.k are operation substeps leading into core step n; those at "
+                                   "tile scale show a 2 × 2 context of an nFET and a pFET pair of fins crossed by two "
+                                   "gate lines, with the selected nFET site at the single-site model's origin. The "
+                                   "fins sit on one grid at the fin pitch; the grid line between the two pairs is a "
+                                   "dummy fin the spacer routes cut away. The build checks that the tile, cropped to "
+                                   "that site, matches the single-site model at steps 2 and 3."),
+                               audit_unverified=[
+                                   "**Source mapping.** No state is mapped to a figure of a published flow yet; "
+                                   "every state is a generic teaching reconstruction.",
+                                   "**Model choices.** The source/drain epitaxy grows on the unrecessed fin, the "
+                                   "gate cap is TiN, and no well, punch-through-stopper or contact etch-stop layer "
+                                   "is drawn, all to end at this app's FinFET model.",
+                                   "The lithography operations (resist, exposure, development) are concept-level: "
+                                   "no optics, dose, resist chemistry, overlay or mask count is modelled or claimed.",
+                                   "**Patterning routes.** P, P/2 and P/4 are ideal (real spacer images show pitch "
+                                   "walk); core, spacer and film materials and thicknesses are illustrative; which "
+                                   "lines a cut or block pattern removes is integration-dependent, and no overlay "
+                                   "or placement error is modelled."],
+                               refs=["R7", "R8", "R16", "R19", "R20", "R21", "R22", "R23"],
+                               match={k: v for k, v in dict(MATCH, **PAT_MATCH, **FIN_MATCH).items() if k in used},
+                               routes=FIN_ROUTES,
+                               route_title="How the fins are printed", route_join="the fin etch",
+                               views=dict(cut=FIN_CUT, **FIN_TILE_VIEWS, **FIN_FIELD_VIEWS))
+
+
+FLOWS = {"ns": flow_ns, "fin": flow_fin, "sadp": lesson("sadp"), "saqp": lesson("saqp")}
 
 
 def audit(key, dev, flow, refs):
@@ -1020,6 +1372,7 @@ def audit(key, dev, flow, refs):
     md += ["This lesson is generated from the nanosheet flow's route of the same name and its "
            "stack etch, so every state, check and caveat below is that route's (see the "
            "nanosheet audit above)."] if flow.get("lesson") else [
+           flow.get("audit_tile") or
            "Steps numbered n.k are operation substeps leading into core step n; those at tile "
            "scale show a 2 × 2 context of two stack lines (nFET and pFET) crossed by two gate "
            "lines, with the selected nFET site at the single-site model's origin. The build checks "
@@ -1060,14 +1413,15 @@ def audit(key, dev, flow, refs):
     if flow["skipped"]:
         md += ["", "## Source figures not mapped to a state", ""]
         md += [f"- **Fig. {k}**: {v}" for k, v in flow["skipped"].items()]
-    md += ["", "## Not yet verified", "",
+    md += ["", "## Not yet verified", ""]
+    md += ["- " + t for t in flow["audit_unverified"]] if "audit_unverified" in flow else [
            "- **Every figure mapping.** The patent's drawings have not been compared with these views; "
            "orientation, composition and labels may differ from the published artwork.",
            "- Views, cut directions and left/right are the app's own; the patent's section lines "
            "(X1–X1, X2–X2, Y1–Y1, Y2–Y2) are not yet mapped onto the app's axes.",
            "- The lithography operations (resist, exposure, development) are concept-level: no "
            "optics, dose, resist chemistry, overlay or mask count is modelled or claimed."]
-    if routes or flow.get("lesson"):
+    if (routes or flow.get("lesson")) and "audit_unverified" not in flow:
         md += ["- **Patterning routes.** SADP and SAQP are a patterning concept applied to an "
                "illustrative layer: the sources do not say this stack is patterned that way. P, P/2 "
                "and P/4 are ideal (real spacer images show pitch walk); core, spacer and film "

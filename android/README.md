@@ -40,13 +40,13 @@ reads, so regenerating the geometry updates both.
 - Each scene remembers its camera, cuts, view and hidden layers for the session.
 - **Process mode** — a representative fabrication flow as real geometry, one scene per
   step, read from `app/src/main/assets/process.json` (built by `scripts/build_process.py`).
-  So far the nanosheet: 18 core steps, plus operation substeps (resist, exposure, etch,
-  fill...) that zoom out to a 2 × 2 tile of sites; the other architectures are listed as
-  coming. A route switch in the Steps tab patterns the stack hard mask by direct print, SADP
-  or SAQP, the spacer routes on a field of lines around the tile; **SADP** and **SAQP** chips
-  show each route on its own. Each step
-  carries its source figures, match level, substitutions and omissions, shown in the Steps
-  tab and audited in `docs/PROCESS_AUDIT.md`.
+  So far the nanosheet (18 core steps) and the FinFET (12), plus operation substeps
+  (resist, exposure, etch, fill...) that zoom out to a 2 × 2 tile of sites; forksheet and
+  CFET are listed as coming. A route switch in the Steps tab patterns the nanosheet's stack
+  lines or the FinFET's fins by direct print, SADP or SAQP, the spacer routes on a field of
+  lines around the tile; **SADP** and **SAQP** chips show the nanosheet's routes on their
+  own. Each step carries its source figures (where mapped), match level, substitutions and
+  omissions, shown in the Steps tab and audited in `docs/PROCESS_AUDIT.md`.
 - A first-launch **guided tour** (spotlight plus an animated hand that performs each
   gesture) and a searchable feature list, both under **?** in the header.
 - Light or dark follows the system setting.

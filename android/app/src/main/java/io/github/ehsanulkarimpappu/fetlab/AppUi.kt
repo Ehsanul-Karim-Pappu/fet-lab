@@ -427,8 +427,10 @@ fun FetLabApp(lib: Library, renderer: Renderer) {
     var playing by remember { mutableStateOf(false) }
     // Operation substeps (litho, etch, fill...) between the core steps; on by default.
     var showOps by rememberSaveable { mutableStateOf(true) }
-    // How the stack hard mask is patterned: "direct", "sadp" or "saqp" (see Route).
-    var route by rememberSaveable { mutableStateOf("direct") }
+    // The patterning route picked in each flow ("direct", "sadp", "saqp"; see Route); a flow
+    // the user has not touched shows its own default (SAQP for the FinFET's fins).
+    val routeOf = remember { mutableStateMapOf<String, String>() }
+    fun routeIn(f: ProcessFlow?) = f?.let { routeOf[it.device] ?: it.defaultRoute } ?: ""
     var glowJob by remember { mutableStateOf<Job?>(null) }
     /** The flow for [tech], if one has been written: the device key it is filed under. */
     fun flowFor(tech: String): String? =
@@ -512,7 +514,7 @@ fun FetLabApp(lib: Library, renderer: Renderer) {
         if (!playing) return@LaunchedEffect
         val sc = lib.scene(sceneKey)
         val f = sc.flow
-        val nxt = f?.next(sc.stepIndex, 1, showOps, route)
+        val nxt = f?.next(sc.stepIndex, 1, showOps, routeIn(f))
         if (nxt == null) { playing = false; return@LaunchedEffect }
         delay(4200)
         goStep(nxt)
@@ -808,7 +810,7 @@ fun FetLabApp(lib: Library, renderer: Renderer) {
                 Spacer(Modifier.width(12.dp))
                 Column(Modifier.weight(1f)) {
                     FitTitle(scene.name, MaterialTheme.colorScheme.onBackground)
-                    Text(scene.step?.tag(scene.flow?.routeOr(route) ?: route) ?: scene.tag,
+                    Text(scene.step?.tag(routeIn(scene.flow)) ?: scene.tag,
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         maxLines = 1, overflow = TextOverflow.Ellipsis)
@@ -1005,9 +1007,9 @@ fun FetLabApp(lib: Library, renderer: Renderer) {
                 if (flow != null) shown.value = scene
                 val sc = shown.value
                 val f = sc.flow
-                val prev = f?.next(sc.stepIndex, -1, showOps, route)
-                val next = f?.next(sc.stepIndex, 1, showOps, route)
-                if (f != null) ProcessBar(sc.step?.labelIn(f.routeOr(route)) ?: "", f.coreCount, sc.step?.title ?: "",
+                val prev = f?.next(sc.stepIndex, -1, showOps, routeIn(f))
+                val next = f?.next(sc.stepIndex, 1, showOps, routeIn(f))
+                if (f != null) ProcessBar(sc.step?.labelIn(routeIn(f)) ?: "", f.coreCount, sc.step?.title ?: "",
                     sc.step?.isOp == true, prev != null, next != null, playing,
                     glass, line, ink, dim,
                     onPrev = { playing = false; prev?.let { goStep(it) } },
@@ -1069,12 +1071,12 @@ fun FetLabApp(lib: Library, renderer: Renderer) {
                         2 -> LayersTab(lib, scene, layerTick, layersList) { parts, visible -> setVisible(parts, visible) }
                         3 -> {
                             val f = scene.flow
-                            if (f != null) StepsTab(lib, f, scene.stepIndex, stepsList, showOps, route,
+                            if (f != null) StepsTab(lib, f, scene.stepIndex, stepsList, showOps, routeIn(f),
                                 onOps = { showOps = it },
                                 onRoute = { r ->
                                     // Off the new route (on another route's operation), start
                                     // the new route at its first operation.
-                                    route = r
+                                    routeOf[f.device] = r
                                     if (!f.onRoute(scene.stepIndex, r)) {
                                         playing = false
                                         goStep(f.steps.indexOfFirst { it.route == f.routeOr(r) }.coerceAtLeast(0))
@@ -1534,16 +1536,16 @@ private fun FitTitle(text: String, color: Color) {
         })
 }
 
-/** The choice of route through the operations that follow: how the stack hard mask is made. */
+/** The choice of route through the operations that follow: how the hard mask is patterned. */
 @Composable
 private fun RoutePicker(flow: ProcessFlow, here: String, onRoute: (String) -> Unit) {
     Surface(color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.55f),
         shape = RoundedCornerShape(14.dp),
         modifier = Modifier.fillMaxWidth().padding(start = 14.dp, top = 6.dp, bottom = 6.dp).tourTarget("routes")) {
         Column(Modifier.padding(horizontal = 12.dp, vertical = 10.dp)) {
-            Text("HOW THE STACK LINES ARE PRINTED", style = MaterialTheme.typography.labelSmall,
+            Text(flow.routeTitle.uppercase(), style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant)
-            Text("Pick a route: the substeps below change to match, then rejoin at the stack etch.",
+            Text("Pick a route: the substeps below change to match, then rejoin at ${flow.routeJoin}.",
                 fontFamily = PlexSans, fontSize = 11.5f.sp, lineHeight = 16.sp,
                 color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(top = 2.dp, bottom = 8.dp))
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {

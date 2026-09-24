@@ -108,16 +108,20 @@ class ProcessStep(val id: String, val title: String, val body: String, val view:
 
 /** One way through a run of operations: the stack hard mask printed directly, or made by
  *  SADP or SAQP. Only the chosen route's operations are stepped through. */
-class Route(val id: String, val name: String, val note: String)
+class Route(val id: String, val name: String, val note: String, val isDefault: Boolean)
 
 /** A device's fabrication flow. Every step is a scene of its own, keyed [keys]. [figures]
  *  and [branch] qualify every figure mapping and are shown with the steps. */
 class ProcessFlow(val device: String, val scope: String, val figures: String, val branch: String,
                   val match: Map<String, String>, val refs: List<String>,
-                  val steps: List<ProcessStep>, val keys: List<String>, val routes: List<Route>) {
+                  val steps: List<ProcessStep>, val keys: List<String>, val routes: List<Route>,
+                  /** The route picker's heading, and the step every route rejoins at. */
+                  val routeTitle: String, val routeJoin: String) {
     val coreCount get() = steps.count { !it.isOp }
-    /** [route] if this flow has it, else its first route (the default). */
-    fun routeOr(route: String) = if (routes.any { it.id == route }) route else routes.firstOrNull()?.id ?: ""
+    /** The route shown until the user picks one: the one marked default, else the first. */
+    val defaultRoute get() = (routes.firstOrNull { it.isDefault } ?: routes.firstOrNull())?.id ?: ""
+    /** [route] if this flow has it, else its default. */
+    fun routeOr(route: String) = if (routes.any { it.id == route }) route else defaultRoute
     /** Whether step [i] is on [route]: shared steps are on every route. */
     fun onRoute(i: Int, route: String): Boolean {
         val r = steps[i].route ?: return true
@@ -300,12 +304,13 @@ class Library(val materials: Map<String, Material>, val order: List<String>, val
                 val routes = ArrayList<Route>()
                 fj.optJSONArray("routes")?.let { ra ->
                     for (k in 0 until ra.length()) ra.getJSONObject(k).let { r ->
-                        routes.add(Route(r.getString("id"), r.getString("name"), r.optString("note", ""))) }
+                        routes.add(Route(r.getString("id"), r.getString("name"), r.optString("note", ""),
+                            r.optBoolean("default", false))) }
                 }
                 val flow = ProcessFlow(dk, fj.optString("scope", ""), fj.optString("figures", ""),
                     fj.optString("branch", ""), match,
                     (fj.optJSONArray("refs") ?: JSONArray()).toStringList(), steps, stepScenes.map { it.key },
-                    routes)
+                    routes, fj.optString("route_title", "How this is patterned"), fj.optString("route_join", "the next step"))
                 for (sc in stepScenes) sc.flow = flow
                 scenes.addAll(stepScenes)
                 flows[dk] = flow
