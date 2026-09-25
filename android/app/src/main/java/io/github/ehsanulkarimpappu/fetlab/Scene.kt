@@ -119,7 +119,12 @@ class ProcessStep(val id: String, val title: String, val body: String, val view:
  *  its + side, and the view that frames it at each scale. [text] says how it relates to the
  *  source's own section lines (from the text, or not claimed at all). */
 class SectionPlane(val id: String, val name: String, val short: String, val axis: Char,
-                   val pos: Float, val text: String, val views: Map<String, String>)
+                   val pos: Float, val text: String, val views: Map<String, String>,
+                   /** Where the plane is at a scale whose frame puts its line elsewhere (the pFET
+                    *  line in the tile), when that differs from [pos]. */
+                   val at: Map<String, Float> = emptyMap()) {
+    fun posAt(scale: String?) = at[scale ?: "site"] ?: pos
+}
 
 /** A step set against its source in one plane: the figure, what the source's text describes,
  *  what the model shows cut by the plane, what it leaves out, and how far it was checked. */
@@ -383,8 +388,10 @@ class Library(val materials: Map<String, Material>, val order: List<String>, val
                 val o = a.getJSONObject(i)
                 val v = HashMap<String, String>()
                 o.optJSONObject("views")?.let { m -> for (k in m.keys()) v[k] = m.getString(k) }
+                val at = HashMap<String, Float>()
+                o.optJSONObject("at")?.let { m -> for (k in m.keys()) at[k] = m.getDouble(k).toFloat() }
                 SectionPlane(o.getString("id"), o.getString("name"), o.optString("short", o.getString("name")),
-                    o.getString("axis").first(), o.getDouble("pos").toFloat(), o.optString("text", ""), v)
+                    o.getString("axis").first(), o.getDouble("pos").toFloat(), o.optString("text", ""), v, at)
             }
         }
 

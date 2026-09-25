@@ -50,16 +50,17 @@ class SecRect(val part: Part, val u0: Float, val u1: Float, val v0: Float, val v
 
 fun sectionOf(sc: Scene, pl: SectionPlane): List<SecRect> {
     val out = ArrayList<SecRect>()
+    val pos = pl.posAt(sc.step?.scale)
     for (p in sc.parts) {
         if (!p.visible) continue
         for (b in p.boxes) {
             val cx = b[0]; val cy = b[1]; val cz = b[2]
             val hx = b[3] / 2f; val hy = b[4] / 2f; val hz = b[5] / 2f
             if (pl.axis == 'x') {
-                if (cx - hx < pl.pos && cx + hx > pl.pos)
+                if (cx - hx < pos && cx + hx > pos)
                     out.add(SecRect(p, -(cz + hz), -(cz - hz), cy - hy, cy + hy))
             } else {
-                if (cz - hz < pl.pos && cz + hz > pl.pos)
+                if (cz - hz < pos && cz + hz > pos)
                     out.add(SecRect(p, cx - hx, cx + hx, cy - hy, cy + hy))
             }
         }
@@ -183,7 +184,7 @@ fun Locator(lib: Library, sc: Scene, pl: SectionPlane?, modifier: Modifier = Mod
         if (pl == null) return@Canvas
         val dash = PathEffect.dashPathEffect(floatArrayOf(10f, 7f))
         if (pl.axis == 'x') {
-            val x = px(pl.pos)
+            val x = px(pl.posAt(sc.step?.scale))
             drawLine(accent, Offset(x, pz(z1)), Offset(x, pz(z0)), strokeWidth = 3f, pathEffect = dash)
             // Seen from +x: the eye is on the drain side, looking back toward the source.
             val y = pz((z0 + z1) / 2)
@@ -191,7 +192,7 @@ fun Locator(lib: Library, sc: Scene, pl: SectionPlane?, modifier: Modifier = Mod
             drawLine(accent, Offset(x + 6f, y), Offset(x + 16f, y - 8f), strokeWidth = 3f)
             drawLine(accent, Offset(x + 6f, y), Offset(x + 16f, y + 8f), strokeWidth = 3f)
         } else {
-            val y = pz(pl.pos)
+            val y = pz(pl.posAt(sc.step?.scale))
             drawLine(accent, Offset(px(x0), y), Offset(px(x1), y), strokeWidth = 3f, pathEffect = dash)
             val x = px((x0 + x1) / 2)
             drawLine(accent, Offset(x, y - 34f), Offset(x, y - 6f), strokeWidth = 3f)

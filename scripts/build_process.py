@@ -3018,7 +3018,8 @@ NS_PLANES = [
               "the patent's text; not compared with its drawings."),
     dict(id="y1", name="Across the stacks, through the gate", short="Across · gate", axis="x", pos=0.0,
          text="The patent's Y1–Y1 direction: across the stacks through the gate region. Direction from "
-              "the patent's text; not compared with its drawings."),
+              "the patent's text; not compared with its drawings. Before the gate is made, the plane "
+              "is where it will be."),
     dict(id="y2", name="Across the stacks, through the source/drain", short="Across · S/D", axis="x",
          pos=(XSP + XSD) / 2,
          text="The patent's Y2–Y2 direction: across the stacks through the source/drain region, here "
@@ -3027,7 +3028,8 @@ NS_PLANES = [
 FIN_PLANES = [
     dict(id="across_gate", name="Across the fins, at the gate", short="Across · gate", axis="x", pos=0.0,
          text="The app's own section. Not claimed to be the patent's A, B or C line: its Fig. 1, which "
-              "defines them, has not been inspected."),
+              "defines them, has not been inspected. Before the gate is made, the plane is where it "
+              "will be; in the line field it crosses every patterned line."),
     dict(id="along_fin", name="Along fin 2, source to drain", short="Along fin", axis="z", pos=13.5,
          text="The app's own section, through the middle of fin 2. Not claimed to be the patent's A, B "
               "or C line: its Fig. 1 has not been inspected."),
@@ -3035,11 +3037,11 @@ FIN_PLANES = [
          pos=27.0,
          text="The app's own section, through the drain epitaxy. Not claimed to be the patent's A, B or "
               "C line: its Fig. 1 has not been inspected."),
-    dict(id="field_across", name="Across the fin lines, mid-field", short="Across lines", axis="x",
-         pos=-38.0, scales=("field",),
-         text="Across the patterned lines, the orientation of the SAQP paper's cross-sections as "
-              "described in its text; not compared with its drawings."),
 ]
+# The pFET flows follow the pFET: in their single-site views it is at the origin, in the tile
+# and the field around it one site pitch across (-z).
+FIN_P_PLANES = [FIN_PLANES[0], dict(FIN_PLANES[1], name="Along a pFET fin, source to drain",
+                                    at=dict(tile=13.5 - 81.0, field=13.5 - 81.0)), FIN_PLANES[2]]
 NS_FIG_TEXT = {
     "2A/B": "The starting substrate.",
     "3A/B": "Punch-through-stopper implants: p-type under the nFET region, n-type under the pFET region.",
@@ -3097,25 +3099,27 @@ FIN_PLANE_OF = dict(
 def plane_view(pl, scale, bounds):
     """The camera for a plane at a scale: square on to the cut face, the kept half behind it."""
     b = bounds
+    pos = pl.get("at", {}).get(scale, pl["pos"])
     ym = (b["y"][0] + b["y"][1]) / 2 if scale != "site" else 40.0
     r = {"site": 255.0, "tile": 460.0, "field": 660.0, "pair": 440.0}[scale]
     if pl["axis"] == "x":
         return dict(n=pl["name"], s="section plane", az=1.5708, el=0.1, r=r,
-                    tgt=[pl["pos"], min(ym, 60.0), (b["z"][0] + b["z"][1]) / 2 if scale != "site" else 0.0],
-                    clip=[pl["pos"], None, None], scale=scale)
+                    tgt=[pos, min(ym, 60.0), (b["z"][0] + b["z"][1]) / 2 if scale != "site" else 0.0],
+                    clip=[pos, None, None], scale=scale)
     return dict(n=pl["name"], s="section plane", az=0.0, el=0.1, r=r,
-                tgt=[(b["x"][0] + b["x"][1]) / 2 if scale != "site" else 0.0, min(ym, 60.0), pl["pos"]],
-                clip=[None, None, pl["pos"]], scale=scale)
+                tgt=[(b["x"][0] + b["x"][1]) / 2 if scale != "site" else 0.0, min(ym, 60.0), pos],
+                clip=[None, None, pos], scale=scale)
 
 
-def cut_by(parts, pl):
+def cut_by(parts, pl, scale="site"):
     """Names of the parts the plane passes through, in drawing order."""
     k = 0 if pl["axis"] == "x" else 2
+    pos = pl.get("at", {}).get(scale, pl["pos"])
     names = []
     for p in parts:
         for b in p["boxes"]:
             lo, hi = b[k] - b[k + 3] / 2, b[k] + b[k + 3] / 2
-            if lo < pl["pos"] - 1e-6 and hi > pl["pos"] + 1e-6:
+            if lo < pos - 1e-6 and hi > pos + 1e-6:
                 if p["name"] not in names: names.append(p["name"])
                 break
     return names
@@ -3123,7 +3127,7 @@ def cut_by(parts, pl):
 
 NS_P_PLANES = [
     dict(id="x1", name="Along the pFET stack, through the gate", short="Along pFET", axis="z", pos=0.0,
-         scales=("site",),
+         at=dict(tile=-84.0, field=-84.0),
          text="The patent's X1–X1 direction: along the pFET stack, crossing its gate. Direction from "
               "the patent's text; not compared with its drawings."),
 ] + NS_PLANES[1:]
@@ -3159,7 +3163,7 @@ FIN_PAIR_PLANE_OF = dict(p_epi=["across_sd", "along_pfin"], epi=["across_sd", "a
 
 def attach_sections(key, flow, dev):
     tech = "fin" if key.startswith("fin") or key == "pitchwalk" else "ns"
-    planes = dict(pitchwalk=PW_PLANES, ns_p=NS_P_PLANES, ns_pair=NS_PAIR_PLANES,
+    planes = dict(pitchwalk=PW_PLANES, ns_p=NS_P_PLANES, ns_pair=NS_PAIR_PLANES, fin_p=FIN_P_PLANES,
                   fin_pair=FIN_PAIR_PLANES).get(key, FIN_PLANES if tech == "fin" else NS_PLANES)
     plane_of = dict(ns_p={k: [("x1" if x == "x2" else x) for x in v] for k, v in NS_P_PLANE_OF.items()},
                     fin_pair=FIN_PAIR_PLANE_OF).get(key, FIN_PLANE_OF if tech == "fin" else NS_PLANE_OF)
@@ -3175,7 +3179,7 @@ def attach_sections(key, flow, dev):
     for pl in planes:
         views = {}
         for sc in scales:
-            if sc not in pl.get("scales", ("site", "tile")): continue
+            if sc not in pl.get("scales", ("site", "tile", "field")): continue
             b = next((st["bounds"] for st in flow["steps"] if st["scale"] == sc and "bounds" in st), None) \
                 if sc != "site" else dev.bounds
             if b is None: continue
@@ -3184,7 +3188,9 @@ def attach_sections(key, flow, dev):
             views[sc] = vk
         if views:
             secs.append(dict(id=pl["id"], name=pl["name"], short=pl["short"], axis=pl["axis"],
-                             pos=round(pl["pos"], 4), text=pl["text"], views=views))
+                             pos=round(pl["pos"], 4), text=pl["text"], views=views,
+                             **({"at": {k: round(v, 4) for k, v in pl["at"].items() if k in views}}
+                                if any(k in views for k in pl.get("at", {})) else {})))
     flow["sections"] = secs
     byid = {s["id"]: s for s in secs}
     for st in flow["steps"]:
@@ -3195,16 +3201,14 @@ def attach_sections(key, flow, dev):
         else:
             described = " ".join(dict.fromkeys(FIN_FIG_TEXT[(src, f[:-1] + "A" if src == "R24" and f[-1] in "ABC" else f)]
                                                for f in st["figs"]))
-        want = plane_of.get(st["id"]) or ([planes[0]["id"] if key == "pitchwalk" else "field_across"]
-                                          if st["scale"] == "field" else
-                                          [planes[0]["id"] if tech == "fin" else "y1"])
+        want = plane_of.get(st["id"]) or [planes[0]["id"] if tech == "fin" else "y1"]
         parts = [final[x] if isinstance(x, str) else x for x in st["parts"]]
         entries = []
         for pid in want:
             pl = byid.get(pid)
             if not pl or st["scale"] not in pl["views"]: continue
             entries.append(dict(plane=pid, figs=st["figs"], src=src, described=described,
-                                visible=cut_by(parts, next(p for p in planes if p["id"] == pid)),
+                                visible=cut_by(parts, next(p for p in planes if p["id"] == pid), st["scale"]),
                                 omitted=list(st["omitted"]) + (
                                     ["The source's figures show the pFET beside the nFET; this site "
                                      f"view shows the {'pFET' if key == 'ns_p' else 'nFET'} only"]
