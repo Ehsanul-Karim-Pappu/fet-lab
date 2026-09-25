@@ -28,6 +28,8 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.isSystemInDarkTheme
@@ -113,7 +115,8 @@ private val SHOW_KEYS = listOf("show_fin" to "FinFET", "show_ns" to "Nanosheet",
     "show_fs" to "Forksheet", "show_cfet" to "CFET", "show_cmp" to "Compare")
 /** Process-mode chips name a technology; the flow behind each is looked up at runtime. */
 private val PROC_KEYS = listOf("proc_fin" to "FinFET", "proc_ns" to "Nanosheet",
-    "proc_fs" to "Forksheet", "proc_cfet" to "CFET", "proc_sadp" to "SADP", "proc_saqp" to "SAQP")
+    "proc_fs" to "Forksheet", "proc_cfet" to "CFET", "proc_sadp" to "SADP", "proc_saqp" to "SAQP",
+    "proc_pitchwalk" to "Pitch walk")
 private val MODES = listOf("Device", "Inverter", "Layout", "Process")
 private const val PROCESS = 3
 private val TABS = listOf("Views", "Section", "Layers", "Specs", "Story")
@@ -129,6 +132,8 @@ private fun firstOf(mode: Int) = keysFor(mode).first().first
  *  scenes are one technology: only the device mode splits them into mono/sequential. */
 private fun techOf(key: String): String {
     val k = key.removePrefix("inv_").removePrefix("show_").removePrefix("proc_").substringBefore('@')
+        // A technology's pFET and both-sites flows (ns_p, ns_pair) are the same technology.
+        .removeSuffix("_pair").removeSuffix("_p")
     return if (k.startsWith("cfet")) "cfet" else k
 }
 
@@ -337,6 +342,14 @@ fun FetLabApp(lib: Library, renderer: Renderer) {
             if (c?.get(2) != null) frac(c[2]!!, sc.lo[2], sc.hi[2]) else 1f)
     }
 
+    // A section plane (see SectionPlane), and how it is shown: 0 3D only, 1 the 2D section, 2 both.
+    var secPlane by rememberSaveable { mutableStateOf<String?>(null) }
+    var secMode by rememberSaveable { mutableIntStateOf(0) }
+    var stageH by remember { mutableIntStateOf(0) }
+    /** The active plane's view at [sc]'s scale, if the plane exists there. */
+    fun planeView(sc: Scene): ViewPreset? =
+        sc.flow?.plane(secPlane)?.views?.get(sc.step?.scale ?: "site")?.let { k -> sc.views.firstOrNull { it.key == k } }
+
     /** [slow] for a change of scale (site, tile, line field), which moves the camera much
      *  farther and changes the whole scene: a longer flight keeps it readable. */
     fun goToView(sc: Scene, v: ViewPreset, animate: Boolean, slow: Boolean = false) {
@@ -360,6 +373,18 @@ fun FetLabApp(lib: Library, renderer: Renderer) {
                 if (raw >= 1f) break
             }
         }
+    }
+
+    /** Look at [scene] in section plane [pl], shown as [mode] (0 3D, 1 section, 2 both). */
+    fun showPlane(pl: SectionPlane, mode: Int = secMode) {
+        secPlane = pl.id; secMode = mode
+        planeView(scene)?.let { goToView(scene, it, animate = true) }
+    }
+    /** Leave the section plane and go back to the step's own view. */
+    fun clearPlane() {
+        secPlane = null; secMode = 0
+        (scene.views.firstOrNull { it.key == scene.step?.view } ?: scene.views.firstOrNull())
+            ?.let { goToView(scene, it, animate = true) }
     }
 
     // What each scene looked like when it was left, so coming back finds it as it was:
@@ -446,6 +471,21 @@ fun FetLabApp(lib: Library, renderer: Renderer) {
     fun flowFor(tech: String): String? =
         (if (tech == "cfet") (if (cfetSeq) "cfet_seq" else "cfet_mono") else tech).takeIf { it in lib.flows }
     fun openFlow(device: String) = switchScene(stepKey(device, procAt[device] ?: 0))
+    /** Moves to the same technology's [key] flow (nFET, pFET or both sites) at the step that
+     *  matches the current one: the same step if that flow has it, else the nearest earlier
+     *  step it shares. */
+    fun openSite(key: String) {
+        val here = lib.scene(sceneKey)
+        val f = here.flow ?: return
+        val g = lib.flows[key] ?: return
+        if (g === f) return
+        val ids = g.steps.map { it.id }
+        var i = here.stepIndex
+        var to = -1
+        while (i >= 0 && to < 0) { to = ids.indexOf(f.steps[i].id); i-- }
+        playing = false
+        switchScene(stepKey(key, to.coerceAtLeast(0)))
+    }
     fun notWritten(label: String) = Toast.makeText(ctx,
         if (label.isEmpty()) "No process flow has been written yet."
         else "The $label process flow is still being written.", Toast.LENGTH_SHORT).show()
@@ -468,7 +508,8 @@ fun FetLabApp(lib: Library, renderer: Renderer) {
         sceneKey = key; procAt[f.device] = n
         renderer.scene = sc
         selected = null; renderer.highlight = null
-        val v = sc.views.firstOrNull { it.key == sc.step?.view }
+        // With a section plane active, every step is seen in that plane where it has one.
+        val v = (if (secPlane != null) planeView(sc) else null) ?: sc.views.firstOrNull { it.key == sc.step?.view }
         if (v != null && (rescale || v.key != viewKey)) goToView(sc, v, animate = true, slow = rescale)
         else {
             for (p in sc.parts) p.visible = p.id !in hidden
@@ -911,10 +952,13 @@ fun FetLabApp(lib: Library, renderer: Renderer) {
     }
 
     val stage = @Composable { mod: Modifier ->
-        Box(mod.tourTarget("stage").clip(RoundedCornerShape(20.dp)).background(stageBg)
+        Box(mod.tourTarget("stage").onSizeChanged { stageH = it.height }.clip(RoundedCornerShape(20.dp)).background(stageBg)
             .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(20.dp))) {
 
-            AndroidView(factory = { glView }, modifier = Modifier.fillMaxSize())
+            val split = scene.flow?.plane(secPlane) != null && secMode == 2 &&
+                scene.flow?.plane(secPlane)?.views?.containsKey(scene.step?.scale ?: "site") == true
+            AndroidView(factory = { glView }, modifier = Modifier.fillMaxSize()
+                .padding(top = if (split) with(density) { (stageH * 0.46f).toDp() } else 0.dp))
 
             Box(Modifier.matchParentSize().pointerInput(sceneKey) {
                 awaitEachGesture {
@@ -975,6 +1019,24 @@ fun FetLabApp(lib: Library, renderer: Renderer) {
                     }
                 }
             })
+
+            // The 2D section, cut from this same scene: over the whole stage, or over its top part
+            // with the 3D view resized below it (see the AndroidView's padding above).
+            val activePlane = scene.flow?.plane(secPlane)?.takeIf { it.views.containsKey(scene.step?.scale ?: "site") }
+            if (activePlane != null && secMode != 0) {
+                val panel = if (secMode == 1) Modifier.fillMaxSize().padding(bottom = 86.dp)
+                    else Modifier.fillMaxWidth().height(with(density) { (stageH * 0.46f).toDp() })
+                Box(panel) {
+                    key(layerTick, sceneKey) {
+                        SectionPanel(lib, scene, activePlane, selected, onPick = { p ->
+                            selected = p; renderer.highlight = p; draw()
+                        }, modifier = Modifier.matchParentSize())
+                    }
+                    Locator(lib, scene, activePlane, Modifier.align(Alignment.TopEnd).padding(6.dp)
+                        .size(width = 112.dp, height = 68.dp).clip(RoundedCornerShape(8.dp))
+                        .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.85f)))
+                }
+            }
 
             LaunchedEffect(showDims, viewKey) {
                 renderer.callouts = showDims; renderer.viewKey = viewKey; draw()
@@ -1109,6 +1171,13 @@ fun FetLabApp(lib: Library, renderer: Renderer) {
                                 edges = true; renderer.edges = true
                                 spin = false
                                 goToView(scene, scene.views.first(), animate = true)
+                            },
+                            header = {
+                                val here = scene.step?.scale ?: "site"
+                                val planes = scene.flow?.sections.orEmpty().filter { it.views.containsKey(here) }
+                                if (planes.isNotEmpty()) PlanesBlock(lib, scene, planes, secPlane, secMode,
+                                    onPlane = { pl -> if (pl.id == secPlane) clearPlane() else showPlane(pl, maxOf(secMode, 2)) },
+                                    onMode = { m -> secMode = m })
                             })
                         2 -> LayersTab(lib, scene, layerTick, layersList) { parts, visible -> setVisible(parts, visible) }
                         3 -> {
@@ -1124,7 +1193,9 @@ fun FetLabApp(lib: Library, renderer: Renderer) {
                                         goStep(f.steps.indexOfFirst { it.route == f.routeOr(r) }.coerceAtLeast(0))
                                     }
                                 },
-                                onPick = { playing = false; goStep(it) }, onRef = { openUrl(it) })
+                                onPick = { playing = false; goStep(it) }, onRef = { openUrl(it) },
+                                onSite = { openSite(it) },
+                                onCompare = { pl -> showPlane(pl, 2); sheetLevel = 1 })
                             else SpecsTab(scene, parPick, specsList) { t -> pickPar(t) }
                         }
                         else -> StoryTab(scene)
@@ -1423,7 +1494,7 @@ private fun Segmented(items: List<String>, selected: Int, tag: String? = null, o
 }
 
 @Composable
-private fun Chip(label: String, selected: Boolean, modifier: Modifier = Modifier, onClick: () -> Unit) {
+internal fun Chip(label: String, selected: Boolean, modifier: Modifier = Modifier, onClick: () -> Unit) {
     val bg by animateColorAsState(
         if (selected) MaterialTheme.colorScheme.primaryContainer
         else MaterialTheme.colorScheme.surfaceVariant, tween(220), label = "chipBg")
@@ -1481,6 +1552,7 @@ private fun LogicBar(input: Int, glass: Color, line: Color, ink: Color, dim: Col
 
 /** The fabrication stepper on the stage: back, the step and its name, play, forward. */
 @Composable
+@OptIn(ExperimentalLayoutApi::class)
 private fun ProcessBar(label: String, cores: Int, title: String, isOp: Boolean, badge: String, sourced: Boolean,
                        hasPrev: Boolean, hasNext: Boolean, playing: Boolean,
                        glass: Color, line: Color, ink: Color, dim: Color,
@@ -1493,14 +1565,17 @@ private fun ProcessBar(label: String, cores: Int, title: String, isOp: Boolean, 
             Column(Modifier.weight(1f).clip(RoundedCornerShape(14.dp)).clickable(onClick = onTitle)
                 .padding(horizontal = 8.dp, vertical = 5.dp)) {
                 // How this state stands against its source, at a glance: a published stage in the
-                // accent colour, a teaching reconstruction or a concept in the muted one.
-                Row(verticalAlignment = Alignment.CenterVertically) {
+                // accent colour, a teaching reconstruction or a concept in the muted one. The badge
+                // wraps onto its own line when the step number and it do not fit side by side
+                // (a narrow phone, a large font), rather than shrinking or crowding the controls.
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(2.dp)) {
                     Text((if (isOp) "OPERATION " else "STEP ") + "$label / $cores", color = dim,
-                        fontFamily = Mono, fontSize = 10.sp)
+                        fontFamily = Mono, fontSize = 10.sp, maxLines = 1)
                     if (badge.isNotEmpty()) {
                         val tone = if (sourced) MaterialTheme.colorScheme.primary else dim
-                        Text(badge.uppercase(), color = tone, fontFamily = Mono, fontSize = 9.sp,
-                            maxLines = 1, modifier = Modifier.padding(start = 8.dp)
+                        Text(badge.uppercase(), color = tone, fontFamily = Mono, fontSize = 10.sp,
+                            maxLines = 1, modifier = Modifier
                                 .border(1.dp, tone.copy(alpha = 0.6f), RoundedCornerShape(6.dp))
                                 .padding(horizontal = 5.dp, vertical = 1.dp))
                     }
@@ -1566,6 +1641,11 @@ private fun StepSource(flow: ProcessFlow, st: ProcessStep) {
     if (label.isNotEmpty() || figs.isNotEmpty())
         Text(figs + label, fontFamily = Mono, fontSize = 10.5f.sp, lineHeight = 15.sp,
             color = MaterialTheme.colorScheme.primary, modifier = Modifier.padding(top = 8.dp))
+    // What the stepper's badge means for this step, in words.
+    flow.badge[st.match]?.let { flow.badgeNote[it] }?.let {
+        Text(it, fontFamily = PlexSans, fontSize = 11.5f.sp, lineHeight = 16.sp,
+            color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(top = 4.dp))
+    }
     @Composable
     fun notes(head: String, items: List<String>) {
         if (items.isEmpty()) return
@@ -1594,7 +1674,43 @@ private fun FitTitle(text: String, color: Color) {
         })
 }
 
-/** The choice of route through the operations that follow: how the hard mask is patterned. */
+/** nFET, pFET or both sites: the technology's three flows, one of them on screen. */
+@Composable
+private fun SitePicker(flow: ProcessFlow, onSite: (String) -> Unit) {
+    Column(Modifier.fillMaxWidth().padding(bottom = 10.dp).tourTarget("sites")) {
+        SectionLabel("DEVICE SITE")
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            for (s in flow.sites) Chip(s.name, s.id == flow.site, Modifier.weight(1f)) { onSite(s.flow) }
+        }
+        Text(when (flow.site) {
+            "p" -> "Following the pFET. It shares the nFET's early stages, then has its own masked steps."
+            "both" -> "One nFET and one pFET side by side, joined by their gate line: two devices, not a finished circuit."
+            else -> "Following the nFET. Its pFET neighbour has a flow of its own, and Both sites shows the two together."
+        }, fontFamily = PlexSans, fontSize = 11.5f.sp, lineHeight = 16.sp,
+            color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(top = 6.dp))
+    }
+}
+
+/** What each region is doing at this step: processed, masked, or not yet reached. */
+@Composable
+private fun RegionLine(st: ProcessStep) {
+    if (st.regions.isEmpty()) return
+    Row(Modifier.fillMaxWidth().padding(top = 6.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+        for ((k, name) in listOf("n" to "nFET", "p" to "pFET")) {
+            val v = st.regions[k] ?: continue
+            val masked = v.startsWith("masked") || v.startsWith("protected")
+            Surface(color = if (masked) MaterialTheme.colorScheme.surfaceVariant else MaterialTheme.colorScheme.primaryContainer,
+                shape = RoundedCornerShape(8.dp), modifier = Modifier.weight(1f)) {
+                Text("$name · $v", fontFamily = PlexSans, fontSize = 11.sp, lineHeight = 15.sp,
+                    color = if (masked) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onPrimaryContainer,
+                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 5.dp))
+            }
+        }
+    }
+}
+
+/** The choice of route through the operations that follow (how the hard mask is patterned),
+ *  or between alternative endings (a gate cut or a shared gate). */
 @Composable
 private fun RoutePicker(flow: ProcessFlow, here: String, onRoute: (String) -> Unit) {
     Surface(color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.55f),
@@ -1603,7 +1719,8 @@ private fun RoutePicker(flow: ProcessFlow, here: String, onRoute: (String) -> Un
         Column(Modifier.padding(horizontal = 12.dp, vertical = 10.dp)) {
             Text(flow.routeTitle.uppercase(), style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant)
-            Text("Pick a route: the substeps below change to match, then rejoin at ${flow.routeJoin}.",
+            Text(if (flow.routeKind == "terminal") "Two alternative endings, not one after the other: pick one to step through."
+                 else "Pick a route: the substeps below change to match, then rejoin at ${flow.routeJoin}.",
                 fontFamily = PlexSans, fontSize = 11.5f.sp, lineHeight = 16.sp,
                 color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(top = 2.dp, bottom = 8.dp))
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -1621,7 +1738,8 @@ private fun RoutePicker(flow: ProcessFlow, here: String, onRoute: (String) -> Un
 @Composable
 private fun StepsTab(lib: Library, flow: ProcessFlow, index: Int, list: LazyListState,
                      showOps: Boolean, route: String, onOps: (Boolean) -> Unit, onRoute: (String) -> Unit,
-                     onPick: (Int) -> Unit, onRef: (String) -> Unit) {
+                     onPick: (Int) -> Unit, onRef: (String) -> Unit, onCompare: (SectionPlane) -> Unit,
+                     onSite: (String) -> Unit) {
     val here = flow.routeOr(route)
     // Keep the current step in view as the stepper or play moves it.
     LaunchedEffect(index) { list.animateScrollToItem(index + 1, scrollOffset = -24) }
@@ -1629,6 +1747,8 @@ private fun StepsTab(lib: Library, flow: ProcessFlow, index: Int, list: LazyList
         modifier = Modifier.tourTarget("list:steps")) {
         item {
             Column(Modifier.padding(top = 2.dp, bottom = 10.dp)) {
+                flow.pitchWalk?.let { PitchWalkPanel(lib, it) }
+                if (flow.sites.isNotEmpty()) SitePicker(flow, onSite)
                 for (t in listOf(flow.scope, flow.branch, flow.figures)) if (t.isNotEmpty())
                     Text(t, fontFamily = PlexSans, fontSize = 12.sp, lineHeight = 17.sp,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -1652,7 +1772,9 @@ private fun StepsTab(lib: Library, flow: ProcessFlow, index: Int, list: LazyList
         // whenever the steps around it are.
         val fork = flow.steps.indexOfFirst { it.route != null }
         itemsIndexed(flow.steps, key = { _, st -> st.id }) { i, st ->
-            if (i == fork && showOps && flow.routes.isNotEmpty()) RoutePicker(flow, here, onRoute)
+            // Alternative endings (gate cut or shared gate) are core steps: their picker always shows.
+            if (i == fork && (showOps || flow.routeKind == "terminal") && flow.routes.isNotEmpty())
+                RoutePicker(flow, here, onRoute)
             if (st.isOp && !showOps || !flow.onRoute(i, here)) return@itemsIndexed
             val on = i == index
             Surface(color = if (on) MaterialTheme.colorScheme.secondaryContainer else Color.Transparent,
@@ -1672,7 +1794,9 @@ private fun StepsTab(lib: Library, flow: ProcessFlow, index: Int, list: LazyList
                         Column(Modifier.padding(start = 34.dp, top = 5.dp)) {
                             Text(st.body, fontFamily = PlexSans, fontSize = 12.5f.sp, lineHeight = 18.sp,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            RegionLine(st)
                             StepSource(flow, st)
+                            CompareBlock(flow, st, onCompare)
                         }
                     }
                 }
@@ -1735,11 +1859,12 @@ private fun SectionTab(scene: Scene, cx: Float, cy: Float, cz: Float, explode: F
                        onClip: (Int, Float) -> Unit, onExplode: (Float) -> Unit,
                        onGhost: (Boolean) -> Unit, onDims: (Boolean) -> Unit,
                        onTex: (Boolean) -> Unit, onEdges: (Boolean) -> Unit,
-                       onSpin: (Boolean) -> Unit, onReset: () -> Unit) {
+                       onSpin: (Boolean) -> Unit, onReset: () -> Unit, header: @Composable () -> Unit = {}) {
     val haptic = LocalHapticFeedback.current
     fun toggle(t: Toggle) { haptic.performHapticFeedback(HapticFeedbackType.LongPress); t.set(!t.on) }
 
     Column(Modifier.verticalScroll(rememberScrollState())) {
+        header()
         SliderRow("Cut along channel", "X", cx, scene.lo[0], scene.hi[0], true) { onClip(0, it) }
         SliderRow("Cut vertically", "Y", cy, scene.lo[1], scene.hi[1], true) { onClip(1, it) }
         SliderRow("Cut across channel", "Z", cz, scene.lo[2], scene.hi[2], true) { onClip(2, it) }
@@ -1776,7 +1901,7 @@ private fun SectionTab(scene: Scene, cx: Float, cy: Float, cz: Float, explode: F
 }
 
 @Composable
-private fun SectionLabel(text: String) {
+internal fun SectionLabel(text: String) {
     Text(text, style = MaterialTheme.typography.labelSmall,
         color = MaterialTheme.colorScheme.onSurfaceVariant,
         modifier = Modifier.padding(top = 10.dp, bottom = 4.dp))

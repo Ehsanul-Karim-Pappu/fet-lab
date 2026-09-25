@@ -5,6 +5,64 @@ All notable changes to FET Lab. Dates are the release date; versions follow
 
 ## Unreleased
 
+### Process mode: pFETs, both sites, and the gate cut
+
+Each process technology now has a **site selector** at the top of the Steps tab: **nFET**
+(the flow as it was), **pFET**, and **Both sites**. Every step says what each region is doing
+at that point: processed, masked, or not yet reached.
+
+- **Nanosheet pFET**, in the order of the patent's text (US 12,568,683 B2): an n-type
+  stopper; the high-Ge base kept while the nFET's is removed (bottom dielectric isolation is
+  nFET-only); with the nFET masked, a recess through the base into the implanted sub-fin;
+  the Si layers and base indented and inner spacers formed, so the lower-Ge SiGe stays as the
+  channels; Si:B then SiGe:B epitaxy from the SiGe ends and the sub-fin, with a note on
+  compressive strain; after the shared ILD and dummy removal, the base and Si removed from its
+  gate with the nFET masked; its own high-κ and p-type work-function metal; contacts. The
+  shared stack's 5 nm Si gaps are narrow for a pFET gate, so its films are drawn thinner, and
+  the step says so.
+- **FinFET pFET**: the nFET's geometry with an n-well, SiGe:B source/drain grown with the nFET
+  masked, and a separate p-type work-function metal.
+- The pFET flows reuse the nFET flows' tile and field operations, including the direct,
+  SADP and SAQP routes, state for state.
+- **Both sites** puts the two flows' own models side by side, one stack pitch apart, joined by
+  their gate line, with each region mask drawn. It ends in two **alternative** routes, never
+  one after the other: a **gate cut** (resist, exposure, opening, an etch through the gate
+  fill, dielectric fill: two gates, two gate contacts) or a **shared gate** (one gate, one
+  contact, as an inverter's input needs; the patent's Fig. 19 arrangement). Tests check that
+  the cut leaves no conductive path and cuts no sheet, fin or source/drain, and that the shared
+  gate stays connected.
+
+### Process mode: section planes and figure comparison
+
+The Section tab lists named **section planes** for the flow on screen, with a top-down
+locator showing where the plane runs, which side is seen and the axes (along the channel,
+across neighbouring fins or stacks, vertical). **3D**, **Section** and **Both** show the 3D
+cut, a flat 2D section drawn from the same model state, or the two together; tapping a
+material in the section selects it in 3D too. The nanosheet planes follow the patent's
+X1–X1, X2–X2, Y1–Y1 and Y2–Y2 directions as its text describes them. The FinFET planes are
+the app's own and are not labelled as the patent's A, B or C lines: its Fig. 1, which
+defines them, is an outstanding visual check.
+
+Steps that cite a figure show **Compare with the source**: the source and figure, what its
+text describes, what the model cuts in that plane, and what is left out or different. Every
+mapping is marked **text-verified**, meaning the drawing has not been compared; the audit lists
+them one by one so each can be upgraded separately.
+
+The stepper's step number and badge now wrap onto their own line when space is short, rather
+than crowding the controls, and each badge's meaning is shown with the step's source (tap the
+step title).
+
+### Process mode: SAQP pitch walk
+
+A **Pitch walk** chip: the FinFET's SAQP fin patterning with the first-core width and the two
+spacer thicknesses let go. Sixteen lines are built from those three numbers; every space is
+measured off the built lines, typed by where it came from (inside a second core, where a
+first core was, between first-core spacer pairs), and reported with the largest, the smallest
+and **pitch walk = largest − smallest**. Three sliders, constrained so no space closes, redraw
+the cross-sections and a plan strip. The ideal case is checked to match the FinFET flow's own
+lines, and that flow stays ideal. Taper, etch bias and fin-height effects are described, not
+simulated, and the dimensions are illustrative (the paper's example is 96 → 48 → 24 nm).
+
 ### Process mode: the FinFET
 
 The FinFET chip in Process mode now has a flow: 15 steps from the bare wafer to the finished

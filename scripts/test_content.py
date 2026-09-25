@@ -38,8 +38,10 @@ class ContentTests(unittest.TestCase):
         self.assertTrue(proc['flows'])
         for key, flow in proc['flows'].items():
             # A lesson (the SADP and SAQP chips) has no finished device behind it.
-            lesson = flow.get('lesson', False)
-            dev = dict(parts=[], views={}) if lesson else devs[key]
+            # A pFET or both-sites flow carries its own finished parts ("final"), if any.
+            lesson = flow.get('lesson', False) or (flow.get('own') and 'final' not in flow)
+            dev = dict(parts=[], views={}) if lesson else \
+                dict(parts=flow['final'], views={}) if flow.get('own') else devs[key]
             final = {p['id'] for p in dev['parts']}
             views = {**dev['views'], **flow.get('views', {})}
             self.assertTrue(flow['scope'])
@@ -82,7 +84,7 @@ class ContentTests(unittest.TestCase):
         state, then its stack etch."""
         flows = json.loads((ROOT / 'data/process.json').read_text())['flows']
         ns = flows['ns']
-        lessons = {k: f for k, f in flows.items() if f.get('lesson')}
+        lessons = {k: f for k, f in flows.items() if f.get('lesson') and 'pitchwalk' not in f}
         self.assertEqual(set(lessons), {'sadp', 'saqp'})
         for key, flow in lessons.items():
             fork = next(i for i, s in enumerate(ns['steps']) if s.get('route'))
@@ -114,7 +116,7 @@ class ContentTests(unittest.TestCase):
         any of them. SAQP shows its second-core transfer as a step of its own."""
         proc = json.loads((ROOT / 'data/process.json').read_text())
         for key, flow in proc['flows'].items():
-            if 'routes' not in flow: continue
+            if 'routes' not in flow or flow.get('route_kind') == 'terminal': continue
             steps = flow['steps']
             ids = [r['id'] for r in flow['routes']]
             self.assertEqual(ids[0], 'direct')
@@ -178,6 +180,193 @@ class ContentTests(unittest.TestCase):
                 self.assertLessEqual(set(st.get('src', [])), refs, st['id'])
             for fig in skipped:
                 self.assertIn('Fig. ' + fig, audit)
+
+    def test_section_planes(self):
+        """Each section plane cuts where its name says, at every step that compares against it:
+        through the gate for a gate plane, through the source/drain for an S/D plane, along a
+        channel for a longitudinal one. Every compare entry names a plane and figure that
+        exist, lists what the plane actually cuts, and claims no drawing match."""
+        proc = json.loads((ROOT / 'data/process.json').read_text())
+        devs = {d['key']: d for d in self.data['devices']}
+        def cut(parts, pl):
+            k = 0 if pl['axis'] == 'x' else 2
+            return [p for p in parts for b in p['boxes']
+                    if b[k] - b[k + 3] / 2 < pl['pos'] - 1e-6 < pl['pos'] + 2e-6 < b[k] + b[k + 3] / 2]
+        # What a plane must cut, by kind, at the finished device.
+        want = {'ns': dict(x2=('sheet1', 'epi_drain', 'mo'), y1=('mo', 'sheet1'), y2=('epi_drain',)),
+                'fin': dict(across_gate=('mo', 'fin1', 'fin2'), along_fin=('fin2', 'epi_drain', 'mo'),
+                            across_sd=('epi_drain',))}
+        avoid = {'ns': dict(y2=('mo', 'sheet1')), 'fin': dict(across_sd=('mo',))}
+        for key, flow in proc['flows'].items():
+            planes = {p['id']: p for p in flow.get('sections', [])}
+            for pl in planes.values():
+                for scale, vk in pl['views'].items():
+                    self.assertEqual(flow['views'][vk].get('scale', 'site'), scale, (key, vk))
+                self.assertNotRegex(pl['text'], r'matches|reproduc')
+            if key in want:
+                final = devs[key]['parts']
+                for pid, names in want[key].items():
+                    hit = {p['id'] for p in cut(final, planes[pid])}
+                    self.assertLessEqual(set(names), hit, (key, pid))
+                    self.assertFalse(set(avoid[key].get(pid, ())) & hit, (key, pid))
+            if key == 'fin':
+                # The FinFET patent's A, B and C lines are unverified: no plane claims one.
+                for pl in planes.values():
+                    self.assertNotRegex(pl['name'] + pl['short'], r'\b[ABC]\s*[–-]\s*[ABC]\b')
+            for st in flow['steps']:
+                for c in st.get('compare', []):
+                    self.assertIn(c['plane'], planes, st['id'])
+                    self.assertIn(st['scale'], planes[c['plane']]['views'], st['id'])
+                    self.assertEqual(c['figs'], st['figs'])
+                    self.assertIn(c['src'], flow['refs'])
+                    self.assertTrue(c['described'] and c['visible'], st['id'])
+                    self.assertIn(c['status'], ('text', 'visual', 'unverified'))
+                    self.assertNotRegex((c['described'] + c['status_text']).lower(), r'exact|matches fig')
+
+    def test_pitch_walk(self):
+        """The pitch-walk lesson: its ideal case is the FinFET flow's own SAQP image, and every
+        space it reports is the one its built lines actually leave."""
+        flows = json.loads((ROOT / 'data/process.json').read_text())['flows']
+        pw, fin = flows['pitchwalk'], flows['fin']
+        spans = lambda boxes: sorted({(round(b[2] - b[5] / 2, 4), round(b[2] + b[5] / 2, 4)) for b in boxes})
+        gaps = lambda sp: [round(b[0] - a[1], 4) for a, b in zip(sp, sp[1:])]
+        part = lambda st, pid: next(p for p in st['parts'] if not isinstance(p, str) and p['id'] == pid)
+        route = spans(part(next(s for s in fin['steps'] if s['id'] == 'saqp_pull2'), 'f_sp2')['boxes'])
+        cfg = pw['pitchwalk']
+        measured = [s for s in pw['steps'] if 'measure' in s]
+        self.assertEqual([s['measure']['case'] for s in measured], ['ideal', 'core', 'sp1', 'sp2'])
+        for st in measured:
+            m = st['measure']
+            lines = spans(part(st, 'pw_fins')['boxes'])
+            self.assertGreaterEqual(len(lines), 16)
+            g = gaps(lines)
+            self.assertEqual(g, [w for _, w in m['gaps']])
+            self.assertEqual((m['max'], m['min']), (max(g), min(g)))
+            self.assertAlmostEqual(m['walk'], max(g) - min(g))
+            self.assertTrue(all(w >= cfg['gmin'] for w in g) and all(b > a for a, b in lines))
+            # Types follow the construction: a = the second core (s1), b = w1 - 2 s2,
+            # c = P1 - w1 - 2 s1 - 2 s2.
+            want = dict(a=m['s1'], b=m['w1'] - 2 * m['s2'], c=cfg['P1'] - m['w1'] - 2 * m['s1'] - 2 * m['s2'])
+            for t, w in m['gaps']: self.assertAlmostEqual(w, want[t])
+            for k, (lo, hi) in cfg['range'].items(): self.assertTrue(lo <= m[k] <= hi, (st['id'], k))
+            self.assertIn(f"pitch walk = {m['max']:g} − {m['min']:g} = {m['walk']:g} nm", st['body'])
+            if m['case'] == 'ideal':
+                self.assertEqual(m['walk'], 0)
+                # The FinFET route's lines, shifted: same widths, same spaces.
+                self.assertEqual(g, gaps(route))
+                self.assertEqual({round(b - a, 4) for a, b in lines}, {round(b - a, 4) for a, b in route})
+                self.assertEqual({(m['w1'], m['s1'], m['s2'])}, {tuple(cfg['base'][k] for k in ('w1', 's1', 's2'))})
+            else:
+                self.assertGreater(m['walk'], 0)
+        for st in pw['steps']:
+            self.assertTrue(any('illustrative' in x for x in st['subs']), st['id'])
+        # The flow's own SAQP route stays ideal: no pitch walk in the FinFET flow.
+        self.assertEqual(len(set(gaps(route))), 1)
+
+    def test_site_branches(self):
+        """nFET, pFET and both sites: one selector over three flows per technology. The pFET
+        keeps its channel material; both-sites states are the two site flows' own states;
+        each region mask covers its own region only and leaves the other untouched."""
+        flows = json.loads((ROOT / 'data/process.json').read_text())['flows']
+        for tech, (n, p, both) in dict(ns=('ns', 'ns_p', 'ns_pair'), fin=('fin', 'fin_p', 'fin_pair')).items():
+            sites = flows[n]['sites']
+            self.assertEqual([s['flow'] for s in sites], [n, p, both])
+            for k, key in zip(('n', 'p', 'both'), (n, p, both)):
+                self.assertEqual(flows[key]['sites'], sites)
+                self.assertEqual(flows[key]['site'], k)
+            # The pFET flow shares the nFET flow's tile and field operations, state for state.
+            nops = {s['id']: s for s in flows[n]['steps'] if s['scale'] in ('tile', 'field')}
+            pops = {s['id']: s for s in flows[p]['steps'] if s['scale'] in ('tile', 'field')}
+            self.assertEqual(set(nops), set(pops))
+            for i in nops:
+                self.assertEqual(nops[i]['parts'], pops[i]['parts'], i)
+            # Every step of each site flow says what both regions are doing.
+            for key in (n, p, both):
+                for st in flows[key]['steps']:
+                    self.assertEqual(set(st.get('regions', {})), {'n', 'p'}, (key, st['id']))
+            final = {q['id']: q for q in flows[p]['final']}
+            if tech == 'ns':
+                chan = [q for q in final.values() if q['group'] == 'Channel stack']
+                self.assertEqual({q['material'] for q in chan}, {'sige'})
+                self.assertFalse(any('bdi' in q['id'] for q in final.values()))   # BDI is nFET-only
+                self.assertIn('pts_n', {q['material'] for q in final.values()})
+            wf = {q['material'] for q in final.values() if 'work-function' in q['name']}
+            self.assertEqual(wf, {'pwf'})
+            epi = {q['material'] for q in final.values() if q['id'].startswith('epi_')}
+            self.assertEqual(epi, {'sige'})
+            # Both sites: each side is the named site state, moved into place.
+            byid = {k: {s['id']: s for s in flows[f]['steps']} for k, f in (('n', n), ('p', p))}
+            fins = {k: {q['id']: q for q in flows[f].get('final') or
+                        next(d for d in self.data['devices'] if d['key'] == f)['parts']} for k, f in (('n', n), ('p', p))}
+            dz = -flows[both]['bounds']['z'][0] - flows[both]['bounds']['z'][1]
+            prev = {}
+            for st in flows[both]['steps']:
+                src = st['from']
+                for k in ('n', 'p'):
+                    want = sorted(q if isinstance(q, str) else q['id'] for q in byid[k][src[k]]['parts'])
+                    want = [w for w in want if w not in src['drop'] and f'{k}:{w}' not in src['drop']]
+                    got = sorted(q['id'][2:] for q in st['parts'] if q.get('site') == k)
+                    self.assertEqual(got, want, (both, st['id'], k))
+                # Region masks stay inside their region and leave the other side as it was.
+                zmid = -dz / 2
+                for q in st['parts']:
+                    if q['group'] != 'Region masks': continue
+                    r = 'n' if 'nFET region' in q['name'] else 'p'
+                    for b in q['boxes']:
+                        lo, hi = b[2] - b[5] / 2, b[2] + b[5] / 2
+                        self.assertTrue(lo >= zmid - 1e-6 if r == 'n' else hi <= zmid + 1e-6, (st['id'], q['id']))
+                    last = prev.get(st.get('route'), prev.get(None))
+                    if last:
+                        side = lambda s_: sorted(json.dumps(q_, sort_keys=True) for q_ in s_['parts'] if q_.get('site') == r)
+                        self.assertEqual(side(st), side(last), (both, st['id'], r))
+                prev[st.get('route')] = st
+                if st.get('route') is None: prev[None] = st
+
+    def test_gate_cut(self):
+        """The gate cut leaves no conductive path between the nFET's and pFET's gates and cuts no
+        channel, fin or source/drain; the shared gate keeps them one conductor. The two are
+        alternative routes: neither follows the other."""
+        flows = json.loads((ROOT / 'data/process.json').read_text())['flows']
+        metals = {'mo', 'tin', 'pwf', 'tungsten', 'nickel', 'nisi'}
+        def touch(a, b):
+            d = [min(a[k] + a[k + 3] / 2, b[k] + b[k + 3] / 2) - max(a[k] - a[k + 3] / 2, b[k] - b[k + 3] / 2) for k in range(3)]
+            return min(d) >= -1e-6 and sorted(d)[1] > 1e-6
+        def joined(st):
+            boxes = [(q['id'], b) for q in st['parts'] if q['material'] in metals for b in q['boxes']]
+            parent = list(range(len(boxes)))
+            def f(i):
+                while parent[i] != i: parent[i] = parent[parent[i]]; i = parent[i]
+                return i
+            for i in range(len(boxes)):
+                for j in range(i + 1, len(boxes)):
+                    if touch(boxes[i][1], boxes[j][1]): parent[f(i)] = f(j)
+            comp = lambda pid: {f(i) for i, (q, _) in enumerate(boxes) if q == pid}
+            return bool(comp('n_mo') & comp('p_mo'))
+        for key in ('ns_pair', 'fin_pair'):
+            flow = flows[key]
+            self.assertEqual(flow['route_kind'], 'terminal')
+            self.assertEqual([r['id'] for r in flow['routes']], ['cut', 'shared'])
+            by = {s['id']: s for s in flow['steps']}
+            ids = [s['id'] for s in flow['steps']]
+            # Alternatives: the shared gate is the last step, after the cut route, never on it.
+            self.assertEqual(by['shared']['route'], 'shared')
+            self.assertTrue(all(by[i].get('route') == 'cut' for i in ids[ids.index('cut_coat'):ids.index('shared')]))
+            self.assertEqual(by['shared']['label'], by['gatecut']['label'])
+            for sid in ('hkmg' if key == 'ns_pair' else 'metal', 'shared'):
+                self.assertTrue(joined(by[sid]), (key, sid))
+            for sid in ('cut_etch', 'gatecut', 'contacts_cut'):
+                self.assertFalse(joined(by[sid]), (key, sid))
+            plug = next(q for q in by['gatecut']['parts'] if q['id'] == 'b_plug')
+            for q in by['gatecut']['parts']:
+                if q['group'] in ('Channel stack', 'Superlattice', 'Source / drain', 'Fins'):
+                    for a in q['boxes']:
+                        for b in plug['boxes']:
+                            d = [min(a[k] + a[k + 3] / 2, b[k] + b[k + 3] / 2) - max(a[k] - a[k + 3] / 2, b[k] - b[k + 3] / 2) for k in range(3)]
+                            self.assertLessEqual(min(d), 1e-6, (key, q['id']))
+            # The shared gate has one gate contact; the cut route one per gate.
+            gw = lambda st: [q['id'] for q in st['parts'] if q['id'].endswith('gatew')]
+            self.assertEqual(sorted(gw(by['contacts_cut'])), ['n_gatew', 'p_gatew'])
+            self.assertEqual(gw(by['shared']), ['n_gatew'])
 
     def test_references_and_scope(self):
         ids = [r['id'] for r in self.refs['sources']]

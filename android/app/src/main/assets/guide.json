@@ -57,7 +57,7 @@
       "id": "steps",
       "category": "Tools",
       "title": "Steps (Process mode)",
-      "body": "In Process, the Steps tab takes the place of Specs: every fabrication step with what it shows, the source it follows and what the model leaves out. Step with the arrows on the stage or press play. Show every operation adds the resist, exposure, etch and fill substeps; where the patterning routes part (the nanosheet's stack lines, the FinFET's fins), choose how they are printed: direct print, SADP or SAQP. The SADP and SAQP chips show those routes on their own. The nanosheet and FinFET have flows so far; forksheet and CFET are coming.",
+      "body": "In Process, the Steps tab takes the place of Specs: every fabrication step with what it shows, the source it follows and what the model leaves out. Step with the arrows on the stage or press play. Show every operation adds the resist, exposure, etch and fill substeps; where the patterning routes part (the nanosheet's stack lines, the FinFET's fins), choose how they are printed: direct print, SADP or SAQP. The SADP and SAQP chips show those routes on their own, and Pitch walk lets the SAQP dimensions vary. The site selector switches between the nFET, the pFET and both sites, where the gate line ends in a gate cut or a shared gate. The Section tab's planes show a 2D section beside the 3D view, and a step that cites a figure compares it with what the source's text describes. The nanosheet and FinFET have flows so far; forksheet and CFET are coming.",
       "tab": 3,
       "gesture": "tap"
     },

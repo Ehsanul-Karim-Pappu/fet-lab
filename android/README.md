@@ -45,8 +45,13 @@ reads, so regenerating the geometry updates both.
   CFET are listed as coming. A route switch in the Steps tab patterns the nanosheet's stack
   lines or the FinFET's fins by direct print, SADP or SAQP, the spacer routes on a field of
   lines around the tile; **SADP** and **SAQP** chips show the nanosheet's routes on their
-  own. Each step carries its source figures (where mapped), match level, substitutions and
-  omissions, shown in the Steps tab and audited in `docs/PROCESS_AUDIT.md`.
+  own, and **Pitch walk** lets the FinFET's SAQP dimensions vary (`PitchWalk.kt`). A site
+  selector switches each technology between its nFET, pFET and both-sites flows; both sites
+  end in a gate cut or a shared gate. Each step carries its source figures (where mapped),
+  match level, substitutions and omissions, and, per section plane, what its source's text
+  describes against what the model cuts (`Section.kt` draws the 2D section and the locator
+  from the scene's own boxes), shown in the Steps and Section tabs and audited in
+  `docs/PROCESS_AUDIT.md`.
 - A first-launch **guided tour** (spotlight plus an animated hand that performs each
   gesture) and a searchable feature list, both under **?** in the header.
 - Light or dark follows the system setting.

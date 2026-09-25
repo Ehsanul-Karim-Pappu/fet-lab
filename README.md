@@ -34,7 +34,7 @@ so a section reads like a real cross-section rather than a shell.
 | **Device** | Technical cross-sections of each architecture — section planes, exploded view, tap-to-identify. |
 | **Inverter** | An illustrative CMOS inverter cell for each architecture. Drive the input and the conducting path lights up. |
 | **Layout** | Schematic inverter layouts with simplified film stacks and exaggerated vertical dimensions; two representative nanosheets instead of the technical model's three. |
-| **Process** | How a nanosheet FET or a FinFET is made, step by step, as real geometry: films, lithography, etch and fill on a 2 × 2 tile, then the selected site to the finished device. The stack lines or fins can be printed directly or by SADP or SAQP. Android app for now; forksheet and CFET flows are coming. |
+| **Process** | How a nanosheet FET or a FinFET is made, step by step, as real geometry: films, lithography, etch and fill on a 2 × 2 tile, then the selected site to the finished device, as the nFET, the pFET, or both sites with a gate cut or a shared gate. The stack lines or fins can be printed directly or by SADP or SAQP; a Pitch walk lesson lets the SAQP dimensions vary. Named section planes show a 2D section beside the 3D view, set against what each source's text describes. Android app for now; forksheet and CFET flows are coming. |
 
 <table>
 <tr>
@@ -56,9 +56,13 @@ animated hand doing each one; replay it from **?** › Help & features.
 - CFET: a stacked nFET/pFET pair, with monolithic and sequential examples.
 
 This is one educational roadmap, not a universal process sequence. FinFETs remain in use.
-Process mode follows one disclosed integration route for the nanosheet nFET as a teaching
-sequence: each step names the source it follows and how closely, and none is a foundry
-recipe or a copy of a published drawing.
+Process mode follows one disclosed integration route for the nanosheet nFET and pFET, and
+disclosed FinFET stages, as a teaching sequence: each step names the source it follows and
+how closely, and none is a foundry recipe or a copy of a published drawing. A 2D section is
+cut from the app's own model, not taken from a patent figure; every figure mapping is
+text-verified only (the drawings have not been compared). The SADP and SAQP routes for the
+nanosheet are illustrative alternatives, the FinFET's SAQP is adapted from a published
+example, and the pitch-walk variations are the app's own.
 Materials and dimensions are illustrative; the complete stack is not a verified foundry
 recipe. Work-function tuning, doping, strain, self-heating and electrical drive are not simulated.
 IN/OUT colors demonstrate ideal logic states, not current or timing calculations.

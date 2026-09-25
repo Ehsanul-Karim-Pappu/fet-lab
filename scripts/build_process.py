@@ -26,6 +26,15 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 BADGE = {"published": "Source stage", "context": "Source stage", "source": "Source stage",
          "intermediate": "Reconstruction", "teach": "Teaching", "concept": "Concept",
          "pattern": "Concept"}
+BADGE_NOTE = {
+    "Source stage": "Source stage: the cited source describes this stage. The 3D view is the app's own "
+                    "schematic geometry, not a copy of the source's drawing.",
+    "Reconstruction": "Reconstruction: a state between two stages the source describes, reconstructed "
+                      "for teaching.",
+    "Teaching": "Teaching: a teaching reconstruction with no source figure; where noted, it differs "
+                "from the cited source's own route.",
+    "Concept": "Concept: a concept-only operation, such as lithography or pitch splitting, not a "
+               "published figure."}
 MATCH = {
     "published": "Published stage, adapted nFET view",
     "intermediate": "Intermediate teaching reconstruction",
@@ -177,25 +186,30 @@ class Flow(Stage):
         if sorted(x for x in last if isinstance(x, str)) != sorted(self.final) or \
            any(not isinstance(x, str) for x in last):
             sys.exit(f"{self.dev.key}: the last step is not the finished device")
-        # Core steps count 1, 2, 3...; the operations leading to core step n are n.1, n.2...,
-        # counted along each route: an operation shared by every route after a route's own
-        # ones carries its number in each route ("labels"), the first route's as "label".
-        routes = list(dict.fromkeys(st["route"] for st in self.steps if st.get("route"))) or [None]
-        core, ops = 0, {}
-        for k, st in enumerate(self.steps):
+        return relabel(self.steps, self.dev.key)
+
+
+def relabel(steps, key="flow"):
+    """Core steps count 1, 2, 3...; the operations leading to core step n are n.1, n.2...,
+    counted along each route: an operation shared by every route after a route's own ones
+    carries its number in each route ("labels"), the first route's as "label"."""
+    if True:
+        routes = list(dict.fromkeys(st["route"] for st in steps if st.get("route"))) or [None]
+        core, ops = 0, {r: 0 for r in routes}
+        for k, st in enumerate(steps):
             if st["level"] == "core":
                 core += 1; ops = {r: 0 for r in routes}; st["label"] = str(core)
             else:
-                nxt = next((x for x in self.steps[k + 1:] if x["level"] == "core"), None)
+                nxt = next((x for x in steps[k + 1:] if x["level"] == "core"), None)
                 if nxt is None or nxt["id"] != st["of"]:
-                    sys.exit(f"{self.dev.key}: operation '{st['id']}' must lead into core step '{st['of']}'")
+                    sys.exit(f"{key}: operation '{st['id']}' must lead into core step '{st['of']}'")
                 lab = {}
                 for r in routes:
                     if st.get("route") in (None, r):
                         ops[r] += 1; lab[r] = f"{core + 1}.{ops[r]}"
                 st["label"] = lab[st.get("route") or routes[0]]
                 if not st.get("route") and len(set(lab.values())) > 1: st["labels"] = lab
-        return self.steps
+        return steps
 
 
 def volumes(boxes_by_material, region):
@@ -1617,8 +1631,10 @@ def flow_fin(done):
             "model at steps 2 and 3."),
         audit_unverified=[
             "**Artwork.** Figure numbers follow each source's written description; no drawing has "
-            "been compared with these views, and F1's A/B/C section lines are not yet mapped onto "
-            "the app's views.",
+            "been compared with these views.",
+            "**Outstanding visual check: F1's Fig. 1.** It defines the A–A, B–B and C–C lines its "
+            "other figures are cut along; their directions have not been verified, so the app's "
+            "section planes are named for what they cut and none is labelled A, B or C.",
             "**Gate spacers.** F1 deposits its spacers selectively (Figs. 8–15); the app's "
             "conventional deposition and etch-back is mapped to no F1 figure.",
             "**Model choices.** No F1 figure establishes the 27 nm fin pitch, 6 nm fin width, 45 nm "
@@ -1629,7 +1645,7 @@ def flow_fin(done):
             "**Patterning routes.** P, P/2 and P/4 are ideal (real spacer images show pitch walk); "
             "core, spacer and film materials and thicknesses are illustrative; which lines a cut "
             "or block pattern removes is integration-dependent, and no overlay or placement error "
-            "is modelled."],
+            "is modelled. The separate Pitch walk lesson lets the SAQP dimensions vary."],
         refs=["R24", "R25", "R22", "R23", "R27", "R26", "R7", "R8", "R16", "R19", "R20", "R21"],
         match={k: v for k, v in dict(MATCH, **PAT_MATCH, **FIN_MATCH).items() if k in used},
         routes=FIN_ROUTES,
@@ -1637,7 +1653,1251 @@ def flow_fin(done):
         views=dict(cut=FIN_CUT, sd=FIN_SD, cexp=FIN_CEXP, **FIN_TILE_VIEWS, **FIN_FIELD_VIEWS))
 
 
-FLOWS = {"ns": flow_ns, "fin": flow_fin, "sadp": lesson("sadp"), "saqp": lesson("saqp")}
+# ============================================================ PITCH WALK ===
+# The FinFET's SAQP route with its three dimensions let go: the first-core width and the
+# two spacer thicknesses. Every line and space here is built from those three numbers
+# the way the route builds them, and every space reported is measured off the built lines,
+# so the numbers shown and the 3D model are the same geometry.
+PW_P1 = 108.0                    # printed core pitch (illustrative; Baudot et al.'s example uses 96 nm)
+PW_BASE = dict(w1=33.0, s1=21.0, s2=6.0)     # the FinFET route's own: 27 nm pitch, 6 nm lines
+PW_RANGE = dict(w1=(21.0, 45.0), s1=(15.0, 27.0), s2=(4.0, 9.0))
+PW_GMIN = 2.0                    # no space may close below this (the controls stop there)
+PW_TYPES = dict(
+    a=("inside a second core", "the second core's width, which is the first spacer's thickness"),
+    b=("where a first core was", "the first core's width less two second spacers"),
+    c=("between first-core spacer pairs", "the printed space less two first and two second spacers"))
+PW_CASES = [
+    ("ideal", "Ideal", dict(PW_BASE)),
+    ("core", "First cores printed wider", dict(PW_BASE, w1=39.0)),
+    ("sp1", "First spacer thinner", dict(PW_BASE, s1=17.0)),
+    ("sp2", "Second spacer thicker", dict(PW_BASE, s2=8.0)),
+]
+
+
+def pw_geometry(w1, s1, s2, cores=4, P1=PW_P1):
+    """The SAQP image from its three dimensions: first cores at pitch P1, the first spacers
+    on their sides (which become the second cores), the second spacers on those (the final
+    lines). Each final line keeps where it came from, so each space knows its type."""
+    cc = [P1 * (i - (cores - 1) / 2) for i in range(cores)]
+    core1 = [(c - w1 / 2, c + w1 / 2) for c in cc]
+    core2 = []                                     # (span, first core it came from)
+    for i, (a, b) in enumerate(core1):
+        core2 += [((a - s1, a), i), ((b, b + s1), i)]
+    lines = []                                     # (span, second core, first core)
+    for j, ((a, b), i) in enumerate(core2):
+        lines += [((a - s2, a), j, i), ((b, b + s2), j, i)]
+    lines.sort()
+    gaps = []
+    for (l, j, i), (r, j2, i2) in zip(lines, lines[1:]):
+        t = "a" if j == j2 else ("b" if i == i2 else "c")
+        gaps.append((t, round(r[0] - l[1], 4)))
+    return dict(core1=core1, core2=[s for s, _ in core2], lines=[s for s, _, _ in lines], gaps=gaps)
+
+
+def pw_check(w1, s1, s2, P1=PW_P1):
+    """The limits the controls keep to: every width positive, no two spacers touching."""
+    return min(w1, s1, s2, w1 - 2 * s2, P1 - w1 - 2 * s1, P1 - w1 - 2 * s1 - 2 * s2) >= PW_GMIN
+
+
+def pw_measure(boxes):
+    """Spaces measured off built line boxes (their z extents), not from the formula."""
+    spans = sorted({(round(b[2] - b[5] / 2, 4), round(b[2] + b[5] / 2, 4)) for b in boxes})
+    return [round(b[0] - a[1], 4) for a, b in zip(spans, spans[1:])], spans
+
+
+def flow_pitchwalk(done):
+    X0, X1 = -45.0, 45.0                            # the lines' length (along x)
+    YS, YF, HM, Y2, Y1 = -62.0, -40.0, 6.0, 22.0, 48.0     # substrate, fin foot, film tops
+    g0 = pw_geometry(**PW_BASE)
+    Z0, Z1 = g0["core1"][0][0] - PW_BASE["s1"] - 60.0, g0["core1"][-1][1] + PW_BASE["s1"] + 60.0
+    B = dict(x=[X0, X1], y=[YS, Y1 + 10.0], z=[Z0, Z1])
+    dev = type("Lesson", (), dict(key="pitchwalk", name="SAQP pitch walk", parts=[], bounds=B))
+    F = Flow(dev)
+    S = Stage(F, "field", B, grid=1.0)
+    GP, GS = "Patterning", "Substrate & isolation"
+    # The ideal case must be the FinFET route's own lines: same widths, same spaces.
+    fin = done["fin"]
+    route = next(s for s in fin["steps"] if s["id"] == "saqp_pull2")
+    sp2 = next(p for p in route["parts"] if not isinstance(p, str) and p["id"] == "f_sp2")
+    rg, rs = pw_measure(sp2["boxes"])
+    ig = [w for _, w in g0["gaps"]]
+    iw = sorted({round(b - a, 4) for a, b in g0["lines"]})
+    if rg != ig or iw != sorted({round(b - a, 4) for a, b in rs}):
+        sys.exit(f"pitch walk: the ideal case is not the FinFET route's SAQP image\n  {rg}\n  {ig}")
+
+    def fmt(x): return f"{x:g}"
+
+    def films(g, stage):
+        """Substrate and hard mask, then the cores and spacers of one stage."""
+        S.now = {}
+        S.put(tmp("pw_sub", "Si substrate (fins to be)", "silicon", GS, [box(X0, X1, YS, 0, Z0, Z1)], (0, -1.2, 0)))
+        S.put(tmp("pw_hm", "Fin hard mask (blanket)", "si3n4", GP, [box(X0, X1, 0, HM, Z0, Z1)], (0, 1.0, 0)))
+        if stage == 1:
+            S.put(tmp("pw_c2f", "Second-core film (a-Si in Baudot et al.)", "mandrel2", GP, [box(X0, X1, HM, Y2, Z0, Z1)], (0, 1.4, 0)))
+            S.put(tmp("pw_c1", "First cores (carbon in Baudot et al.)", "mandrel", GP,
+                      [box(X0, X1, Y2, Y1, a, b) for a, b in g["core1"]], (0, 1.8, 0)))
+            S.put(tmp("pw_sp1", "First spacers (oxide in Baudot et al.)", "patspacer", GP,
+                      [box(X0, X1, Y2, Y1, a, b) for a, b in g["core2"]], (0, 2.2, 0)))
+        else:
+            S.put(tmp("pw_c2", "Second cores (the first image, transferred)", "mandrel2", GP,
+                      [box(X0, X1, HM, Y2, a, b) for a, b in g["core2"]], (0, 1.4, 0)))
+            S.put(tmp("pw_sp2", "Second spacers (the final image)", "patspacer", GP,
+                      [box(X0, X1, HM, Y2, a, b) for a, b in g["lines"]], (0, 1.8, 0)))
+
+    def fins(g):
+        S.now = {}
+        S.put(tmp("pw_sub", "Si substrate", "silicon", GS, [box(X0, X1, YS, YF, Z0, Z1)], (0, -1.2, 0)))
+        S.put(tmp("pw_fins", "Si fins (etched through the hard mask)", "silicon", "Fins",
+                  [box(X0, X1, YF, 0, a, b) for a, b in g["lines"]], (0, 0, 0)))
+        S.put(tmp("pw_hm", "Fin hard mask (patterned)", "si3n4", GP,
+                  [box(X0, X1, 0, HM, a, b) for a, b in g["lines"]], (0, 1.0, 0)))
+
+    def measured(case, p):
+        """The spaces as built: measured off the fin boxes just snapped, typed by origin."""
+        g = pw_geometry(**p)
+        widths, spans = pw_measure(S.now["pw_fins"]["boxes"])
+        if widths != [w for _, w in g["gaps"]]:
+            sys.exit(f"pitch walk {case}: built spaces differ from the construction")
+        by = {}
+        for t, w in g["gaps"]: by.setdefault(t, set()).add(w)
+        return dict(case=case, **p, lines=[list(s) for s in spans],
+                    gaps=[[t, w] for t, w in g["gaps"]], max=max(widths), min=min(widths),
+                    walk=round(max(widths) - min(widths), 4),
+                    types={t: sorted(v) for t, v in by.items()})
+
+    def say(m):
+        t = {k: fmt(v[0]) if len(v) == 1 else "/".join(map(fmt, v)) for k, v in m["types"].items()}
+        return (f"Measured off the lines: spaces {PW_TYPES['a'][0]} {t['a']} nm, "
+                f"{PW_TYPES['b'][0]} {t['b']} nm, {PW_TYPES['c'][0]} {t['c']} nm. "
+                f"Largest {fmt(m['max'])} nm, smallest {fmt(m['min'])} nm: pitch walk = "
+                f"{fmt(m['max'])} − {fmt(m['min'])} = {fmt(m['walk'])} nm.")
+
+    SUBS = ["Dimensions are illustrative: Baudot et al.'s example runs 96 → 48 → 24 nm, this lesson 108 → 54 → "
+            "27 nm [R22]", "Etch bias, core taper and fin-height effects are described, not simulated"]
+    steps = []
+    for case, name, p in PW_CASES:
+        if not pw_check(**p): sys.exit(f"pitch walk {case}: outside the allowed limits")
+        g = pw_geometry(**p)
+        ch = {k: p[k] - PW_BASE[k] for k in p if p[k] != PW_BASE[k]}
+        what = {"w1": "first-core width", "s1": "first-spacer thickness", "s2": "second-spacer thickness"}
+        if case == "ideal":
+            films(g, 1)
+            S.snap("ideal_1", "Ideal: first cores and first spacers",
+                "The FinFET flow's SAQP route, taken on its own. Four first cores are printed at "
+                f"P = {fmt(PW_P1)} nm, {fmt(p['w1'])} nm wide, and a first spacer {fmt(p['s1'])} nm "
+                "thick forms on each side. The two numbers are chosen so the first spacers sit at an "
+                f"even {fmt(PW_P1 / 2)} nm pitch: core width plus spacer thickness is half the printed "
+                "pitch. In Baudot et al.'s example the cores are carbon and the first spacer oxide [R22].",
+                view="pwcut", match="source", figs=["1"], src=["R22"], subs=SUBS)
+            films(g, 2)
+            S.snap("ideal_2", "Ideal: second cores and second spacers",
+                "The first cores are removed and the first spacer image is transferred into the "
+                "second-core film (amorphous Si in Baudot et al.), then that is removed and a second spacer "
+                f"{fmt(p['s2'])} nm thick forms on each second core. First spacer plus second spacer is "
+                f"a quarter of the printed pitch, {fmt(PW_P1 / 4)} nm, so sixteen lines come out evenly "
+                "spaced [R22].", view="pwcut", match="source", figs=["1"], src=["R22"], subs=SUBS)
+            fins(g)
+            m = measured(case, p)
+            S.snap("ideal_fins", "Ideal: sixteen lines, three kinds of space",
+                "The second cores go, the second spacers are transferred into the silicon nitride hard "
+                "mask and the fins are etched into silicon through it [R22]. Every space between "
+                "neighbouring fins has one of three origins: " + "; ".join(
+                    f"{PW_TYPES[k][0]} ({PW_TYPES[k][1]})" for k in "abc") + ". Here they are all equal. "
+                + say(m), view="pwplan", match="source", figs=["1"], src=["R22"], subs=SUBS)
+            F.steps[-1]["measure"] = m
+            continue
+        (k, d), = ch.items()
+        films(g, 1 if k != "s2" else 2)
+        S.snap(f"{case}_before", name,
+            f"The same route with one dimension off: the {what[k]} is {fmt(p[k])} nm instead of "
+            f"{fmt(PW_BASE[k])} nm ({'+' if d > 0 else '−'}{fmt(abs(d))} nm), everything else as in the "
+            "ideal case. " + {
+                "w1": "A wider core pushes its two spacers apart and narrows the space between "
+                      "neighbouring cores' spacers by the same amount.",
+                "s1": "A thinner first spacer makes narrower second cores, and widens the space between "
+                      "first-core spacer pairs.",
+                "s2": "A thicker second spacer makes wider lines, and every space around them shrinks, "
+                      "but not all by the same amount."}[k],
+            view="pwcut", match="teach", subs=SUBS)
+        fins(g)
+        m = measured(case, p)
+        S.snap(f"{case}_after", f"{name}: the lines",
+            "After the rest of the route and the fin etch. " + say(m) + " " + {
+                "w1": "The error sits in the first-core lithography, so it shows up as two space "
+                      "types trading width; the lines themselves keep their width.",
+                "s1": "The first spacer sets the second cores, so its error moves the spaces inside "
+                      "and around them.",
+                "s2": "The second spacer is the line width, so its error changes the fin width as "
+                      "well as the spaces."}[k],
+            view="pwcut", match="teach", subs=SUBS)
+        F.steps[-1]["measure"] = m
+    fins(pw_geometry(**PW_BASE))
+    S.snap("transfer", "What this lesson does not simulate",
+        "The lines here have vertical walls and every etch copies its mask exactly. In practice a "
+        "core with sloped sides (taper) gives spacers that lean, so the spacer's footprint and the "
+        "transferred line width depend on where the etch stops; etch bias grows or shrinks every "
+        "line; and a wider space etches differently from a narrow one, so spaces of different width "
+        "can leave fins of different height. Baudot et al. model pitch walk, core taper and fin-height "
+        "variation together [R22]; these are described here, not calculated.",
+        view="pwcut", match="teach", subs=SUBS)
+    for k, st in enumerate(F.steps, 1):
+        st["level"], st["label"] = "core", str(k)
+    views = dict(
+        pwcut=dict(n="Across the lines", s="section, mid-length", az=1.5708, el=0.08, r=560,
+                   tgt=[0, 0, (Z0 + Z1) / 2], clip=[0, None, None], scale="field"),
+        pwplan=dict(n="From above", s="plan view of the lines", az=1.5708, el=1.45, r=640,
+                    tgt=[0, 0, (Z0 + Z1) / 2], clip=None, scale="field"),
+        pw3d=dict(n="Line field", s="the sixteen lines", az=-0.95, el=0.55, r=620,
+                  tgt=[0, -10, (Z0 + Z1) / 2], clip=None, scale="field"))
+    return dev, F.steps, dict(
+        lesson=True, name=dev.name, bounds=B,
+        scope="The FinFET flow's SAQP fin patterning with its dimensions let go: how a small error in "
+              "the first-core width or either spacer's thickness turns an even array of lines into "
+              "one whose spaces alternate (pitch walk). The ideal case is the FinFET route's own "
+              "lines, checked when the data is built; the flow itself always uses the ideal case. "
+              "Dimensions are illustrative (Baudot et al.'s example is 96 → 48 → 24 nm [R22]). Every space "
+              "shown is measured off the built lines; nothing is simulated.",
+        figures="The ideal states are adapted from Baudot et al.'s Fig. 1 as its text describes it [R22]; the "
+                "drawings were not available for visual comparison. The varied cases are teaching "
+                "reconstructions: Baudot et al. study pitch walk but these particular variations are the "
+                "app's.",
+        branch="A separate lesson: it does not change the FinFET flow, whose SAQP route stays ideal.",
+        skipped={}, refs=["R22", "R20"],
+        audit_tile="A lesson of its own at line-field scale. The ideal case is checked, when the data is "
+                   "built, to leave the same line widths and spaces as the FinFET flow's SAQP route; "
+                   "every space in the table below is measured off the built fin boxes.",
+        audit_unverified=[
+            "**Fig. 1 of Baudot et al.** Its text was read; its drawing has not been compared with these "
+            "views. The ideal states are text-verified only.",
+            "The varied cases (wider first cores, thinner first spacer, thicker second spacer) and their "
+            "sizes are the app's own, not values from the paper.",
+            "Core taper, etch bias and fin-height (aspect-ratio) effects are described, not simulated: "
+            "every wall is vertical and every transfer exact."],
+        match={"source": FIN_MATCH["source"], "teach": FIN_MATCH["teach"]}, views=views,
+        pitchwalk=dict(P1=PW_P1, cores=4, base=PW_BASE, range={k: list(v) for k, v in PW_RANGE.items()},
+                       gmin=PW_GMIN, types={k: dict(name=v[0], rule=v[1]) for k, v in PW_TYPES.items()},
+                       note="Dimensions illustrative. The controls stop before any space closes: a "
+                            "space that closed would merge its two lines into one wide line, and "
+                            "one that opened past a spacer's thickness would leave a line missing "
+                            "from the pattern."))
+
+
+# ============================================================ pFET BRANCHES ===
+# The patent builds a pFET and an nFET from one shared stack [R13]. The nFET flow above is
+# left as it is; the pFET is a flow of its own with the same early stages (the tile's
+# patterning operations are the nFET flow's own steps, copied), and "both sites" puts the
+# two single-site models side by side, one stack pitch apart, joined by their gate line.
+# A site selector moves between the three.
+PWF = "pwf"                              # the pFET's own work-function metal (a material)
+TP_IL, TP_HK, TP_WF = 0.5, 1.0, 1.0     # the pFET's gate films: they must fit the 5 nm Si gaps
+NS_P_REC = 4.0                           # how far the pFET's S/D recess goes into the sub-fin
+
+
+def ns_dims():
+    """The nanosheet site's dimensions, read off the finished nFET so nothing can drift."""
+    n = bd.build_ns()
+    P = {p["id"]: p for p in n.parts}
+    sheets = [lim(P[f"sheet{i}"]["boxes"][0]) for i in (1, 2, 3)]
+    D = dict(dev=n, P=P, hz=sheets[0][5], ys=[(s[2], s[3]) for s in sheets],
+             STI=lim(P["bdi"]["boxes"][0])[3], sub=lim(P["substrate"]["boxes"][0]),
+             ypts=lim(P["pts"]["boxes"][0])[2], ysd=lim(P["epi_drain"]["boxes"][0])[3])
+    cap = lim(P["gatecap"]["boxes"][0])
+    D.update(zsub=D["sub"][5], ymo=cap[2], ycap=cap[3], hzmo=cap[5], top=D["ys"][-1][1])
+    D["sige"] = bd.gaps(D["STI"], D["top"], D["ys"])
+    return D
+
+
+def build_ns_p():
+    """The nanosheet pFET of the patent's route [R13], in the nFET's frame and dimensions:
+    the lower-Ge SiGe layers are its channels, the Si layers and high-Ge base are gone from
+    its gate region, there is no bottom dielectric isolation (the n-type stopper is under
+    it instead), and its p-type source/drain grows from the SiGe ends and the recessed
+    sub-fin."""
+    D = ns_dims(); P = D["P"]
+    hz, STI, zsub, hzmo, ymo, ycap = D["hz"], D["STI"], D["zsub"], D["hzmo"], D["ymo"], D["ycap"]
+    sub, ysd, sige, ys = D["sub"], D["ysd"], D["sige"], D["ys"]
+    SUBFIN = -D["ypts"]
+    d = bd.Dev("ns_p", "Nanosheet pFET", "GAA · 3 SiGe sheets",
+               "The pFET the same stack makes: three lower-Ge SiGe sheets, its own p-type "
+               "work-function metal and a SiGe:B source/drain. Illustrative.")
+    d.add("substrate", "Si substrate", "silicon", P["substrate"]["boxes"], "Substrate & isolation", [0, -1.2, 0])
+    rec = [box(*sorted((s * XSP, s * XSD)), -NS_P_REC, 0, -hz, hz) for s in (-1, 1)]
+    d.add("pts_n", "n-type punch-through stopper (sub-fin)", "pts_n",
+          subtract((sub[0], sub[1], -SUBFIN, 0, -hz, hz), rec), "Substrate & isolation", [0, -1.0, 0])
+    d.add("sti", "STI oxide", "sio2", P["sti"]["boxes"], "Substrate & isolation", [0, -.8, 0])
+    for i, (a, b) in enumerate(sige):
+        d.add(f"psheet{i+1}", f"SiGe nanosheet {i+1} (lower Ge) · pFET channel", "sige",
+              [box(-XSP, XSP, a, b, -hz, hz)], "Channel stack", [0, 0, 0])
+    films = []
+    for k, (name, mat, t0, t) in enumerate((("SiO₂ interfacial layer", "sio2", 0, TP_IL),
+                                           ("HfO₂ high-κ", "highk", TP_IL, TP_HK),
+                                           ("p-type work-function metal", PWF, TP_IL + TP_HK, TP_WF))):
+        for i, (a, b) in enumerate(sige):
+            yc, hy = (a + b) / 2, (b - a) / 2
+            bx = bd.ring4(yc, hy + t0, hz + t0, t, XG)
+            d.add(f"p{('il', 'hk', 'wf')[k]}{i+1}", f"{name} · sheet {i+1}", mat, bx,
+                  "Gate-all-around films", ["radial", yc, 1.0 + 1.1 * k])
+            films += bx
+        # The same films on the sub-fin's top: the base layer left it open under the gate.
+        fl = [box(-XG, XG, t0, t0 + t, -hz, hz)]
+        d.add(f"pfloor_{('il', 'hk', 'wf')[k]}", f"{name} · on the sub-fin (bottom of the gate)", mat, fl,
+              "Gate-all-around films", [0, -.4, 0])
+        films += fl
+    sheets = [b for i in range(3) for b in d.parts[3 + i]["boxes"]]
+    d.add("mo", "Mo gate fill", "mo", subtract((-XG, XG, 0, ymo, -hzmo, hzmo), sheets + films),
+          "Gate electrode", [0, 1.0, 0])
+    d.add("gatecap", "TiN gate cap", "tin", P["gatecap"]["boxes"], "Gate electrode", [0, 1.4, 0])
+    d.add("gatew", "W gate contact", "tungsten", P["gatew"]["boxes"], "Gate electrode", [0, 1.8, 0])
+    for s, t in ((-1, "source"), (1, "drain")):
+        xa, xb = sorted((s * XG, s * XSP))
+        # Inner spacers where the Si layers and the high-Ge base were indented; the outer
+        # spacer above and beside the stack.
+        d.add(f"spacer_{t}", f"Si₃N₄ spacer · {t} side", "si3n4",
+              subtract((xa, xb, 0, ycap, -hzmo, hzmo), sheets), "Spacers", [s * 1.3, 0, 0])
+    for s, T in ((-1, "Source"), (1, "Drain")):
+        xa, xb = sorted((s * XSP, s * XSD))
+        d.add(f"sib_{T.lower()}", f"{T} epi, first layer (Si:B) · from the recessed sub-fin", "silicon",
+              [box(xa, xb, -NS_P_REC, 0, -hz, hz)], "Source / drain", [s * 1.5, -.3, 0])
+        d.add(f"epi_{T.lower()}", f"{T} epi (SiGe:B)", "sige", [box(xa, xb, 0, ysd, -hz, hz)],
+              "Source / drain", [s * 1.6, 0, 0])
+        for k in ("nisi", "ni", "w"):
+            q = P[f"{k}_{T.lower()}"]
+            d.add(q["id"], q["name"], q["material"], q["boxes"], q["group"], q["explode"])
+    d.views = dict(bd.build_ns().views)
+    d.views["gaa"] = dict(d.views["gaa"], off=d.views["gaa"]["off"] + ["sib_source"])
+    d.finish()
+    worst, _ = bd.check(d)
+    if worst != 1: sys.exit(f"ns_p: {worst} solids overlap in the finished pFET")
+    return d
+
+
+NS_P_SCOPE = ("Representative silicon-germanium nanosheet pFET fabrication, following the pFET "
+              "branch of the same disclosed route as the nFET flow [R13]: the shared Si/SiGe stack, "
+              "an n-type punch-through stopper instead of bottom dielectric isolation, lower-Ge SiGe "
+              "channels and a boron-doped source/drain. Illustrative materials and dimensions, in the "
+              "nFET model's frame. Not a verified foundry recipe.")
+NS_P_BRANCH = ("The pFET branch: the same wafer, stack and patterning as the nFET (the tile's "
+               "operations are the nFET flow's own), then its own masked operations in the patent's "
+               "order. The nFET beside it is left out here; the Both sites view shows the two together, "
+               "with the masks that keep each region's steps to itself and the choice between a gate "
+               "cut and a shared gate.")
+NS_P_SKIPPED = {
+    "12A/B": "nFET source/drain recess (nFET branch)",
+    "13A/B": "nFET inner spacers and source/drain epitaxy (nFET branch)",
+    "16A/B": "nFET channel release (nFET branch)",
+    "19A/B": "an alternative shared-gate arrangement to Fig. 18, shown in the Both sites view",
+}
+# Tile operations whose text names the nFET as the device followed: the pFET flow says so.
+NS_P_TILE_TEXT = [
+    ("Only the selected nFET site is carried to a finished device; the other three show the "
+     "pattern's context.", "In this flow the pFET line is the one followed, at the site beside the "
+     "selected nFET; the other sites show the pattern's context."),
+    ("Only the selected nFET is completed. Next, the view returns to the selected "
+     "site, which shows its gate only across its own stack.", "In this flow the pFET site on the same "
+     "gate line is the one followed. Next, the view returns to that site, which shows its gate only "
+     "across its own stack."),
+    ("Next, the view returns to the selected site, where the cavity is filled.",
+     "Next, the view returns to the pFET site, which kept its base layer."),
+    ("Next, the view returns to the selected site.", "Next, the view returns to the pFET site."),
+]
+
+
+def flow_ns_p(done):
+    D = ns_dims()
+    dev = build_ns_p()
+    F = Flow(dev)
+    hz, STI, zsub, hzmo, ymo, ycap, top = (D[k] for k in ("hz", "STI", "zsub", "hzmo", "ymo", "ycap", "top"))
+    sub, sige, ys, ypts = D["sub"], D["sige"], D["ys"], D["ypts"]
+    TOX, TSP = 1.0, XSP - XG
+    ns = done["ns"]
+    GS, GL = "Substrate & isolation", "Superlattice"
+
+    def ops_of(core):
+        """The nFET flow's operations leading into its core step [core], as they are."""
+        out = []
+        for st in ns["steps"]:
+            if st.get("of") == core:
+                c = json.loads(json.dumps(st))
+                for a, b in NS_P_TILE_TEXT: c["body"] = c["body"].replace(a, b)
+                if any(isinstance(p, str) for p in c["parts"]): sys.exit(f"ns_p: op {c['id']} uses final parts")
+                out.append(c)
+        return out
+
+    def layers(si, base=None, sg=None, sheets=False):
+        """The pFET stack: [si], [base] and [sg] are the x spans of its Si layers, high-Ge base
+        and lower-Ge SiGe layers (None: gone); [sheets] puts the finished SiGe channels in."""
+        F.drop_prefix("psg"); F.drop_prefix("psi"); F.drop("pbase", "psheet1", "psheet2", "psheet3")
+        if base:
+            F.put(tmp("pbase", "SiGe, high Ge · base layer (kept under the pFET)", "sige", GL,
+                      [box(base[0], base[1], 0, STI, -hz, hz)], (0, -.6, 0)))
+        for i, (a, b) in enumerate(sige):
+            if sheets: F.add(f"psheet{i+1}")
+            elif sg: F.put(tmp(f"psg{i+1}", f"SiGe, lower Ge · layer {i+1} (pFET channel to be)", "sige", GL,
+                               [box(sg[0], sg[1], a, b, -hz, hz)]))
+        if si:
+            for i, (a, b) in enumerate(ys):
+                F.put(tmp(f"psi{i+1}", f"Si · layer {i+1} (removed from the pFET's gate later)", "silicon", GL,
+                          [box(si[0], si[1], a, b, -hz, hz)]))
+
+    def ild_around():
+        others = [b for p in F.now.values() if p["id"] != "ild" for b in p["boxes"]]
+        F.put(tmp("ild", "Interlayer dielectric (ILD)", "ild", "Interlayer dielectric",
+                  subtract((-XSD, XSD, 0, ycap, -zsub, zsub), others), (0, .6, 0)))
+
+    def core(sid, title, body, **kw):
+        F.steps.extend(ops_of(sid))
+        F.snap(sid, title, body, **kw)
+
+    # 1
+    F.put(tmp("wafer", "Si substrate (unpatterned)", "silicon", GS,
+              [box(sub[0], sub[1], sub[2], 0, -zsub, zsub)], (0, -1.2, 0)))
+    s1 = next(s for s in ns["steps"] if s["id"] == "substrate")
+    F.snap("substrate", s1["title"], s1["body"], match="published", figs=["2A/B"])
+    # 2
+    F.put(tmp("wafer", "Si substrate (unpatterned)", "silicon", GS,
+              [box(sub[0], sub[1], sub[2], ypts, -zsub, zsub)], (0, -1.2, 0)))
+    F.put(tmp("pts0", "n-type punch-through stopper (implanted)", "pts_n", GS,
+              [box(sub[0], sub[1], ypts, 0, -zsub, zsub)], (0, -1.0, 0)))
+    F.snap("pts", "Punch-through-stopper implant",
+        "Dopant is implanted just below the surface: n-type under this pFET, where the nFET region "
+        "receives a p-type stopper; each implant is kept to its own region by a mask (shown in the "
+        "Both sites view). For the pFET the stopper is the isolation under the channels: the patent "
+        "forms bottom dielectric isolation under the nFET only [R13]. Depth and doping are "
+        "illustrative; real profiles are graded.",
+        match="published", figs=["3A/B"],
+        subs=["Stopper depth and a uniform doped region are illustrative"],
+        omitted=["The nFET region and its p-type stopper"])
+    # 3
+    F.put(tmp("pbase", "SiGe, high Ge · base layer", "sige", GL,
+              [box(sub[0], sub[1], 0, STI, -zsub, zsub)], (0, -.6, 0)))
+    for i, (a, b) in enumerate(sige):
+        F.put(tmp(f"psg{i+1}", f"SiGe, lower Ge · layer {i+1} (pFET channel to be)", "sige", GL,
+                  [box(sub[0], sub[1], a, b, -zsub, zsub)]))
+    for i, (a, b) in enumerate(ys):
+        F.put(tmp(f"psi{i+1}", f"Si · layer {i+1} (removed from the pFET's gate later)", "silicon", GL,
+                  [box(sub[0], sub[1], a, b, -zsub, zsub)]))
+    F.snap("superlattice", "Si/SiGe multilayer epitaxy",
+        "The same stack as the nFET's, grown once for both: a high-Ge SiGe base layer, then "
+        "lower-Ge SiGe and Si in turn. For this pFET the roles swap: the lower-Ge SiGe layers "
+        "become the channels, and the Si layers and the high-Ge base are removed from its gate "
+        "region near the end [R13].",
+        match="published", figs=["4A/B"],
+        subs=["Layer thicknesses and Ge contents are illustrative, chosen for the nFET model"])
+    # 4
+    F.drop("wafer", "pts0")
+    F.add("substrate", "sti")
+    F.put(tmp("pts_sub", "n-type punch-through stopper (sub-fin)", "pts_n", GS,
+              [box(sub[0], sub[1], ypts, 0, -hz, hz)], (0, -1.0, 0)))
+    layers((-XSD, XSD), (-XSD, XSD), (-XSD, XSD))
+    core("pattern", "Stack patterning and STI",
+        "Patterned with the nFET's stack in the same operations (the tile, above): a hard mask "
+        "defines the stack lines, a directional etch cuts through the multilayer into the "
+        "substrate, and trench oxide is filled, planarised and recessed to the bottom of the "
+        "high-Ge base layer [R13]. On the pFET line the sub-fin carries the n-type stopper.",
+        match="published", figs=["5A/B"],
+        subs=["Stack width, pitch and trench depth are illustrative"])
+    # 5
+    F.put(tmp("dox", "Dummy-gate oxide (sacrificial)", "sio2", "Dummy gate",
+              subtract((-XG, XG, 0, top + TOX, -hz - TOX, hz + TOX), F.boxes()), (0, .6, 0)))
+    F.put(tmp("dummy", "Dummy gate · Si", "poly", "Dummy gate",
+              subtract((-XG, XG, 0, ymo, -hzmo, hzmo), F.boxes()), (0, 1.0, 0)))
+    F.put(tmp("hardmask", "SiN hard mask", "si3n4", "Dummy gate",
+              [box(-XG, XG, ymo, ycap, -hzmo, hzmo)], (0, 1.4, 0)))
+    core("dummy", "Dummy gate stack",
+        "The dummy gate is made for both regions at once: a thin sacrificial oxide, a silicon "
+        "placeholder gate and a hard mask, patterned across the stacks. The gate line runs on "
+        "over the nFET stack beside this one [R13].",
+        match="published", figs=["6A/B"],
+        subs=["The dummy Si and nitride hard mask are illustrative"])
+    # 6
+    win = (-XSD, XSD, 0, ycap + 1.5, -zsub, zsub)
+    F.put(tmp("liner", "Protective liner", "liner", "Patterning", conformal(F.boxes(), 1.5, win), (0, .8, 0)))
+    core("bottom", "pFET protected: the nFET's base layer is removed",
+        "While the nFET region is opened and its high-Ge base layer etched out, the pFET region is "
+        "sealed by a liner and a resist block (the operations above, on the tile). The pFET keeps "
+        "its base layer, so no bottom dielectric isolation forms under it: its n-type stopper "
+        "does that job [R13].", match="published", figs=["7A/B", "8A/B"],
+        subs=["Liner material and thickness are illustrative"])
+    # 7
+    F.drop("liner")
+    F.put(tmp("spfilm", "Spacer dielectric (as deposited)", "si3n4", "Spacers",
+              conformal(F.boxes(), TSP, (-XSD, XSD, 0, ycap + TSP, -hzmo, hzmo)), (0, .5, 0)))
+    F.snap("spacerdep", "Conformal spacer deposition",
+        "The liner comes off, and the spacer dielectric is deposited over both regions. Under the "
+        "nFET it fills the cavity left by its base layer; the pFET's stack has no cavity, so here "
+        "the film only coats the stack and the dummy gate [R13].", view="cutb",
+        match="published", figs=["9A/B"],
+        subs=["When the liner is removed is not stated in the text read; it is removed here "
+              "before the spacer film", "Nitride is drawn for the spacer dielectric"])
+    # 8
+    F.drop("spfilm")
+    for s, t in ((-1, "source"), (1, "drain")):
+        xa, xb = sorted((s * XG, s * XSP))
+        F.put(tmp(f"spo_{t}", f"Si₃N₄ gate spacer · {t} side", "si3n4", "Spacers",
+                  subtract((xa, xb, 0, ycap, -hzmo, hzmo), F.boxes()), (s * 1.3, 0, 0)))
+    F.snap("spaceretch", "Spacer etch-back",
+        "A directional etch leaves the film on the dummy-gate sidewalls as the outer spacers. "
+        "Nothing stays under the pFET's stack: it still stands on its base layer.", view="cutb",
+        match="intermediate", figs=["9A/B", "10A/B"],
+        subs=["A separate etch-back state between the deposition (Fig. 9) and the recess "
+              "(Fig. 10) is a teaching reconstruction"])
+    # 9
+    F.drop("pts_sub"); F.add("pts_n")
+    layers((-XSP, XSP), (-XSP, XSP), sheets=True)
+    F.snap("p_recess", "pFET source/drain recess",
+        "With the nFET protected by a mask (the operation above, on both sites), the pFET stack "
+        "outside the gate and spacers is etched away: through the Si and SiGe layers, through "
+        "its high-Ge base, and on into the implanted sub-fin. The ends of every layer are now "
+        "exposed at the recess walls, and so is the sub-fin's silicon at the bottom [R13].",
+        match="published", figs=["10A/B"],
+        subs=["The recess depth into the sub-fin is illustrative"],
+        omitted=["The mask over the nFET (see the operation above)"])
+    # 10
+    layers((-XG, XG), (-XG, XG), sheets=True)
+    F.snap("p_indent", "Si and base-layer indent",
+        "A selective etch recesses the exposed Si layers and the high-Ge base sideways, leaving "
+        "the lower-Ge SiGe ends in place: the reverse of the nFET's indent, where the SiGe is "
+        "recessed and the Si kept. The pockets it opens under the spacers set the inner spacers "
+        "[R13].", view="cutb", match="intermediate", figs=["11A/B"])
+    # 11
+    F.drop("spo_source", "spo_drain"); F.add("spacer_source", "spacer_drain")
+    F.snap("p_inner", "Inner-spacer fill and etch-back",
+        "Dielectric fills the pockets and is etched back, so it stays only between the SiGe sheet "
+        "ends and under the lowest one: the inner spacers. The SiGe sheet ends are exposed again "
+        "at the recess walls [R13].", view="cutb", match="intermediate", figs=["11A/B"],
+        subs=["Inner spacers are drawn in the outer spacers' nitride"])
+    # 12
+    F.add("sib_source", "sib_drain", "epi_source", "epi_drain")
+    F.snap("p_epi", "p-type source/drain epitaxy",
+        "Boron-doped epitaxy grows from two seeds: the SiGe sheet ends at the recess walls and "
+        "the silicon of the recessed sub-fin below. Here a thin Si:B layer grows first from the "
+        "sub-fin, then SiGe:B fills the recess and joins the sheet ends [R13]. Grown from the "
+        "substrate, the SiGe source/drain has a larger lattice than the silicon under it, so it "
+        "pushes on the channel along its length: compressive strain, which helps hole mobility. "
+        "No strain is calculated here.",
+        match="published", figs=["11A/B"],
+        subs=["Si:B then SiGe:B is an example sequence; layer thicknesses, Ge content and doping "
+              "are illustrative"])
+    # 13
+    ild_around()
+    F.snap("ild", "ILD fill and planarisation",
+        "Interlayer dielectric is deposited over both regions and polished flat, stopping on the "
+        "hard mask [R13].", match="intermediate", figs=["14A/B"])
+    # 14
+    F.drop("hardmask", "dummy", "dox")
+    F.snap("pull", "Hard-mask opening and dummy-gate removal",
+        "The hard mask is opened and the dummy gate and its oxide are removed from both regions. "
+        "At the bottom of the trench the pFET's stack is still whole: Si, lower-Ge SiGe and the "
+        "high-Ge base [R13].", view="cut", match="published", figs=["14A/B"])
+    # 15
+    F.drop("pbase"); F.drop_prefix("psi")
+    F.snap("p_release", "pFET channel preparation",
+        "With the nFET covered (the operation above), a selective etch removes the high-Ge base "
+        "and the Si layers inside the pFET's gate trench and keeps the lower-Ge SiGe: three SiGe "
+        "sheets, held at their ends by the source and drain [R13].", view="cut",
+        match="published", figs=["15A/B"])
+    # 16
+    F.add(*[f"p{k}{i}" for k in ("il", "hk", "wf") for i in (1, 2, 3)],
+          "pfloor_il", "pfloor_hk", "pfloor_wf", "mo", "gatecap")
+    F.snap("p_hkmg", "High-κ and p-type work-function metal",
+        "An interfacial oxide, a high-κ dielectric and the pFET's own work-function metal are "
+        "deposited round each SiGe sheet, and a gate fill joins them. The work-function "
+        "treatment is the pFET's, separate from the nFET's [R13]. With no bottom isolation, the "
+        "same films also line the sub-fin's top under the gate: the n-type stopper keeps that "
+        "surface from conducting.", view="cut", match="published", figs=["17A/B"],
+        subs=["The spaces between the SiGe sheets are the Si layers' 5 nm, set by the nFET model; "
+              "the pFET's films are drawn thinner (0.5 + 1 + 1 nm) so they fit and meet between the "
+              "sheets. A real shared stack is designed so both gates fit",
+              "The p-type work-function metal is a generic illustrative material"])
+    # 17
+    F.add("nisi_source", "nisi_drain", "ni_source", "ni_drain", "w_source", "w_drain", "gatew")
+    ild_around()
+    F.snap("p_contacts", "Middle-of-line contacts",
+        "Contacts are opened through the ILD, the silicide is formed on the SiGe:B and metal fills "
+        "the openings, with a contact onto the gate [R13].", match="published", figs=["18A/B"],
+        subs=["The NiSi, Ni and W contact stack is illustrative; SiGe contacts can need a "
+              "different silicide treatment"])
+    # 18
+    F.drop("ild")
+    F.snap("p_done", "The finished pFET",
+        "The pFET the shared stack makes: SiGe channels where the nFET has Si ones, an n-type "
+        "stopper where the nFET has bottom dielectric isolation, and its own work-function metal. "
+        "The ILD is hidden for viewing only.", match="published", figs=["18A/B"],
+        subs=["The ILD is hidden for viewing only"])
+    return dev, F, dict(
+        scope=NS_P_SCOPE, figures=NS_FIGURES, branch=NS_P_BRANCH, skipped=NS_P_SKIPPED,
+        refs=["R13", "R1", "R14", "R16", "R18", "R19", "R20", "R21"],
+        audit_unverified=[
+            "**Every figure mapping.** The patent's drawings have not been compared with these views; "
+            "orientation, composition and labels may differ from the published artwork.",
+            "**Section planes.** X1–X1 (along the pFET stack), Y1–Y1 and Y2–Y2 are placed from the "
+            "patent's written description only.",
+            "**The pFET's gate films.** Between its SiGe sheets the shared stack leaves the Si layers' "
+            "5 nm, set by the nFET model, so the pFET's films are drawn 0.5 + 1 + 1 nm and meet in the "
+            "middle; a real shared stack is designed so both gates fit.",
+            "When the protective liner over the pFET is removed, and the Si:B then SiGe:B epitaxy "
+            "sequence, are model choices; the recess depth into the sub-fin is illustrative.",
+            "The lithography operations are concept-level; the stack patterning routes are the nFET "
+            "flow's, a patterning concept applied to an illustrative layer."],
+        match=dict(MATCH, **PAT_MATCH), routes=ROUTES,
+        route_title="How the stack lines are printed", route_join="the stack etch",
+        views=dict(dev.views, cut=CUTAWAY, cutb=INDENT, **TILE_VIEWS, **FIELD_VIEWS))
+
+
+# ------------------------------------------------------------- both sites ----
+# The nFET and pFET single-site models side by side, the pFET one stack pitch across (-z),
+# in the tile's frame. What joins them is drawn here: the gate line between the two stacks
+# (dummy, spacers, then metal, or metal with a cut) and the masks that keep each region's
+# steps to itself. Everything else is the two site flows' own states, part for part.
+GATE_METALS = ("mo", "tin", PWF, "tungsten")
+
+
+def pair_builder(G, nflow, nfinal, pflow, pfinal):
+    """[G]: the tech's dimensions. Returns (snap, stage): snap(...) composes one state of
+    the pair from a state of each site and records it as a step."""
+    dz, y0, XGg, XSPg, XSDg = G["dz"], G["y0"], G["XG"], G["XSP"], G["XSD"]
+    ymo, ycap, hzmo, zsub, ZMID = G["ymo"], G["ycap"], G["hzmo"], G["zsub"], -G["dz"] / 2
+    zb = (-dz + hzmo, -hzmo)                    # the gate line between the two stacks
+    ZR = dict(n=(ZMID, zsub), p=(-dz - zsub, ZMID))
+    RT, CW = 10.0, G["cut"]
+    B = dict(x=[G["x"][0], G["x"][1]], y=[G["y"][0], ycap + RT + 34.0], z=[-dz - zsub, zsub])
+    host = type("Pair", (), dict(key=G["key"], name=G["name"], parts=[], bounds=B))
+    F = Flow(host)
+    S = Stage(F, "pair", B)
+    nby = {s["id"]: s for s in nflow["steps"]}
+    pby = {s["id"]: s for s in pflow}
+    who = dict(n="nFET", p="pFET")
+
+    def site(k, sid, drop):
+        st = (nby if k == "n" else pby)[sid]
+        fin = nfinal if k == "n" else pfinal
+        out = []
+        for x in st["parts"]:
+            p = fin[x] if isinstance(x, str) else x
+            if p["id"] in drop or f"{k}:{p['id']}" in drop: continue
+            bx = [list(b) for b in p["boxes"]]
+            if k == "p":
+                for b in bx: b[2] = round(b[2] - dz, 4)
+            out.append(dict(p, id=f"{k}_{p['id']}", name=f"{who[k]} · {p['name']}", boxes=bx, site=k))
+        return out
+
+    def bridge(kind):
+        """The gate line's stretch between the stacks, at a stage of [kind]."""
+        z0, z1 = zb
+        out = []
+        if kind in ("dummy", "film", "spacers"):
+            out += [tmp("b_dummy", "Dummy gate · Si · between the stacks", "poly", "Dummy gate",
+                        [box(-XGg, XGg, y0, ymo, z0, z1)], (0, 1.0, 0)),
+                    tmp("b_hm", "SiN hard mask · between the stacks", "si3n4", "Dummy gate",
+                        [box(-XGg, XGg, ymo, ycap, z0, z1)], (0, 1.4, 0))]
+        if kind in ("spacers", "trench", "metal", "cut", "cutopen"):
+            out.append(tmp("b_spacers", "Si₃N₄ gate spacers · between the stacks", "si3n4", "Spacers",
+                           [box(XGg, XSPg, y0, ycap, z0, z1), box(-XSPg, -XGg, y0, ycap, z0, z1)], (0, 0, 0)))
+        if kind == "metal":
+            out += [tmp("b_mo", "Mo gate fill · the connection between the two gates", "mo", "Gate electrode",
+                        [box(-XGg, XGg, y0, ymo, z0, z1)], (0, 1.0, 0)),
+                    tmp("b_cap", "TiN gate cap · between the stacks", "tin", "Gate electrode",
+                        [box(-XGg, XGg, ymo, ycap, z0, z1)], (0, 1.4, 0))]
+        if kind in ("cut", "cutopen"):
+            c0, c1 = ZMID - CW / 2, ZMID + CW / 2
+            for (a, b), side in (((c1, z1), "nFET"), ((z0, c0), "pFET")):
+                out += [tmp(f"b_mo_{side[0]}", f"Mo gate fill · {side} side of the cut", "mo", "Gate electrode",
+                            [box(-XGg, XGg, y0, ymo, a, b)], (0, 1.0, 0)),
+                        tmp(f"b_cap_{side[0]}", f"TiN gate cap · {side} side of the cut", "tin", "Gate electrode",
+                            [box(-XGg, XGg, ymo, ycap, a, b)], (0, 1.4, 0))]
+            if kind == "cut":
+                out.append(tmp("b_plug", "Gate-cut dielectric (SiN fill)", "si3n4", "Gate cut",
+                               [box(-XGg, XGg, y0, ycap, c0, c1)], (0, 1.6, 0)))
+        return out
+
+    def hits(a, b):
+        a, b = lim(a), lim(b)
+        return all(min(a[k + 1], b[k + 1]) > max(a[k], b[k]) + 1e-6 for k in (0, 2, 4))
+
+    def carve(parts, holes):
+        """Dielectrics drawn by each site out to its own edge give way to the gate line
+        between the stacks."""
+        out = []
+        for p in parts:
+            if (p["material"] in ("ild", "liner") or p["group"] == "Interlayer dielectric") and \
+                    any(hits(a, h) for a in p["boxes"] for h in holes):
+                p = dict(p, boxes=[[round(float(v), 4) for v in c]
+                                   for a in p["boxes"] for c in subtract(lim(a), holes)])
+            out.append(p)
+        return out
+
+    def snap(sid, title, body, *, n, p, br=None, drop=(), liner=None, block=None, film=None,
+             extra=(), of=None, view="pair", match="published", figs=(), regions=None, route=None, **kw):
+        parts = site("n", n, drop) + site("p", p, drop)
+        if dz > 2 * zsub + 1e-6:
+            # The site cells are narrower than the pitch: what the nFET cell has at its -z edge
+            # (wafer, STI, ILD) carries on across the strip between the two cells.
+            gap = []
+            for q in parts:
+                if q.get("site") != "n": continue
+                bx = [box(lim(c)[0], lim(c)[1], lim(c)[2], lim(c)[3], -dz + zsub, -zsub)
+                      for c in q["boxes"] if abs(lim(c)[4] + zsub) < 1e-6]
+                if bx: gap.append(tmp(f"g_{q['id'][2:]}", "Between the sites · " + q["name"].split(" · ", 1)[1],
+                                      q["material"], q["group"], bx, q["explode"]))
+            parts += gap
+        b = bridge(br) if br else []
+        parts = carve(parts, [x for q in b for x in q["boxes"]]) + b
+        S.now = {q["id"]: q for q in parts}
+        if film:        # the spacer film over the gate line between the stacks
+            S.put(tmp("b_film", "Spacer dielectric (as deposited) · between the stacks", "si3n4", "Spacers",
+                      conformal(S.boxes(), film, (-XSDg, XSDg, y0, ycap + film, zb[0], zb[1])), (0, .5, 0)))
+        if liner:       # a protective liner over one region
+            z0, z1 = ZR[liner]
+            S.put(tmp("m_liner", f"Protective liner over the {who[liner]} region", "liner", "Region masks",
+                      conformal(S.boxes(), 1.5, (-XSDg, XSDg, y0, ycap + 1.5, z0, z1)), (0, .8, 0)))
+        if block:       # a resist block over one region
+            z0, z1 = ZR[block]
+            S.put(tmp("m_block", f"Resist block over the {who[block]} region", "resist", "Region masks",
+                      subtract((-XSDg, XSDg, y0, ycap + 12.0, z0, z1), S.boxes()), (0, 1.6, 0)))
+        for q in extra: S.put(q)
+        S.route = route
+        S.snap(sid, title, body, view, match=match, figs=figs, of=of, **kw)
+        st = F.steps[-1]
+        st["pair"] = dict(n=n, p=p, bridge=br, liner=liner, block=block)
+        st["from"] = dict(n=n, p=p, drop=sorted(drop))
+        if regions: st["regions"] = regions
+        return st
+
+    return snap, S, F, dict(zb=zb, ZMID=ZMID, ZR=ZR, B=B, CW=CW, RT=RT)
+
+
+def pair_views(G):
+    zc = -G["dz"] / 2
+    sd = (G["XSP"] + G["XSD"]) / 2
+    return dict(
+        pair=dict(n="Both sites", s="nFET in front, pFET behind", az=-0.70, el=0.42, r=G["r"],
+                  tgt=[0, G["yt"], zc], clip=None, scale="pair"),
+        pairplan=dict(n="From above", s="plan view", az=0.0, el=1.45, r=G["r"] * 0.9,
+                      tgt=[0, 0, zc], clip=None, scale="pair"),
+        paircut=dict(n="Across both, at the gate", s="section through the gate line", az=1.5708, el=0.12,
+                     r=G["r"] * 0.78, tgt=[0, G["yt"], zc], clip=[0, None, None], scale="pair"),
+        pairsd=dict(n="Across both, at the drains", s="section through the drains", az=1.5708, el=0.12,
+                    r=G["r"] * 0.78, tgt=[sd, G["yt"], zc], clip=[sd, None, None], scale="pair"),
+        pairn=dict(n="Along the nFET", s="section along its channel", az=-0.62, el=0.30, r=G["r"] * 0.62,
+                   tgt=[0, G["yt"], G["zn"]], clip=[None, None, G["zn"]], scale="pair"),
+        pairp=dict(n="Along the pFET", s="section along its channel", az=-0.62, el=0.30, r=G["r"] * 0.62,
+                   tgt=[0, G["yt"], G["zp"]], clip=[None, None, G["zp"]], scale="pair"))
+
+
+SITES = dict(
+    ns=[dict(id="n", name="nFET", flow="ns"), dict(id="p", name="pFET", flow="ns_p"),
+        dict(id="both", name="Both sites", flow="ns_pair")],
+    fin=[dict(id="n", name="nFET", flow="fin"), dict(id="p", name="pFET", flow="fin_p"),
+         dict(id="both", name="Both sites", flow="fin_pair")])
+GATE_ROUTES = [
+    dict(id="cut", name="Gate cut", default=True,
+         note="The gate line is cut between the two stacks and the cut filled with dielectric: two "
+              "gates, contacted independently."),
+    dict(id="shared", name="Shared gate",
+         note="No cut: one gate electrode runs over both stacks, as a CMOS inverter's input needs."),
+]
+PAIR_SUB = ("The two sites are the nFET and pFET flows' own models, one stack pitch apart; the gate "
+            "line between them and the region masks are drawn here. Region masks, their materials and "
+            "extents are illustrative")
+BRANCH_CACHE = {}
+
+
+def regions(n, p):
+    return dict(n=n, p=p)
+
+
+def ns_pair(ns, nfinal, psteps, pfinal):
+    D = ns_dims()
+    G = dict(key="ns_pair", name="Nanosheet · both sites", dz=2 * D["zsub"], y0=0.0, XG=XG, XSP=XSP, XSD=XSD,
+             ymo=D["ymo"], ycap=D["ycap"], hzmo=D["hzmo"], zsub=D["zsub"], cut=12.0,
+             x=(D["sub"][0], D["sub"][1]), y=(D["sub"][2], 0), r=560.0, yt=40.0, zn=0.0, zp=-2 * D["zsub"])
+    snap, S, F, g = pair_builder(G, ns, nfinal, psteps, pfinal)
+    ycap, CW, ZMID, RT = G["ycap"], g["CW"], g["ZMID"], g["RT"]
+    SUBS = [PAIR_SUB]
+    R0 = regions("not yet processed", "not yet processed")
+    snap("substrate", "Silicon substrate", "One wafer for both devices: the nFET region in front, the "
+         "pFET region behind it, one stack pitch away [R13].", n="substrate", p="substrate",
+         figs=["2A/B"], subs=SUBS, regions=R0)
+    snap("pts_pmask", "p-type implant, pFET masked", "A resist block covers the pFET region while "
+         "the nFET region receives its p-type punch-through stopper [R13].", n="pts", p="substrate",
+         block="p", of="pts", match="intermediate", figs=["3A/B"], subs=SUBS,
+         regions=regions("implanted p-type", "masked"))
+    snap("pts_nmask", "n-type implant, nFET masked", "The block is moved: now the nFET region is "
+         "covered and the pFET region receives its n-type stopper [R13].", n="pts", p="pts",
+         block="n", of="pts", match="intermediate", figs=["3A/B"], subs=SUBS,
+         regions=regions("masked", "implanted n-type"))
+    snap("pts", "Both stoppers implanted", "Each region has its own stopper: p-type under the nFET, "
+         "n-type under the pFET [R13].", n="pts", p="pts", figs=["3A/B"], subs=SUBS,
+         regions=regions("p-type stopper", "n-type stopper"))
+    snap("superlattice", "One Si/SiGe stack for both", "One multilayer grows over both regions: the "
+         "nFET will keep its Si layers as channels, the pFET its lower-Ge SiGe layers [R13].",
+         n="superlattice", p="superlattice", figs=["4A/B"], subs=SUBS,
+         regions=regions("shared stack", "shared stack"))
+    snap("pattern", "Both stacks patterned", "The two stack lines are patterned together, with shallow "
+         "trench isolation between them [R13]. The operations are shown in the nFET and pFET flows, on "
+         "the tile.", n="pattern", p="pattern", figs=["5A/B"], subs=SUBS,
+         regions=regions("stack line and sub-fin", "stack line and sub-fin"))
+    snap("dummy", "One dummy gate across both", "The dummy gate runs over both stacks and the "
+         "isolation between them [R13].", n="dummy", p="dummy", br="dummy", figs=["6A/B"], subs=SUBS,
+         regions=regions("dummy gate", "dummy gate"))
+    snap("n_open", "pFET protected, nFET opened", "A liner and a resist block cover the pFET region; the "
+         "nFET region is open, with its high-Ge base layer's sidewalls exposed [R13].", n="dummy",
+         p="dummy", br="dummy", liner="p", block="p", of="bottom", match="intermediate", figs=["7A/B"],
+         subs=SUBS, regions=regions("open", "masked"))
+    snap("bottom", "nFET base layer removed", "The nFET's high-Ge base layer is etched out from under "
+         "its stack, which the dummy gate holds up; the resist is stripped and the liner keeps the pFET "
+         "sealed. The pFET keeps its base layer [R13].", n="bottom", p="bottom", drop=("liner",),
+         br="dummy", liner="p", view="pairn", figs=["8A/B"], subs=SUBS,
+         regions=regions("base layer removed: a cavity", "protected; base kept"))
+    snap("spacerdep", "Spacer dielectric over both", "The liner comes off and the spacer dielectric "
+         "is deposited over both regions: under the nFET it fills the cavity, the future bottom "
+         "dielectric isolation; the pFET has no cavity [R13].", n="spacerdep", p="spacerdep",
+         br="dummy", film=XSP - XG, view="paircut", figs=["9A/B"], subs=SUBS,
+         regions=regions("spacer film; cavity filled (BDI)", "spacer film"))
+    snap("spaceretch", "Spacers on both", "The etch-back leaves spacers on the dummy gate's sidewalls "
+         "along its whole length, over both stacks and between them.", n="spaceretch", p="spaceretch",
+         br="spacers", match="intermediate", figs=["9A/B"], subs=SUBS,
+         regions=regions("spacers; BDI", "spacers"))
+    snap("p_open", "nFET protected, pFET opened", "A liner and a resist block now cover the nFET; the "
+         "pFET region is open [R13].", n="spaceretch", p="spaceretch", br="spacers", liner="n",
+         block="n", of="p_recess", match="intermediate", figs=["10A/B"], subs=SUBS,
+         regions=regions("masked", "open"))
+    for sid, title, body, fig, view in (
+            ("p_recess", "pFET source/drain recess", "The pFET stack is recessed outside its spacers, "
+             "through its base layer and into the n-type sub-fin, while the liner protects the nFET "
+             "[R13].", "10A/B", "pairp"),
+            ("p_indent", "pFET Si and base-layer indent", "The pFET's Si layers and high-Ge base are "
+             "indented under its spacers [R13].", "11A/B", "pairp"),
+            ("p_inner", "pFET inner spacers", "Inner spacers fill the pFET's pockets [R13].", "11A/B", "pairp"),
+            ("p_epi", "pFET source/drain epitaxy", "SiGe:B grows from the pFET's SiGe sheet ends and its "
+             "recessed sub-fin; the nFET, still under its liner, gets none [R13].", "11A/B", "pairp")):
+        snap(sid, title, body, n="spaceretch", p=sid, br="spacers", liner="n", view=view,
+             match="published" if sid in ("p_recess", "p_epi") else "intermediate", figs=[fig],
+             subs=SUBS, regions=regions("protected", {"p_recess": "recessed", "p_indent": "Si and base indented",
+                                                      "p_inner": "inner spacers", "p_epi": "SiGe:B source/drain"}[sid]))
+    snap("n_open2", "pFET protected, nFET opened", "The masks swap: a liner and resist block over the "
+         "pFET, and the nFET open [R13].", n="spaceretch", p="p_epi", br="spacers", liner="p", block="p",
+         of="recess", match="intermediate", figs=["12A/B"], subs=SUBS, regions=regions("open", "masked"))
+    for sid, title, body, fig, st in (
+            ("recess", "nFET source/drain recess", "The nFET stack is recessed outside its spacers, "
+             "stopping on its BDI [R13].", "12A/B", "recessed to the BDI"),
+            ("indent", "nFET SiGe indent", "The nFET's lower-Ge SiGe is indented under its spacers "
+             "[R13].", "13A/B", "SiGe indented"),
+            ("inner", "nFET inner spacers", "Inner spacers fill the nFET's pockets [R13].", "13A/B", "inner spacers"),
+            ("epi", "nFET source/drain epitaxy", "Si:P grows from the nFET's Si sheet ends; the pFET, "
+             "under its liner, gets none [R13].", "13A/B", "Si:P source/drain")):
+        snap(sid, title, body, n=sid, p="p_epi", br="spacers", liner="p", view="pairn",
+             match="published" if sid in ("recess", "epi") else "intermediate", figs=[fig],
+             subs=SUBS, regions=regions(st, "protected"))
+    snap("ild", "ILD over both", "The liner comes off and interlayer dielectric fills over both "
+         "regions, polished down to the gate hard mask [R13].", n="ild", p="ild", br="spacers",
+         match="intermediate", figs=["14A/B"], subs=SUBS, regions=regions("buried in ILD", "buried in ILD"))
+    snap("pull", "One gate trench over both", "The dummy gate is removed along its whole length: one "
+         "trench runs over both stacks and the isolation between them [R13].", n="pull", p="pull",
+         br="trench", view="paircut", figs=["14A/B"], subs=SUBS,
+         regions=regions("gate trench open", "gate trench open"))
+    snap("p_chopen", "nFET covered, pFET's trench open", "Resist fills the nFET's part of the trench "
+         "[R13].", n="pull", p="pull", br="trench", block="n", of="p_release", match="intermediate",
+         view="paircut", figs=["15A/B"], subs=SUBS, regions=regions("masked", "open"))
+    snap("p_release", "pFET channels prepared", "In the pFET's trench the high-Ge base and the Si layers "
+         "are removed, leaving three SiGe sheets [R13].", n="pull", p="p_release", br="trench", block="n",
+         view="paircut", figs=["15A/B"], subs=SUBS, regions=regions("masked", "SiGe sheets released"))
+    snap("n_chopen", "pFET covered, nFET's trench open", "The resist moves to the pFET's part of the "
+         "trench [R13].", n="pull", p="p_release", br="trench", block="p", of="release",
+         match="intermediate", view="paircut", figs=["16A/B"], subs=SUBS, regions=regions("open", "masked"))
+    snap("release", "nFET channels released", "In the nFET's trench the lower-Ge SiGe is removed, "
+         "leaving three Si sheets over the BDI [R13].", n="release", p="p_release", br="trench", block="p",
+         view="paircut", figs=["16A/B"], subs=SUBS, regions=regions("Si sheets released", "masked"))
+    snap("hkmg", "Two work functions, one gate line", "Each region gets its own work-function treatment: "
+         "TiN round the nFET's Si sheets, the pFET's own p-type metal round its SiGe sheets [R13]. The "
+         "gate fill runs on between the stacks, so at this point the two gates are one conductor.",
+         n="hkmg", p="p_hkmg", br="metal", view="paircut", figs=["17A/B"], subs=SUBS + [
+             "How each work-function layer is kept to its own region (deposit, mask, remove) is not drawn"],
+         regions=regions("n-type work function", "p-type work function"))
+    gate_ends(snap, G, g, n_state="hkmg", p_state="p_hkmg", n_done="contacts", p_done="p_contacts",
+              figs_cut=["17A/B", "18A/B"], figs_shared=["19A/B"], src={}, SUBS=SUBS)
+    return G, F
+
+
+def gate_ends(snap, G, g, *, n_state, p_state, n_done, p_done, figs_cut, figs_shared, src, SUBS,
+              shared_note=None, fill=()):
+    """The two ways the gate line ends, as alternative routes that never follow each other:
+    a cut between the stacks, filled with dielectric (two gates), or no cut (one gate)."""
+    XGg, XSDg, ycap, CW, ZMID, RT = G["XG"], G["XSD"], G["ycap"], g["CW"], g["ZMID"], g["RT"]
+    RY = ycap + RT + 30.0
+    z0, z1 = g["B"]["z"]
+    op = (-XGg, XGg, ycap, ycap + RT, ZMID - CW / 2, ZMID + CW / 2)
+    res = lambda pid, name, mat, bx: tmp(pid, name, mat, "Patterning", bx, (0, 1.6, 0))
+    blanket = (-XSDg, XSDg, ycap, ycap + RT, z0, z1)
+    sourced = bool(figs_cut) and not shared_note
+    m_src = "published" if not src else "source"
+    subs_x = [] if not shared_note else [shared_note]
+    R = regions("gate line joined", "gate line joined")
+    common = dict(n=n_state, p=p_state, of="gatecut", route="cut", match="concept", subs=SUBS)
+    snap("cut_coat", "Gate-cut resist", "Resist is spun on over the polished surface [R16].",
+         br="metal", extra=[res("c_res", "Photoresist (coated)", "resist", [box(*blanket)])], regions=R, **common)
+    snap("cut_expose", "Gate-cut exposure", "The reticle's chrome covers everything but a short slot "
+         "across the gate line, midway between the stacks; the resist there becomes soluble [R16].",
+         br="metal", extra=[res("c_res", "Photoresist (unexposed)", "resist", subtract(blanket, [box(*op)])),
+                            res("c_res_x", "Photoresist (exposed: the cut)", "resist_exp", [box(*op)]),
+                            res("c_ret", "Reticle chrome (in the scanner; not to scale)", "chrome",
+                                subtract((-XSDg, XSDg, RY, RY + 2.0, z0, z1), [box(-XGg, XGg, RY, RY + 2.0, op[4], op[5])]))],
+         regions=R, **dict(common, subs=SUBS + ["Exposure is simplified: no optics, proximity, dose or overlay effects"]))
+    snap("cut_open", "Gate-cut opening", "The developer opens the slot in the resist [R16].", br="metal",
+         extra=[res("c_res", "Photoresist (with the cut opening)", "resist", subtract(blanket, [box(*op)]))],
+         view="paircut", regions=R, **common)
+    snap("cut_etch", "Gate-cut etch", "Through the opening, the gate cap and gate fill are etched down to "
+         "the isolation: the conductive connection between the two gates is gone. The etch stays between "
+         "the stacks: neither device's channels nor its source/drain is touched.", br="cutopen",
+         extra=[res("c_res", "Photoresist (with the cut opening)", "resist", subtract(blanket, [box(*op)]))],
+         view="paircut", regions=regions("own gate", "own gate"),
+         **dict(common, match="teach", subs=SUBS + subs_x))
+    cut_ref = " [R13]" if sourced else ""
+    snap("gatecut", "Cut filled: two gates", "The slot is filled with dielectric and polished, and the "
+         "resist is gone. The nFET and pFET now have separate gates, to be contacted independently" +
+         cut_ref + ".", n=n_state, p=p_state, br="cut", route="cut", view="paircut",
+         match=m_src if sourced else "teach", figs=figs_cut if sourced else [],
+         subs=SUBS + subs_x + ["The cut is drawn exactly the gate's length and square-walled; its "
+                               "width is illustrative"],
+         regions=regions("own gate", "own gate"), **(src if sourced else {}))
+    snap("contacts_cut", "Contacts: two gate contacts", "Source, drain and gate contacts on each "
+         "device; with the cut, each gate has its own contact" + (" [R13]" if sourced else
+         " [R24]") + ".", n=n_done, p=p_done, br="cut", route="cut", view="pair",
+         match=m_src, figs=figs_cut[-1:], subs=SUBS + subs_x,
+         regions=regions("contacted; own gate", "contacted; own gate"), **src)
+    snap("shared", "Shared gate: one input", "The alternative: the gate line is not cut. One gate "
+         "electrode runs over both, each device with its own work-function metal, and one contact "
+         "serves both, as a CMOS inverter's input needs" + (". This is Fig. 19's arrangement, an "
+         "alternative to the cut, not a step after it [R13]." if sourced else " [R24]."),
+         n=n_done, p=p_done, drop=("p:gatew",), br="metal", route="shared", view="paircut",
+         extra=[tmp("b_ildfill", "ILD · no second gate contact here", "ild", "Interlayer dielectric",
+                    fill, (0, .6, 0))] if fill else [],
+         match=m_src, figs=figs_shared, subs=SUBS + subs_x + [
+             "One gate contact is drawn, over the nFET; where it lands is illustrative"],
+         regions=regions("contacted; shared gate", "shared gate"), **src)
+
+
+def pair_labels(steps):
+    """Core steps count 1, 2, 3... along each route (the two ways the gate line ends are
+    terminal alternatives); the operations leading to core step n are n.1, n.2..."""
+    routes = list(dict.fromkeys(st["route"] for st in steps if st.get("route")))
+    for r in routes:
+        core, ops = 0, 0
+        for k, st in enumerate(steps):
+            if st.get("route") not in (None, r): continue
+            if st["level"] == "core": core += 1; ops = 0; lab = str(core)
+            else: ops += 1; lab = f"{core + 1}.{ops}"
+            st.setdefault("labels", {})[r] = lab
+    for st in steps:
+        lab = st.pop("labels")
+        st["label"] = lab[st.get("route") or routes[0]]
+        if not st.get("route") and len(set(lab.values())) > 1: st["labels"] = lab
+    return steps
+
+
+def insert_pair_ops(F, pair_steps, ids):
+    """Copy the both-sites operations [ids] into a site flow, each before its core step."""
+    for oid in ids:
+        oid, to = oid if isinstance(oid, tuple) else (oid, None)
+        op = json.loads(json.dumps(next(s for s in pair_steps if s["id"] == oid)))
+        if to: op["of"] = to
+        op.pop("pair", None); op.pop("regions", None); op.pop("route", None); op.pop("from", None)
+        k = next(i for i, s in enumerate(F.steps) if s["level"] == "core" and s["id"] == op["of"])
+        F.steps.insert(k, op)
+
+
+def attach_regions(steps, pair_steps, side):
+    """Each step says what state both regions are in, read off the both-sites flow."""
+    cores = [s for s in pair_steps if s["level"] == "core" and not s.get("route")] + \
+            [s for s in pair_steps if s["level"] == "core" and s.get("route") == "cut"]
+    last = None
+    for st in steps:
+        if st["level"] != "core": continue
+        m = next((s for s in cores if s["id"] == st["id"]), None) or \
+            next((s for s in cores if s["pair"][side] == st["id"]), None)
+        # A step the both-sites flow does not show (the finished device, say) keeps the last state.
+        last = m["regions"] if m else last
+        if last: st["regions"] = last
+    nxt = None
+    for st in reversed(steps):
+        if st["level"] == "core": nxt = st.get("regions")
+        elif nxt and "regions" not in st: st["regions"] = nxt
+
+
+def flow_ns_p_all(done):
+    dev, F, extra = flow_ns_p(done)
+    ns = done["ns"]
+    nfinal = {p["id"]: p for p in bd.build_ns().parts}
+    G, PF = ns_pair(ns, nfinal, F.steps, F.final)
+    insert_pair_ops(F, PF.steps, ["pts_nmask", "p_open", "p_chopen"])
+    extra["views"].update(pair_views(G))
+    steps = F.done()
+    attach_regions(steps, PF.steps, "p")
+    attach_regions(ns["steps"], PF.steps, "n")
+    for fl in (ns, extra): fl["sites"] = SITES["ns"]
+    ns["site"], extra["site"] = "n", "p"
+    BRANCH_CACHE["ns_pair"] = (G, PF, dev)
+    extra.update(own=True, name=dev.name, bounds=dev.bounds, final=dev.parts)
+    return dev, steps, extra
+
+
+def flow_ns_pair(done):
+    G, PF, pdev = BRANCH_CACHE["ns_pair"]
+    steps = pair_labels(PF.steps)
+    for st in steps: st.pop("pair", None)
+    host = type("Pair", (), dict(key="ns_pair", name=G["name"], parts=[], bounds=PF.dev.bounds))
+    return host, steps, dict(
+        own=True, name=G["name"], bounds=PF.dev.bounds, site="both", sites=SITES["ns"],
+        scope="The nanosheet nFET and pFET together, as the patent makes them from one stack [R13]: "
+              "the two single-site models one stack pitch apart, joined by their gate line, with the "
+              "masks that keep each region's steps to itself. At the end the gate line is either cut "
+              "into two gates or kept as one shared gate: two alternatives, not two steps. "
+              "Illustrative materials and dimensions; not a verified foundry recipe.",
+        figures=NS_FIGURES,
+        branch="Both sites: one nFET and one pFET, not a finished circuit. Each site is its own "
+               "flow's model at that stage; the gate line between the stacks and the region masks are "
+               "drawn here. The 2 × 2 tile's patterning operations are in the nFET and pFET flows.",
+        skipped={}, refs=["R13", "R16"],
+        match={k: v for k, v in dict(MATCH, **FIN_MATCH).items() if k in {st["match"] for st in steps}},
+        routes=GATE_ROUTES,
+        route_title="How the gate line ends", route_join="", route_kind="terminal",
+        views=pair_views(G),
+        audit_tile="Every state is the nFET flow's state and the pFET flow's state named in the "
+                   "Match column's step, side by side one stack pitch apart; the build checks the "
+                   "composition for overlaps, that each region mask covers only its own region, "
+                   "that the gate cut leaves no conductive path between the two gates and cuts no "
+                   "stack, sheet or source/drain, and that the shared gate keeps them connected.")
+
+
+
+
+# ------------------------------------------------------------ FinFET pFET ----
+# The FinFET model's pFET is the nFET's geometry with its own materials: the fins in an
+# n-well, a selectively grown SiGe:B source/drain with the nFET masked, and a separate
+# p-type work-function metal. Every state is the nFET flow's, part for part, with those
+# parts swapped, so the two cannot drift apart; the region masks are in Both sites.
+FIN_P_BODY = dict(
+    substrate="The flow starts from a bare silicon wafer; the fins will be cut from it. This pFET "
+              "sits in an n-well, the nFET beside it in a p-well; F1 describes the wells as optional "
+              "implants here [R24]. The wells are named, not drawn as doping profiles.",
+    epi="With the nFET region masked (the operation above, on both sites), boron-doped SiGe grows "
+        "selectively from the recessed fins' exposed silicon, not from the STI or the mask, and "
+        "facets outward above it; an anneal activates the dopant [R25]. Grown on the silicon fin, "
+        "the larger SiGe lattice squeezes the channel along its length: compressive strain, which "
+        "helps holes. No strain is calculated here. Each fin's epitaxy stays separate; merged "
+        "neighbours are an alternative [R24].",
+    metal="The pFET's own work-function metal goes on the high-κ, applied while the nFET is masked, "
+          "separate from the nFET's TiN; molybdenum fills the rest of the trench and is polished, "
+          "then recessed and capped. The metal wraps three faces of each fin: the tri-gate [R24].",
+    done="The finished FinFET pFET, with the ILD and etch-stop film hidden: two fins in an n-well, "
+         "wrapped on three faces by the high-κ and p-type metal gate, between SiGe:B source and "
+         "drain. Its geometry is the nFET model's; only its materials and doping differ.")
+FIN_P_SUBS = dict(
+    epi=["The SiGe:B composition and facets are illustrative; the two-step facet is the nFET "
+         "model's shape"],
+    metal=["The p-type work-function metal is a generic illustrative material; TiN, Mo and a TiN "
+           "cap are otherwise the nFET model's choices"])
+FIN_P_TEXT = [
+    ("Only the selected nFET is carried to a finished device; the other three are context.",
+     "In this flow the pFET pair beside the selected nFET is the one followed; the other sites are "
+     "context."),
+    ("Only the selected nFET is completed. Next, the view returns to the selected site",
+     "In this flow the pFET site on the same gate line is completed. Next, the view returns to "
+     "that site"),
+]
+
+
+def fin_p_final():
+    d = bd.build_fin()
+    out = []
+    for p in d.parts:
+        q = dict(p)
+        if p["id"].startswith("epi_"):
+            q.update(material="sige", name=p["name"].replace("(Si:P)", "(SiGe:B)"))
+        elif p["id"].startswith("tin") and p["id"] != "tin":
+            q.update(material=PWF, name=p["name"].replace("TiN work-function metal", "p-type work-function metal"))
+        elif p["id"].startswith("fin"):
+            q.update(name=p["name"] + " (n-well)")
+        elif p["id"] == "substrate":
+            q.update(name="Si substrate (n-well region)")
+        out.append(q)
+    d.parts = out
+    d.key, d.name = "fin_p", "FinFET pFET"
+    return d
+
+
+def flow_fin_p(done):
+    fin = done["fin"]
+    dev = fin_p_final()
+    steps = json.loads(json.dumps(fin["steps"]))
+    for st in steps:
+        st.pop("compare", None); st.pop("regions", None)
+        for a, b in FIN_P_TEXT: st["body"] = st["body"].replace(a, b)
+        st["body"] = FIN_P_BODY.get(st["id"], st["body"]) if st["scale"] == "site" else st["body"]
+        if st["scale"] == "site" and st["id"] in FIN_P_SUBS: st["subs"] = FIN_P_SUBS[st["id"]]
+        if st["scale"] == "site":
+            st["omitted"] = [o for o in st["omitted"] if "pFET" not in o] + (
+                ["The nFET region beside it and the masks over it (see Both sites)"]
+                if st["id"] in ("epi", "metal") else [])
+            for p in st["parts"]:
+                if isinstance(p, dict) and p["id"] in ("fin1_full", "fin2_full"):
+                    p["name"] += " (n-well)"
+        if st["id"] == "epi" and st["level"] == "core":
+            st["title"] = "SiGe:B source/drain epitaxy"
+            st["src"] = sorted(set(st.get("src", []) + ["R25"]))
+        if st["id"] == "metal": st["title"] = "p-type work-function metal, gate fill and cap"
+        if st["id"] == "done": st["title"] = "The finished pFET"
+    extra = {k: v for k, v in fin.items() if k not in ("steps", "sections", "badge", "badge_note", "site", "sites")}
+    extra = json.loads(json.dumps(extra))
+    extra.update(
+        scope="Representative bulk silicon FinFET pFET fabrication, gate last: the FinFET flow's stages "
+              "with the pFET's own steps, an n-well, SiGe:B source/drain grown with the nFET masked "
+              "[R25], and a separate p-type work-function metal. The geometry is the nFET model's; "
+              "materials, masks and dimensions are illustrative. Not a verified foundry recipe.",
+        branch="The pFET branch: the same wafer, fins and gate patterning as the nFET (the tile's "
+               "operations are the nFET flow's own), then its own masked operations. The Both sites "
+               "view shows the two together, with the region masks and the choice between a gate cut "
+               "and a shared gate.",
+        own=True, name=dev.name, bounds=dev.bounds, final=dev.parts)
+    extra["views"] = dict(bd.build_fin().views, **extra["views"])
+    extra["audit_unverified"] = extra.get("audit_unverified", []) + [
+        "**The pFET's model.** Its geometry is the nFET model's; the n-well, SiGe:B source/drain and "
+        "p-type work-function metal are named and coloured, not dimensioned, and no strain or "
+        "threshold is calculated.",
+        "The masks that keep each region's steps to itself are shown in Both sites; their materials "
+        "and the order of the masked steps are illustrative."]
+    return dev, steps, extra
+
+
+def fin_pair(fin, nfinal, psteps, pfinal):
+    fd = bd.build_fin()
+    P = {p["id"]: p for p in fd.parts}
+    cap = lim(P["gatecap"]["boxes"][0]); zsub = lim(P["substrate"]["boxes"][0])[5]
+    G = dict(key="fin_pair", name="FinFET · both sites", dz=81.0, y0=12.0, XG=9.0, XSP=16.0, XSD=38.0,
+             ymo=cap[2], ycap=cap[3], hzmo=cap[5], zsub=zsub, cut=10.0, x=(-48.0, 48.0), y=(-26.0, 0),
+             r=500.0, yt=35.0, zn=13.5, zp=13.5 - 81.0)
+    snap, S, F, g = pair_builder(G, fin, nfinal, psteps, pfinal)
+    SUBS = [PAIR_SUB, "The wells are named regions, not doping profiles"]
+    src = dict(src=["R24"])
+    snap("pwell", "p-well implant, pFET masked", "A resist block covers the pFET region while the "
+         "nFET region is implanted for its p-well [R24].", n="substrate", p="substrate", block="p",
+         of="substrate", match="source", figs=["2A"], subs=SUBS, regions=regions("p-well implant", "masked"), **src)
+    snap("nwell", "n-well implant, nFET masked", "The block is moved and the pFET region is implanted "
+         "for its n-well [R24].", n="substrate", p="substrate", block="n", of="substrate", match="source",
+         figs=["2A"], subs=SUBS, regions=regions("masked", "n-well implant"), **src)
+    snap("substrate", "One wafer, two wells", "A p-well under the nFET region, an n-well under the pFET "
+         "region; F1 describes the wells as optional [R24].", n="substrate", p="substrate",
+         match="source", figs=["2A"], subs=SUBS, regions=regions("p-well", "n-well"), **src)
+    snap("fins", "Both fin pairs", "The fins of both devices are patterned together, with STI between "
+         "them [R24]. The operations are shown in the nFET and pFET flows, on the tile.", n="fins",
+         p="fins", match="source", figs=["3A", "4A", "5A"], subs=SUBS, regions=regions("fins", "fins"), **src)
+    snap("dummy", "One dummy gate across both", "The dummy gate runs over both fin pairs and the STI "
+         "between them [R24].", n="dummy", p="dummy", br="dummy", match="source", figs=["6A", "7A"],
+         subs=SUBS, regions=regions("dummy gate", "dummy gate"), **src)
+    snap("spacerdep", "Spacer dielectric over both", "The gate spacer film is deposited over both "
+         "regions and along the gate line between them.", n="spacerdep", p="spacerdep", br="dummy",
+         film=G["XSP"] - G["XG"], view="paircut", match="teach", subs=SUBS + [SPACER_SUB],
+         regions=regions("spacer film", "spacer film"))
+    snap("spaceretch", "Spacers on both", "The etch-back leaves spacers along the whole gate line.",
+         n="spaceretch", p="spaceretch", br="spacers", match="teach", subs=SUBS + [SPACER_SUB],
+         regions=regions("spacers", "spacers"))
+    snap("recess", "Both recessed", "The fins of both regions are recessed beside the spacers [R24].",
+         n="recess", p="recess", br="spacers", view="pairsd", match="source", figs=["16A"], subs=SUBS,
+         regions=regions("recessed", "recessed"), **src)
+    snap("p_open", "nFET protected, pFET open", "A liner and a resist block cover the nFET region "
+         "[R25].", n="recess", p="recess", br="spacers", liner="n", block="n", of="p_epi", match="source",
+         figs=["17A"], subs=SUBS, regions=regions("masked", "open"), view="pairsd", src=["R24", "R25"])
+    snap("p_epi", "pFET SiGe:B epitaxy", "SiGe:B grows selectively on the pFET's recessed fins; the "
+         "nFET, under its liner, gets none [R25].", n="recess", p="epi", br="spacers", liner="n",
+         view="pairsd", match="source", figs=["17A"], subs=SUBS, src=["R24", "R25"],
+         regions=regions("protected", "SiGe:B source/drain"))
+    snap("n_open", "pFET protected, nFET open", "The masks swap to the pFET region [R25].", n="recess",
+         p="epi", br="spacers", liner="p", block="p", of="epi", match="source", figs=["17A"], subs=SUBS,
+         view="pairsd", regions=regions("open", "masked"), src=["R24", "R25"])
+    snap("epi", "nFET Si:P epitaxy", "Si:P grows on the nFET's recessed fins; the pFET, under its liner, "
+         "gets none [R24][R25].", n="epi", p="epi", br="spacers", liner="p", view="pairsd", match="source",
+         figs=["17A"], subs=SUBS, src=["R24", "R25"], regions=regions("Si:P source/drain", "protected"))
+    snap("ild", "Etch-stop layer and ILD over both", "The liner comes off; the etch-stop film and ILD "
+         "cover both regions, polished to the gate [R24].", n="ild", p="ild", br="spacers",
+         match="source", figs=["18A"], subs=SUBS, regions=regions("buried in ILD", "buried in ILD"), **src)
+    snap("pull", "One gate trench over both", "The dummy gate is removed along its whole length [R24].",
+         n="pull", p="pull", br="trench", view="paircut", match="source", figs=["19A"], subs=SUBS,
+         regions=regions("gate trench open", "gate trench open"), **src)
+    snap("hk", "High-κ over both", "The interfacial layer and high-κ go into the whole trench [R24].",
+         n="hk", p="hk", br="trench", view="paircut", match="source", figs=["20A"], subs=SUBS,
+         regions=regions("high-κ", "high-κ"), **src)
+    snap("wf_mask", "nFET covered for the p-type metal", "Resist covers the nFET's part of the trench "
+         "while the pFET gets its own work-function metal and fill [R25].", n="hk", p="metal", br="trench", block="n",
+         of="metal", view="paircut", match="teach", subs=SUBS + ["How each work-function layer is kept "
+         "to its region is drawn as one resist block; the deposition order is illustrative"],
+         regions=regions("masked", "p-type work function"))
+    snap("metal", "Two work functions, one gate line", "The nFET has TiN, the pFET its own p-type "
+         "metal; the Mo fill runs on between the fin pairs, so the two gates are one conductor [R24].",
+         n="metal", p="metal", br="metal", view="paircut", match="source", figs=["20A"], subs=SUBS,
+         regions=regions("n-type work function", "p-type work function"), **src)
+    gate_ends(snap, G, g, n_state="metal", p_state="metal", n_done="contacts", p_done="contacts",
+              figs_cut=["21A"], figs_shared=["21A"], src=src, SUBS=SUBS,
+              shared_note="F1's text read here does not describe the gate cut; both endings are "
+                          "teaching reconstructions of standard practice",
+              # The FinFET's second ILD surrounds its gate contacts: without the pFET's, the
+              # opening it would have filled is ILD.
+              fill=[[b[0], b[1], round(b[2] - G["dz"], 4), b[3], b[4], b[5]] for b in pfinal["gatew"]["boxes"]])
+    return G, F
+
+
+def flow_fin_p_all(done):
+    dev, steps, extra = flow_fin_p(done)
+    fin = done["fin"]
+    nfinal = {p["id"]: p for p in bd.build_fin().parts}
+    pfinal = {p["id"]: p for p in dev.parts}
+    G, PF = fin_pair(fin, nfinal, steps, pfinal)
+    tmpF = type("F", (), dict(steps=steps))
+    insert_pair_ops(tmpF, PF.steps, ["nwell", ("p_open", "epi"), "wf_mask"])
+    relabel(steps)
+    extra["views"].update(pair_views(G))
+    attach_regions(steps, PF.steps, "p")
+    attach_regions(fin["steps"], PF.steps, "n")
+    for fl in (fin, extra): fl["sites"] = SITES["fin"]
+    fin["site"], extra["site"] = "n", "p"
+    BRANCH_CACHE["fin_pair"] = (G, PF)
+    return dev, steps, extra
+
+
+def flow_fin_pair(done):
+    G, PF = BRANCH_CACHE["fin_pair"]
+    steps = pair_labels(PF.steps)
+    for st in steps: st.pop("pair", None)
+    host = type("Pair", (), dict(key="fin_pair", name=G["name"], parts=[], bounds=PF.dev.bounds))
+    used = {st["match"] for st in steps}
+    return host, steps, dict(
+        own=True, name=G["name"], bounds=PF.dev.bounds, site="both", sites=SITES["fin"],
+        scope="The FinFET nFET and pFET together: the two single-site models one site width apart, "
+              "joined by their gate line, with the masks that keep each region's own steps to itself "
+              "(its wells, its source/drain epitaxy, its work-function metal). At the end the gate "
+              "line is either cut into two gates or kept as one shared gate: alternatives, not two "
+              "steps. Illustrative; not a verified foundry recipe.",
+        figures=FIN_FIGURES,
+        branch="Both sites: one nFET and one pFET, not a finished circuit. Each site is its own "
+               "flow's model at that stage; the gate line between them and the region masks are drawn "
+               "here. The tile's patterning operations are in the nFET and pFET flows.",
+        skipped={}, refs=["R24", "R25", "R16"],
+        match={k: v for k, v in dict(MATCH, **FIN_MATCH).items() if k in used}, routes=GATE_ROUTES,
+        route_title="How the gate line ends", route_join="", route_kind="terminal",
+        views=pair_views(G),
+        audit_tile="Every state is the nFET and pFET flows' own states side by side, one site width "
+                   "apart; the build checks the composition for overlaps, and the tests check that "
+                   "each region mask covers only its own region, that the gate cut leaves no "
+                   "conductive path between the two gates and cuts no fin or source/drain, and that "
+                   "the shared gate keeps them connected.",
+        audit_unverified=["**Every figure mapping.** F1's drawings have not been compared with these "
+                          "views.", "The gate cut and shared gate are teaching reconstructions: the "
+                          "F1 text read here does not describe a gate cut.",
+                          "Region masks, their materials and the order of the masked steps are "
+                          "illustrative."])
+
+
+FLOWS = {"ns": flow_ns, "fin": flow_fin, "sadp": lesson("sadp"), "saqp": lesson("saqp"), "pitchwalk": flow_pitchwalk,
+         "ns_p": flow_ns_p_all, "ns_pair": flow_ns_pair, "fin_p": flow_fin_p_all, "fin_pair": flow_fin_pair}
 
 
 def audit(key, dev, flow, refs):
@@ -1653,7 +2913,7 @@ def audit(key, dev, flow, refs):
     md += ["", "## States", ""]
     md += ["This lesson is generated from the nanosheet flow's route of the same name and its "
            "stack etch, so every state, check and caveat below is that route's (see the "
-           "nanosheet audit above)."] if flow.get("lesson") else [
+           "nanosheet audit above)."] if flow.get("lesson") and not flow.get("audit_tile") else [
            flow.get("audit_tile") or
            "Steps numbered n.k are operation substeps leading into core step n; those at tile "
            "scale show a 2 × 2 context of two stack lines (nFET and pFET) crossed by two gate "
@@ -1672,7 +2932,8 @@ def audit(key, dev, flow, refs):
     # 3, and the shared operation after the routes follows each route's last one alike.
     prev = {r: ({}, None) for r in (routes or {None: None})}
     zoom = {"site": "zoom to the selected site", "tile": "zoom to the 2 × 2 tile",
-            "field": "zoom out to the line field around the tile"}
+            "field": "zoom out to the line field around the tile",
+            "pair": "zoom out to both sites, nFET and pFET"}
     for st in flow["steps"]:
         now = {part(x)["id"]: part(x) for x in st["parts"]}
         r = st.get("route")
@@ -1692,6 +2953,18 @@ def audit(key, dev, flow, refs):
         md.append(f"| {lab} | {routes[r]['name'] if r else 'all'} | {st['scale']} | {st['title']} | {figs} "
                   f"| {flow['match'][st['match']]} | {chg or '—'} | {cell(st['subs'])} | {cell(st['omitted'])} |")
         for k in ([r] if r else list(prev)): prev[k] = (now, st["scale"])
+    meas = [st for st in flow["steps"] if "measure" in st]
+    if meas:
+        md += ["", "## Spaces measured off the built lines", "",
+               "Every value is read off the fin boxes of the state named; types by origin: " +
+               "; ".join(f"{k}: {v['name']} ({v['rule']})" for k, v in flow["pitchwalk"]["types"].items()) + ".", "",
+               "| State | First core | First spacer | Second spacer | Lines | Space a | Space b | Space c | Largest − smallest |",
+               "|---|---|---|---|---|---|---|---|---|"]
+        for st in meas:
+            m = st["measure"]
+            t = {k: "/".join(f"{w:g}" for w in m["types"].get(k, [])) for k in "abc"}
+            md.append(f"| {st['title']} | {m['w1']:g} | {m['s1']:g} | {m['s2']:g} | {len(m['lines'])} | "
+                      f"{t['a']} | {t['b']} | {t['c']} | {m['max']:g} − {m['min']:g} = {m['walk']:g} nm |")
     if flow["skipped"]:
         md += ["", "## Source figures not mapped to a state", ""]
         md += [f"- **Fig. {k}**: {v}" for k, v in flow["skipped"].items()]
@@ -1699,8 +2972,10 @@ def audit(key, dev, flow, refs):
     md += ["- " + t for t in flow["audit_unverified"]] if "audit_unverified" in flow else [
            "- **Every figure mapping.** The patent's drawings have not been compared with these views; "
            "orientation, composition and labels may differ from the published artwork.",
-           "- Views, cut directions and left/right are the app's own; the patent's section lines "
-           "(X1–X1, X2–X2, Y1–Y1, Y2–Y2) are not yet mapped onto the app's axes.",
+           "- **Section planes.** The patent's section directions (X1–X1 along the pFET stack, "
+           "X2–X2 along the nFET stack, Y1–Y1 across the stacks at the gate, Y2–Y2 across them at "
+           "the source/drain) are placed from its written description only; where its drawings put "
+           "each line, and which side each drawing is seen from, has not been checked.",
            "- The lithography operations (resist, exposure, development) are concept-level: no "
            "optics, dose, resist chemistry, overlay or mask count is modelled or claimed."]
     if (routes or flow.get("lesson")) and "audit_unverified" not in flow:
@@ -1709,10 +2984,233 @@ def audit(key, dev, flow, refs):
                "and P/4 are ideal (real spacer images show pitch walk); core, spacer and film "
                "materials and thicknesses are illustrative; which lines a cut or block pattern "
                "removes is integration-dependent, and no overlay or placement error is modelled."]
+    cmp = [(st, c) for st in flow["steps"] for c in st.get("compare", [])]
+    if cmp:
+        planes = {pl["id"]: pl for pl in flow.get("sections", [])}
+        STATUS = dict(text="text-verified", visual="visually checked", unverified="unverified")
+        md += ["", "## Section-plane mappings", "",
+               "Each row sets one state against its source in one plane. **text-verified**: the "
+               "source's text describes this stage and the plane's direction; the drawing has not "
+               "been compared. **visually checked**: compared with the source's drawing (none yet). "
+               "A row is upgraded by setting its status in `scripts/build_process.py`.", "",
+               "| # | State | Plane | Source | Status | What the plane cuts in the model |",
+               "|---|---|---|---|---|---|"]
+        for st, c in cmp:
+            figs = ", ".join("Fig. " + f for f in c["figs"])
+            md.append(f"| {st['label']} | {st['title']} | {planes[c['plane']]['name']} | [{c['src']}] {figs} | "
+                      f"{STATUS[c['status']]} | {', '.join(c['visible'][:8])}{' …' if len(c['visible']) > 8 else ''} |")
     md += ["", "## Sources cited", ""]
     md += [f"- **[{r}]** {refs[r]['title']} — {refs[r]['publisher']}. <{refs[r]['url']}>"
            for r in flow["refs"]]
     return "\n".join(md) + "\n"
+
+
+# ======================================================== SECTION PLANES ===
+# Named section planes through the model, and for every step that cites a figure, what the
+# source describes against what the model shows in that plane. A plane is a cut the app makes
+# through its own geometry: the nanosheet's follow directions the patent's text defines; the
+# FinFET's are the app's own, not claimed to be its patent's A, B or C lines.
+TEXT_STATUS = ("Stage described in the source's text; the source's drawing has not been compared "
+               "with this section")
+NS_PLANES = [
+    dict(id="x2", name="Along the nFET stack, through the gate", short="Along nFET", axis="z", pos=0.0,
+         text="The patent's X2–X2 direction: along the nFET stack, crossing its gate. Direction from "
+              "the patent's text; not compared with its drawings."),
+    dict(id="y1", name="Across the stacks, through the gate", short="Across · gate", axis="x", pos=0.0,
+         text="The patent's Y1–Y1 direction: across the stacks through the gate region. Direction from "
+              "the patent's text; not compared with its drawings."),
+    dict(id="y2", name="Across the stacks, through the source/drain", short="Across · S/D", axis="x",
+         pos=(XSP + XSD) / 2,
+         text="The patent's Y2–Y2 direction: across the stacks through the source/drain region, here "
+              "the drain side. Direction from the patent's text; not compared with its drawings."),
+]
+FIN_PLANES = [
+    dict(id="across_gate", name="Across the fins, at the gate", short="Across · gate", axis="x", pos=0.0,
+         text="The app's own section. Not claimed to be the patent's A, B or C line: its Fig. 1, which "
+              "defines them, has not been inspected."),
+    dict(id="along_fin", name="Along fin 2, source to drain", short="Along fin", axis="z", pos=13.5,
+         text="The app's own section, through the middle of fin 2. Not claimed to be the patent's A, B "
+              "or C line: its Fig. 1 has not been inspected."),
+    dict(id="across_sd", name="Across the fins, through the drain", short="Across · S/D", axis="x",
+         pos=27.0,
+         text="The app's own section, through the drain epitaxy. Not claimed to be the patent's A, B or "
+              "C line: its Fig. 1 has not been inspected."),
+    dict(id="field_across", name="Across the fin lines, mid-field", short="Across lines", axis="x",
+         pos=-38.0, scales=("field",),
+         text="Across the patterned lines, the orientation of the SAQP paper's cross-sections as "
+              "described in its text; not compared with its drawings."),
+]
+NS_FIG_TEXT = {
+    "2A/B": "The starting substrate.",
+    "3A/B": "Punch-through-stopper implants: p-type under the nFET region, n-type under the pFET region.",
+    "4A/B": "One shared Si/SiGe stack for both devices, over a high-Ge SiGe base layer.",
+    "5A/B": "The stack patterned into lines, with shallow trench isolation between them.",
+    "6A/B": "A dummy gate across the stacks.",
+    "7A/B": "The pFET region protected by a liner and mask while the nFET region is opened.",
+    "8A/B": "The nFET's high-Ge base layer removed selectively, leaving a cavity under its stack.",
+    "9A/B": "Spacer dielectric deposited; it also fills the nFET's bottom-isolation cavity.",
+    "12A/B": "The nFET's source/drain regions recessed, with the pFET protected.",
+    "13A/B": "The nFET's lower-Ge SiGe indented, inner spacers formed and its source/drain grown.",
+    "14A/B": "ILD deposited and polished, and the dummy gate removed.",
+    "16A/B": "The nFET's lower-Ge SiGe removed in the gate region, releasing its Si channels.",
+    "17A/B": "Separate work-function treatments for the nFET and the pFET, and an optional gate cut.",
+    "18A/B": "Contacts, with the two gates contacted independently after the gate cut.",
+    "10A/B": "The pFET's source/drain regions recessed through its high-Ge base layer and into the "
+             "implanted substrate, with the nFET protected.",
+    "11A/B": "The pFET's Si layers and high-Ge base indented, inner spacers formed so the lower-Ge SiGe "
+             "remains as channels, and p-type source/drain grown from the SiGe edges and the substrate.",
+    "15A/B": "With the nFET protected, the pFET's high-Ge base and Si layers removed in the gate "
+             "region, keeping the lower-Ge SiGe sheets.",
+    "19A/B": "An alternative arrangement in which the two devices share one gate.",
+}
+FIN_FIG_TEXT = {
+    ("R24", "2A"): "The substrate, with optional wells, and a first mask and resist over it.",
+    ("R24", "3A"): "The mask patterned and fins etched into the substrate.",
+    ("R24", "4A"): "Isolation filled around the fins and planarised.",
+    ("R24", "5A"): "The isolation recessed so the fins stand above it.",
+    ("R24", "6A"): "A dummy-gate dielectric, dummy-gate material and mask deposited.",
+    ("R24", "7A"): "The dummy gate patterned over the fins; optional lightly doped extensions.",
+    ("R24", "16A"): "The fins recessed in the source/drain regions beside the gate spacers.",
+    ("R24", "17A"): "Epitaxial source/drain grown in the recesses; merged neighbours are an alternative (Fig. 22).",
+    ("R24", "18A"): "An etch-stop layer and ILD deposited and polished to expose the dummy gate.",
+    ("R24", "19A"): "The dummy gate removed; its dielectric may stay or be removed.",
+    ("R24", "20A"): "Replacement gate dielectric and metal deposited and polished.",
+    ("R24", "21A"): "Further ILD, and contacts to the source/drain and to the gate.",
+    ("R22", "1"): "The SAQP fin sequence: carbon cores at 96 nm pitch, an oxide first spacer, core removal, "
+                  "transfer into an amorphous-Si second core at 48 nm, a second spacer to a 24 nm pitch, "
+                  "and transfer through a silicon nitride hard mask into silicon.",
+}
+NS_PLANE_OF = dict(
+    dummydep=["y1", "x2"], ghm=["y1", "x2"], gatepat=["y1", "x2"], dummy=["y1", "x2"],
+    liner=["y1", "x2"], mask=["y1", "x2"], base=["x2", "y1"], unmask=["y1", "x2"], bottom=["x2", "y1"],
+    spacerdep=["x2", "y1"], spaceretch=["x2", "y1"], recess=["x2", "y2"], indent=["x2"], inner=["x2"],
+    epi=["x2", "y2"], ild=["x2", "y2"], pull=["y1", "x2"], release=["y1", "x2"], hkmg=["y1", "x2"],
+    contacts=["x2", "y2"], done=["x2", "y2"])
+FIN_PLANE_OF = dict(
+    dummydep=["across_gate", "along_fin"], gatepat=["across_gate", "along_fin"],
+    dummy=["across_gate", "along_fin"], recess=["along_fin", "across_sd"], epi=["along_fin", "across_sd"],
+    ild=["along_fin", "across_sd"], pull=["across_gate", "along_fin"], hk=["across_gate", "along_fin"],
+    metal=["across_gate", "along_fin"], openings=["along_fin", "across_sd"],
+    contacts=["along_fin", "across_sd"])
+
+
+def plane_view(pl, scale, bounds):
+    """The camera for a plane at a scale: square on to the cut face, the kept half behind it."""
+    b = bounds
+    ym = (b["y"][0] + b["y"][1]) / 2 if scale != "site" else 40.0
+    r = {"site": 255.0, "tile": 460.0, "field": 660.0, "pair": 440.0}[scale]
+    if pl["axis"] == "x":
+        return dict(n=pl["name"], s="section plane", az=1.5708, el=0.1, r=r,
+                    tgt=[pl["pos"], min(ym, 60.0), (b["z"][0] + b["z"][1]) / 2 if scale != "site" else 0.0],
+                    clip=[pl["pos"], None, None], scale=scale)
+    return dict(n=pl["name"], s="section plane", az=0.0, el=0.1, r=r,
+                tgt=[(b["x"][0] + b["x"][1]) / 2 if scale != "site" else 0.0, min(ym, 60.0), pl["pos"]],
+                clip=[None, None, pl["pos"]], scale=scale)
+
+
+def cut_by(parts, pl):
+    """Names of the parts the plane passes through, in drawing order."""
+    k = 0 if pl["axis"] == "x" else 2
+    names = []
+    for p in parts:
+        for b in p["boxes"]:
+            lo, hi = b[k] - b[k + 3] / 2, b[k] + b[k + 3] / 2
+            if lo < pl["pos"] - 1e-6 and hi > pl["pos"] + 1e-6:
+                if p["name"] not in names: names.append(p["name"])
+                break
+    return names
+
+
+NS_P_PLANES = [
+    dict(id="x1", name="Along the pFET stack, through the gate", short="Along pFET", axis="z", pos=0.0,
+         scales=("site",),
+         text="The patent's X1–X1 direction: along the pFET stack, crossing its gate. Direction from "
+              "the patent's text; not compared with its drawings."),
+] + NS_PLANES[1:]
+NS_PAIR_PLANES = [
+    dict(NS_PLANES[0], scales=("pair",)),
+    dict(NS_P_PLANES[0], pos=-84.0, scales=("pair",)),
+    dict(NS_PLANES[1], scales=("pair",),
+         text="The patent's Y1–Y1 direction: across both stacks through the gate region, where the gate "
+              "line joins them or is cut. Direction from the patent's text; not compared with its drawings."),
+    dict(NS_PLANES[2], scales=("pair",)),
+]
+FIN_PAIR_PLANES = [
+    dict(FIN_PLANES[0], name="Across both fin pairs, at the gate", scales=("pair",)),
+    dict(FIN_PLANES[2], name="Across both fin pairs, through the drains", scales=("pair",)),
+    dict(FIN_PLANES[1], id="along_nfin", name="Along an nFET fin", short="Along nFET fin", scales=("pair",)),
+    dict(FIN_PLANES[1], id="along_pfin", name="Along a pFET fin", short="Along pFET fin", pos=13.5 - 81.0,
+         scales=("pair",)),
+]
+PW_PLANES = [
+    dict(id="pw_across", name="Across the lines, mid-length", short="Across lines", axis="x", pos=0.0,
+         scales=("field",),
+         text="Across the lines, the orientation of F3's SAQP cross-sections as described in its text; "
+              "not compared with its drawings."),
+]
+
+
+NS_P_PLANE_OF = dict(NS_PLANE_OF, p_recess=["x1", "y2"], p_indent=["x1"], p_inner=["x1"], p_epi=["x1", "y2"],
+                     p_release=["y1", "x1"], p_hkmg=["y1", "x1"], p_contacts=["x1", "y2"], p_done=["x1", "y2"],
+                     spaceretch=["x1", "y1"])
+FIN_PAIR_PLANE_OF = dict(p_epi=["across_sd", "along_pfin"], epi=["across_sd", "along_nfin"],
+                         recess=["across_sd"], p_open=["across_sd"], n_open=["across_sd"])
+
+
+def attach_sections(key, flow, dev):
+    tech = "fin" if key.startswith("fin") or key == "pitchwalk" else "ns"
+    planes = dict(pitchwalk=PW_PLANES, ns_p=NS_P_PLANES, ns_pair=NS_PAIR_PLANES,
+                  fin_pair=FIN_PAIR_PLANES).get(key, FIN_PLANES if tech == "fin" else NS_PLANES)
+    plane_of = dict(ns_p={k: [("x1" if x == "x2" else x) for x in v] for k, v in NS_P_PLANE_OF.items()},
+                    fin_pair=FIN_PAIR_PLANE_OF).get(key, FIN_PLANE_OF if tech == "fin" else NS_PLANE_OF)
+    if key == "ns_pair":
+        plane_of = {k: (["x1", "y1"] if k.startswith("p_") else ["x2", "y1"]) for k in
+                    {st["id"] for st in flow["steps"]}}
+        for k in ("gatecut", "contacts_cut", "shared", "cut_etch", "hkmg", "pull", "dummy"): plane_of[k] = ["y1"]
+    if key == "fin_pair":
+        plane_of = dict({st["id"]: ["across_gate"] for st in flow["steps"]}, **FIN_PAIR_PLANE_OF)
+    final = {p["id"]: p for p in dev.parts}
+    scales = sorted({st["scale"] for st in flow["steps"]})
+    secs = []
+    for pl in planes:
+        views = {}
+        for sc in scales:
+            if sc not in pl.get("scales", ("site", "tile")): continue
+            b = next((st["bounds"] for st in flow["steps"] if st["scale"] == sc and "bounds" in st), None) \
+                if sc != "site" else dev.bounds
+            if b is None: continue
+            vk = f"sec_{pl['id']}" + ("" if sc == "site" else "_" + sc[0])
+            flow["views"][vk] = plane_view(pl, sc, b)
+            views[sc] = vk
+        if views:
+            secs.append(dict(id=pl["id"], name=pl["name"], short=pl["short"], axis=pl["axis"],
+                             pos=round(pl["pos"], 4), text=pl["text"], views=views))
+    flow["sections"] = secs
+    byid = {s["id"]: s for s in secs}
+    for st in flow["steps"]:
+        if not st["figs"]: continue
+        src = (st.get("src") or ["R13" if tech == "ns" else "R24"])[0]
+        if tech == "ns":
+            described = " ".join(NS_FIG_TEXT[f] for f in st["figs"] if f in NS_FIG_TEXT)
+        else:
+            described = " ".join(dict.fromkeys(FIN_FIG_TEXT[(src, f[:-1] + "A" if src == "R24" and f[-1] in "ABC" else f)]
+                                               for f in st["figs"]))
+        want = plane_of.get(st["id"]) or ([planes[0]["id"] if key == "pitchwalk" else "field_across"]
+                                          if st["scale"] == "field" else
+                                          [planes[0]["id"] if tech == "fin" else "y1"])
+        parts = [final[x] if isinstance(x, str) else x for x in st["parts"]]
+        entries = []
+        for pid in want:
+            pl = byid.get(pid)
+            if not pl or st["scale"] not in pl["views"]: continue
+            entries.append(dict(plane=pid, figs=st["figs"], src=src, described=described,
+                                visible=cut_by(parts, next(p for p in planes if p["id"] == pid)),
+                                omitted=list(st["omitted"]) + (
+                                    ["The source's figures show the pFET beside the nFET; this site "
+                                     f"view shows the {'pFET' if key == 'ns_p' else 'nFET'} only"]
+                                    if tech == "ns" and st["scale"] == "site" else []),
+                                status="text", status_text=TEXT_STATUS))
+        if entries: st["compare"] = entries
 
 
 def main():
@@ -1721,7 +3219,12 @@ def main():
     docs = []
     for key, fn in FLOWS.items():
         dev, steps, extra = fn(out)
-        out[key] = dict(extra, steps=steps, badge={k: BADGE[k] for k in extra["match"]})
+        if any(st["figs"] for st in steps):
+            whole = dict(extra, steps=steps)
+            attach_sections(key, whole, dev)
+            extra["sections"] = whole["sections"]
+        out[key] = dict(extra, steps=steps, badge={k: BADGE[k] for k in extra["match"]},
+                        badge_note={BADGE[k]: BADGE_NOTE[BADGE[k]] for k in extra["match"]})
         docs.append(audit(key, dev, out[key], refs))
         temp = {p["id"] for s in steps for p in s["parts"] if not isinstance(p, str)}
         print(f"{key:10s} steps={len(steps):2d}  temporary parts={len(temp)}  max solids/voxel=1")

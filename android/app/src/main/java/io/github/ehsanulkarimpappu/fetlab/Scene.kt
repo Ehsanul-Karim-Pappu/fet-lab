@@ -99,16 +99,36 @@ class ProcessStep(val id: String, val title: String, val body: String, val view:
                   /** The references [figs] belong to, when a flow draws on more than one. */
                   val src: List<String> = emptyList(),
                   /** Films the viewer shows depositing on entering this step, in order. */
-                  val deposit: List<String> = emptyList()) {
+                  val deposit: List<String> = emptyList(),
+                  /** This step against its source, one entry per section plane. */
+                  val compare: List<StepCompare> = emptyList(),
+                  /** What the nFET and pFET regions are doing at this step ("n", "p"). */
+                  val regions: Map<String, String> = emptyMap()) {
     val isOp get() = level == "op"
     fun labelIn(route: String) = labels[route] ?: label
     /** Shown on the header under the device's name. */
     fun tag(route: String) = when (scale) {
         "tile" -> "Process · 2 × 2 tile · step ${labelIn(route)}"
         "field" -> "Process · line field · step ${labelIn(route)}"
+        "pair" -> "Process · nFET + pFET · step ${labelIn(route)}"
         else -> "Process · step ${labelIn(route)}"
     }
 }
+
+/** A named cut through the model: a plane at [pos] across [axis] ('x' or 'z'), viewed from
+ *  its + side, and the view that frames it at each scale. [text] says how it relates to the
+ *  source's own section lines (from the text, or not claimed at all). */
+class SectionPlane(val id: String, val name: String, val short: String, val axis: Char,
+                   val pos: Float, val text: String, val views: Map<String, String>)
+
+/** A step set against its source in one plane: the figure, what the source's text describes,
+ *  what the model shows cut by the plane, what it leaves out, and how far it was checked. */
+class StepCompare(val plane: String, val figs: List<String>, val src: String,
+                  val described: String, val visible: List<String>, val omitted: List<String>,
+                  val status: String, val statusText: String)
+
+/** One of a technology's sibling flows: the nFET, the pFET, or both sites together. */
+class Site(val id: String, val name: String, val flow: String)
 
 /** One way through a run of operations: the stack hard mask printed directly, or made by
  *  SADP or SAQP. Only the chosen route's operations are stepped through. */
@@ -122,7 +142,18 @@ class ProcessFlow(val device: String, val scope: String, val figures: String, va
                   /** The route picker's heading, and the step every route rejoins at. */
                   val routeTitle: String, val routeJoin: String,
                   /** A match level's short badge for the stepper ("Source stage", "Teaching"...). */
-                  val badge: Map<String, String> = emptyMap()) {
+                  val badge: Map<String, String> = emptyMap(),
+                  /** What each badge means, shown with the step's source. */
+                  val badgeNote: Map<String, String> = emptyMap(),
+                  val sections: List<SectionPlane> = emptyList(),
+                  /** The SAQP pitch-walk lesson's controls, on that lesson only. */
+                  val pitchWalk: PitchWalk? = null,
+                  /** The nFET / pFET / both-sites flows of this technology, and which this is. */
+                  val sites: List<Site> = emptyList(), val site: String = "",
+                  /** "terminal": the routes are alternative endings that never rejoin (gate cut
+                   *  or shared gate), rather than alternative runs of operations. */
+                  val routeKind: String = "") {
+    fun plane(id: String?) = sections.firstOrNull { it.id == id }
     val coreCount get() = steps.count { !it.isOp }
     /** The route shown until the user picks one: the one marked default, else the first. */
     val defaultRoute get() = (routes.firstOrNull { it.isDefault } ?: routes.firstOrNull())?.id ?: ""
@@ -255,7 +286,9 @@ class Library(val materials: Map<String, Material>, val order: List<String>, val
                 val fj = proc.getJSONObject(dk)
                 // A lesson (the SADP and SAQP chips) has no finished device behind it: its
                 // name, bounds and views come with the flow, and every part is its own.
-                val base = if (fj.optBoolean("lesson", false)) fj.getJSONObject("bounds").let { b ->
+                // So does a pFET or both-sites flow, which carries its finished parts ("final").
+                val own = fj.optBoolean("lesson", false) || fj.optBoolean("own", false)
+                val base = if (own) fj.getJSONObject("bounds").let { b ->
                     Scene(dk, fj.optString("name", dk), "", "", "", false, "",
                         floatArrayOf(b.getJSONArray("x").getDouble(0).toFloat(),
                             b.getJSONArray("y").getDouble(0).toFloat(), b.getJSONArray("z").getDouble(0).toFloat()),
@@ -264,7 +297,7 @@ class Library(val materials: Map<String, Material>, val order: List<String>, val
                         emptyList(), emptyList(), emptyList(), emptyList()).also { it.story = fj.optString("scope", "") }
                 } else scenes.firstOrNull { it.key == dk } ?: continue
                 val finalParts = HashMap<String, JSONObject>()
-                devJson[dk]?.getJSONArray("parts")?.let { for (j in 0 until it.length()) it.getJSONObject(j).let { p -> finalParts[p.getString("id")] = p } }
+                (fj.optJSONArray("final") ?: devJson[dk]?.getJSONArray("parts"))?.let { for (j in 0 until it.length()) it.getJSONObject(j).let { p -> finalParts[p.getString("id")] = p } }
                 val views = base.views + (fj.optJSONObject("views")?.let { parseViews(it) } ?: emptyList())
                 val sa = fj.getJSONArray("steps")
                 val steps = ArrayList<ProcessStep>()
@@ -279,7 +312,8 @@ class Library(val materials: Map<String, Material>, val order: List<String>, val
                         sj.optString("view", "iso"), list("figs"), sj.optString("match", ""),
                         list("subs"), list("omitted"), sj.optString("level", "core"), sj.optString("of", ""),
                         sj.optString("label", "${i + 1}"), scale,
-                        sj.optString("route", "").ifEmpty { null }, labels, list("src"), list("deposit")))
+                        sj.optString("route", "").ifEmpty { null }, labels, list("src"), list("deposit"), parseCompare(sj.optJSONArray("compare")),
+                        HashMap<String, String>().also { m -> sj.optJSONObject("regions")?.let { r -> for (k in r.keys()) m[k] = r.getString(k) } }))
                     val parts = ArrayList<Part>()
                     val pa = sj.getJSONArray("parts")
                     for (j in 0 until pa.length()) {
@@ -317,12 +351,53 @@ class Library(val materials: Map<String, Material>, val order: List<String>, val
                     fj.optString("branch", ""), match,
                     (fj.optJSONArray("refs") ?: JSONArray()).toStringList(), steps, stepScenes.map { it.key },
                     routes, fj.optString("route_title", "How this is patterned"), fj.optString("route_join", "the next step"),
-                    HashMap<String, String>().also { m -> fj.optJSONObject("badge")?.let { b -> for (k in b.keys()) m[k] = b.getString(k) } })
+                    HashMap<String, String>().also { m -> fj.optJSONObject("badge")?.let { b -> for (k in b.keys()) m[k] = b.getString(k) } },
+                    HashMap<String, String>().also { m -> fj.optJSONObject("badge_note")?.let { b -> for (k in b.keys()) m[k] = b.getString(k) } },
+                    parsePlanes(fj.optJSONArray("sections")), parsePitchWalk(fj.optJSONObject("pitchwalk")),
+                    fj.optJSONArray("sites")?.let { a -> List(a.length()) { k -> a.getJSONObject(k).let { o ->
+                        Site(o.getString("id"), o.getString("name"), o.getString("flow")) } } } ?: emptyList(),
+                    fj.optString("site", ""), fj.optString("route_kind", ""))
                 for (sc in stepScenes) sc.flow = flow
                 scenes.addAll(stepScenes)
                 flows[dk] = flow
             }
             return Library(mats, order, scenes, flows, refs)
+        }
+
+        private fun parsePitchWalk(o: JSONObject?): PitchWalk? {
+            if (o == null) return null
+            fun nums(j: JSONObject?) = HashMap<String, Float>().also { m -> j?.let { for (k in it.keys()) m[k] = it.getDouble(k).toFloat() } }
+            val range = HashMap<String, Pair<Float, Float>>()
+            o.optJSONObject("range")?.let { r -> for (k in r.keys()) r.getJSONArray(k).let { a ->
+                range[k] = a.getDouble(0).toFloat() to a.getDouble(1).toFloat() } }
+            val types = HashMap<String, Pair<String, String>>()
+            o.optJSONObject("types")?.let { t -> for (k in t.keys()) t.getJSONObject(k).let { v ->
+                types[k] = v.getString("name") to v.optString("rule", "") } }
+            return PitchWalk(o.getDouble("P1").toFloat(), o.getInt("cores"), nums(o.optJSONObject("base")),
+                range, o.optDouble("gmin", 2.0).toFloat(), types, o.optString("note", ""))
+        }
+
+        private fun parsePlanes(a: JSONArray?): List<SectionPlane> {
+            if (a == null) return emptyList()
+            return List(a.length()) { i ->
+                val o = a.getJSONObject(i)
+                val v = HashMap<String, String>()
+                o.optJSONObject("views")?.let { m -> for (k in m.keys()) v[k] = m.getString(k) }
+                SectionPlane(o.getString("id"), o.getString("name"), o.optString("short", o.getString("name")),
+                    o.getString("axis").first(), o.getDouble("pos").toFloat(), o.optString("text", ""), v)
+            }
+        }
+
+        private fun parseCompare(a: JSONArray?): List<StepCompare> {
+            if (a == null) return emptyList()
+            return List(a.length()) { i ->
+                val o = a.getJSONObject(i)
+                StepCompare(o.getString("plane"), (o.optJSONArray("figs") ?: JSONArray()).toStringList(),
+                    o.optString("src", ""), o.optString("described", ""),
+                    (o.optJSONArray("visible") ?: JSONArray()).toStringList(),
+                    (o.optJSONArray("omitted") ?: JSONArray()).toStringList(),
+                    o.optString("status", "text"), o.optString("status_text", ""))
+            }
         }
 
         private fun parsePart(p: JSONObject): Part {
