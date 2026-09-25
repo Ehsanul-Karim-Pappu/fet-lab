@@ -97,6 +97,16 @@ class ContentTests(unittest.TestCase):
             self.assertEqual([s['label'] for s in flow['steps']],
                              [str(k) for k in range(1, len(want) + 1)])
             self.assertIn('patterning concept applied to an illustrative layer', flow['scope'].lower())
+            # The lesson's text names the nanosheet flow's actual default route.
+            default = next(r['name'] for r in ns['routes'] if r.get('default'))
+            self.assertIn(f'defaults to {default}', flow['scope'])
+            self.assertNotIn("that flow's default, a single exposure", flow['scope'])
+
+    def test_badges(self):
+        """Every match level a flow uses has a short badge for the stepper."""
+        for key, flow in json.loads((ROOT / 'data/process.json').read_text())['flows'].items():
+            self.assertEqual(set(flow['badge']), set(flow['match']), key)
+            for st in flow['steps']: self.assertTrue(flow['badge'][st['match']], st['id'])
 
     def test_patterning_routes(self):
         """Each route is one run of operations of the same core step, and every route ends in

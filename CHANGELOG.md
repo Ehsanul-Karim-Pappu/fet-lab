@@ -39,7 +39,15 @@ unexposed and exposed resist, then development. That covers the SADP and SAQP co
 lithography and their cut and block masks in both flows, the nanosheet's gate patterning
 and nFET-open block mask, and the FinFET's contact openings, whose dark-field reticle is
 open only over the three contacts. These resist steps are labelled as lithography concepts
-[R16], not as figures of the sources. Sub-fin leakage, wells' doping,
+[R16], not as figures of the sources.
+
+The stepper now carries a badge for each state: **Source stage** (in the accent colour) for a
+stage its source describes, or **Reconstruction**, **Teaching** or **Concept**, so the
+difference is visible at every step, not only in the Steps tab. The tile's steps and the
+flows' notes say plainly that the 2 × 2 tile is context: only the selected nFET is carried to
+a finished device, and without the gate cut, which is not drawn, each gate line would be
+shared by an nFET and a pFET site. The SADP and SAQP lessons now say the nanosheet flow
+defaults to SADP. Sub-fin leakage, wells' doping,
 the pFET's own steps and the gate cut are named where they are left out. The route picker
 remembers a choice per flow, uses each flow's wording, and each step shows which reference
 its figures belong to. Five FinFET references are added (R24–R27, and R22 now points at the

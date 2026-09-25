@@ -22,6 +22,10 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 # How a process state relates to its source, in the words the app shows. No state claims
 # to match a drawing: the figure mappings follow the source's written description.
+# The stepper's badge: how the state stands against its source, in a word or two.
+BADGE = {"published": "Source stage", "context": "Source stage", "source": "Source stage",
+         "intermediate": "Reconstruction", "teach": "Teaching", "concept": "Concept",
+         "pattern": "Concept"}
 MATCH = {
     "published": "Published stage, adapted nFET view",
     "intermediate": "Intermediate teaching reconstruction",
@@ -234,7 +238,9 @@ NS_FIGURES = ("Figure numbers follow the patent's written description [R13]. Its
               "reconstruction, not a copy of a figure, and its orientation may differ.")
 NS_BRANCH = ("The patent builds a pFET and an nFET from one shared stack. This lesson follows "
              "the nFET only: the pFET steps (Figs. 10–11 and 15) and the pFET beside it in the "
-             "other figures are left out.")
+             "other figures are left out. The 2 × 2 tile's four sites are context for the "
+             "patterning: only the selected nFET is carried to a finished device, and no gate cut "
+             "is drawn, so each gate line would still be shared by an nFET and a pFET site.")
 
 # A cut through the gate centre seen at an angle, so the cavities read as open space
 # rather than as the spacer wall behind them.
@@ -247,7 +253,7 @@ INDENT = dict(n="Channel cutaway", s="along the channel, at an angle",
 # The 2 x 2 tile's views, in the same frame: the selected site at the origin, the second
 # gate at x = -73, the pFET line at z = -84. A view belongs to one scale.
 TILE_VIEWS = dict(
-    tile=dict(n="Tile overview", s="four sites, two lines each way", az=-0.70, el=0.42, r=660,
+    tile=dict(n="Tile overview", s="four sites; the selected nFET is followed", az=-0.70, el=0.42, r=660,
               tgt=[-36.5, 55, -42], clip=None, scale="tile"),
     tileplan=dict(n="Tile from above", s="plan view", az=0.0, el=1.45, r=560,
                   tgt=[-36.5, 0, -42], clip=None, scale="tile"),
@@ -335,7 +341,7 @@ def flow_ns(done):
         T.drop_prefix("t_ml_")
         x0, x1 = (WX0, WX1) if lines else (SX0, SX1)        # blanket films cover the whole tile
         spans = [("all", WZ0, WZ1, "")] if not lines else \
-                [(k, zc - hz, zc + hz, " · " + ("nFET" if k == "n" else "pFET") + " line") for zc, k in LINES]
+                [(k, zc - hz, zc + hz, " · " + ("nFET line" if k == "n" else "pFET line (context)")) for zc, k in LINES]
         for k, z0, z1, where in spans:
             T.put(tmp(f"t_ml_base_{k}", "SiGe, high Ge · sacrificial base layer" + where, "sige", GL,
                       [box(x0, x1, 0, STI, z0, z1)], (0, -.6, 0)))
@@ -362,8 +368,9 @@ def flow_ns(done):
         T.snap("hm", "Hard-mask deposition",
             "Zoomed out to a tile of four gate/stack sites: two stack lines will run along the "
             "channel, one for nFETs through the selected site and one for pFETs beside it, each "
-            "crossed later by two gate lines. First a hard-mask film is deposited over the "
-            "multilayer. The implanted stoppers differ by region: p-type under the nFET line, "
+            "crossed later by two gate lines. Only the selected nFET site is carried to a finished "
+            "device; the other three show the pattern's context. First a hard-mask film is deposited "
+            "over the multilayer. The implanted stoppers differ by region: p-type under the nFET line, "
             "n-type under the pFET line [R13].", view="tile", of="pattern",
             match="intermediate", figs=["3A/B", "5A/B"],
             subs=TILE_SUBS + ["Hard-mask material and thickness are illustrative"],
@@ -493,8 +500,10 @@ def flow_ns(done):
         T.snap("gatepat", "Dummy-gate etch and resist strip",
             "With the gate hard mask as the etch mask, the dummy stack is etched down to the STI and "
             "the resist is stripped. Two gate lines cross both stack lines: four sites. On each "
-            "line the two sites share the source/drain between their gates. Next, the view returns "
-            "to the selected site, which shows its gate only across its own stack.",
+            "line the two sites share the source/drain between their gates, and each gate line runs "
+            "across an nFET and a pFET site: without the gate cut, not drawn, those two would share "
+            "one gate. Only the selected nFET is completed. Next, the view returns to the selected "
+            "site, which shows its gate only across its own stack.",
             view="tile", of="dummy", match="context", figs=["6A/B"],
             omitted=["The gate cut between the lines, which the patent makes later (Fig. 17)"])
 
@@ -595,8 +604,8 @@ def flow_ns(done):
         "neighbouring devices sideways; it is not the bottom isolation. How the stack pattern is "
         "made depends on the layer, pitch and process: a direct print (EUV single exposure, for "
         "example) allows different sheet widths [R18], and dense arrays can use spacer-based "
-        "pitch splitting instead; the Steps tab's patterning route shows SADP and SAQP as "
-        "alternatives.",
+        "pitch splitting instead; the Steps tab's patterning route shows SADP, the default here, "
+        "beside SAQP and a direct print.",
         match="published", figs=["5A/B"],
         subs=["Stack width, pitch and trench depth are illustrative"])
     # 5
@@ -1099,7 +1108,8 @@ def lesson(mode):
             scope=f"{route['name']} ({'self-aligned double' if mode == 'sadp' else 'self-aligned quadruple'} "
                   f"patterning) on its own: the steps the Nanosheet flow shows when its stack "
                   f"patterning route is set to {route['name']}, from the film stack to the stack etch. "
-                  "“The direct route” is that flow's default, a single exposure. A patterning concept "
+                  "Where a step says “as in the direct route”, it means that flow's single-exposure "
+                  "alternative; the flow itself defaults to SADP. A patterning concept "
                   "applied to an illustrative layer, the nanosheet tile's Si/SiGe multilayer: the "
                   "sources do not say this stack is patterned this way, and a direct print (EUV single "
                   "exposure, for example) is another way to make it [R18].",
@@ -1129,9 +1139,11 @@ FIN_FIGURES = ("Figure numbers follow each source's written description. The dra
                "available for visual comparison: each view is a source-described stage, adapted, "
                "not a copy of a figure, and its orientation may differ. F1's A, B and C suffixes are "
                "its own section lines (its Fig. 1), not yet mapped onto the app's views.")
-FIN_BRANCH = ("The flow follows the nFET. The tile's pFET region (its n-well and two fins) is "
-              "context only: it receives none of its own steps, such as its masked SiGe:B epitaxy "
-              "or its work-function metal [R24][R25].")
+FIN_BRANCH = ("The flow follows the nFET. The 2 × 2 tile's four sites are context for the "
+              "patterning: only the selected nFET is carried to a finished device. The tile's pFET "
+              "region (its n-well and two fins) receives none of its own steps, such as its masked "
+              "SiGe:B epitaxy or its work-function metal [R24][R25], and no gate cut is drawn, so "
+              "each gate line would still be shared by an nFET and a pFET site.")
 FIN_ROUTES = [
     dict(id="direct", name="Direct print",
          note="A hypothetical single immersion (193i) exposure at this model's 27 nm fin pitch, "
@@ -1153,7 +1165,7 @@ FIN_CEXP = dict(n="Contact mask", s="resist and reticle over the site", az=-0.78
 FIN_SD = dict(n="Across the source/drain", s="section through the drain", az=1.5708, el=0.12,
               r=230, tgt=[27, 40, 0], clip=[27, None, None])
 FIN_TILE_VIEWS = dict(
-    tile=dict(n="Tile overview", s="two fin pairs, two gate lines", az=-0.70, el=0.42, r=560,
+    tile=dict(n="Tile overview", s="four sites; the selected nFET is followed", az=-0.70, el=0.42, r=560,
               tgt=[-38, 30, -40.5], clip=None, scale="tile"),
     tileplan=dict(n="Tile from above", s="plan view", az=0.0, el=1.45, r=500,
                   tgt=[-38, 0, -40.5], clip=None, scale="tile"),
@@ -1249,7 +1261,8 @@ def flow_fin(done):
         T.snap("hm", "Hard-mask deposition",
             "Zoomed out to a tile of four sites: an nFET pair of fins in a p-well through the "
             "selected site, and a pFET pair in an n-well beside it, each crossed later by two gate "
-            "lines. A hard-mask film goes on the bare wafer, whose own silicon will become the "
+            "lines. Only the selected nFET is carried to a finished device; the other three are "
+            "context. A hard-mask film goes on the bare wafer, whose own silicon will become the "
             "fins. In practice a thin pad oxide usually sits under the nitride; it is a separate "
             "layer, not drawn here [R24].", view="tile", of="fins", match="source", figs=["2A"], src=[F1],
             deposit=["t_hm"],
@@ -1413,7 +1426,8 @@ def flow_fin(done):
             "cleared off the fins between the gates, and the resist is stripped. Two gate lines "
             "cross both fin pairs: four sites, with the source/drain between two gates shared. Left "
             "uncut, each gate line is one gate shared by an nFET and a pFET, as in an inverter; a "
-            "gate cut would separate them. Next, the view returns to the selected site [R24].",
+            "gate cut would separate them. Only the selected nFET is completed. Next, the view "
+            "returns to the selected site [R24].",
             view="tile", of="dummy", match="source", figs=["7A", "7B", "7C"], src=[F1],
             omitted=["F1's optional lightly doped extension implants, masked by region",
                      "A gate cut between the sites, if the two gates are to be separate"])
@@ -1707,7 +1721,7 @@ def main():
     docs = []
     for key, fn in FLOWS.items():
         dev, steps, extra = fn(out)
-        out[key] = dict(extra, steps=steps)
+        out[key] = dict(extra, steps=steps, badge={k: BADGE[k] for k in extra["match"]})
         docs.append(audit(key, dev, out[key], refs))
         temp = {p["id"] for s in steps for p in s["parts"] if not isinstance(p, str)}
         print(f"{key:10s} steps={len(steps):2d}  temporary parts={len(temp)}  max solids/voxel=1")

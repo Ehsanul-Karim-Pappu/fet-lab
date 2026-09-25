@@ -1051,7 +1051,8 @@ fun FetLabApp(lib: Library, renderer: Renderer) {
                 val prev = f?.next(sc.stepIndex, -1, showOps, routeIn(f))
                 val next = f?.next(sc.stepIndex, 1, showOps, routeIn(f))
                 if (f != null) ProcessBar(sc.step?.labelIn(routeIn(f)) ?: "", f.coreCount, sc.step?.title ?: "",
-                    sc.step?.isOp == true, prev != null, next != null, playing,
+                    sc.step?.isOp == true, sc.step?.let { f.badge[it.match] } ?: "",
+                    sc.step?.let { it.match == "published" || it.match == "context" || it.match == "source" } == true, prev != null, next != null, playing,
                     glass, line, ink, dim,
                     onPrev = { playing = false; prev?.let { goStep(it) } },
                     onNext = { playing = false; next?.let { goStep(it) } },
@@ -1480,7 +1481,7 @@ private fun LogicBar(input: Int, glass: Color, line: Color, ink: Color, dim: Col
 
 /** The fabrication stepper on the stage: back, the step and its name, play, forward. */
 @Composable
-private fun ProcessBar(label: String, cores: Int, title: String, isOp: Boolean,
+private fun ProcessBar(label: String, cores: Int, title: String, isOp: Boolean, badge: String, sourced: Boolean,
                        hasPrev: Boolean, hasNext: Boolean, playing: Boolean,
                        glass: Color, line: Color, ink: Color, dim: Color,
                        onPrev: () -> Unit, onNext: () -> Unit, onPlay: () -> Unit, onTitle: () -> Unit) {
@@ -1491,8 +1492,19 @@ private fun ProcessBar(label: String, cores: Int, title: String, isOp: Boolean,
             BarIcon(BarGlyph.Back, hasPrev, ink, dim, "Previous step", onPrev)
             Column(Modifier.weight(1f).clip(RoundedCornerShape(14.dp)).clickable(onClick = onTitle)
                 .padding(horizontal = 8.dp, vertical = 5.dp)) {
-                Text((if (isOp) "OPERATION " else "STEP ") + "$label / $cores", color = dim,
-                    fontFamily = Mono, fontSize = 10.sp)
+                // How this state stands against its source, at a glance: a published stage in the
+                // accent colour, a teaching reconstruction or a concept in the muted one.
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text((if (isOp) "OPERATION " else "STEP ") + "$label / $cores", color = dim,
+                        fontFamily = Mono, fontSize = 10.sp)
+                    if (badge.isNotEmpty()) {
+                        val tone = if (sourced) MaterialTheme.colorScheme.primary else dim
+                        Text(badge.uppercase(), color = tone, fontFamily = Mono, fontSize = 9.sp,
+                            maxLines = 1, modifier = Modifier.padding(start = 8.dp)
+                                .border(1.dp, tone.copy(alpha = 0.6f), RoundedCornerShape(6.dp))
+                                .padding(horizontal = 5.dp, vertical = 1.dp))
+                    }
+                }
                 AnimatedContent(targetState = title, label = "stepTitle",
                     transitionSpec = { fadeIn(tween(220)) togetherWith fadeOut(tween(160)) }) { t ->
                     Text(t, color = ink, fontFamily = PlexSans, fontSize = 13.5f.sp,

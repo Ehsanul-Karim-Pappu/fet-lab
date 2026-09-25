@@ -120,7 +120,9 @@ class ProcessFlow(val device: String, val scope: String, val figures: String, va
                   val match: Map<String, String>, val refs: List<String>,
                   val steps: List<ProcessStep>, val keys: List<String>, val routes: List<Route>,
                   /** The route picker's heading, and the step every route rejoins at. */
-                  val routeTitle: String, val routeJoin: String) {
+                  val routeTitle: String, val routeJoin: String,
+                  /** A match level's short badge for the stepper ("Source stage", "Teaching"...). */
+                  val badge: Map<String, String> = emptyMap()) {
     val coreCount get() = steps.count { !it.isOp }
     /** The route shown until the user picks one: the one marked default, else the first. */
     val defaultRoute get() = (routes.firstOrNull { it.isDefault } ?: routes.firstOrNull())?.id ?: ""
@@ -314,7 +316,8 @@ class Library(val materials: Map<String, Material>, val order: List<String>, val
                 val flow = ProcessFlow(dk, fj.optString("scope", ""), fj.optString("figures", ""),
                     fj.optString("branch", ""), match,
                     (fj.optJSONArray("refs") ?: JSONArray()).toStringList(), steps, stepScenes.map { it.key },
-                    routes, fj.optString("route_title", "How this is patterned"), fj.optString("route_join", "the next step"))
+                    routes, fj.optString("route_title", "How this is patterned"), fj.optString("route_join", "the next step"),
+                    HashMap<String, String>().also { m -> fj.optJSONObject("badge")?.let { b -> for (k in b.keys()) m[k] = b.getString(k) } })
                 for (sc in stepScenes) sc.flow = flow
                 scenes.addAll(stepScenes)
                 flows[dk] = flow
