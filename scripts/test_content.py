@@ -291,7 +291,7 @@ class ContentTests(unittest.TestCase):
                 self.assertFalse(any('bdi' in q['id'] for q in final.values()))   # BDI is nFET-only
                 self.assertIn('pts_n', {q['material'] for q in final.values()})
             wf = {q['material'] for q in final.values() if 'work-function' in q['name']}
-            self.assertEqual(wf, {'pwf'})
+            self.assertEqual(wf, {'tin'})     # TiN: the usual p-type work-function metal
             epi = {q['material'] for q in final.values() if q['id'].startswith('epi_')}
             self.assertEqual(epi, {'sige'})
             # Both sites: each side is the named site state, moved into place.
@@ -327,7 +327,7 @@ class ContentTests(unittest.TestCase):
         channel, fin or source/drain; the shared gate keeps them one conductor. The two are
         alternative routes: neither follows the other."""
         flows = json.loads((ROOT / 'data/process.json').read_text())['flows']
-        metals = {'mo', 'tin', 'pwf', 'tungsten', 'nickel', 'nisi'}
+        metals = {'mo', 'tin', 'nwf', 'tungsten', 'cobalt', 'tisi'}
         def touch(a, b):
             d = [min(a[k] + a[k + 3] / 2, b[k] + b[k + 3] / 2) - max(a[k] - a[k + 3] / 2, b[k] - b[k + 3] / 2) for k in range(3)]
             return min(d) >= -1e-6 and sorted(d)[1] > 1e-6
@@ -367,6 +367,19 @@ class ContentTests(unittest.TestCase):
             gw = lambda st: [q['id'] for q in st['parts'] if q['id'].endswith('gatew')]
             self.assertEqual(sorted(gw(by['contacts_cut'])), ['n_gatew', 'p_gatew'])
             self.assertEqual(gw(by['shared']), ['n_gatew'])
+
+    def test_materials_by_polarity(self):
+        """Work-function metals follow practice: an Al-containing n-type metal for nFETs, TiN for
+        pFETs. Contacts use a Ti-based silicide, not NiSi, and no nickel plug."""
+        for sc in self.data['devices']:
+            for p in sc['parts']:
+                if 'work-function' in p['name']:
+                    pol = 'p' if ('pFET' in p['name'] or 'pMOS' in p['name'] or 'p-type' in p['name']
+                                  or p['id'].startswith(('p_', 'tin_p', 'A_p', 'B_p', 'C_p', 'F_p'))) else 'n'
+                    self.assertEqual(p['material'], 'tin' if pol == 'p' else 'nwf', (sc['key'], p['id'], p['name']))
+                self.assertNotIn(p['material'], ('nisi', 'nickel'), (sc['key'], p['id']))
+        for name in ('nisi', 'nickel', 'pwf'):
+            self.assertNotIn(name, self.data['materials'])
 
     def test_references_and_scope(self):
         ids = [r['id'] for r in self.refs['sources']]

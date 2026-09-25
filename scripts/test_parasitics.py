@@ -27,7 +27,7 @@ class CapacitanceTests(unittest.TestCase):
 
     def test_parallel_plate_and_mirror(self):
         # One grid cell of area 0.0625nm^2; 7nm Si3N4 gap. Check both x directions.
-        y=np.array([[.5]]); a=(0,1,0,1,0,1,"mo"); b=(8,9,0,1,0,1,"nickel")
+        y=np.array([[.5]]); a=(0,1,0,1,0,1,"mo"); b=(8,9,0,1,0,1,"cobalt")
         d={"_all":[a,b,(1,8,0,1,0,1,"si3n4")]}
         c,area=p.couple(d,[a],[b],y,y,1)
         self.assertAlmostEqual(c,p.EPS0*7.5*area/7)

@@ -7,10 +7,10 @@ import json, os
 from pathlib import Path
 DATA = Path(__file__).resolve().parent.parent / "data/devices.json"
 from build_devices import (Dev, box, ring4, fork3, finwrap, gaps, check,
-                           MAT, ORDER, TCH, LSP, LSD, TIL, THK, TTIN, EOT,
+                           MAT, ORDER, WFM, WFL, TCH, LSP, LSD, TIL, THK, TTIN, EOT,
                            HYS, HY1, HY2, HY3)
 
-NOTE_NS = ("<b>One input, complementary devices.</b> The two gates share an input conductor. TiN colors mark illustrative work-function regions for nFET and pFET; they do not represent n-doped and p-doped TiN. Actual threshold tuning requires process-specific gate stacks. IN/OUT colors show ideal logic states, not simulated currents.")
+NOTE_NS = ("<b>One input, complementary devices.</b> The two gates share an input conductor. Each device has its own illustrative work-function metal: an Al-containing n-type metal for the nFET and TiN for the pFET. Actual threshold tuning requires process-specific gate stacks. IN/OUT colors show ideal logic states, not simulated currents.")
 NOTE_FIN = ("<b>Fin-count sizing.</b> Both transistors use two fins, giving a geometric width ratio of 1. Adding a third pFET fin would make that ratio 1.5. Neither ratio guarantees electrical balance: mobility, threshold, strain and contacts also matter. This viewer does not calculate switching delay or current.")
 NOTE_FS = ("<b>A common input over a wall.</b> The two gate-fill regions join above the inner wall in this illustrative cell. Reduced n/p spacing can save lateral span, but does not remove all gate-patterning and contact constraints.")
 NOTE_CFET = ("<b>Stacked inverter example.</b> The nFET is below the pFET, with a common input and connected drains. A backside GND path and an output riser are choices in this drawing; they are not the only possible CFET contact scheme. The model is not a characterized standard cell.")
@@ -32,7 +32,7 @@ def deck(d, C):
     # --- M0 local interconnect -------------------------------------------
     for tag, net, zlo, zhi in C["m0"]:
         xa, xb = (xs0, xs1) if tag.startswith("s") else (xd0, xd1)
-        A(d, f"m0_{tag}", C["m0name"][tag], "nickel",
+        A(d, f"m0_{tag}", C["m0name"][tag], "cobalt",
           [box(xa, xb, y0, y1, zlo, zhi)], "Local interconnect", [0, .9, 0], net)
 
     # --- M1 rails, output bar, input pad ---------------------------------
@@ -117,7 +117,7 @@ def inv_ns():
               [box(-xsp, xsp, yy - HYS, yy + HYS, z0 - hz, z0 + hz)], grp, [0, 0, 0], net)
         for nm, mat, hy, h, t, mg, lab in (("il", "sio2", HYS, hz, TIL, 1.0, "SiO₂ interfacial layer"),
                                            ("hk", "highk", HY1, hz1, THK, 2.1, "HfO₂ high-κ"),
-                                           ("tin", "tin", HY2, hz2, TTIN, 3.3, f"TiN work-function region · {pol}FET (illustrative)")):
+                                           ("tin", WFM[pol], HY2, hz2, TTIN, 3.3, WFL[pol] + f" · {pol}FET (illustrative)")):
             for i, yy in enumerate(ys):
                 bs = ring4(yy, hy, h, t, xg)
                 for b in bs: b[2] += z0
@@ -127,7 +127,7 @@ def inv_ns():
             nt = ("vdd" if s > 0 else "gnd") if sx < 0 else "out"
             A(d, f"{pol}_epi_{T}", f"{pol}MOS {T} epi", "silicon" if s < 0 else "sige",
               [box(xa, xb, 0, ysd, z0 - hz, z0 + hz)], grp, [sx * 1.6, 0, s * .4], nt)
-            A(d, f"{pol}_nisi_{T}", f"{pol}MOS {T} NiSi", "nisi",
+            A(d, f"{pol}_nisi_{T}", f"{pol}MOS {T} TiSiₓ", "tisi",
               [box(xa, xb, ysd, ynisi, z0 - hz, z0 + hz)], grp, [sx * 1.9, .3, s * .5], nt)
             sp = []
             xa2, xb2 = sorted((sx * xg, sx * xsp))
@@ -191,7 +191,7 @@ def inv_fin():
               [box(-xsd, xsd, 0, ytop, z - wh, z + wh)], grp, [0, 0, 0], net)
             for nm, mat, ww, yy, t, mg, lab in (("il", "sio2", wh, ytop, TIL, 1.0, "SiO₂ interfacial layer"),
                                                 ("hk", "highk", w1, y1, THK, 2.1, "HfO₂ high-κ"),
-                                                ("tin", "tin", w2, y2, TTIN, 3.3, f"TiN work-function region · {pol}FET (illustrative)")):
+                                                ("tin", WFM[pol], w2, y2, TTIN, 3.3, WFL[pol] + f" · {pol}FET (illustrative)")):
                 A(d, f"{pol}_{nm}{i+1}", f"{lab} · {pol} fin {i+1}", mat,
                   finwrap(z, ww, STI, yy, t, xg), grp, ["radial", (STI + ytop) / 2, mg, z], "in" if nm == "tin" else "body")
         for sx, T in ((-1, "source"), (1, "drain")):
@@ -202,7 +202,7 @@ def inv_fin():
                        box(xa, xb, ytop, yepi, z - 10, z + 10)]
                 ns.append(box(xa, xb, yepi, ynisi, z - 10, z + 10))
             A(d, f"{pol}_epi_{T}", f"{pol}MOS {T} raised epi", "silicon" if s < 0 else "sige", ep, grp, [sx * 1.6, .2, s * .4], nt)
-            A(d, f"{pol}_nisi_{T}", f"{pol}MOS {T} NiSi", "nisi", ns, grp, [sx * 1.9, .5, s * .5], nt)
+            A(d, f"{pol}_nisi_{T}", f"{pol}MOS {T} TiSiₓ", "tisi", ns, grp, [sx * 1.9, .5, s * .5], nt)
     mo = [box(-xg, xg, STI, ymo, -zg, -zc - hzE), box(-xg, xg, STI, ymo, -zc + hzE, zc - hzE), box(-xg, xg, STI, ymo, zc + hzE, zg)]
     for s in (1, -1):
         c = s * zc
@@ -256,7 +256,7 @@ def inv_fs():
             A(d, f"{pol}_s{i+1}", f"{pol}MOS sheet {i+1}", "silicon", [box(-xsp, xsp, yy - HYS, yy + HYS, zz[0], zz[1])], grp, [0, 0, 0], net)
         for nm, mat, hy, zz, t, mg, lab in (("il", "sio2", HYS, zo, TIL, 1.0, "SiO₂ interfacial layer"),
                                             ("hk", "highk", HY1, z1, THK, 2.1, "HfO₂ high-κ"),
-                                            ("tin", "tin", HY2, z2, TTIN, 3.3, f"TiN work-function region · {pol}FET (illustrative)")):
+                                            ("tin", WFM[pol], HY2, z2, TTIN, 3.3, WFL[pol] + f" · {pol}FET (illustrative)")):
             for i, yy in enumerate(ys):
                 A(d, f"{pol}_{nm}{i+1}", f"{lab} · {pol}{i+1}", mat, fork3(yy, hy, zi, zz, t, xg, s), grp, ["radial", yy, mg], "in" if nm == "tin" else "body")
         mo = [box(-xg, xg, STI, ymo, *sorted((s * z3, s * zg)))]
@@ -267,7 +267,7 @@ def inv_fs():
             xa, xb = sorted((sx * xsp, sx * xsd)); zz = sorted((s * zi, s * zo))
             nt = ("vdd" if s > 0 else "gnd") if sx < 0 else "out"
             A(d, f"{pol}_epi_{T}", f"{pol}MOS {T} epi", "sige" if s > 0 else "silicon", [box(xa, xb, 0, ysd, zz[0], zz[1])], grp, [sx * 1.6, 0, s * .5], nt)
-            A(d, f"{pol}_nisi_{T}", f"{pol}MOS {T} NiSi", "nisi", [box(xa, xb, ysd, ynisi, zz[0], zz[1])], grp, [sx * 1.9, .3, s * .6], nt)
+            A(d, f"{pol}_nisi_{T}", f"{pol}MOS {T} TiSiₓ", "tisi", [box(xa, xb, ysd, ynisi, zz[0], zz[1])], grp, [sx * 1.9, .3, s * .6], nt)
             xa2, xb2 = sorted((sx * xg, sx * xsp)); sp = [box(xa2, xb2, STI, ycap, *sorted((s * zo, s * zg)))]
             for a, b in gaps(STI, ycap, [(y - HYS, y + HYS) for y in ys]):
                 sp.append(box(xa2, xb2, a, b, *sorted((s * zi, s * zo))))
@@ -326,7 +326,7 @@ def inv_cfet():
               [box(-xsp, xsp, yy - HYS, yy + HYS, -hz, hz)], grp, [0, 0, 0], net)
         for nm, mat, hy, h, t, mg, lab in (("il", "sio2", HYS, hz, TIL, 1.0, "SiO₂ interfacial layer"),
                                            ("hk", "highk", HY1, hz1, THK, 2.1, "HfO₂ high-κ"),
-                                           ("tin", "tin", HY2, hz2, TTIN, 3.3, f"TiN work-function region · {pol}FET (illustrative)")):
+                                           ("tin", WFM[pol], HY2, hz2, TTIN, 3.3, WFL[pol] + f" · {pol}FET (illustrative)")):
             for i, yy in enumerate(ylist):
                 A(d, f"{pol}_{nm}{i+1}", f"{lab} · {pol}{i+1}", mat, ring4(yy, hy, h, t, xg), grp, ["radial", yy, mg], "in" if nm == "tin" else "body")
     # tier isolation, punched for the output riser
@@ -351,7 +351,7 @@ def inv_cfet():
         ntn = "gnd" if sx < 0 else "out"; ntp = "vdd" if sx < 0 else "out"
         A(d, f"n_epi_{T}", f"nMOS {T} epi (Si:P)", "silicon", [box(xa, xb, 0, m0y, -hz, hz)], "nMOS (bottom tier)", [sx * 1.6, -.4, 0], ntn)
         A(d, f"p_epi_{T}", f"pMOS {T} epi (SiGe:B)", "sige", [box(xa, xb, m1y, ytsd, -hz, hz)], "pMOS (top tier)", [sx * 1.6, .4, 0], ntp)
-        A(d, f"nisi_{T}", f"pMOS {T} NiSi", "nisi", [box(xa, xb, ytsd, ynisi, -hz, hz)], "pMOS (top tier)", [sx * 1.9, .7, 0], ntp)
+        A(d, f"nisi_{T}", f"pMOS {T} TiSiₓ", "tisi", [box(xa, xb, ytsd, ynisi, -hz, hz)], "pMOS (top tier)", [sx * 1.9, .7, 0], ntp)
     A(d, "riser", "Output riser · bottom drain to top", "tungsten",
       [box(rx0, rx1, 0, ym0, rz0, rz1)], "Local interconnect", [1.4, .6, .8], "out")
 

@@ -22,7 +22,7 @@ scene = trimesh.Scene()
 for p in G["parts"]:
     m = part_mesh(p)
     r,g,b = hex2rgb(MAT[p["material"]]["color"])
-    metal = 0.9 if p["material"] in ("mo","nickel","tungsten","nisi","tin") else 0.05
+    metal = 0.9 if p["material"] in ("mo","cobalt","tungsten","tisi","tin","nwf") else 0.05
     rough = 0.35 if metal > 0.5 else 0.55
     m.visual = trimesh.visual.TextureVisuals(material=PBRMaterial(
         name=MAT[p["material"]]["label"], baseColorFactor=[r,g,b,255],
@@ -39,7 +39,7 @@ obj, mtl, vo = ["# 3-stacked gate-all-around nanosheet FET  (1 unit = 1 nm)",
                 "mtllib nanosheet_fet.mtl"], [], 1
 for key in G["order"]:
     r,g,b = [c/255 for c in hex2rgb(MAT[key]["color"])]
-    metal = key in ("mo","nickel","tungsten","nisi","tin")
+    metal = key in ("mo","cobalt","tungsten","tisi","tin","nwf")
     mtl += [f"newmtl {key}", f"Kd {r:.4f} {g:.4f} {b:.4f}",
             f"Ka {r*0.25:.4f} {g*0.25:.4f} {b*0.25:.4f}",
             "Ks 0.55 0.55 0.55" if metal else "Ks 0.12 0.12 0.12",

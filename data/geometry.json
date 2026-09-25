@@ -50,25 +50,30 @@
    "color": "#E3D3B0",
    "note": "Illustrative gate-fill conductor; not a verified advanced-node recipe"
   },
-  "nickel": {
-   "label": "Nickel (Ni)",
+  "cobalt": {
+   "label": "Cobalt (Co)",
    "color": "#EE7A1A",
-   "note": "Illustrative contact conductor; real contact stacks are process-dependent"
+   "note": "Illustrative contact plug and local-interconnect conductor; Co, W and Ru are all used at advanced nodes, and real contact stacks are process-dependent"
   },
   "tungsten": {
    "label": "Tungsten (W)",
    "color": "#BFBBD2",
    "note": "Illustrative contact/via/routing conductor; not all real routing uses tungsten"
   },
-  "nisi": {
-   "label": "Nickel silicide (NiSi)",
+  "tisi": {
+   "label": "Titanium silicide (TiSi\u2093)",
    "color": "#E6E2F0",
-   "note": "Simplified silicide contact layer; SiGe contacts can require different alloy/phase treatment"
+   "note": "Contact silicide. Ti-based silicides replaced NiSi at FinFET-era nodes, formed through the contact opening; thickness illustrative, and SiGe contacts can need a different treatment"
   },
   "tin": {
    "label": "Titanium nitride (TiN)",
    "color": "#BE5518",
-   "note": "Illustrative work-function region/cap; effective work function is not modeled"
+   "note": "TiN is a typical p-type work-function metal, so it is drawn for pFETs, and it is the gate cap here. Effective work function is not modeled"
+  },
+  "nwf": {
+   "label": "n-type work-function metal",
+   "color": "#3E9C8F",
+   "note": "Illustrative nFET work-function layer. Real n-type stacks are Al-containing metals such as TiAl or TiAlC, usually over a thin TiN layer; effective work function is not modeled"
   }
  },
  "order": [
@@ -76,10 +81,11 @@
   "sio2",
   "highk",
   "si3n4",
+  "nwf",
   "tin",
   "mo",
-  "nisi",
-  "nickel",
+  "tisi",
+  "cobalt",
   "tungsten"
  ],
  "parts": [
@@ -460,8 +466,8 @@
   },
   {
    "id": "tin1",
-   "name": "TiN work-function metal (sheet 1)",
-   "material": "tin",
+   "name": "n-type work-function metal (sheet 1)",
+   "material": "nwf",
    "group": "Gate-all-around stack",
    "boxes": [
     [
@@ -505,8 +511,8 @@
   },
   {
    "id": "tin2",
-   "name": "TiN work-function metal (sheet 2)",
-   "material": "tin",
+   "name": "n-type work-function metal (sheet 2)",
+   "material": "nwf",
    "group": "Gate-all-around stack",
    "boxes": [
     [
@@ -550,8 +556,8 @@
   },
   {
    "id": "tin3",
-   "name": "TiN work-function metal (sheet 3)",
-   "material": "tin",
+   "name": "n-type work-function metal (sheet 3)",
+   "material": "nwf",
    "group": "Gate-all-around stack",
    "boxes": [
     [
@@ -841,8 +847,8 @@
   },
   {
    "id": "nisi_source",
-   "name": "Source NiSi silicide",
-   "material": "nisi",
+   "name": "Source TiSi\u2093 silicide",
+   "material": "tisi",
    "group": "Source / drain",
    "boxes": [
     [
@@ -862,8 +868,8 @@
   },
   {
    "id": "ni_source",
-   "name": "Source Ni contact plug",
-   "material": "nickel",
+   "name": "Source Co contact plug",
+   "material": "cobalt",
    "group": "Source / drain",
    "boxes": [
     [
@@ -925,8 +931,8 @@
   },
   {
    "id": "nisi_drain",
-   "name": "Drain NiSi silicide",
-   "material": "nisi",
+   "name": "Drain TiSi\u2093 silicide",
+   "material": "tisi",
    "group": "Source / drain",
    "boxes": [
     [
@@ -946,8 +952,8 @@
   },
   {
    "id": "ni_drain",
-   "name": "Drain Ni contact plug",
-   "material": "nickel",
+   "name": "Drain Co contact plug",
+   "material": "cobalt",
    "group": "Source / drain",
    "boxes": [
     [
@@ -1154,9 +1160,9 @@
     "gaa"
    ],
    "tex": "t_TiN",
-   "label": "t<sub>TiN</sub>",
+   "label": "t<sub>WFM</sub>",
    "value": "3 nm",
-   "desc": "Work-function metal",
+   "desc": "n-type work-function metal",
    "a": [
     0,
     72.0,

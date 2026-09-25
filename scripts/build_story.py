@@ -17,10 +17,12 @@ exaggerates vertical spacing; it is not a mask layout or fabrication flow. Rail-
 measured along z, a direction commonly called standard-cell height. Equal spans do not imply
 equal drive current, delay or routability. [R10, R12]</p>
 <h4>Materials and electrical limits</h4>
-<p>Si, SiGe, SiO2, HfO2, Si3N4 and TiN represent semiconductor, dielectric and gate-stack
-materials. The complete Mo/Ni/W/NiSi gate and contact palette is illustrative, not a verified
-recipe for any node. Real stacks depend on process and polarity. TiN is a conductor: nFET/pFET
-work-function labels do not mean n-doped/p-doped TiN. Work-function tuning, doping and strain
+<p>Si, SiGe, SiO2, HfO2, Si3N4, TiN and an n-type work-function metal represent semiconductor,
+dielectric and gate-stack materials. The work-function metal differs by polarity: TiN, a typical
+p-type work-function metal, is drawn for pFETs, and nFETs get an Al-containing n-type metal (TiAl
+or TiAlC over thin TiN, in practice). The Mo gate fill and the TiSix, Co and W contacts are an
+illustrative palette, not a verified recipe for any node; Ti-based silicides replaced NiSi at
+FinFET-era nodes. Real stacks depend on process and polarity. Work-function tuning, doping and strain
 are not simulated. [R7, R8, R9, R11]</p>
 <p>Layout colors identify Channel, MD, Po, VD, VG and Metal 0 roles rather than chemical
 compositions. Middle-tier isolation has no specified chemistry here. SiO2 is an illustrative

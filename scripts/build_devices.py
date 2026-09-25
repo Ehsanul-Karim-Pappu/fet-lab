@@ -21,10 +21,11 @@ MAT = {
  "mdi":     dict(label="Middle-tier dielectric", color="#4E7F8C", note="Isolation role, not a specified compound; relative permittivity 4.2 assumed"),
  "bond":    dict(label="Bonding oxide",      color="#8FB6C0", note="Wafer-bond interface (sequential CFET)"),
  "mo":      dict(label="Molybdenum (Mo)",    color="#E3D3B0", note="Illustrative gate-fill conductor; not a verified advanced-node recipe"),
- "nickel":  dict(label="Nickel (Ni)",        color="#EE7A1A", note="Illustrative contact conductor; real contact stacks are process-dependent"),
+ "cobalt":  dict(label="Cobalt (Co)",        color="#EE7A1A", note="Illustrative contact plug and local-interconnect conductor; Co, W and Ru are all used at advanced nodes, and real contact stacks are process-dependent"),
  "tungsten":dict(label="Tungsten (W)",       color="#BFBBD2", note="Illustrative contact/via/routing conductor; not all real routing uses tungsten"),
- "nisi":    dict(label="Nickel silicide (NiSi)", color="#E6E2F0", note="Simplified silicide contact layer; SiGe contacts can require different alloy/phase treatment"),
- "tin":     dict(label="Titanium nitride (TiN)", color="#BE5518", note="Illustrative work-function region/cap; effective work function is not modeled"),
+ "tisi":    dict(label="Titanium silicide (TiSiₓ)", color="#E6E2F0", note="Contact silicide. Ti-based silicides replaced NiSi at FinFET-era nodes, formed through the contact opening; thickness illustrative, and SiGe contacts can need a different treatment"),
+ "tin":     dict(label="Titanium nitride (TiN)", color="#BE5518", note="TiN is a typical p-type work-function metal, so it is drawn for pFETs, and it is the gate cap here. Effective work function is not modeled"),
+ "nwf":     dict(label="n-type work-function metal", color="#3E9C8F", note="Illustrative nFET work-function layer. Real n-type stacks are Al-containing metals such as TiAl or TiAlC, usually over a thin TiN layer; effective work function is not modeled"),
  "ild":     dict(label="SiO₂ · interlayer dielectric", color="#C9776C", note="Oxide around the device during processing; left out of the finished models, as their notes say"),
  "poly":    dict(label="Si dummy gate (poly/amorphous)", color="#8FA67A", note="Placeholder gate in the process steps; removed before the metal gate goes in. Poly and amorphous Si are both used; illustrative"),
  "pts":     dict(label="p-type Si (punch-through stopper)", color="#D9A6C8", note="Implanted doping under the nFET channels; extent illustrative, real profiles are graded"),
@@ -35,7 +36,6 @@ MAT = {
  "liner":   dict(label="Protective liner", color="#6FC7B5", note="Thin film that protects one region while the other is processed"),
  "mandrel": dict(label="Mandrel (first core)", color="#5E86C1", note="Temporary core line whose sidewalls carry the spacers; removed after they form. Material illustrative"),
  "mandrel2": dict(label="Second core", color="#9A7ED3", note="SAQP's second-generation core, cut from the first spacer image; removed after its own spacers form. Material illustrative"),
- "pwf":     dict(label="p-type work-function metal", color="#3E9C8F", note="Illustrative pFET work-function layer, separate from the nFET's; composition and work function are not modeled"),
  "patspacer": dict(label="Patterning spacer (temporary mask)", color="#EDEFF2", note="Spacer film used only as an etch mask for pitch splitting; not a transistor spacer. Material illustrative"),
  # --- schematic-layout palette, used by the showcase inverters ---
  "pwell":   dict(label="P Well",             color="#7FC9EA", note="p-type well / substrate"),
@@ -49,8 +49,12 @@ MAT = {
  "m0":      dict(label="Metal 0",            color="#F2C1A2", note="First routing level"),
 }
 ORDER = ["silicon","sige","sio2","highk","si3n4","wall","mdi","bond",
-         "tin","mo","nisi","nickel","tungsten","poly","ild","pts","pts_n","resist","resist_exp","chrome","liner","mandrel","mandrel2","patspacer","pwf",
+         "nwf","tin","mo","tisi","cobalt","tungsten","poly","ild","pts","pts_n","resist","resist_exp","chrome","liner","mandrel","mandrel2","patspacer",
          "pwell","nwell","fox","nanowire","md","po","vd","vg","m0"]
+
+# Work-function metal by polarity: an Al-containing n-type metal for nFETs, TiN for pFETs.
+WFM = {"n": "nwf", "p": "tin"}
+WFL = {"n": "n-type work-function metal", "p": "TiN work-function metal (p-type)"}
 
 # ---------------------------------------------------------------- shared CDs
 TCH, LG, LSP, LSD = 5.0, 15.0, 7.0, 22.0
@@ -128,7 +132,7 @@ def check(dev, step=0.5):
 # ============================================================== NANOSHEET ===
 def build_ns():
     d=Dev("ns","Nanosheet FET","GAA · 3 stacked sheets",
-      "A gate-all-around example with three silicon nanosheets. SiO2 and HfO2 represent the dielectric stack, TiN a work-function layer, and Mo an illustrative gate fill.")
+      "A gate-all-around nFET example with three silicon nanosheets. SiO2 and HfO2 represent the dielectric stack, an Al-containing n-type work-function metal the gate's work-function layer, and Mo an illustrative gate fill.")
     W, PITCH, NSH = 30.0, 21.0, 3
     hz=W/2; STI=10.0
     ys=[STI+HY3+6.0+i*PITCH for i in range(NSH)]        # 24.5 45.5 66.5
@@ -158,7 +162,7 @@ def build_ns():
     for i,yc in enumerate(ys):
         d.add(f"hk{i+1}",f"HfO₂ high-κ · sheet {i+1}","highk",ring4(yc,HY1,hz1,THK,XG),"Gate-all-around films",["radial",yc,2.1])
     for i,yc in enumerate(ys):
-        d.add(f"tin{i+1}",f"TiN work-function metal · sheet {i+1}","tin",ring4(yc,HY2,hz2,TTIN,XG),"Gate-all-around films",["radial",yc,3.3])
+        d.add(f"tin{i+1}",f"n-type work-function metal · sheet {i+1}","nwf",ring4(yc,HY2,hz2,TTIN,XG),"Gate-all-around films",["radial",yc,3.3])
     # Beside the BDI the gate reaches down to the STI, where the dummy gate was.
     mo=[box(-XG,XG,STI,ymo,hz3,hzmo), box(-XG,XG,STI,ymo,-hzmo,-hz3),
         box(-XG,XG,0,STI,hz,hzmo), box(-XG,XG,0,STI,-hzmo,-hz)]
@@ -175,8 +179,8 @@ def build_ns():
     for s,T in ((-1,"Source"),(1,"Drain")):
         xa,xb=sorted((s*XSP,s*XSD)); xc=(xa+xb)/2
         d.add(f"epi_{T.lower()}",f"{T} epi (Si:P)","silicon",[box(xa,xb,STI,ysd,-hz,hz)],"Source / drain",[s*1.6,0,0])
-        d.add(f"nisi_{T.lower()}",f"{T} NiSi silicide","nisi",[box(xa,xb,ysd,ynisi,-hz,hz)],"Source / drain",[s*1.9,.3,0])
-        d.add(f"ni_{T.lower()}",f"{T} Ni contact plug","nickel",[box(xc-8,xc+8,ynisi,yplug,-12,12)],"Source / drain",[s*2.1,.8,0])
+        d.add(f"nisi_{T.lower()}",f"{T} TiSiₓ silicide","tisi",[box(xa,xb,ysd,ynisi,-hz,hz)],"Source / drain",[s*1.9,.3,0])
+        d.add(f"ni_{T.lower()}",f"{T} Co contact plug","cobalt",[box(xc-8,xc+8,ynisi,yplug,-12,12)],"Source / drain",[s*2.1,.8,0])
         d.add(f"w_{T.lower()}",f"{T} W metal","tungsten",[box(xa,xb,yplug,ym2,-hz,hz)],"Source / drain",[s*2.3,1.3,0])
 
     d.cal("LG","L<sub>G</sub>",f"{LG:g} nm","Physical gate length",[-XG,ymo+2,hzmo],[XG,ymo+2,hzmo],[0,ymo+22,hzmo+36],["iso","b"])
@@ -185,19 +189,19 @@ def build_ns():
     d.cal("W","W<sub>sh</sub>",f"{W:g} nm","Nanosheet width",[-XSP,ys[0]-HYS-.6,-hz],[-XSP,ys[0]-HYS-.6,hz],[0,ys[0]-26,zsub+14],["iso","c"])
     d.cal("pitch","Sheet pitch",f"{PITCH:g} nm","Vertical sheet-to-sheet pitch",[XSP,ys[0],-hz],[XSP,ys[1],-hz],[XSP+34,(ys[0]+ys[1])/2,-hz-30],["b","c"])
     d.cal("eot","t_ox",f"{TIL+THK:g} nm",f"{TIL:g} SiO₂ + {THK:g} HfO₂ · EOT {EOT:g} nm",[0,ys[2]+HYS,hz+.1],[0,ys[2]+HY2,hz+.1],[0,ys[2]+32,hz2+40],["c","gaa","iso"])
-    d.cal("tin","t<sub>TiN</sub>",f"{TTIN:g} nm","Work-function metal",[0,ys[2]+HY2,-hz-.1],[0,ys[2]+HY3,-hz-.1],[0,ys[2]+26,-hz3-38],["c","gaa"])
+    d.cal("tin","t<sub>WFM</sub>",f"{TTIN:g} nm","n-type work-function metal",[0,ys[2]+HY2,-hz-.1],[0,ys[2]+HY3,-hz-.1],[0,ys[2]+26,-hz3-38],["c","gaa"])
     d.dims=[["L_G","Physical gate length",f"{LG:g} nm"],["t_ch","Sheet thickness",f"{TCH:g} nm"],
             ["W_sh","Sheet width",f"{W:g} nm"],["Pitch","Sheet-to-sheet pitch",f"{PITCH:g} nm"],
             ["N_sh","Sheets in the stack","3"],["L_SP","Spacer length",f"{LSP:g} nm"],
             ["EOT","Equivalent oxide thickness",f"{EOT:g} nm"],
-            ["—","Mo between adjacent TiN shells",f"{PITCH-2*HY3:g} nm"],
+            ["—","Fill between work-function shells (spacing enlarged)",f"{PITCH-2*HY3:g} nm"],
             ["—","Active footprint (z)",f"{2*hz3:g} nm"]]
     d.views={"iso":dict(n="3D overview",s="the whole device",az=-.76,el=.36,r=300,tgt=[0,40,0],clip=None),
              "b":dict(n="Along channel",s="source · gate · drain",az=0,el=0,r=265,tgt=[0,42,0],clip=[None,None,0]),
              "c":dict(n="Across channel",s="through the gate",az=1.5708,el=0,r=250,tgt=[0,46,0],clip=[0,None,None]),
              "gaa":dict(n="Gate-all-around",s="source side lifted off",az=-1.12,el=.30,r=205,tgt=[0,45,0],clip=[4,None,None],
                         off=["epi_source","nisi_source","ni_source","w_source","spacer_source"])}
-    d.note=("<b>Reading the wrap.</b> The Si channel is surrounded by a 1nm SiO2 interfacial layer, 2nm HfO2 and 3nm TiN in this model. With 5nm sheets at 21nm center pitch, 4nm remains between adjacent TiN shells for Mo fill. This illustrates a gate-fill constraint, not a universal process limit. These exact materials and dimensions are model choices.")
+    d.note=("<b>Reading the wrap.</b> Each Si sheet is wrapped by a 1nm SiO2 interfacial layer, 2nm HfO2 and 3nm of n-type work-function metal in this model. The sheets are drawn at a 21nm vertical pitch so every film is visible, which leaves 4nm of Mo fill between neighbouring shells. Real stacks space their sheets more tightly, roughly 7-12nm apart, and there the work-function metal fills the gap between sheets with no room left for fill metal. These materials and dimensions are model choices.")
     return d.finish()
 
 # ================================================================= FINFET ===
@@ -232,7 +236,7 @@ def build_fin():
     for i,z in enumerate(zf):
         d.add(f"hk{i+1}",f"HfO₂ high-κ · fin {i+1}","highk",finwrap(z,w1,STI,y1,THK,XGf),"Tri-gate films",["radial",(STI+ytop)/2,2.1,z])
     for i,z in enumerate(zf):
-        d.add(f"tin{i+1}",f"TiN work-function metal · fin {i+1}","tin",finwrap(z,w2,STI,y2,TTIN,XGf),"Tri-gate films",["radial",(STI+ytop)/2,3.3,z])
+        d.add(f"tin{i+1}",f"n-type work-function metal · fin {i+1}","nwf",finwrap(z,w2,STI,y2,TTIN,XGf),"Tri-gate films",["radial",(STI+ytop)/2,3.3,z])
     mo=[box(-XGf,XGf,STI,ymo,hzenv,hzmo), box(-XGf,XGf,STI,ymo,-hzmo,-hzenv)]
     for i in range(NFIN-1):
         mo.append(box(-XGf,XGf,STI,ymo,zf[i]+w3,zf[i+1]-w3))
@@ -255,8 +259,8 @@ def build_fin():
             ep += [box(xa,xb,STI,STI+6,z-wh-2,z+wh+2), box(xa,xb,STI+6,yepi,z-10,z+10)]
             ns.append(box(xa,xb,yepi,ynisi,z-10,z+10))
         d.add(f"epi_{T.lower()}",f"{T} epi (Si:P) · grown in the recess","silicon",ep,"Source / drain",[sx*1.6,.2,0])
-        d.add(f"nisi_{T.lower()}",f"{T} NiSi silicide","nisi",ns,"Source / drain",[sx*1.9,.5,0])
-        d.add(f"ni_{T.lower()}",f"{T} Ni trench contact","nickel",
+        d.add(f"nisi_{T.lower()}",f"{T} TiSiₓ silicide","tisi",ns,"Source / drain",[sx*1.9,.5,0])
+        d.add(f"ni_{T.lower()}",f"{T} Co trench contact","cobalt",
               [box(xa,xb,ynisi,yplug,-hzenv,hzenv)],"Source / drain",[sx*2.1,.9,0])
         d.add(f"w_{T.lower()}",f"{T} W metal","tungsten",
               [box(xa,xb,yplug,ym2,-hzenv,hzenv)],"Source / drain",[sx*2.3,1.3,0])
@@ -267,7 +271,7 @@ def build_fin():
     d.cal("fp","Fin pitch",f"{FPITCH:g} nm","Fin-to-fin pitch",[XSPf,STI-1,zf[0]],[XSPf,STI-1,zf[1]],[XSPf+28,STI-24,0],["c","b"])
     d.cal("LG","L<sub>G</sub>",f"{LGf:g} nm","Physical gate length",[-XGf,ymo+2,hzmo],[XGf,ymo+2,hzmo],[0,ymo+22,hzmo+34],["iso","b"])
     d.cal("eot","t_ox",f"{TIL+THK:g} nm",f"{TIL:g} SiO₂ + {THK:g} HfO₂ · EOT {EOT:g} nm",[0,ytop,(zf[1][0]+zf[1][1])/2 if isinstance(zf[1],(list,tuple)) else zf[1]],[0,y2,(zf[1][0]+zf[1][1])/2 if isinstance(zf[1],(list,tuple)) else zf[1]],[0,ytop+34,hzmo+28],["c","tri"])
-    d.cal("tin","t<sub>TiN</sub>",f"{TTIN:g} nm","Three faces only",[0,(STI+ytop)/2,zf[0]-w2],[0,(STI+ytop)/2,zf[0]-w3],[0,STI+10,-hzmo-30],["c","tri"])
+    d.cal("tin","t<sub>WFM</sub>",f"{TTIN:g} nm","n-type WFM, three faces only",[0,(STI+ytop)/2,zf[0]-w2],[0,(STI+ytop)/2,zf[0]-w3],[0,STI+10,-hzmo-30],["c","tri"])
     d.dims=[["L_G","Physical gate length",f"{LGf:g} nm"],["W_fin","Fin width",f"{WFIN:g} nm"],
             ["H_fin","Exposed fin height",f"{HFIN:g} nm"],["Fin pitch","Fin-to-fin pitch",f"{FPITCH:g} nm"],
             ["N_fin","Fins in this device",f"{NFIN}"],["L_SP","Spacer length",f"{LSP:g} nm"],
@@ -313,7 +317,7 @@ def build_fs():
             d.add(f"hk_{sg}{i+1}",f"HfO₂ high-κ · {sg}{i+1}","highk",
                   fork3(yc,HY1,zi,z1,THK,XG,s),"Forked gate films",["radial",yc,2.1])
         for i,yc in enumerate(ys):
-            d.add(f"tin_{sg}{i+1}",f"{sg}-type TiN work-function metal · {sg}{i+1}","tin",
+            d.add(f"tin_{sg}{i+1}",WFL[sg]+f" · {sg}{i+1}",WFM[sg],
                   fork3(yc,HY2,zi,z2,TTIN,XG,s),"Forked gate films",["radial",yc,3.3])
         mo=[box(-XG,XG,STI,ymo,*sorted((s*z3,s*zmo)))]
         for a,b in gaps(STI,ymo,[(y-HY3,y+HY3) for y in ys]):
@@ -331,9 +335,9 @@ def build_fs():
             lab = "Si:P" if s>0 else "SiGe:B"
             d.add(f"epi_{sg}_{T.lower()}",f"{sg}FET {T.lower()} epi ({lab})",mat,
                   [box(xa,xb,0,ysd,zz[0],zz[1])],"Source / drain",[sx*1.6,0,s*.6])
-            d.add(f"nisi_{sg}_{T.lower()}",f"{sg}FET {T.lower()} NiSi","nisi",
+            d.add(f"nisi_{sg}_{T.lower()}",f"{sg}FET {T.lower()} TiSiₓ","tisi",
                   [box(xa,xb,ysd,ynisi,zz[0],zz[1])],"Source / drain",[sx*1.9,.3,s*.7])
-            d.add(f"ni_{sg}_{T.lower()}",f"{sg}FET {T.lower()} Ni plug","nickel",
+            d.add(f"ni_{sg}_{T.lower()}",f"{sg}FET {T.lower()} Co plug","cobalt",
                   [box(xc-8,xc+8,ynisi,yplug,zc-8,zc+8)],"Source / drain",[sx*2.1,.8,s*.8])
             d.add(f"w_{sg}_{T.lower()}",f"{sg}FET {T.lower()} W metal","tungsten",
                   [box(xa,xb,yplug,ym2,zz[0],zz[1])],"Source / drain",[sx*2.3,1.3,s*.9])
@@ -341,7 +345,7 @@ def build_fs():
     d.add("gatew","W gate contact","tungsten",[box(-XG,XG,ycap,ym2,-20,20)],"Gate electrode",[0,1.8,0])
 
     d.cal("wall","Wall",f"{WALL:g} nm","SiN n–p separation wall",[0,ymo+1,-zi],[0,ymo+1,zi],[0,ymo+26,zmo+30],["iso","c","fork"])
-    d.cal("np","n–p space",f"{WALL:g} nm","TiN-to-TiN across the wall",[XG+1,ys[1],-zi],[XG+1,ys[1],zi],[XSP+30,ys[1]-22,0],["c","fork"])
+    d.cal("np","n–p space",f"{WALL:g} nm","work-function metal to work-function metal across the wall",[XG+1,ys[1],-zi],[XG+1,ys[1],zi],[XSP+30,ys[1]-22,0],["c","fork"])
     d.cal("tch","t<sub>ch</sub>",f"{TCH:g} nm","Sheet thickness",[-XSP,ys[1]-HYS,zo],[-XSP,ys[1]+HYS,zo],[-XSP-34,ys[1],zo+32],["iso","b","c","fork"])
     d.cal("W","W<sub>sh</sub>",f"{W:g} nm","Sheet width",[-XSP,ys[0]-HYS-.6,zi],[-XSP,ys[0]-HYS-.6,zo],[-XSP-10,ys[0]-26,zo+20],["iso","c"])
     d.cal("LG","L<sub>G</sub>",f"{LG:g} nm","Physical gate length",[-XG,ymo+2,zmo],[XG,ymo+2,zmo],[0,ymo+22,zmo+34],["iso","b"])
@@ -349,7 +353,7 @@ def build_fs():
     d.dims=[["L_G","Physical gate length",f"{LG:g} nm"],["t_ch","Sheet thickness",f"{TCH:g} nm"],
             ["W_sh","Sheet width",f"{W:g} nm"],["Pitch","Sheet-to-sheet pitch",f"{PITCH:g} nm"],
             ["t_wall","Dielectric wall thickness",f"{WALL:g} nm"],
-            ["n–p","TiN-to-TiN across the wall",f"{WALL:g} nm"],
+            ["n–p","work-function metal to work-function metal across the wall",f"{WALL:g} nm"],
             ["N_sh","Sheets per polarity","3"],["EOT","Equivalent oxide thickness",f"{EOT:g} nm"],
             ["—","Gate faces per sheet","3 (forked)"],
             ["—","Active footprint (z)",f"{2*z3:g} nm"]]
@@ -412,7 +416,7 @@ def build_cfet(seq=False):
         for i,yc in enumerate(ylist):
             d.add(f"hk_{tag}{i+1}",f"HfO₂ high-κ · {tag}{i+1}","highk",ring4(yc,HY1,hz1,THK,XG),grp,["radial",yc,2.1])
         for i,yc in enumerate(ylist):
-            d.add(f"tin_{tag}{i+1}",f"{tag}-type TiN work-function metal · {tag}{i+1}","tin",ring4(yc,HY2,hz2,TTIN,XG),grp,["radial",yc,3.3])
+            d.add(f"tin_{tag}{i+1}",WFL[tag]+f" · {tag}{i+1}",WFM[tag],ring4(yc,HY2,hz2,TTIN,XG),grp,["radial",yc,3.3])
 
     # ---- tier isolation --------------------------------------------------
     if seq:
@@ -461,9 +465,9 @@ def build_cfet(seq=False):
               [box(xa,xb,0,ybsd,-hz,hz)],"Bottom tier (n)",[s*1.6,-.4,0])
         d.add(f"epi_p_{T.lower()}",f"Top tier {T.lower()} epi (SiGe:B)","sige",
               [box(xa,xb,ymdi1,ytsd,-hz,hz)],"Top tier (p)",[s*1.6,.4,0])
-        d.add(f"nisi_{T.lower()}",f"Top tier {T.lower()} NiSi","nisi",
+        d.add(f"nisi_{T.lower()}",f"Top tier {T.lower()} TiSiₓ","tisi",
               [box(xa,xb,ytsd,ynisi,-hz,hz)],"Top tier (p)",[s*1.9,.7,0])
-        d.add(f"ni_{T.lower()}",f"Top tier {T.lower()} Ni plug","nickel",
+        d.add(f"ni_{T.lower()}",f"Top tier {T.lower()} Co plug","cobalt",
               [box(xc-8,xc+8,ynisi,yplug,-8,8)],"Top tier (p)",[s*2.1,1.0,0])
         d.add(f"w_{T.lower()}",f"Top tier {T.lower()} W metal","tungsten",
               [box(xa,xb,yplug,ym2,-hz,hz)],"Top tier (p)",[s*2.3,1.4,0])
@@ -501,11 +505,11 @@ def build_cmp():
         for i,yc in enumerate(ys):
             d.add(f"{pre}_s{i+1}",f"Si sheet {i+1}","silicon",[box(-XG,XG,yc-HYS,yc+HYS,zc-hz,zc+hz)],grp,[0,0,0])
             for nm,mat,hy,h,t,mg in (("il","sio2",HYS,hz,TIL,1.0),("hk","highk",HY1,hz+TIL,THK,2.1),
-                                     ("tin","tin",HY2,hz+TIL+THK,TTIN,3.3)):
+                                     ("tin",WFM[pre[-1]],HY2,hz+TIL+THK,TTIN,3.3)):
                 bs=ring4(yc,hy,h,t,XG)
                 for b in bs: b[2]+=zc
                 d.add(f"{pre}_{nm}{i+1}",{"il":"SiO₂ interfacial layer","hk":"HfO₂ high-κ",
-                      "tin":"TiN work-function metal"}[nm]+f" · sheet {i+1}",mat,bs,grp,["radial",yc,mg,zc])
+                      "tin":WFL[pre[-1]]}[nm]+f" · sheet {i+1}",mat,bs,grp,["radial",yc,mg,zc])
     def forkstack(pre,grp,s_,ys):
         zi,zo=4.0,4.0+Wc
         for i,yc in enumerate(ys):
@@ -513,14 +517,14 @@ def build_cmp():
             d.add(f"{pre}_s{i+1}",f"Si sheet {i+1}","silicon",[box(-XG,XG,yc-HYS,yc+HYS,zz[0],zz[1])],grp,[0,0,0])
             d.add(f"{pre}_il{i+1}",f"SiO₂ interfacial layer · sheet {i+1}","sio2",fork3(yc,HYS,zi,zo,TIL,XG,s_),grp,["radial",yc,1.0])
             d.add(f"{pre}_hk{i+1}",f"HfO₂ high-κ · sheet {i+1}","highk",fork3(yc,HY1,zi,zo+TIL,THK,XG,s_),grp,["radial",yc,2.1])
-            d.add(f"{pre}_tin{i+1}",f"TiN work-function metal · sheet {i+1}","tin",fork3(yc,HY2,zi,zo+TIL+THK,TTIN,XG,s_),grp,["radial",yc,3.3])
+            d.add(f"{pre}_tin{i+1}",WFL[pre[-1]]+f" · sheet {i+1}",WFM[pre[-1]],fork3(yc,HY2,zi,zo+TIL+THK,TTIN,XG,s_),grp,["radial",yc,3.3])
     def finstack(pre,grp,zc,ytop):
         for i,z in enumerate((zc-FPITCH/2, zc+FPITCH/2)):
             d.add(f"{pre}_f{i+1}",f"Si fin {i+1}","silicon",[box(-XG,XG,0,ytop,z-wh,z+wh)],grp,[0,0,0])
             for nm,mat,ww,yy,t,mg in (("il","sio2",wh,ytop,TIL,1.0),("hk","highk",wh+TIL,ytop+TIL,THK,2.1),
-                                      ("tin","tin",wh+TIL+THK,ytop+TIL+THK,TTIN,3.3)):
+                                      ("tin",WFM[pre[-1]],wh+TIL+THK,ytop+TIL+THK,TTIN,3.3)):
                 d.add(f"{pre}_{nm}{i+1}",{"il":"SiO₂ interfacial layer","hk":"HfO₂ high-κ",
-                      "tin":"TiN work-function metal"}[nm]+f" · fin {i+1}",mat,
+                      "tin":WFL[pre[-1]]}[nm]+f" · fin {i+1}",mat,
                       finwrap(z,ww,STI,yy,t,XG),grp,["radial",(STI+ytop)/2,mg,z])
 
     CELLS=[]

@@ -5,6 +5,24 @@ All notable changes to FET Lab. Dates are the release date; versions follow
 
 ## Unreleased
 
+### Content corrections from the app review
+
+- **Work-function metals by polarity.** nFETs now have an Al-containing n-type work-function
+  metal (TiAl or TiAlC over thin TiN, in practice) and pFETs have TiN, the usual p-type metal.
+  Every nFET used to be drawn with TiN, the reverse of common practice. This covers all device,
+  inverter, compare and process scenes; the TiN gate cap is unchanged.
+- **Contacts.** Source/drain contacts use a Ti-based silicide (TiSiₓ) and cobalt plugs instead of
+  NiSi and nickel: Ti-based silicides replaced NiSi at FinFET-era nodes, and nickel is not a plug
+  metal. The inverters' local interconnect is cobalt too. No capacitance value changed.
+- **Example node labels** follow imec's roadmap: FinFET "3 nm-class", nanosheet "2 nm to A14",
+  forksheet "A10" (imec's A10 forksheet is outer-wall; this model is inner-wall), CFET "A7 and
+  beyond". The forksheet and CFET used to read "1.2 nm" and "1 nm".
+- **Layout's Metal 0 row** is now "Drawn Metal 0 bar spacing", with a note that real M0 pitch is
+  about 20–24 nm; the 35–45 nm values are the spacing of four schematic bars, not a track pitch.
+- **Nanosheet note:** the 21 nm sheet pitch is enlarged so every film is visible; real sheets are
+  about 7–12 nm apart, and the work-function metal fills the gap between them with no fill metal.
+- The exported GLB/OBJ/STL models are regenerated (the FinFET's were older than its S/D recess).
+
 ### Process mode: pFETs, both sites, and the gate cut
 
 Each process technology now has a **site selector** at the top of the Steps tab: **nFET**

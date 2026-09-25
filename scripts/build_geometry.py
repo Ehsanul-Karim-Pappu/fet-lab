@@ -56,9 +56,9 @@ P.update(x_g=x_g, x_sp=x_sp, x_sd=x_sd, sheet_y=ys, y_mo_top=y_mo_top, y_m2=y_m2
 
 # ---------------------------------------------------------------- materials
 from build_devices import MAT as DEVICE_MATERIALS
-MAT = {k: dict(DEVICE_MATERIALS[k]) for k in ("silicon","sio2","highk","si3n4","mo","nickel","tungsten","nisi","tin")}
+MAT = {k: dict(DEVICE_MATERIALS[k]) for k in ("silicon","sio2","highk","si3n4","mo","cobalt","tungsten","tisi","tin","nwf")}
 
-ORDER = ["silicon","sio2","highk","si3n4","tin","mo","nisi","nickel","tungsten"]
+ORDER = ["silicon","sio2","highk","si3n4","nwf","tin","mo","tisi","cobalt","tungsten"]
 
 parts = []   # {id, name, material, group, boxes:[[cx,cy,cz,dx,dy,dz],...], explode}
 def add(pid, name, material, boxes, group, explode=None):
@@ -94,7 +94,7 @@ for i, yc in enumerate(ys):
     add(f"hk{i+1}", f"HfO₂ high-κ (sheet {i+1})", "highk",
         shell(yc, hy_il, hz_il, thk, x_g), "Gate-all-around stack", ["radial", yc, 2.1])
 for i, yc in enumerate(ys):
-    add(f"tin{i+1}", f"TiN work-function metal (sheet {i+1})", "tin",
+    add(f"tin{i+1}", f"n-type work-function metal (sheet {i+1})", "nwf",
         shell(yc, hy_hk, hz_hk, ttin, x_g), "Gate-all-around stack", ["radial", yc, 3.3])
 
 # ---------------------------------------------------------------- gate fill
@@ -137,9 +137,9 @@ for s, tag in ((-1, "Source"), (1, "Drain")):
     xc = s*(x_sp + x_sd)/2
     add(f"epi_{tag.lower()}", f"{tag} epi (Si)", "silicon",
         [[xc, y_sd_top/2, 0, LSD, y_sd_top, Wsh]], "Source / drain", [s*1.6, 0, 0])
-    add(f"nisi_{tag.lower()}", f"{tag} NiSi silicide", "nisi",
+    add(f"nisi_{tag.lower()}", f"{tag} TiSiₓ silicide", "tisi",
         [[xc, (y_sd_top+y_nisi)/2, 0, LSD, y_nisi-y_sd_top, Wsh]], "Source / drain", [s*1.9, 0.3, 0])
-    add(f"ni_{tag.lower()}", f"{tag} Ni contact plug", "nickel",
+    add(f"ni_{tag.lower()}", f"{tag} Co contact plug", "cobalt",
         [[xc, (y_nisi+y_plug)/2, 0, 16.0, y_plug-y_nisi, 24.0]], "Source / drain", [s*2.1, 0.8, 0])
     add(f"w_{tag.lower()}", f"{tag} W metal", "tungsten",
         [[xc, (y_plug+y_m2)/2, 0, LSD, y_m2-y_plug, Wsh]], "Source / drain", [s*2.3, 1.3, 0])
@@ -158,7 +158,7 @@ CALLOUTS = [
       a=[x_sp, ys[0], -hz_sh], b=[x_sp, ys[1], -hz_sh], lab=[x_sp+34, (ys[0]+ys[1])/2, -hz_sh-30]),
  dict(id="eot", v=["c","gaa","iso"],  tex="t_ox", label="t_ox", value=f"{til+thk:g} nm", desc=f"Physical stack; EOT {P['EOT']:g} nm under assumed permittivities",
       a=[0, ys[2]+hy_sh, hz_sh+0.1], b=[0, ys[2]+hy_hk, hz_sh+0.1], lab=[0, ys[2]+32, hz_hk+40]),
- dict(id="tin", v=["c","gaa"],  tex="t_TiN", label="t<sub>TiN</sub>", value=f"{ttin:g} nm", desc="Work-function metal",
+ dict(id="tin", v=["c","gaa"],  tex="t_TiN", label="t<sub>WFM</sub>", value=f"{ttin:g} nm", desc="n-type work-function metal",
       a=[0, ys[2]+hy_hk, -hz_sh-0.1], b=[0, ys[2]+hy_tin, -hz_sh-0.1], lab=[0, ys[2]+26, -hz_tin-38]),
 ]
 

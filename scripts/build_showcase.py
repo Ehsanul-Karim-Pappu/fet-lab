@@ -253,7 +253,7 @@ def show_ns():
     return finish(d, [
         ["L_G", "Physical gate length, as drawn", f'{P["LG"]:g} nm'],
         ["Cell z", "Rail-to-rail span (z)", f'{P["cell"]:g} nm'],
-        ["M0 pitch", "Metal 0 track pitch", f'{P["step"]:.1f} nm'],
+        ["M0 bars", "Drawn Metal 0 bar spacing (schematic; real M0 pitch is about 20–24 nm)", f'{P["step"]:.1f} nm'],
         ["Sheets", "Per device", "2"], ["Devices", "pMOS over N Well, nMOS over P Well", "2"],
         ["Gate", "Po, crossing both", "1"], ["Contacts", "MD columns", "3"],
         ["Metal 0", "V_DD · IN · OUT · GND", "4 bars"],
@@ -288,7 +288,7 @@ def show_fs():
     return finish(d, [
         ["L_G", "Physical gate length, as drawn", f'{P["LG"]:g} nm'],
         ["Cell z", "Rail-to-rail span (z)", f'{P["cell"]:g} nm'],
-        ["M0 pitch", "Metal 0 track pitch", f'{P["step"]:.1f} nm'],
+        ["M0 bars", "Drawn Metal 0 bar spacing (schematic; real M0 pitch is about 20–24 nm)", f'{P["step"]:.1f} nm'],
         ["Sheets", "Per device", "2"], ["Separation", "Dielectric wall", "no metal gap"],
         ["Gate", "Po, bridged over the wall", "1"], ["Contacts", "MD columns", "3"],
         ["Metal 0", "V_DD · IN · OUT · GND", "4 bars + drain jog"], ["Gate faces", "Per sheet", "3"]])
@@ -445,7 +445,7 @@ def show_cfet():
     return finish(d, [
         ["L_G", "Physical gate length, as drawn", f'{P["LG"]:g} nm'],
         ["Cell z", "Rail-to-rail span (z)", f'{P["cell"]:g} nm'],
-        ["M0 pitch", "Metal 0 track pitch", f'{P["step"]:.1f} nm'],
+        ["M0 bars", "Drawn Metal 0 bar spacing (schematic; real M0 pitch is about 20–24 nm)", f'{P["step"]:.1f} nm'],
         ["Tiers", "pMOS above nMOS", "2"], ["Sheets", "Per tier", "2"],
         ["Gate", "Po, continuous through both", "1"], ["Contacts", "MD, split top and bottom", "4"],
         ["Metal 0", "V_DD · IN · OUT", "3 bars"], ["GND", "Reached from", "backside metal"]])
@@ -500,9 +500,11 @@ def show_cmp():
 # 90 nm generation the number on the label has not matched any dimension on the wafer.
 # They sit in the table next to the physical gate length on purpose: the contrast is the
 # point. Change a value here and it updates every scene for that architecture.
-NODE = {"fin": "3 nm", "ns": "1.4 nm", "fs": "1.2 nm", "cfet": "1 nm"}
-NODE_ROW = ["Example node", "Illustrative roadmap label; not a process specification"]
-CMP_ROW = ["Example node", "FinFET · nanosheet · forksheet · CFET", "3 · 1.4 · 1.2 · 1 nm"]
+# imec-style roadmap names: nanosheets from 2 nm to A14, the (outer-wall) forksheet at A10,
+# CFET from A7 on. They say where each architecture sits, not what this model measures.
+NODE = {"fin": "3 nm-class", "ns": "2 nm to A14", "fs": "A10 (imec's is outer-wall)", "cfet": "A7 and beyond"}
+NODE_ROW = ["Example node", "Where the architecture sits on imec's roadmap; not a process specification"]
+CMP_ROW = ["Example node", "FinFET · nanosheet · forksheet · CFET", "3 nm · 2 nm–A14 · A10 · A7+"]
 
 def tag_nodes(devices):
     """Put the generation label at the top of every scene's table."""

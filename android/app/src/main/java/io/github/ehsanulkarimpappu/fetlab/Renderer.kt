@@ -423,7 +423,7 @@ class Renderer(private val lib: Library) : GLSurfaceView.Renderer {
     private val texDiel = floatArrayOf(0.07f, 0.18f, 0f)
     private val texWell = floatArrayOf(0.055f, 0.10f, 0f)
     private val texNone = floatArrayOf(0f, 1f, 0f)
-    private val metals = setOf("mo", "tin", "nickel", "tungsten", "nisi", "md", "po", "vd", "vg", "m0")
+    private val metals = setOf("mo", "tin", "nwf", "cobalt", "tungsten", "tisi", "md", "po", "vd", "vg", "m0")
     private val semis = setOf("silicon", "sige", "nanowire")
     private val diels = setOf("sio2", "highk", "si3n4", "wall", "mdi", "bond", "fox")
     private val wells = setOf("pwell", "nwell")

@@ -50,8 +50,8 @@ Those inputs are absent. No claim of sign-off accuracy is made.
 | --- | --- |
 | Si / SiGe | Plausible semiconductor/channel or epitaxy examples. Doping, Ge fraction and strain are unspecified; not every pFET uses the same recipe. |
 | SiO2 + HfO2 | Plausible interfacial/high-k stack. Drawn thicknesses are 1nm + 2nm; relative permittivities 3.9 and 22 are model assumptions. |
-| TiN | Conductive work-function region, not “n-doped/p-doped TiN.” Polarity-dependent tuning and interface effects are not modeled. |
-| Mo, Ni, W, NiSi | Illustrative gate/contact palette. Individual uses are plausible; the complete combination is not verified as a manufacturing recipe for these scenes. Chemical labels no longer imply arbitrary routing levels M0–M4. |
+| TiN / n-type work-function metal | Work-function metals follow polarity as in practice: TiN, a typical p-type metal, for pFETs (and the gate cap), and an Al-containing n-type metal (TiAl or TiAlC over thin TiN in practice) for nFETs. Until September 2026 the nFETs were drawn with TiN, which reversed the usual assignment. Effective work function and threshold are not modeled. |
+| Mo, TiSiₓ, Co, W | Illustrative gate-fill and contact palette: Ti-based silicide, Co plugs and local interconnect, W metal. Earlier versions drew NiSi and Ni plugs; Ti-based silicides replaced NiSi at FinFET-era nodes, and Ni is not a plug metal. The complete combination is not verified as a recipe for these scenes. |
 | Si3N4 | Illustrative spacer/inner-wall dielectric. Actual spacer and wall compositions are process-dependent. |
 | Middle-tier isolation / bonding oxide | Isolation is a role; MDI chemistry is unspecified. SiO2 bonding dielectric and the assumed MDI permittivity are example choices. |
 | Channel, MD, Po, VD, VG, Metal 0 | Layout roles rather than a complete chemical specification. “Po” is a gate-region convention, not a claim of a polysilicon electrode. The internal legacy channel ID `nanowire` can also draw fins/sheets. |

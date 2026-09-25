@@ -23,7 +23,7 @@ W_DEP = 5.0                      # junction depletion width, nm — an assumptio
 EPS_R = {
     "sio2": 3.9, "si3n4": 7.5, "highk": 22.0, "silicon": 11.7, "pts": 11.7, "sige": 13.0,
     "mdi": 4.2, "bond": 3.9, "wall": 7.5,
-    "mo": None, "tin": None, "tungsten": None, "nickel": None, "nisi": None,
+    "mo": None, "tin": None, "nwf": None, "tungsten": None, "cobalt": None, "tisi": None,
 }
 CONDUCTOR = {m for m, v in EPS_R.items() if v is None}
 
@@ -139,18 +139,18 @@ def analyse(dev):
     # drain under "Bottom tier (n)" and "Top tier (p)", not under "Source / drain".
     sd = lambda p: "source" in p["id"] or "drain" in p["id"]
     ids = lambda pred: [q["id"] for q in dev["parts"] if pred(q)]
-    P_GATE = lambda q: q["material"] in ("mo", "tin") or q["id"] == "gatew"
-    P_MET  = lambda q: sd(q) and q["material"] in ("nisi", "nickel", "tungsten")
+    P_GATE = lambda q: q["material"] in ("mo", "tin", "nwf") or q["id"] == "gatew"
+    P_MET  = lambda q: sd(q) and q["material"] in ("tisi", "cobalt", "tungsten")
     P_EPI  = lambda q: sd(q) and q["material"] in ("silicon", "sige")
     P_CH   = lambda q: q["id"].startswith(("sheet", "fin")) and q["material"] == "silicon"
     P_BODY = lambda q: q["id"] == "substrate" or q["id"].endswith("well")
     P_OX   = lambda q: q["material"] == "highk" or (q["material"] == "sio2" and q["id"].startswith("il"))
-    gate    = boxes_of(dev, lambda p: p["material"] in ("mo", "tin") or p["id"] == "gatew")
+    gate    = boxes_of(dev, lambda p: p["material"] in ("mo", "tin", "nwf") or p["id"] == "gatew")
     il      = boxes_of(dev, lambda p: p["material"] == "sio2" and p["id"].startswith("il"))
     hk      = boxes_of(dev, lambda p: p["material"] == "highk")
     chan    = boxes_of(dev, lambda p: p["id"].startswith(("sheet", "fin")) and p["material"] == "silicon")
     body    = boxes_of(dev, lambda p: p["id"] == "substrate" or p["id"].endswith("well"))
-    metal   = boxes_of(dev, lambda p: sd(p) and p["material"] in ("nisi", "nickel", "tungsten"))
+    metal   = boxes_of(dev, lambda p: sd(p) and p["material"] in ("tisi", "cobalt", "tungsten"))
     epi     = boxes_of(dev, lambda p: sd(p) and p["material"] in ("silicon", "sige"))
     side    = lambda bxs, s: [b for b in bxs if ((b[0] + b[1]) / 2) * s > 0]
 
@@ -178,7 +178,7 @@ def analyse(dev):
     out["C_j"] = (EPS0 * EPS_R["silicon"] * a_j / W_DEP, a_j)
 
     lg = max(b[1] for b in il) - min(b[0] for b in il) if il else 1.0
-    tin = boxes_of(dev, lambda p: p["material"] == "tin" and p["id"] != "gatecap")
+    tin = boxes_of(dev, lambda p: p["material"] in ("tin", "nwf") and p["id"] != "gatecap")
     out["_lg"] = lg
     out["_weff"] = a_ox / lg if lg else 0.0        # gated channel perimeter
     out["_foot"] = (max(b[5] for b in tin) - min(b[4] for b in tin)) if tin else 0.0

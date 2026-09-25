@@ -286,7 +286,9 @@ NS_SKIPPED = {
     "19A/B": "an alternative shared-gate arrangement to Fig. 18, not a later step",
 }
 
-HKMG_SUB = "SiO₂, HfO₂, TiN and Mo stand for the interfacial, high-κ, work-function and fill layers"
+HKMG_SUB = ("SiO₂, HfO₂, an n-type work-function metal and Mo stand for the interfacial, high-κ, "
+            "work-function and fill layers; real nFET work-function metals are Al-containing (TiAl or "
+            "TiAlC, usually over a thin TiN layer)")
 
 
 def flow_ns(done):
@@ -764,7 +766,7 @@ def flow_ns(done):
         "middle-of-line structures; the routing metal and vias above them (back end of line) are "
         "not modelled [R13].",
         match="published", figs=["18A/B"],
-        subs=["The NiSi, Ni and W contact stack is illustrative; the patent says the metal contact "
+        subs=["The TiSiₓ, Co and W contact stack is illustrative; the patent says the metal contact "
               "may include a silicide"],
         omitted=["Fig. 19A/B, an alternative shared-gate arrangement, not a later step"])
     # 18
@@ -1550,13 +1552,14 @@ def flow_fin(done):
     # 11
     F.add("tin1", "tin2", "mo", "gatecap")
     F.snap("metal", "Work-function metal, gate fill and cap",
-        "A TiN work-function metal goes on the high-κ [R8]; molybdenum fills the rest of the "
+        "An n-type work-function metal goes on the high-κ: in practice an Al-containing layer such as "
+        "TiAlC, usually over a thin TiN; TiN alone is the usual pFET metal [R8]. Molybdenum fills the rest of the "
         "trench and is polished, then recessed and capped. The metal wraps three faces of each "
         "fin, not underneath it: the tri-gate [R24].", view="c", match="source",
         figs=["20A", "20B", "20C"], src=[F1],
-        subs=["TiN, Mo and a TiN cap are this model's illustrative choice; for self-aligned "
+        subs=["The n-type metal, Mo and a TiN cap are this model's illustrative choice; for self-aligned "
               "contacts a dielectric cap is usual, protecting the gate from a misplaced contact "
-              "[R26]", "TiN alone does not set an nFET threshold voltage"],
+              "[R26]", "The work-function metal's composition and thickness are not modelled, so no threshold voltage follows from them"],
         omitted=["The pFET's separate work-function metal, applied with the nFET masked"])
     # 12
     ild_around(ym2)
@@ -1600,16 +1603,17 @@ def flow_fin(done):
     ild_around(ym2, HOLES)
     F.snap("silicide", "Silicide",
         "Nickel reacts with the exposed epitaxy at the bottom of each source/drain hole, forming a "
-        "NiSi silicide that lowers the contact resistance; only exposed silicon reacts [R25].",
-        view="sd", match="teach", subs=["NiSi is illustrative; F1 does not specify it"])
+        "Ti-based silicide (TiSiₓ) that lowers the contact resistance; only exposed silicon reacts [R25]. "
+        "Ti-based silicides replaced NiSi at FinFET-era nodes.",
+        view="sd", match="teach", subs=["TiSiₓ is illustrative; F1 does not specify the silicide"])
     # 14
     F.add("ni_source", "ni_drain", "w_source", "w_drain", "gatew")
     ild_around(ym2)
     F.snap("contacts", "Contact fill",
-        "Ni and W fill the holes: the source and drain contacts reach the silicide, and the gate "
+        "Co and W fill the holes: the source and drain contacts reach the silicide, and the gate "
         "contact lands on the gate through its own opening. The ILD keeps them apart [R24].",
         view="iso", match="source", figs=["21A", "21B", "21C"], src=[F1],
-        subs=["The Ni and W contact stack is illustrative; a liner or barrier is not drawn"])
+        subs=["The Co and W contact stack is illustrative; a liner or barrier is not drawn"])
     # 15
     F.drop("ild", "cesl")
     F.snap("done", "The finished device",
@@ -1638,7 +1642,7 @@ def flow_fin(done):
             "**Gate spacers.** F1 deposits its spacers selectively (Figs. 8–15); the app's "
             "conventional deposition and etch-back is mapped to no F1 figure.",
             "**Model choices.** No F1 figure establishes the 27 nm fin pitch, 6 nm fin width, 45 nm "
-            "exposed height, 7 nm spacer, Mo fill, TiN cap or NiSi/Ni/W contacts; the wells are "
+            "exposed height, 7 nm spacer, work-function metals, Mo fill, TiN cap or TiSiₓ/Co/W contacts; the wells are "
             "named regions, and sub-fin leakage is not resolved.",
             "The lithography operations (resist, exposure, development) are concept-level: no "
             "optics, dose, resist chemistry, overlay or mask count is modelled or claimed.",
@@ -1888,7 +1892,7 @@ def flow_pitchwalk(done):
 # patterning operations are the nFET flow's own steps, copied), and "both sites" puts the
 # two single-site models side by side, one stack pitch apart, joined by their gate line.
 # A site selector moves between the three.
-PWF = "pwf"                              # the pFET's own work-function metal (a material)
+PWF = "tin"                              # the pFET's work-function metal: TiN, the usual p-type one
 TP_IL, TP_HK, TP_WF = 0.5, 1.0, 1.0     # the pFET's gate films: they must fit the 5 nm Si gaps
 NS_P_REC = 4.0                           # how far the pFET's S/D recess goes into the sub-fin
 
@@ -1918,7 +1922,7 @@ def build_ns_p():
     sub, ysd, sige, ys = D["sub"], D["ysd"], D["sige"], D["ys"]
     SUBFIN = -D["ypts"]
     d = bd.Dev("ns_p", "Nanosheet pFET", "GAA · 3 SiGe sheets",
-               "The pFET the same stack makes: three lower-Ge SiGe sheets, its own p-type "
+               "The pFET the same stack makes: three lower-Ge SiGe sheets, a TiN p-type "
                "work-function metal and a SiGe:B source/drain. Illustrative.")
     d.add("substrate", "Si substrate", "silicon", P["substrate"]["boxes"], "Substrate & isolation", [0, -1.2, 0])
     rec = [box(*sorted((s * XSP, s * XSD)), -NS_P_REC, 0, -hz, hz) for s in (-1, 1)]
@@ -1931,7 +1935,7 @@ def build_ns_p():
     films = []
     for k, (name, mat, t0, t) in enumerate((("SiO₂ interfacial layer", "sio2", 0, TP_IL),
                                            ("HfO₂ high-κ", "highk", TP_IL, TP_HK),
-                                           ("p-type work-function metal", PWF, TP_IL + TP_HK, TP_WF))):
+                                           ("TiN p-type work-function metal", PWF, TP_IL + TP_HK, TP_WF))):
         for i, (a, b) in enumerate(sige):
             yc, hy = (a + b) / 2, (b - a) / 2
             bx = bd.ring4(yc, hy + t0, hz + t0, t, XG)
@@ -2200,7 +2204,7 @@ def flow_ns_p(done):
     F.add(*[f"p{k}{i}" for k in ("il", "hk", "wf") for i in (1, 2, 3)],
           "pfloor_il", "pfloor_hk", "pfloor_wf", "mo", "gatecap")
     F.snap("p_hkmg", "High-κ and p-type work-function metal",
-        "An interfacial oxide, a high-κ dielectric and the pFET's own work-function metal are "
+        "An interfacial oxide, a high-κ dielectric and the pFET's own work-function metal (TiN, the usual p-type one) are "
         "deposited round each SiGe sheet, and a gate fill joins them. The work-function "
         "treatment is the pFET's, separate from the nFET's [R13]. With no bottom isolation, the "
         "same films also line the sub-fin's top under the gate: the n-type stopper keeps that "
@@ -2208,14 +2212,14 @@ def flow_ns_p(done):
         subs=["The spaces between the SiGe sheets are the Si layers' 5 nm, set by the nFET model; "
               "the pFET's films are drawn thinner (0.5 + 1 + 1 nm) so they fit and meet between the "
               "sheets. A real shared stack is designed so both gates fit",
-              "The p-type work-function metal is a generic illustrative material"])
+              "TiN is drawn as the p-type work-function metal; its thickness here is set by the fit, not a recipe"])
     # 17
     F.add("nisi_source", "nisi_drain", "ni_source", "ni_drain", "w_source", "w_drain", "gatew")
     ild_around()
     F.snap("p_contacts", "Middle-of-line contacts",
         "Contacts are opened through the ILD, the silicide is formed on the SiGe:B and metal fills "
         "the openings, with a contact onto the gate [R13].", match="published", figs=["18A/B"],
-        subs=["The NiSi, Ni and W contact stack is illustrative; SiGe contacts can need a "
+        subs=["The TiSiₓ, Co and W contact stack is illustrative; SiGe contacts can need a "
               "different silicide treatment"])
     # 18
     F.drop("ild")
@@ -2249,7 +2253,7 @@ def flow_ns_p(done):
 # in the tile's frame. What joins them is drawn here: the gate line between the two stacks
 # (dummy, spacers, then metal, or metal with a cut) and the masks that keep each region's
 # steps to itself. Everything else is the two site flows' own states, part for part.
-GATE_METALS = ("mo", "tin", PWF, "tungsten")
+GATE_METALS = ("mo", "tin", "nwf", "tungsten")
 
 
 def pair_builder(G, nflow, nfinal, pflow, pfinal):
@@ -2509,7 +2513,7 @@ def ns_pair(ns, nfinal, psteps, pfinal):
          "leaving three Si sheets over the BDI [R13].", n="release", p="p_release", br="trench", block="p",
          view="paircut", figs=["16A/B"], subs=SUBS, regions=regions("Si sheets released", "masked"))
     snap("hkmg", "Two work functions, one gate line", "Each region gets its own work-function treatment: "
-         "TiN round the nFET's Si sheets, the pFET's own p-type metal round its SiGe sheets [R13]. The "
+         "an Al-containing n-type metal round the nFET's Si sheets, TiN round the pFET's SiGe sheets [R13]. The "
          "gate fill runs on between the stacks, so at this point the two gates are one conductor.",
          n="hkmg", p="p_hkmg", br="metal", view="paircut", figs=["17A/B"], subs=SUBS + [
              "How each work-function layer is kept to its own region (deposit, mask, remove) is not drawn"],
@@ -2686,16 +2690,17 @@ FIN_P_BODY = dict(
         "the larger SiGe lattice squeezes the channel along its length: compressive strain, which "
         "helps holes. No strain is calculated here. Each fin's epitaxy stays separate; merged "
         "neighbours are an alternative [R24].",
-    metal="The pFET's own work-function metal goes on the high-κ, applied while the nFET is masked, "
-          "separate from the nFET's TiN; molybdenum fills the rest of the trench and is polished, "
-          "then recessed and capped. The metal wraps three faces of each fin: the tri-gate [R24].",
+    metal="The pFET's own work-function metal, TiN (the usual p-type metal), goes on the high-κ "
+          "while the nFET is masked, separate from the nFET's Al-containing layer; molybdenum fills "
+          "the rest of the trench and is polished, then recessed and capped. The metal wraps three "
+          "faces of each fin: the tri-gate [R24].",
     done="The finished FinFET pFET, with the ILD and etch-stop film hidden: two fins in an n-well, "
          "wrapped on three faces by the high-κ and p-type metal gate, between SiGe:B source and "
          "drain. Its geometry is the nFET model's; only its materials and doping differ.")
 FIN_P_SUBS = dict(
     epi=["The SiGe:B composition and facets are illustrative; the two-step facet is the nFET "
          "model's shape"],
-    metal=["The p-type work-function metal is a generic illustrative material; TiN, Mo and a TiN "
+    metal=["TiN is drawn as the pFET's work-function metal; its thickness is illustrative, and Mo and a TiN "
            "cap are otherwise the nFET model's choices"])
 FIN_P_TEXT = [
     ("Only the selected nFET is carried to a finished device; the other three are context.",
@@ -2715,7 +2720,7 @@ def fin_p_final():
         if p["id"].startswith("epi_"):
             q.update(material="sige", name=p["name"].replace("(Si:P)", "(SiGe:B)"))
         elif p["id"].startswith("tin") and p["id"] != "tin":
-            q.update(material=PWF, name=p["name"].replace("TiN work-function metal", "p-type work-function metal"))
+            q.update(material=PWF, name=p["name"].replace("n-type work-function metal", "TiN p-type work-function metal"))
         elif p["id"].startswith("fin"):
             q.update(name=p["name"] + " (n-well)")
         elif p["id"] == "substrate":
@@ -2831,8 +2836,8 @@ def fin_pair(fin, nfinal, psteps, pfinal):
          of="metal", view="paircut", match="teach", subs=SUBS + ["How each work-function layer is kept "
          "to its region is drawn as one resist block; the deposition order is illustrative"],
          regions=regions("masked", "p-type work function"))
-    snap("metal", "Two work functions, one gate line", "The nFET has TiN, the pFET its own p-type "
-         "metal; the Mo fill runs on between the fin pairs, so the two gates are one conductor [R24].",
+    snap("metal", "Two work functions, one gate line", "The nFET has an Al-containing n-type metal, the pFET TiN; "
+         "the Mo fill runs on between the fin pairs, so the two gates are one conductor [R24].",
          n="metal", p="metal", br="metal", view="paircut", match="source", figs=["20A"], subs=SUBS,
          regions=regions("n-type work function", "p-type work function"), **src)
     gate_ends(snap, G, g, n_state="metal", p_state="metal", n_done="contacts", p_done="contacts",

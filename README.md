@@ -21,7 +21,7 @@ No install; add it to your home screen and it works offline.
 <img src="docs/device.png" alt="Nanosheet FET, 3D overview, with dimension callouts">
 
 Selected films are modeled: the silicon channel, the 1 nm interfacial oxide, the high-κ HfO₂,
-the TiN work-function metal, the gate fill, the spacers, the source/drain epitaxy, the
+the work-function metal (an Al-containing n-type metal for nFETs, TiN for pFETs), the gate fill, the spacers, the source/drain epitaxy, the
 silicide and the contacts. Slice along any axis and the cut face is **solid**, not hollow,
 so a section reads like a real cross-section rather than a shell.
 
