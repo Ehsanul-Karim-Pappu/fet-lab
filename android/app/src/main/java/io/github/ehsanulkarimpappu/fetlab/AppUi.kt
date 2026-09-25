@@ -288,7 +288,10 @@ fun FetLabApp(lib: Library, renderer: Renderer) {
     // Phone layout only: the control sheet floats over the stage instead of shrinking it.
     // 0 peek (handle only) · 1 open (normal working height) · 2 expanded (reading height).
     var sheetLevel by rememberSaveable { mutableIntStateOf(1) }
+    // How much of the stage's bottom the sheet covers (0 unless the sheet is fully open), and
+    // the sheet's own measured height.
     var stageInset by remember { mutableStateOf(0.dp) }
+    var sheetH by remember { mutableStateOf(0.dp) }
     var seeThrough by remember { mutableFloatStateOf(loadSeeThrough(ctx)) }
     fun setSeeThrough(v: Float) { seeThrough = v.coerceIn(0f, SEE_MAX); saveSeeThrough(ctx, seeThrough) }
     // Only the phone layout's sheet floats over the model; the tablet's sits beside it.
@@ -1230,20 +1233,24 @@ fun FetLabApp(lib: Library, renderer: Renderer) {
         } else {
             Column(Modifier.fillMaxSize()) {
                 header()
-                // The stage keeps the full remaining height; the control sheet floats on
-                // top of it instead of squeezing it, so the model never gets small just
-                // because a tool is open.
+                // The stage ends where the sheet begins: with the sheet down it fills the
+                // screen above the tabs, half open it sits above the sheet with the whole model
+                // in view, and fully open it stays that size while the sheet rises over it.
                 BoxWithConstraints(Modifier.weight(1f).fillMaxWidth()) {
+                    val half = maxHeight * 0.26f
                     val bodyHeight by animateDpAsState(
-                        when (sheetLevel) { 0 -> 0.dp; 1 -> maxHeight * 0.32f; else -> maxHeight * 0.66f },
+                        when (sheetLevel) { 0 -> 0.dp; 1 -> half; else -> maxHeight * 0.58f },
                         sheetSpring, label = "sheetHeight")
+                    val chrome = (sheetH - bodyHeight).coerceAtLeast(0.dp)     // handle and tabs
+                    val shrink = chrome + minOf(bodyHeight, half) + 4.dp
+                    SideEffect { stageInset = (sheetH - shrink).coerceAtLeast(0.dp) }
                     val sheetAlpha by animateFloatAsState(
                         1f - seeThrough - if (sheetLevel > 0) 0f else 0.05f, tween(200), label = "sheetAlpha")
                     // A shadow would show through a see-through sheet as a smudge, so it
                     // fades as the sheet does; the border still marks the edge.
                     val sheetShadow = 14.dp * (1f - seeThrough / SEE_MAX)
 
-                    stage(Modifier.fillMaxSize().padding(start = 12.dp, end = 12.dp, top = 4.dp, bottom = 10.dp))
+                    stage(Modifier.fillMaxSize().padding(start = 12.dp, end = 12.dp, top = 4.dp, bottom = shrink))
 
                     var dragDistance by remember { mutableFloatStateOf(0f) }
                     Box(Modifier.align(Alignment.BottomCenter).fillMaxWidth()) {
@@ -1253,7 +1260,7 @@ fun FetLabApp(lib: Library, renderer: Renderer) {
                             modifier = Modifier.fillMaxWidth()
                                 .shadow(sheetShadow, RoundedCornerShape(topStart = 22.dp, topEnd = 22.dp))
                                 .tourTarget("sheet")
-                                .onSizeChanged { stageInset = with(density) { it.height.toDp() } }) {
+                                .onSizeChanged { sheetH = with(density) { it.height.toDp() } }) {
                             Column {
                                 Box(Modifier.fillMaxWidth().height(20.dp).draggable(
                                     orientation = Orientation.Vertical,
@@ -1562,12 +1569,12 @@ private fun ProcessBar(label: String, cores: Int, title: String, isOp: Boolean, 
                        glass: Color, line: Color, ink: Color, dim: Color,
                        onPrev: () -> Unit, onNext: () -> Unit, onPlay: () -> Unit, onTitle: () -> Unit) {
     Surface(color = glass, shape = RoundedCornerShape(24.dp), border = BorderStroke(1.dp, line),
-        modifier = Modifier.padding(start = 12.dp, end = 12.dp, bottom = 14.dp).widthIn(max = 520.dp)
+        modifier = Modifier.padding(start = 10.dp, end = 10.dp, bottom = 6.dp).widthIn(max = 520.dp)
             .fillMaxWidth().tourTarget("procbar")) {
-        Row(Modifier.padding(4.dp), verticalAlignment = Alignment.CenterVertically) {
+        Row(Modifier.padding(horizontal = 2.dp, vertical = 1.dp), verticalAlignment = Alignment.CenterVertically) {
             BarIcon(BarGlyph.Back, hasPrev, ink, dim, "Previous step", onPrev)
             Column(Modifier.weight(1f).clip(RoundedCornerShape(14.dp)).clickable(onClick = onTitle)
-                .padding(horizontal = 8.dp, vertical = 5.dp)) {
+                .padding(horizontal = 6.dp, vertical = 2.dp)) {
                 // How this state stands against its source, at a glance: a published stage in the
                 // accent colour, a teaching reconstruction or a concept in the muted one. The badge
                 // wraps onto its own line when the step number and it do not fit side by side
@@ -1586,7 +1593,7 @@ private fun ProcessBar(label: String, cores: Int, title: String, isOp: Boolean, 
                 }
                 AnimatedContent(targetState = title, label = "stepTitle",
                     transitionSpec = { fadeIn(tween(220)) togetherWith fadeOut(tween(160)) }) { t ->
-                    Text(t, color = ink, fontFamily = PlexSans, fontSize = 13.5f.sp,
+                    Text(t, color = ink, fontFamily = PlexSans, fontSize = 13.sp, lineHeight = 16.sp,
                         fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 }
             }
@@ -1604,7 +1611,7 @@ private enum class BarGlyph { Back, Next, Play, Pause }
 private fun BarIcon(glyph: BarGlyph, enabled: Boolean, ink: Color, dim: Color, label: String,
                     onClick: () -> Unit) {
     val col = if (enabled) ink else dim.copy(alpha = 0.45f)
-    Box(Modifier.size(44.dp).clip(CircleShape)
+    Box(Modifier.size(40.dp).clip(CircleShape)
         .clickable(enabled = enabled, onClickLabel = label, onClick = onClick),
         contentAlignment = Alignment.Center) {
         Canvas(Modifier.size(18.dp)) {
