@@ -5,6 +5,24 @@ All notable changes to FET Lab. Dates are the release date; versions follow
 
 ## Unreleased
 
+### Screen-reader support
+
+TalkBack now has something to read throughout the Android app:
+- The header's **i** and **?** buttons are named (About; Help, features and tour).
+- The step navigator's back, play and next buttons are named, and its step number, badge and
+  title are read as one item and announced when the step changes.
+- The mode and tab bars are tabs with a selected state; chips, views and the IN 0/1 control
+  announce which one is selected.
+- The 3D view says what it shows and which part is selected.
+- The controls sheet's handle says whether it is closed, half open or fully open.
+- Sliders carry their names.
+- The 2D section lists the materials it cuts, the locator explains itself, and the pitch-walk
+  drawing gives its range of spaces.
+
+The two smallest text sizes (9.5 sp captions in the section panel and the pitch-walk lesson)
+are raised to 10.5 sp. Touch areas already reach 48 dp: Compose enlarges any control smaller
+than that for touch, without changing the layout.
+
 ### Content corrections from the app review
 
 - **Work-function metals by polarity.** nFETs now have an Al-containing n-type work-function

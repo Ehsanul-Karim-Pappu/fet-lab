@@ -31,6 +31,8 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.gestures.Orientation
@@ -82,7 +84,15 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.selected
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.platform.LocalHapticFeedback
@@ -902,16 +912,20 @@ fun FetLabApp(lib: Library, renderer: Renderer) {
                 }
                 Box(Modifier.size(36.dp).tourTarget("about").clip(CircleShape)
                     .background(MaterialTheme.colorScheme.surfaceVariant)
-                    .clickable { showAbout = true }, contentAlignment = Alignment.Center) {
-                    Text("i", fontFamily = Mono, fontSize = 16.sp,
+                    .clickable(role = Role.Button) { showAbout = true }
+                    .semantics { contentDescription = "About FET Lab: credits and references" },
+                    contentAlignment = Alignment.Center) {
+                    Text("i", fontFamily = Mono, fontSize = 16.sp, modifier = Modifier.clearAndSetSemantics {},
                         fontWeight = FontWeight.SemiBold,
                         color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
                 Spacer(Modifier.width(8.dp))
                 Box(Modifier.size(36.dp).clip(CircleShape)
                     .background(MaterialTheme.colorScheme.surfaceVariant)
-                    .clickable { showHelp = true }, contentAlignment = Alignment.Center) {
-                    Text("?", fontFamily = Mono, fontSize = 16.sp,
+                    .clickable(role = Role.Button) { showHelp = true }
+                    .semantics { contentDescription = "Help, features and guided tour" },
+                    contentAlignment = Alignment.Center) {
+                    Text("?", fontFamily = Mono, fontSize = 16.sp, modifier = Modifier.clearAndSetSemantics {},
                         fontWeight = FontWeight.SemiBold,
                         color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
@@ -963,7 +977,14 @@ fun FetLabApp(lib: Library, renderer: Renderer) {
             AndroidView(factory = { glView }, modifier = Modifier.fillMaxSize()
                 .padding(top = if (split) (with(density) { stageH.toDp() } - stageInset) * 0.46f else 0.dp))
 
-            Box(Modifier.matchParentSize().pointerInput(sceneKey) {
+            // A screen reader cannot orbit the model; it hears what is on screen and where the
+            // controls are that change it.
+            val viewName = scene.views.firstOrNull { it.key == viewKey }?.label ?: ""
+            Box(Modifier.matchParentSize().semantics {
+                contentDescription = "3D view of ${scene.name}" + (if (viewName.isNotEmpty()) ", $viewName" else "") +
+                    ". Pick a view, cut it open or hide layers in the tabs below."
+                selected?.let { stateDescription = "Selected: ${it.name}" }
+            }.pointerInput(sceneKey) {
                 awaitEachGesture {
                     val down = awaitFirstDown(requireUnconsumed = false)
                     flight?.cancel()
@@ -1271,8 +1292,11 @@ fun FetLabApp(lib: Library, renderer: Renderer) {
                                         if (dragDistance > step) sheetLevel = (sheetLevel - 1).coerceAtLeast(0)
                                         else if (dragDistance < -step) sheetLevel = (sheetLevel + 1).coerceAtMost(2)
                                     }
-                                ).clickable {
+                                ).clickable(onClickLabel = if (sheetLevel == 0) "open" else "close") {
                                     sheetLevel = if (sheetLevel == 0) 1 else 0
+                                }.semantics {
+                                    contentDescription = "Controls sheet"
+                                    stateDescription = when (sheetLevel) { 0 -> "closed"; 1 -> "half open"; else -> "fully open" }
                                 }, contentAlignment = Alignment.Center) {
                                     Box(Modifier.width(38.dp).height(4.dp).clip(CircleShape)
                                         .background(MaterialTheme.colorScheme.outline))
@@ -1479,7 +1503,7 @@ private fun matColor(lib: Library, key: String): Color {
 private fun Segmented(items: List<String>, selected: Int, tag: String? = null, onSelect: (Int) -> Unit) {
     val shape = RoundedCornerShape(13.dp)
     BoxWithConstraints(Modifier.fillMaxWidth().clip(shape)
-        .background(MaterialTheme.colorScheme.surfaceVariant).padding(3.dp)) {
+        .background(MaterialTheme.colorScheme.surfaceVariant).padding(3.dp).selectableGroup()) {
         val w = maxWidth / items.size
         val off by animateDpAsState(w * selected,
             spring(dampingRatio = 0.82f, stiffness = Spring.StiffnessMediumLow), label = "pill")
@@ -1494,7 +1518,8 @@ private fun Segmented(items: List<String>, selected: Int, tag: String? = null, o
                 Box(Modifier.width(w).height(32.dp)
                     .then(if (tag != null) Modifier.tourTarget("$tag:$i") else Modifier)
                     .clip(RoundedCornerShape(10.dp))
-                    .clickable { onSelect(i) }, contentAlignment = Alignment.Center) {
+                    .selectable(selected = i == selected, role = Role.Tab) { onSelect(i) },
+                    contentAlignment = Alignment.Center) {
                     Text(s, color = fg, fontFamily = PlexSans, fontSize = 12.5f.sp,
                         fontWeight = if (i == selected) FontWeight.SemiBold else FontWeight.Medium,
                         maxLines = 1)
@@ -1513,7 +1538,8 @@ internal fun Chip(label: String, selected: Boolean, modifier: Modifier = Modifie
         if (selected) MaterialTheme.colorScheme.onPrimaryContainer
         else MaterialTheme.colorScheme.onSurfaceVariant, tween(220), label = "chipFg")
     Box(modifier.heightIn(min = 34.dp).clip(CircleShape).background(bg)
-        .clickable(onClick = onClick).padding(horizontal = 12.dp),
+        .clickable(role = Role.Button, onClick = onClick).semantics { this.selected = selected }
+        .padding(horizontal = 12.dp),
         contentAlignment = Alignment.Center) {
         Text(label, color = fg, fontFamily = PlexSans, fontSize = 12.5f.sp,
             fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal, maxLines = 1,
@@ -1541,7 +1567,9 @@ private fun LogicBar(input: Int, glass: Color, line: Color, ink: Color, dim: Col
                     .background(if (light) Color(0xFF2B3442) else Color(0xFF33404F)))
                 Row {
                     listOf(0, 1).forEach { v ->
-                        Box(Modifier.width(w).fillMaxHeight().clickable { onInput(v) },
+                        Box(Modifier.width(w).fillMaxHeight()
+                            .selectable(selected = input == v, role = Role.RadioButton) { onInput(v) }
+                            .semantics { contentDescription = "Input $v" },
                             contentAlignment = Alignment.Center) {
                             Text(v.toString(), fontFamily = Mono, fontSize = 13.sp,
                                 fontWeight = FontWeight.SemiBold,
@@ -1573,7 +1601,9 @@ private fun ProcessBar(label: String, cores: Int, title: String, isOp: Boolean, 
             .fillMaxWidth().tourTarget("procbar")) {
         Row(Modifier.padding(horizontal = 2.dp, vertical = 1.dp), verticalAlignment = Alignment.CenterVertically) {
             BarIcon(BarGlyph.Back, hasPrev, ink, dim, "Previous step", onPrev)
-            Column(Modifier.weight(1f).clip(RoundedCornerShape(14.dp)).clickable(onClick = onTitle)
+            Column(Modifier.weight(1f).clip(RoundedCornerShape(14.dp))
+                .semantics(mergeDescendants = true) { liveRegion = LiveRegionMode.Polite }
+                .clickable(onClickLabel = "open this step's source", onClick = onTitle)
                 .padding(horizontal = 6.dp, vertical = 2.dp)) {
                 // How this state stands against its source, at a glance: a published stage in the
                 // accent colour, a teaching reconstruction or a concept in the muted one. The badge
@@ -1612,7 +1642,8 @@ private fun BarIcon(glyph: BarGlyph, enabled: Boolean, ink: Color, dim: Color, l
                     onClick: () -> Unit) {
     val col = if (enabled) ink else dim.copy(alpha = 0.45f)
     Box(Modifier.size(40.dp).clip(CircleShape)
-        .clickable(enabled = enabled, onClickLabel = label, onClick = onClick),
+        .clickable(enabled = enabled, role = Role.Button, onClickLabel = label, onClick = onClick)
+        .semantics { contentDescription = label },
         contentAlignment = Alignment.Center) {
         Canvas(Modifier.size(18.dp)) {
             val w = size.width; val h = size.height; val sw = w * 0.14f
@@ -1839,7 +1870,7 @@ private fun ViewsTab(scene: Scene, viewKey: String, onPick: (ViewPreset) -> Unit
                 else MaterialTheme.colorScheme.surfaceVariant, tween(220), label = "viewBg")
             Surface(color = bg, shape = RoundedCornerShape(14.dp),
                 modifier = Modifier.fillMaxWidth().heightIn(min = 46.dp).tourTarget("view:$i")
-                    .clickable { onPick(v) }) {
+                    .clickable(role = Role.Button) { onPick(v) }.semantics { this.selected = on }) {
                 Row(Modifier.padding(horizontal = 14.dp, vertical = 7.dp),
                     verticalAlignment = Alignment.CenterVertically) {
                     Box(Modifier.size(8.dp).clip(CircleShape).background(
@@ -1943,7 +1974,8 @@ private fun SliderRow(label: String, axis: String, frac: Float, lo: Float, hi: F
                 else -> Modifier
             }),
             contentAlignment = Alignment.Center) {
-            Slider(value = frac, onValueChange = onChange, valueRange = 0f..1f)
+            Slider(value = frac, onValueChange = onChange, valueRange = 0f..1f,
+                modifier = Modifier.semantics { contentDescription = label })
         }
     }
 }

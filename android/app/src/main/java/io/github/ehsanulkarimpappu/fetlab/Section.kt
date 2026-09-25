@@ -29,6 +29,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -103,7 +105,12 @@ fun SectionPanel(lib: Library, sc: Scene, pl: SectionPlane, selected: Part?, onP
             corner()
         }
         Box(Modifier.weight(1f).fillMaxWidth()) {
-            Canvas(Modifier.matchParentSize().pointerInput(rects) {
+            // Read aloud: which plane, and what it cuts, since the drawing itself is not.
+            val said = rects.map { it.part.material }.distinct().mapNotNull { lib.materials[it]?.label }
+            Canvas(Modifier.matchParentSize().semantics {
+                contentDescription = "2D section, ${pl.name}. " + if (said.isEmpty()) "It cuts nothing in this step."
+                    else "It cuts: " + said.joinToString(", ") + ". Tap a material to select it in 3D."
+            }.pointerInput(rects) {
                 detectTapGestures { off ->
                     val f = Fit(rects, size.width.toFloat(), size.height.toFloat(), 18f)
                     val u = f.u(off.x); val v = f.v(off.y)
@@ -132,7 +139,7 @@ fun SectionPanel(lib: Library, sc: Scene, pl: SectionPlane, selected: Part?, onP
         // Which way the page runs, so a student can hold it against a figure.
         Text(if (pl.axis == 'x') "← +z across the ${sc.acrossWord()}   ·   up: y   ·   seen from +x (drain side)"
              else "x: source → drain   ·   up: y   ·   seen from +z",
-            fontFamily = Mono, fontSize = 9.5f.sp, color = MaterialTheme.colorScheme.onSurfaceVariant,
+            fontFamily = Mono, fontSize = 10.5f.sp, color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.padding(horizontal = 12.dp))
         FlowRow(Modifier.fillMaxWidth().padding(horizontal = 10.dp, vertical = 6.dp),
             horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -161,7 +168,10 @@ private fun Scene.acrossWord() = if (parts.any { it.group == "Fins" }) "fins" el
 fun Locator(lib: Library, sc: Scene, pl: SectionPlane?, modifier: Modifier = Modifier) {
     val accent = MaterialTheme.colorScheme.primary
     val ink = MaterialTheme.colorScheme.onSurfaceVariant
-    Canvas(modifier) {
+    Canvas(modifier.semantics {
+        contentDescription = if (pl == null) "Locator, seen from above: choose a section plane to place it"
+            else "Locator, seen from above: the dashed line is the plane ${pl.name}, the arrow the side it is seen from"
+    }) {
         val x0 = sc.lo[0]; val x1 = sc.hi[0]; val z0 = sc.lo[2]; val z1 = sc.hi[2]
         val m = 10f
         val s = minOf((size.width - 2 * m) / (x1 - x0), (size.height - 2 * m) / (z1 - z0))

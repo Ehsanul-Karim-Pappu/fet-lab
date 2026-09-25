@@ -23,6 +23,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -103,7 +105,11 @@ fun PitchWalkPanel(lib: Library, pw: PitchWalk) {
             // after (the lines), stacked as cross-sections on one scale; then the lines from above.
             val lo = img.core1.first().first - s1 - s2 - 6f
             val hi = img.core1.last().second + s1 + s2 + 6f
-            Canvas(Modifier.fillMaxWidth().height(150.dp).padding(top = 6.dp)) {
+            Canvas(Modifier.fillMaxWidth().height(150.dp).padding(top = 6.dp).semantics {
+                contentDescription = "Cross-sections of the ${img.lines.size} lines: first cores and first spacers, " +
+                    "second cores and second spacers, the lines, and the lines from above. " +
+                    "Spaces range from ${nm(gmin)} to ${nm(gmax)} nm."
+            }) {
                 val sx = size.width / (hi - lo)
                 fun x(u: Float) = (u - lo) * sx
                 val row = size.height / 4f
@@ -126,7 +132,7 @@ fun PitchWalkPanel(lib: Library, pw: PitchWalk) {
             }
             Row(Modifier.fillMaxWidth()) {
                 for (label in listOf("First cores + first spacers", "Second cores + second spacers", "Lines · from above"))
-                    Text(label, fontFamily = PlexSans, fontSize = 9.5f.sp, color = onV, modifier = Modifier.weight(1f))
+                    Text(label, fontFamily = PlexSans, fontSize = 10.5f.sp, color = onV, modifier = Modifier.weight(1f))
             }
             for ((k, name) in listOf("w1" to "First-core width", "s1" to "First-spacer thickness",
                                      "s2" to "Second-spacer thickness")) {
@@ -141,7 +147,7 @@ fun PitchWalkPanel(lib: Library, pw: PitchWalk) {
                     onValueChange = { nv ->
                         val r = (nv * 2).roundToInt() / 2f
                         when (k) { "w1" -> w1 = r; "s1" -> s1 = r; else -> s2 = r }
-                    }, modifier = Modifier.height(28.dp))
+                    }, modifier = Modifier.height(28.dp).semantics { contentDescription = name })
             }
             for (t in listOf("a", "b", "c")) {
                 val ws = img.gaps.filter { it.first == t }.map { it.second }.distinct()
