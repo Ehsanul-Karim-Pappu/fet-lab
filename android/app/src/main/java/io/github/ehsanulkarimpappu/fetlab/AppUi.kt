@@ -886,7 +886,7 @@ fun FetLabApp(lib: Library, renderer: Renderer) {
 
     val header = @Composable {
         Column {
-            Row(Modifier.fillMaxWidth().padding(start = 18.dp, end = 14.dp, top = 12.dp),
+            Row(Modifier.fillMaxWidth().padding(start = 18.dp, end = 14.dp, top = 6.dp),
                 verticalAlignment = Alignment.CenterVertically) {
                 Mark(Modifier.size(30.dp).clip(RoundedCornerShape(8.dp)))
                 Spacer(Modifier.width(12.dp))
@@ -897,7 +897,7 @@ fun FetLabApp(lib: Library, renderer: Renderer) {
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         maxLines = 1, overflow = TextOverflow.Ellipsis)
                 }
-                Box(Modifier.size(42.dp).tourTarget("about").clip(CircleShape)
+                Box(Modifier.size(36.dp).tourTarget("about").clip(CircleShape)
                     .background(MaterialTheme.colorScheme.surfaceVariant)
                     .clickable { showAbout = true }, contentAlignment = Alignment.Center) {
                     Text("i", fontFamily = Mono, fontSize = 16.sp,
@@ -905,7 +905,7 @@ fun FetLabApp(lib: Library, renderer: Renderer) {
                         color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
                 Spacer(Modifier.width(8.dp))
-                Box(Modifier.size(42.dp).clip(CircleShape)
+                Box(Modifier.size(36.dp).clip(CircleShape)
                     .background(MaterialTheme.colorScheme.surfaceVariant)
                     .clickable { showHelp = true }, contentAlignment = Alignment.Center) {
                     Text("?", fontFamily = Mono, fontSize = 16.sp,
@@ -913,14 +913,14 @@ fun FetLabApp(lib: Library, renderer: Renderer) {
                         color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
-            Spacer(Modifier.height(12.dp))
+            Spacer(Modifier.height(6.dp))
             Box(Modifier.padding(horizontal = 16.dp).tourTarget("modes")) {
                 Segmented(MODES, mode, tag = "mode") { i ->
                     haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                     selectMode(i)
                 }
             }
-            Spacer(Modifier.height(10.dp))
+            Spacer(Modifier.height(6.dp))
             Column(Modifier.tourTarget("arch")) {
             LazyRow(contentPadding = PaddingValues(horizontal = 16.dp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -938,7 +938,7 @@ fun FetLabApp(lib: Library, renderer: Renderer) {
             }
             AnimatedVisibility(visible = sceneKey.startsWith("cfet"),
                 enter = fadeIn() + expandVertically(), exit = fadeOut() + shrinkVertically()) {
-                Box(Modifier.padding(start = 16.dp, end = 16.dp, top = 10.dp)) {
+                Box(Modifier.padding(start = 16.dp, end = 16.dp, top = 6.dp)) {
                     Segmented(listOf("Monolithic", "Sequential"),
                         if (sceneKey == "cfet_seq") 1 else 0) { i ->
                         cfetSeq = i == 1
@@ -947,7 +947,7 @@ fun FetLabApp(lib: Library, renderer: Renderer) {
                 }
             }
             }
-            Spacer(Modifier.height(12.dp))
+            Spacer(Modifier.height(4.dp))
         }
     }
 
@@ -1235,7 +1235,7 @@ fun FetLabApp(lib: Library, renderer: Renderer) {
                 // because a tool is open.
                 BoxWithConstraints(Modifier.weight(1f).fillMaxWidth()) {
                     val bodyHeight by animateDpAsState(
-                        when (sheetLevel) { 0 -> 0.dp; 1 -> maxHeight * 0.36f; else -> maxHeight * 0.68f },
+                        when (sheetLevel) { 0 -> 0.dp; 1 -> maxHeight * 0.32f; else -> maxHeight * 0.66f },
                         sheetSpring, label = "sheetHeight")
                     val sheetAlpha by animateFloatAsState(
                         1f - seeThrough - if (sheetLevel > 0) 0f else 0.05f, tween(200), label = "sheetAlpha")
@@ -1243,7 +1243,7 @@ fun FetLabApp(lib: Library, renderer: Renderer) {
                     // fades as the sheet does; the border still marks the edge.
                     val sheetShadow = 14.dp * (1f - seeThrough / SEE_MAX)
 
-                    stage(Modifier.fillMaxSize().padding(horizontal = 12.dp, vertical = 10.dp))
+                    stage(Modifier.fillMaxSize().padding(start = 12.dp, end = 12.dp, top = 4.dp, bottom = 10.dp))
 
                     var dragDistance by remember { mutableFloatStateOf(0f) }
                     Box(Modifier.align(Alignment.BottomCenter).fillMaxWidth()) {
@@ -1271,7 +1271,7 @@ fun FetLabApp(lib: Library, renderer: Renderer) {
                                         .background(MaterialTheme.colorScheme.outline))
                                 }
                                 controlTabs(Modifier.fillMaxWidth().padding(horizontal = 14.dp))
-                                Spacer(Modifier.height(6.dp))
+                                Spacer(Modifier.height(4.dp))
                                 controlBody(Modifier.fillMaxWidth().height(bodyHeight).padding(bottom = 8.dp))
                             }
                         }
@@ -1476,7 +1476,7 @@ private fun Segmented(items: List<String>, selected: Int, tag: String? = null, o
         val w = maxWidth / items.size
         val off by animateDpAsState(w * selected,
             spring(dampingRatio = 0.82f, stiffness = Spring.StiffnessMediumLow), label = "pill")
-        Box(Modifier.offset(x = off).width(w).height(36.dp)
+        Box(Modifier.offset(x = off).width(w).height(32.dp)
             .clip(RoundedCornerShape(10.dp))
             .background(MaterialTheme.colorScheme.primaryContainer))
         Row {
@@ -1484,7 +1484,7 @@ private fun Segmented(items: List<String>, selected: Int, tag: String? = null, o
                 val fg by animateColorAsState(
                     if (i == selected) MaterialTheme.colorScheme.onPrimaryContainer
                     else MaterialTheme.colorScheme.onSurfaceVariant, tween(220), label = "segfg")
-                Box(Modifier.width(w).height(36.dp)
+                Box(Modifier.width(w).height(32.dp)
                     .then(if (tag != null) Modifier.tourTarget("$tag:$i") else Modifier)
                     .clip(RoundedCornerShape(10.dp))
                     .clickable { onSelect(i) }, contentAlignment = Alignment.Center) {
@@ -1976,14 +1976,14 @@ private fun LayersTab(lib: Library, scene: Scene, tick: Int, list: LazyListState
             grouped.forEachIndexed { gi, (g, parts) ->
                 item(key = "h_$g") {
                     val groupOn = parts.any { it.visible }
-                    Row(Modifier.fillMaxWidth().heightIn(min = 36.dp).tourTarget("group:$gi")
+                    Row(Modifier.fillMaxWidth().heightIn(min = 28.dp).tourTarget("group:$gi")
                         .clip(RoundedCornerShape(10.dp))
                         .clickable { onSet(parts, !groupOn) }
                         .padding(horizontal = 4.dp),
                         verticalAlignment = Alignment.CenterVertically) {
                         Text(g, style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.weight(1f).padding(top = 12.dp, bottom = 2.dp))
+                            modifier = Modifier.weight(1f).padding(top = 6.dp, bottom = 0.dp))
                         Text(if (groupOn) "Hide" else "Show",
                             fontFamily = Mono, fontSize = 10.5f.sp,
                             color = MaterialTheme.colorScheme.primary)
@@ -2006,10 +2006,10 @@ private fun LayersTab(lib: Library, scene: Scene, tick: Int, list: LazyListState
 @Composable
 private fun LayerCell(lib: Library, p: Part, visible: Boolean, modifier: Modifier, onSet: (Boolean) -> Unit) {
     val alpha by animateFloatAsState(if (visible) 1f else 0.42f, tween(200), label = "layerAlpha")
-    Row(modifier.heightIn(min = 48.dp)
+    Row(modifier.heightIn(min = 38.dp)
         .clip(RoundedCornerShape(12.dp))
         .toggleable(value = visible, role = Role.Checkbox, onValueChange = onSet)
-        .padding(horizontal = 4.dp, vertical = 4.dp),
+        .padding(horizontal = 4.dp, vertical = 2.dp),
         verticalAlignment = Alignment.CenterVertically) {
         // Drawn only: the cell is the touch target, so the box needs no 48dp of its own.
         Checkbox(checked = visible, onCheckedChange = null)
