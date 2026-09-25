@@ -958,7 +958,7 @@ fun FetLabApp(lib: Library, renderer: Renderer) {
             val split = scene.flow?.plane(secPlane) != null && secMode == 2 &&
                 scene.flow?.plane(secPlane)?.views?.containsKey(scene.step?.scale ?: "site") == true
             AndroidView(factory = { glView }, modifier = Modifier.fillMaxSize()
-                .padding(top = if (split) with(density) { (stageH * 0.46f).toDp() } else 0.dp))
+                .padding(top = if (split) (with(density) { stageH.toDp() } - stageInset) * 0.46f else 0.dp))
 
             Box(Modifier.matchParentSize().pointerInput(sceneKey) {
                 awaitEachGesture {
@@ -1020,23 +1020,9 @@ fun FetLabApp(lib: Library, renderer: Renderer) {
                 }
             })
 
-            // The 2D section, cut from this same scene: over the whole stage, or over its top part
-            // with the 3D view resized below it (see the AndroidView's padding above).
+            // With a section on screen, the stage's own labels would print over its heading.
             val activePlane = scene.flow?.plane(secPlane)?.takeIf { it.views.containsKey(scene.step?.scale ?: "site") }
-            if (activePlane != null && secMode != 0) {
-                val panel = if (secMode == 1) Modifier.fillMaxSize().padding(bottom = 86.dp)
-                    else Modifier.fillMaxWidth().height(with(density) { (stageH * 0.46f).toDp() })
-                Box(panel) {
-                    key(layerTick, sceneKey) {
-                        SectionPanel(lib, scene, activePlane, selected, onPick = { p ->
-                            selected = p; renderer.highlight = p; draw()
-                        }, modifier = Modifier.matchParentSize())
-                    }
-                    Locator(lib, scene, activePlane, Modifier.align(Alignment.TopEnd).padding(6.dp)
-                        .size(width = 112.dp, height = 68.dp).clip(RoundedCornerShape(8.dp))
-                        .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.85f)))
-                }
-            }
+            val sectionUp = activePlane != null && secMode != 0
 
             LaunchedEffect(showDims, viewKey) {
                 renderer.callouts = showDims; renderer.viewKey = viewKey; draw()
@@ -1044,14 +1030,14 @@ fun FetLabApp(lib: Library, renderer: Renderer) {
             if (showDims && scene.callouts.isNotEmpty())
                 CalloutOverlay(renderer, scene, viewKey, lightBg, bottomInset = stageInset)
 
-            Text(scene.views.firstOrNull { it.key == viewKey }?.label ?: "",
+            if (!sectionUp) Text(scene.views.firstOrNull { it.key == viewKey }?.label ?: "",
                 style = MaterialTheme.typography.labelSmall, color = dim,
                 modifier = Modifier.align(Alignment.TopStart).padding(14.dp))
 
             // Gestures are not discoverable, so say them once per scene and then get out of the way.
             var hint by remember(sceneKey) { mutableStateOf(true) }
             LaunchedEffect(sceneKey) { delay(4500); hint = false }
-            AnimatedVisibility(visible = hint,
+            AnimatedVisibility(visible = hint && !sectionUp,
                 enter = fadeIn(tween(500)), exit = fadeOut(tween(700)),
                 modifier = Modifier.align(Alignment.TopEnd)) {
                 Text("drag to orbit · two fingers to pan · pinch to zoom · tap a layer",
@@ -1065,6 +1051,24 @@ fun FetLabApp(lib: Library, renderer: Renderer) {
             var logicBarH by remember { mutableStateOf(0.dp) }
             val cardLift by animateDpAsState(if (scene.logic || scene.flow != null) logicBarH else 0.dp,
                 tween(220), label = "cardLift")
+
+            // The 2D section, cut from this same scene: over the stage's visible part, clear of
+            // the stepper and the sheet (Section), or over its top part with the 3D view resized
+            // below it (Both; see the AndroidView's padding above).
+            if (sectionUp && activePlane != null) {
+                val visible = with(density) { stageH.toDp() } - stageInset
+                val panel = if (secMode == 1) Modifier.fillMaxWidth().height((visible - logicBarH - 6.dp).coerceAtLeast(120.dp))
+                    else Modifier.fillMaxWidth().height(visible * 0.46f)
+                key(layerTick, sceneKey) {
+                    SectionPanel(lib, scene, activePlane, selected, onPick = { p ->
+                        selected = p; renderer.highlight = p; draw()
+                    }, modifier = panel, corner = {
+                        Locator(lib, scene, activePlane, Modifier.size(width = 96.dp, height = 56.dp)
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.85f)))
+                    })
+                }
+            }
             AnimatedVisibility(visible = selected != null,
                 enter = fadeIn(tween(180)) + slideInVertically(tween(220)) { it / 3 },
                 exit = fadeOut(tween(140)) + slideOutVertically(tween(180)) { it / 3 },
@@ -1251,7 +1255,7 @@ fun FetLabApp(lib: Library, renderer: Renderer) {
                                 .tourTarget("sheet")
                                 .onSizeChanged { stageInset = with(density) { it.height.toDp() } }) {
                             Column {
-                                Box(Modifier.fillMaxWidth().height(26.dp).draggable(
+                                Box(Modifier.fillMaxWidth().height(20.dp).draggable(
                                     orientation = Orientation.Vertical,
                                     state = rememberDraggableState { d -> dragDistance += d },
                                     onDragStarted = { dragDistance = 0f },
@@ -1501,10 +1505,10 @@ internal fun Chip(label: String, selected: Boolean, modifier: Modifier = Modifie
     val fg by animateColorAsState(
         if (selected) MaterialTheme.colorScheme.onPrimaryContainer
         else MaterialTheme.colorScheme.onSurfaceVariant, tween(220), label = "chipFg")
-    Box(modifier.heightIn(min = 40.dp).clip(CircleShape).background(bg)
-        .clickable(onClick = onClick).padding(horizontal = 16.dp),
+    Box(modifier.heightIn(min = 34.dp).clip(CircleShape).background(bg)
+        .clickable(onClick = onClick).padding(horizontal = 12.dp),
         contentAlignment = Alignment.Center) {
-        Text(label, color = fg, fontFamily = PlexSans, fontSize = 13.sp,
+        Text(label, color = fg, fontFamily = PlexSans, fontSize = 12.5f.sp,
             fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal, maxLines = 1,
             textAlign = TextAlign.Center, overflow = TextOverflow.Ellipsis)
     }
@@ -1782,7 +1786,7 @@ private fun StepsTab(lib: Library, flow: ProcessFlow, index: Int, list: LazyList
                 modifier = Modifier.fillMaxWidth().padding(vertical = 1.dp)
                     .padding(start = if (st.isOp) 14.dp else 0.dp).tourTarget("step:$i")) {
                 Column(Modifier.clip(RoundedCornerShape(12.dp)).clickable { onPick(i) }
-                    .padding(horizontal = 10.dp, vertical = 9.dp)) {
+                    .padding(horizontal = 10.dp, vertical = 7.dp)) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text(st.labelIn(here), fontFamily = Mono, fontSize = if (st.isOp) 11.sp else 12.sp,
                             color = MaterialTheme.colorScheme.primary, modifier = Modifier.width(34.dp))
@@ -1819,7 +1823,7 @@ private fun StepsTab(lib: Library, flow: ProcessFlow, index: Int, list: LazyList
 
 @Composable
 private fun ViewsTab(scene: Scene, viewKey: String, onPick: (ViewPreset) -> Unit) {
-    LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp),
+    LazyColumn(verticalArrangement = Arrangement.spacedBy(5.dp),
         contentPadding = PaddingValues(bottom = 12.dp)) {
         itemsIndexed(scene.views) { i, v ->
             val on = v.key == viewKey
@@ -1827,9 +1831,9 @@ private fun ViewsTab(scene: Scene, viewKey: String, onPick: (ViewPreset) -> Unit
                 if (on) MaterialTheme.colorScheme.primaryContainer
                 else MaterialTheme.colorScheme.surfaceVariant, tween(220), label = "viewBg")
             Surface(color = bg, shape = RoundedCornerShape(14.dp),
-                modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp).tourTarget("view:$i")
+                modifier = Modifier.fillMaxWidth().heightIn(min = 46.dp).tourTarget("view:$i")
                     .clickable { onPick(v) }) {
-                Row(Modifier.padding(horizontal = 15.dp, vertical = 11.dp),
+                Row(Modifier.padding(horizontal = 14.dp, vertical = 7.dp),
                     verticalAlignment = Alignment.CenterVertically) {
                     Box(Modifier.size(8.dp).clip(CircleShape).background(
                         if (on) MaterialTheme.colorScheme.primary
@@ -1869,7 +1873,6 @@ private fun SectionTab(scene: Scene, cx: Float, cy: Float, cz: Float, explode: F
         SliderRow("Cut vertically", "Y", cy, scene.lo[1], scene.hi[1], true) { onClip(1, it) }
         SliderRow("Cut across channel", "Z", cz, scene.lo[2], scene.hi[2], true) { onClip(2, it) }
         SliderRow("Separate layers", "", explode, 0f, 16f, false) { onExplode(it) }
-        Spacer(Modifier.height(4.dp))
         SectionLabel("Display")
         // The floating sheet only (null on the tablet, whose panel covers nothing).
         if (seeThrough != null)
@@ -1885,18 +1888,18 @@ private fun SectionTab(scene: Scene, cx: Float, cy: Float, cz: Float, explode: F
             Toggle("Ghost the gate fill", ghost, onGhost),
             Toggle("Slow rotate", spin, onSpin))
         for (row in toggles.chunked(2)) {
-            Row(Modifier.fillMaxWidth().padding(vertical = 3.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Row(Modifier.fillMaxWidth().padding(vertical = 2.dp),
+                horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                 for (t in row) Chip(t.label, t.on, Modifier.weight(1f)) { toggle(t) }
                 if (row.size == 1) Spacer(Modifier.weight(1f))
             }
         }
-        Spacer(Modifier.height(10.dp))
-        OutlinedButton(onClick = onReset,
-            modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)) {
-            Text("Reset this scene", fontFamily = PlexSans, fontSize = 13.5f.sp)
+        Spacer(Modifier.height(6.dp))
+        OutlinedButton(onClick = onReset, contentPadding = PaddingValues(vertical = 6.dp),
+            modifier = Modifier.fillMaxWidth().heightIn(min = 38.dp)) {
+            Text("Reset this scene", fontFamily = PlexSans, fontSize = 13.sp)
         }
-        Spacer(Modifier.height(14.dp))
+        Spacer(Modifier.height(10.dp))
     }
 }
 
@@ -1904,16 +1907,16 @@ private fun SectionTab(scene: Scene, cx: Float, cy: Float, cz: Float, explode: F
 internal fun SectionLabel(text: String) {
     Text(text, style = MaterialTheme.typography.labelSmall,
         color = MaterialTheme.colorScheme.onSurfaceVariant,
-        modifier = Modifier.padding(top = 10.dp, bottom = 4.dp))
+        modifier = Modifier.padding(top = 6.dp, bottom = 3.dp))
 }
 
 @Composable
 private fun SliderRow(label: String, axis: String, frac: Float, lo: Float, hi: Float,
                       offAtMax: Boolean, shown: String? = null, tag: String? = null,
                       onChange: (Float) -> Unit) {
-    Column(Modifier.padding(vertical = 2.dp)) {
+    Column {
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-            Text(label, fontFamily = PlexSans, fontSize = 13.sp,
+            Text(label, fontFamily = PlexSans, fontSize = 12.5f.sp,
                 color = MaterialTheme.colorScheme.onSurface, modifier = Modifier.weight(1f))
             if (axis.isNotEmpty()) {
                 Text(axis, fontFamily = Mono, fontSize = 10.sp,
@@ -1926,7 +1929,7 @@ private fun SliderRow(label: String, axis: String, frac: Float, lo: Float, hi: F
                 color = if (offAtMax && frac >= 0.999f) MaterialTheme.colorScheme.onSurfaceVariant
                         else MaterialTheme.colorScheme.primary)
         }
-        Box(Modifier.fillMaxWidth().height(44.dp)
+        Box(Modifier.fillMaxWidth().height(32.dp)
             .then(when {
                 tag != null -> Modifier.tourTarget(tag)
                 axis.isNotEmpty() -> Modifier.tourTarget("slider:${axis.lowercase()}")

@@ -89,14 +89,18 @@ private fun rgb(c: FloatArray, a: Float = 1f) = Color(c[0], c[1], c[2], a)
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun SectionPanel(lib: Library, sc: Scene, pl: SectionPlane, selected: Part?, onPick: (Part?) -> Unit,
-                 modifier: Modifier = Modifier) {
+                 modifier: Modifier = Modifier, corner: @Composable () -> Unit = {}) {
     val rects = sectionOf(sc, pl)
     val accent = MaterialTheme.colorScheme.primary
     val edge = MaterialTheme.colorScheme.outline
     Column(modifier.background(MaterialTheme.colorScheme.surface)) {
-        Text("SECTION · ${pl.name}".uppercase(), fontFamily = Mono, fontSize = 10.sp,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(start = 12.dp, top = 8.dp, end = 12.dp))
+        // The heading, with the locator beside it rather than over the drawing.
+        Row(Modifier.fillMaxWidth().padding(start = 12.dp, top = 8.dp, end = 8.dp),
+            verticalAlignment = Alignment.Top) {
+            Text("SECTION · ${pl.name}".uppercase(), fontFamily = Mono, fontSize = 10.sp, lineHeight = 13.sp,
+                color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.weight(1f).padding(end = 8.dp))
+            corner()
+        }
         Box(Modifier.weight(1f).fillMaxWidth()) {
             Canvas(Modifier.matchParentSize().pointerInput(rects) {
                 detectTapGestures { off ->
@@ -203,25 +207,28 @@ fun Locator(lib: Library, sc: Scene, pl: SectionPlane?, modifier: Modifier = Mod
 fun PlanesBlock(lib: Library, sc: Scene, planes: List<SectionPlane>, planeId: String?, mode: Int,
                 onPlane: (SectionPlane) -> Unit, onMode: (Int) -> Unit) {
     SectionLabel("SECTION PLANES")
-    FlowRow(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp),
-        verticalArrangement = Arrangement.spacedBy(6.dp)) {
+    FlowRow(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(5.dp),
+        verticalArrangement = Arrangement.spacedBy(5.dp)) {
         for (p in planes) Chip(p.short, p.id == planeId) { onPlane(p) }
     }
     val pl = planes.firstOrNull { it.id == planeId }
-    Row(Modifier.fillMaxWidth().padding(top = 8.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+    Row(Modifier.fillMaxWidth().padding(top = 5.dp), horizontalArrangement = Arrangement.spacedBy(5.dp)) {
         for ((i, name) in listOf("3D", "Section", "Both").withIndex())
             Chip(name, mode == i && pl != null, Modifier.weight(1f)) { if (pl != null) onMode(i) }
     }
     Surface(color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f), shape = RoundedCornerShape(12.dp),
-        modifier = Modifier.fillMaxWidth().padding(top = 8.dp)) {
-        Column(Modifier.padding(10.dp)) {
-            Locator(lib, sc, pl, Modifier.fillMaxWidth().height(96.dp))
-            Text("Seen from above: x runs source → drain, z across the ${sc.acrossWord()}; the dashed line is " +
-                    "the plane, the arrow the side it is seen from.",
-                fontFamily = PlexSans, fontSize = 11.sp, lineHeight = 15.sp,
-                color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(top = 6.dp))
-            if (pl != null) Text(pl.text, fontFamily = PlexSans, fontSize = 11.sp, lineHeight = 15.sp,
-                color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(top = 4.dp))
+        modifier = Modifier.fillMaxWidth().padding(top = 5.dp)) {
+        // The locator beside its explanation, so the block stays short.
+        Row(Modifier.padding(8.dp), verticalAlignment = Alignment.Top) {
+            Locator(lib, sc, pl, Modifier.size(width = 104.dp, height = 68.dp))
+            Column(Modifier.weight(1f).padding(start = 8.dp)) {
+                Text("From above: x runs source → drain, z across the ${sc.acrossWord()}; dashed: the plane, " +
+                        "arrow: the side seen.",
+                    fontFamily = PlexSans, fontSize = 10.5f.sp, lineHeight = 14.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+                if (pl != null) Text(pl.text, fontFamily = PlexSans, fontSize = 10.5f.sp, lineHeight = 14.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(top = 3.dp))
+            }
         }
     }
 }
