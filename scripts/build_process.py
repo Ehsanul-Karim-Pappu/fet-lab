@@ -36,10 +36,10 @@ BADGE_NOTE = {
     "Concept": "Concept: a concept-only operation, such as lithography or pitch splitting, not a "
                "published figure."}
 MATCH = {
-    "published": "Published stage, adapted nFET view",
-    "intermediate": "Intermediate teaching reconstruction",
+    "published": "Source stage, adapted nFET view; artwork not compared",
+    "intermediate": "Reconstruction between source-described stages",
     "concept": "Concept-only operation",
-    "context": "Published stage, adapted view with pFET context",
+    "context": "Source stage, adapted view with pFET context; artwork not compared",
 }
 
 # ------------------------------------------------------------------ helpers
@@ -348,7 +348,8 @@ def flow_ns(done):
     SITE4 = (-XSD, XSD, sub[2], RY + 2.0, -zsub, zsub)    # the selected site, cropped out of the tile
     SITE5 = (-XSD, XSD, sub[2], RY + 2.0, -hzmo, hzmo)    # the same, across its gate's own width
     TILE_SUBS = ["Pitches are illustrative: the gate pitch is one site's length, the stack pitch "
-                 "its width"]
+                 f"its width. The tile's gate pitch is about {PG:.0f} nm; a real contacted gate pitch "
+                 "at these nodes is about 45–48 nm"]
 
     def t_multilayer(lines):
         """The multilayer, blanket over the window, or on each stack line once patterned.
@@ -789,7 +790,7 @@ def flow_ns(done):
 # 4.1-4.6: the direct print, or SADP or SAQP on the field of lines around the tile. Every
 # route ends with the same hard-mask lines in the tile, so the stack etch that follows is
 # the same step whichever route led to it.
-PAT_MATCH = {"pattern": "Patterning concept applied to an illustrative layer"}
+PAT_MATCH = {"pattern": "Concept: patterning applied to an illustrative layer"}
 ROUTES = [
     dict(id="direct", name="Direct print",
          note="One exposure prints the stack lines at their final pitch, EUV for example. A "
@@ -1145,7 +1146,7 @@ def lesson(mode):
 # source: SAQP fin patterning from a research example (R22, F3), the gate spacers as a
 # conventional deposition and etch-back (F1's own route deposits them selectively), and
 # separately sourced notes on sub-fin isolation (R27) and gate caps (R26).
-FIN_MATCH = {"source": "Source-described stage, adapted; artwork not compared",
+FIN_MATCH = {"source": "Source stage, adapted; artwork not compared",
              "teach": "Teaching reconstruction; no source figure"}
 FIN_SCOPE = ("Representative bulk silicon FinFET nFET fabrication, gate last: the stages of one "
              "disclosed route [R24] where it describes them, SAQP fin patterning from a research "
@@ -1258,7 +1259,8 @@ def flow_fin(done):
     SITE2 = (-XSD, XSD, sub[2], RY + 2.0, -zsub, zsub)
     SITE3 = (-XSD, XSD, sub[2], RY + 2.0, -hzmo, hzmo)
     TILE_SUBS = ["Pitches are illustrative: the gate pitch is one site's length, and the two "
-                 "sites' fins sit three fin pitches apart"]
+                 f"sites' fins sit three fin pitches apart. The tile's gate pitch is about {PG:.0f} nm; "
+                 "a real 3 nm-class contacted gate pitch is about 45–48 nm"]
     who = lambda k: "nFET, p-well" if k == "n" else "pFET, n-well · context only"
 
     def t_resist(pid, name, mat, boxes):
@@ -1602,7 +1604,7 @@ def flow_fin(done):
     F.add("nisi_source", "nisi_drain")
     ild_around(ym2, HOLES)
     F.snap("silicide", "Silicide",
-        "Nickel reacts with the exposed epitaxy at the bottom of each source/drain hole, forming a "
+        "Titanium reacts with the exposed epitaxy at the bottom of each source/drain hole, forming a "
         "Ti-based silicide (TiSiₓ) that lowers the contact resistance; only exposed silicon reacts [R25]. "
         "Ti-based silicides replaced NiSi at FinFET-era nodes.",
         view="sd", match="teach", subs=["TiSiₓ is illustrative; F1 does not specify the silicide"])
@@ -1619,7 +1621,7 @@ def flow_fin(done):
     F.snap("done", "The finished device",
         "The finished FinFET, with the ILD and etch-stop film hidden: two fins, each wrapped on "
         "three faces by the high-κ/metal gate, between Si:P source and drain grown from the "
-        "recessed fin ends.", view="iso", match="teach",
+        "recessed fin ends [R24].", view="iso", match="source", figs=["21A"], src=[F1],
         subs=["The ILD and etch-stop film are hidden for viewing only"])
     steps = F.done()
     used = {st["match"] for st in steps}

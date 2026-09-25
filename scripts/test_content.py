@@ -416,5 +416,25 @@ class ContentTests(unittest.TestCase):
                     self.assertTrue(set(term['a'] + term['b'] + term['via']) <= ids)
         self.assertEqual(count, 5)
 
+    def test_guide_learning_aids(self):
+        """Both tours name real stops, the learning path opens real scenes in order, and
+        every glossary term is defined and used by a step's text or notes, a device scene or a reference."""
+        g = json.loads((ROOT / 'data/guide.json').read_text())
+        ids = {s['id'] for s in g['stops']}
+        for tour in ('tour', 'process_tour'):
+            self.assertTrue(g[tour]); self.assertTrue(set(g[tour]) <= ids, tour)
+        scenes = {d['key'] for d in self.data['devices']}
+        self.assertEqual([l['key'] for l in g['learn']], ['fin', 'ns', 'fs', 'cfet_mono', 'process'])
+        for l in g['learn'][:-1]: self.assertIn(l['key'], scenes)
+        flows = json.loads((ROOT / 'data/process.json').read_text())['flows']
+        text = ' '.join(' '.join([st['body']] + st.get('subs', [])) for f in flows.values() for st in f['steps'])
+        dev_text = json.dumps([self.data, self.refs], ensure_ascii=False)
+        for t in g['glossary']:
+            self.assertTrue(t['term'] and t['name'] and t['text'] and t['match'], t)
+            # The app's own rule: an all-capitals match is a whole word, anything else a word start.
+            res = [re.compile(r'\b' + re.escape(m) + r'\b') if m == m.upper()
+                   else re.compile(r'\b' + re.escape(m), re.I) for m in t['match']]
+            self.assertTrue(any(r.search(text) or r.search(dev_text) for r in res), t['term'])
+
 if __name__ == '__main__':
     unittest.main()

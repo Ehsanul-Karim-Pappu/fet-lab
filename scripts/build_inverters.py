@@ -400,7 +400,7 @@ def inv_cmp():
     d.dims.append(["—", "What is being measured", "one inverter, both rails"])
     d.dims.append(["—", "Sheets or fins per device", "2 fins / 3 / 3 / 2 per tier"])
     d.logic = True
-    d.note = ("<b>Rail-to-rail span.</b> These values describe the model's lateral z dimension, commonly called cell height in standard-cell layout practice. Routing and contacts change the comparison with device-only spans. A smaller drawn span alone does not demonstrate higher achievable density or speed.")
+    d.note = ("<b>Rail-to-rail span.</b> These values describe the model's lateral z dimension, commonly called cell height in standard-cell layout practice. Routing and contacts change the comparison with device-only spans. A smaller drawn span alone does not demonstrate higher achievable density or speed. For scale, imec's roadmap puts standard-cell height at roughly 115 nm for A14 nanosheets, 98 nm for A10 forksheets and under 80 nm for A7 CFETs; the spans drawn here are the model's own.")
     d.finish()
     B = d.bounds
     ctr = [(B["x"][0] + B["x"][1]) / 2, (B["y"][0] + B["y"][1]) / 2, (B["z"][0] + B["z"][1]) / 2]

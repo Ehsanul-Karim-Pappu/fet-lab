@@ -193,7 +193,7 @@ def build_ns():
     d.dims=[["L_G","Physical gate length",f"{LG:g} nm"],["t_ch","Sheet thickness",f"{TCH:g} nm"],
             ["W_sh","Sheet width",f"{W:g} nm"],["Pitch","Sheet-to-sheet pitch",f"{PITCH:g} nm"],
             ["N_sh","Sheets in the stack","3"],["L_SP","Spacer length",f"{LSP:g} nm"],
-            ["EOT","Equivalent oxide thickness",f"{EOT:g} nm"],
+            ["EOT","Equivalent oxide thickness of the drawn films (production stacks: below about 1 nm)",f"{EOT:g} nm"],
             ["—","Fill between work-function shells (spacing enlarged)",f"{PITCH-2*HY3:g} nm"],
             ["—","Active footprint (z)",f"{2*hz3:g} nm"]]
     d.views={"iso":dict(n="3D overview",s="the whole device",az=-.76,el=.36,r=300,tgt=[0,40,0],clip=None),
@@ -201,7 +201,7 @@ def build_ns():
              "c":dict(n="Across channel",s="through the gate",az=1.5708,el=0,r=250,tgt=[0,46,0],clip=[0,None,None]),
              "gaa":dict(n="Gate-all-around",s="source side lifted off",az=-1.12,el=.30,r=205,tgt=[0,45,0],clip=[4,None,None],
                         off=["epi_source","nisi_source","ni_source","w_source","spacer_source"])}
-    d.note=("<b>Reading the wrap.</b> Each Si sheet is wrapped by a 1nm SiO2 interfacial layer, 2nm HfO2 and 3nm of n-type work-function metal in this model. The sheets are drawn at a 21nm vertical pitch so every film is visible, which leaves 4nm of Mo fill between neighbouring shells. Real stacks space their sheets more tightly, roughly 7-12nm apart, and there the work-function metal fills the gap between sheets with no room left for fill metal. These materials and dimensions are model choices.")
+    d.note=("<b>Reading the wrap.</b> Each Si sheet is wrapped by a 1nm SiO2 interfacial layer, 2nm HfO2 and 3nm of n-type work-function metal in this model. The sheets are drawn at a 21nm vertical pitch so every film is visible, which leaves 4nm of Mo fill between neighbouring shells. Real stacks space their sheets more tightly, roughly 7-12nm apart, and there the work-function metal fills the gap between sheets with no room left for fill metal. The 1nm interfacial layer is also drawn thicker than today's roughly 0.5-0.8nm, so the model's EOT of " f"{EOT:g}nm is above the sub-1nm EOT of advanced-node gate stacks. These materials and dimensions are model choices.")
     return d.finish()
 
 # ================================================================= FINFET ===
@@ -275,7 +275,7 @@ def build_fin():
     d.dims=[["L_G","Physical gate length",f"{LGf:g} nm"],["W_fin","Fin width",f"{WFIN:g} nm"],
             ["H_fin","Exposed fin height",f"{HFIN:g} nm"],["Fin pitch","Fin-to-fin pitch",f"{FPITCH:g} nm"],
             ["N_fin","Fins in this device",f"{NFIN}"],["L_SP","Spacer length",f"{LSP:g} nm"],
-            ["EOT","Equivalent oxide thickness",f"{EOT:g} nm"],
+            ["EOT","Equivalent oxide thickness of the drawn films (production stacks: below about 1 nm)",f"{EOT:g} nm"],
             ["W_eff","Effective width, (2H+W) x 2 fins",f"{Weff:g} nm"],
             ["—","Gate faces per channel","3 (tri-gate)"],
             ["—","Active footprint (z)",f"{2*hzenv:g} nm"]]
@@ -354,7 +354,7 @@ def build_fs():
             ["W_sh","Sheet width",f"{W:g} nm"],["Pitch","Sheet-to-sheet pitch",f"{PITCH:g} nm"],
             ["t_wall","Dielectric wall thickness",f"{WALL:g} nm"],
             ["n–p","work-function metal to work-function metal across the wall",f"{WALL:g} nm"],
-            ["N_sh","Sheets per polarity","3"],["EOT","Equivalent oxide thickness",f"{EOT:g} nm"],
+            ["N_sh","Sheets per polarity","3"],["EOT","Equivalent oxide thickness of the drawn films (production stacks: below about 1 nm)",f"{EOT:g} nm"],
             ["—","Gate faces per sheet","3 (forked)"],
             ["—","Active footprint (z)",f"{2*z3:g} nm"]]
     d.views={"iso":dict(n="3D overview",s="both polarities",az=-.80,el=.34,r=330,tgt=[0,42,0],clip=None),
@@ -481,7 +481,7 @@ def build_cfet(seq=False):
     d.dims=[["L_G","Physical gate length",f"{LG:g} nm"],["t_ch","Sheet thickness",f"{TCH:g} nm"],
             ["W_sh","Sheet width",f"{W:g} nm"],["Pitch","Sheet pitch within a tier",f"{PITCH:g} nm"],
             ["t_MDI","Middle dielectric isolation",f"{MDI:g} nm"],
-            ["N_sh","Sheets per tier","2"],["EOT","Equivalent oxide thickness",f"{EOT:g} nm"],
+            ["N_sh","Sheets per tier","2"],["EOT","Equivalent oxide thickness of the drawn films (production stacks: below about 1 nm)",f"{EOT:g} nm"],
             ["—","Bottom tier contact","backside power via"],
             ["—","Gate","shared, strapped by a via" if seq else "shared, continuous Mo"],
             ["—","Active footprint (z)",f"{2*hz3:g} nm"]]

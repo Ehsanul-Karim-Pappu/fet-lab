@@ -68,6 +68,36 @@
       "body": "Read the concepts, trade-offs and limitations behind the architecture. Open About for Credits and linked Technical references.",
       "tab": 4,
       "gesture": "none"
+    },
+    {
+      "id": "p_stepper",
+      "category": "Process mode",
+      "title": "Step through the fabrication",
+      "body": "The stepper under the model moves one step at a time, or plays the whole flow. \"STEP 6 of 18 · OPERATION 5\" is the fifth operation leading into core step 6; switch on Show every operation in Steps to see them all.",
+      "gesture": "tap"
+    },
+    {
+      "id": "p_badge",
+      "category": "Process mode",
+      "title": "How a step stands against its source",
+      "body": "The badge beside the step number says how the state relates to its cited source: Source stage, Reconstruction, Teaching or Concept. Tap the step's name to open its full explanation, source and substitutions in Steps.",
+      "tab": 3,
+      "gesture": "tap"
+    },
+    {
+      "id": "p_sites",
+      "category": "Process mode",
+      "title": "nFET, pFET or both sites",
+      "body": "The pill at the top of the stage picks the device the flow follows. The pFET shares the nFET's early steps and then has its own masked steps; Both sites shows the two side by side, joined by their gate line.",
+      "gesture": "tap"
+    },
+    {
+      "id": "p_planes",
+      "category": "Process mode",
+      "title": "Section planes",
+      "body": "On steps with a source figure, Section lists named planes through the model. Pick one to see the cut in 3D, as a flat section, or both, with a small map showing where the plane sits.",
+      "tab": 1,
+      "gesture": "tap"
     }
   ],
   "tour": [
@@ -79,5 +109,227 @@
     "layers",
     "specs",
     "story"
+  ],
+  "process_tour": [
+    "p_stepper",
+    "p_badge",
+    "p_sites",
+    "p_planes"
+  ],
+  "learn": [
+    {
+      "key": "fin",
+      "title": "1 · FinFET",
+      "body": "The gate wraps a vertical silicon fin on three sides. Start here: every later device keeps this idea and wraps more of the channel."
+    },
+    {
+      "key": "ns",
+      "title": "2 · Nanosheet",
+      "body": "The fin becomes a stack of horizontal sheets, and the gate wraps all four sides of each one."
+    },
+    {
+      "key": "fs",
+      "title": "3 · Forksheet",
+      "body": "A dielectric wall lets the nFET and pFET stacks sit closer together, shrinking the cell sideways."
+    },
+    {
+      "key": "cfet_mono",
+      "title": "4 · CFET",
+      "body": "The nFET and pFET are stacked on top of each other, so the cell shrinks again by growing upwards."
+    },
+    {
+      "key": "process",
+      "title": "5 · Process",
+      "body": "See how a FinFET and a nanosheet transistor are made, step by step, from bare silicon to finished device."
+    }
+  ],
+  "glossary": [
+    {
+      "term": "BDI",
+      "name": "Bottom dielectric isolation",
+      "text": "A dielectric layer under the nanosheet stack that separates the channels and source/drain from the substrate, cutting leakage through the silicon below.",
+      "match": [
+        "BDI",
+        "bottom dielectric"
+      ]
+    },
+    {
+      "term": "CESL",
+      "name": "Contact etch-stop layer",
+      "text": "A thin silicon nitride film laid over the source/drain and gate before the ILD. Contact etches stop on it instead of cutting into the device.",
+      "match": [
+        "CESL",
+        "etch-stop"
+      ]
+    },
+    {
+      "term": "CMP",
+      "name": "Chemical-mechanical polishing",
+      "text": "Polishing that flattens the wafer, stopping on a harder layer; used after fills such as STI oxide, ILD and metal.",
+      "match": [
+        "CMP"
+      ]
+    },
+    {
+      "term": "CPP",
+      "name": "Contacted poly pitch",
+      "text": "The gate-to-gate spacing with a contact between neighbours, the key horizontal pitch of a logic cell: about 45–48 nm at 3 nm-class and 2 nm nodes.",
+      "match": [
+        "CPP",
+        "gate pitch"
+      ]
+    },
+    {
+      "term": "EOT",
+      "name": "Equivalent oxide thickness",
+      "text": "The SiO₂ thickness that would give the same gate capacitance as the real stack: the interfacial layer plus the high-κ thickness × 3.9/κ. Advanced nodes are below about 1 nm.",
+      "match": [
+        "EOT"
+      ]
+    },
+    {
+      "term": "Epitaxy",
+      "name": "Epitaxial growth",
+      "text": "Growing crystal silicon or SiGe on an exposed crystal surface, so it continues the lattice. The source and drain are grown this way: Si:P for nFETs, SiGe:B for pFETs.",
+      "match": [
+        "epitax"
+      ]
+    },
+    {
+      "term": "FEOL / MOL / BEOL",
+      "name": "Front end, middle and back end of line",
+      "text": "FEOL builds the transistors, MOL the contacts that reach them, and BEOL the stack of metal wiring above.",
+      "match": [
+        "MOL",
+        "BEOL",
+        "FEOL"
+      ]
+    },
+    {
+      "term": "Gate cut",
+      "name": "Gate cut",
+      "text": "Cutting a gate line so that two neighbouring devices get separate gates; the alternative is a shared gate joining them.",
+      "match": [
+        "gate cut"
+      ]
+    },
+    {
+      "term": "High-κ / HKMG",
+      "name": "High-κ metal gate",
+      "text": "A gate dielectric with a higher permittivity than SiO₂ (here HfO₂) under a metal gate, so the gate controls the channel through a physically thicker film with less leakage.",
+      "match": [
+        "high-κ",
+        "HKMG"
+      ]
+    },
+    {
+      "term": "IL",
+      "name": "Interfacial layer",
+      "text": "A thin SiO₂ film, under 1 nm in production, between the silicon channel and the high-κ dielectric.",
+      "match": [
+        "interfacial"
+      ]
+    },
+    {
+      "term": "ILD",
+      "name": "Interlayer dielectric",
+      "text": "The insulating fill, usually oxide, between devices and around the contacts.",
+      "match": [
+        "ILD"
+      ]
+    },
+    {
+      "term": "Inner spacer",
+      "name": "Inner spacer",
+      "text": "Dielectric formed in recesses of the SiGe layers at the ends of a nanosheet stack, so the gate between the sheets is kept apart from the source and drain.",
+      "match": [
+        "inner spacer"
+      ]
+    },
+    {
+      "term": "Mandrel",
+      "name": "Mandrel",
+      "text": "A sacrificial printed line in SADP and SAQP. Spacers are formed on its sides, then it is removed and the spacers become the pattern.",
+      "match": [
+        "mandrel"
+      ]
+    },
+    {
+      "term": "PTS",
+      "name": "Punch-through stopper",
+      "text": "A heavily doped region under the fin or stack that blocks leakage from source to drain through the substrate below the gate.",
+      "match": [
+        "PTS",
+        "punch-through"
+      ]
+    },
+    {
+      "term": "Pitch walk",
+      "name": "Pitch walk",
+      "text": "Unequal spaces between lines from multiple patterning, caused when the core or spacer widths drift from their ideal values.",
+      "match": [
+        "pitch walk"
+      ]
+    },
+    {
+      "term": "Release",
+      "name": "Channel release",
+      "text": "Selectively etching away the SiGe layers of a nanosheet stack to free the silicon sheets, so the gate can wrap all four sides.",
+      "match": [
+        "release"
+      ]
+    },
+    {
+      "term": "RMG",
+      "name": "Replacement metal gate",
+      "text": "A gate-last flow: a sacrificial dummy gate holds the place during the hot steps, then is removed and replaced by the high-κ/metal gate.",
+      "match": [
+        "RMG",
+        "dummy gate",
+        "replacement"
+      ]
+    },
+    {
+      "term": "SADP / SAQP",
+      "name": "Self-aligned double / quadruple patterning",
+      "text": "Spacers formed on printed mandrels become the pattern, halving the printed pitch (SADP) or, repeated once more, quartering it (SAQP).",
+      "match": [
+        "SADP",
+        "SAQP"
+      ]
+    },
+    {
+      "term": "Silicide",
+      "name": "Silicide",
+      "text": "A metal–silicon compound at the bottom of a contact (here TiSiₓ) that lowers the contact resistance.",
+      "match": [
+        "silicide"
+      ]
+    },
+    {
+      "term": "STI",
+      "name": "Shallow trench isolation",
+      "text": "Oxide-filled trenches that separate neighbouring active areas.",
+      "match": [
+        "STI"
+      ]
+    },
+    {
+      "term": "WFM",
+      "name": "Work-function metal",
+      "text": "A thin metal in the gate that sets the transistor's threshold voltage: an n-type one for nFETs, typically TiN for pFETs.",
+      "match": [
+        "work-function"
+      ]
+    },
+    {
+      "term": "W_eff",
+      "name": "Effective width",
+      "text": "The total gated channel perimeter that carries current: for a fin, twice the height plus the top width; for sheets, the sum of the sheet perimeters.",
+      "match": [
+        "W_eff",
+        "effective width"
+      ]
+    }
   ]
 }

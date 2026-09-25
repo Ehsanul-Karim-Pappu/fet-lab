@@ -58,6 +58,9 @@ import androidx.compose.ui.graphics.drawscope.translate
 import androidx.compose.ui.layout.boundsInRoot
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.res.imageResource
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -80,8 +83,25 @@ class GuideStop(
     val gesture: String
 )
 
-class GuideCatalog(val stops: List<GuideStop>, val tour: List<String>) {
+/** A term the step text uses: its short form, what it stands for, and a plain definition.
+ *  [match] are the phrases that count as the term appearing in a step's text. */
+class GlossTerm(val term: String, val name: String, val text: String, match: List<String>) {
+    // An acronym matches as a whole word, in capitals; a phrase at a word's start, any case.
+    private val res = match.map { m ->
+        if (m == m.uppercase()) Regex("\\b" + Regex.escape(m) + "\\b")
+        else Regex("\\b" + Regex.escape(m), RegexOption.IGNORE_CASE)
+    }
+    fun inText(t: String) = res.any { it.containsMatchIn(t) }
+}
+
+/** One stop on the suggested learning path: a Device-mode scene key, or "process". */
+class LearnStop(val key: String, val title: String, val body: String)
+
+class GuideCatalog(val stops: List<GuideStop>, val tour: List<String>, val processTour: List<String>,
+                   val glossary: List<GlossTerm>, val learn: List<LearnStop>) {
     fun stop(id: String) = stops.first { it.id == id }
+    /** The glossary terms [text] uses, in glossary order. */
+    fun termsIn(text: String) = glossary.filter { it.inText(text) }
     companion object {
         fun load(ctx: Context): GuideCatalog {
             val root = JSONObject(ctx.assets.open("guide.json").bufferedReader().use { it.readText() })
@@ -91,8 +111,20 @@ class GuideCatalog(val stops: List<GuideStop>, val tour: List<String>) {
                 GuideStop(s.getString("id"), s.getString("category"), s.getString("title"),
                     s.getString("body"), s.optInt("tab", -1), s.optString("gesture", "none"))
             }
-            val t = root.getJSONArray("tour")
-            return GuideCatalog(stops, List(t.length()) { t.getString(it) })
+            fun ids(k: String) = root.optJSONArray(k)?.let { t -> List(t.length()) { t.getString(it) } }.orEmpty()
+            val g = root.optJSONArray("glossary")
+            val glossary = if (g == null) emptyList() else List(g.length()) { i ->
+                val o = g.getJSONObject(i)
+                val m = o.getJSONArray("match")
+                GlossTerm(o.getString("term"), o.getString("name"), o.getString("text"),
+                    List(m.length()) { m.getString(it) })
+            }
+            val l = root.optJSONArray("learn")
+            val learn = if (l == null) emptyList() else List(l.length()) { i ->
+                val o = l.getJSONObject(i)
+                LearnStop(o.getString("key"), o.getString("title"), o.getString("body"))
+            }
+            return GuideCatalog(stops, ids("tour"), ids("process_tour"), glossary, learn)
         }
     }
 }
@@ -468,12 +500,17 @@ fun TourCard(stop: GuideStop, step: Int, total: Int, modifier: Modifier = Modifi
     }
 }
 
-/** Searchable index of everything the app can do, each row jumping straight to it. */
+/** Searchable index of everything the app can do, each row jumping straight to it; a
+ *  suggested order to learn the devices in, and a glossary of the terms the steps use. */
 @Composable
-fun FeatureGuide(catalog: GuideCatalog, onOpen: (GuideStop) -> Unit, onTour: () -> Unit, onClose: () -> Unit) {
+fun FeatureGuide(catalog: GuideCatalog, onOpen: (GuideStop) -> Unit, onTour: () -> Unit,
+                 onProcessTour: () -> Unit, onLearn: (LearnStop) -> Unit, onClose: () -> Unit) {
     var query by remember { mutableStateOf("") }
     val matches = remember(query) {
         catalog.stops.filter { "${it.title} ${it.body} ${it.category}".contains(query, ignoreCase = true) }
+    }
+    val terms = remember(query) {
+        catalog.glossary.filter { "${it.term} ${it.name} ${it.text}".contains(query, ignoreCase = true) }
     }
     Dialog(onDismissRequest = onClose, properties = DialogProperties(usePlatformDefaultWidth = false)) {
         Surface(shape = RoundedCornerShape(24.dp), color = MaterialTheme.colorScheme.surface,
@@ -485,17 +522,35 @@ fun FeatureGuide(catalog: GuideCatalog, onOpen: (GuideStop) -> Unit, onTour: () 
                         color = MaterialTheme.colorScheme.onSurface)
                     TextButton(onClick = onClose) { Text("Close") }
                 }
-                OutlinedButton(onClick = onTour, modifier = Modifier.fillMaxWidth().padding(top = 10.dp)) {
-                    Text("Replay the guided tour")
+                Row(Modifier.fillMaxWidth().padding(top = 10.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    OutlinedButton(onClick = onTour, modifier = Modifier.weight(1f)) { Text("Guided tour") }
+                    if (catalog.processTour.isNotEmpty())
+                        OutlinedButton(onClick = onProcessTour, modifier = Modifier.weight(1f)) { Text("Process tour") }
                 }
-                OutlinedTextField(query, { query = it }, label = { Text("Search features") },
+                OutlinedTextField(query, { query = it }, label = { Text("Search features and terms") },
                     singleLine = true, modifier = Modifier.fillMaxWidth().padding(top = 14.dp, bottom = 8.dp))
-                if (matches.isEmpty())
-                    Text("No matching feature. Try \"layers\", \"section\" or \"parasitics\".",
+                if (matches.isEmpty() && terms.isEmpty())
+                    Text("Nothing matches. Try \"layers\", \"section\" or \"BDI\".",
                         fontFamily = PlexSans, fontSize = 13.sp,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.padding(top = 8.dp))
                 LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    if (query.isEmpty() && catalog.learn.isNotEmpty()) {
+                        item(key = "_learn") { GuideHeading("LEARN IN ORDER") }
+                        items(catalog.learn, key = { "learn_" + it.key }) { l ->
+                            Surface(onClick = { onLearn(l) }, shape = RoundedCornerShape(14.dp),
+                                color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.55f)) {
+                                Column(Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 10.dp)) {
+                                    Text(l.title, style = MaterialTheme.typography.titleSmall,
+                                        color = MaterialTheme.colorScheme.onSurface)
+                                    Text(l.body, fontFamily = PlexSans, fontSize = 12.5f.sp, lineHeight = 17.sp,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        modifier = Modifier.padding(top = 2.dp))
+                                }
+                            }
+                        }
+                        item(key = "_features") { GuideHeading("FEATURES") }
+                    }
                     items(matches, key = { it.id }) { s ->
                         Surface(onClick = { onOpen(s) }, shape = RoundedCornerShape(14.dp),
                             color = MaterialTheme.colorScheme.surfaceVariant) {
@@ -512,8 +567,29 @@ fun FeatureGuide(catalog: GuideCatalog, onOpen: (GuideStop) -> Unit, onTour: () 
                             }
                         }
                     }
+                    if (terms.isNotEmpty()) {
+                        item(key = "_gloss") { GuideHeading("GLOSSARY") }
+                        items(terms, key = { "g_" + it.term }) { t -> GlossRow(t) }
+                    }
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun GuideHeading(text: String) {
+    Text(text, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary,
+        modifier = Modifier.padding(top = 6.dp).semantics { heading() })
+}
+
+/** A glossary entry: the term and what it stands for, then its definition. */
+@Composable
+fun GlossRow(t: GlossTerm, modifier: Modifier = Modifier) {
+    Column(modifier.fillMaxWidth().padding(horizontal = 4.dp, vertical = 2.dp)) {
+        Text(if (t.name == t.term) t.term else "${t.term} · ${t.name}", fontFamily = PlexSans,
+            fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurface)
+        Text(t.text, fontFamily = PlexSans, fontSize = 12.5f.sp, lineHeight = 17.sp,
+            color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(top = 1.dp))
     }
 }

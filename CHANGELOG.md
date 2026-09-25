@@ -5,6 +5,44 @@ All notable changes to FET Lab. Dates are the release date; versions follow
 
 ## Unreleased
 
+### Learning path and Process mode structure
+
+- **Learn in order.** Help opens with a suggested path: FinFET → nanosheet → forksheet → CFET →
+  Process. Each entry opens that scene.
+- **Glossary.** Help has a searchable glossary of the terms the steps use: BDI, CESL, CMP, CPP,
+  EOT, epitaxy, FEOL/MOL/BEOL, gate cut, high-κ/HKMG, IL, ILD, inner spacer, mandrel, PTS,
+  pitch walk, channel release, RMG, SADP/SAQP, silicide, STI, WFM and W_eff. Each step in the
+  Steps tab shows the terms it uses as chips; tap one to read its definition in place.
+- **Process tour.** A second guided tour, started from Help, walks through the step navigator,
+  the badge and its explanation, the site selector and section planes on the nanosheet flow.
+- **Site selector on the stage.** In Process mode an nFET · pFET · Both sites pill sits at the
+  top of the 3D view, so switching sites no longer needs the Steps tab. The Steps tab's
+  selector stays.
+- **Process chips reordered:** FinFET and Nanosheet first, then the SADP, SAQP and Pitch walk
+  lessons under a "Lessons" label, then Forksheet and CFET, still marked "soon".
+- **Stepper label:** "STEP 6/18 · OP 5" instead of "OPERATION 6.5 / 18": it says which core
+  step the operation leads into, and is shorter than before, so the stepper never grows
+  taller over the model. TalkBack reads "Step 6 of 18, operation 5".
+- **One badge vocabulary.** Every flow's match descriptions now use the same four words as
+  the badges: Source stage, Reconstruction, Teaching and Concept. The FinFET's finished device
+  is a Source stage (R24, Fig. 21A), as the nanosheet's is.
+- **Open in Device mode.** The finished-device step has a button that opens the same
+  technology in Device mode.
+- **Material key.** The Layers tab has a collapsible key of the materials in the scene; tap a
+  material to read its note.
+- The web and PWA pages say that Process mode is in the Android app.
+
+### More content notes from the app review
+
+- **Cell height.** The inverter and Layout compare notes give imec's roadmap values for scale:
+  about 115 nm for A14 nanosheets, 98 nm for A10 forksheets and under 80 nm for A7 CFETs.
+- **EOT and the interfacial layer.** The EOT row is labelled as the drawn films' value, and the
+  nanosheet note says the 1 nm interfacial layer is thicker than today's 0.5–0.8 nm, so the
+  model's EOT is above the sub-1 nm EOT of advanced-node gate stacks.
+- **Tile gate pitch.** The Process tile notes give the tile's gate pitch (about 73 nm for the
+  nanosheet, 76 nm for the FinFET) against a real contacted gate pitch of about 45–48 nm.
+- The FinFET silicide step said nickel reacts to form TiSiₓ; it is titanium.
+
 ### Screen-reader support
 
 TalkBack now has something to read throughout the Android app:

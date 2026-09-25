@@ -486,7 +486,7 @@ def show_cmp():
     d.dims.append(["—", "What grows", "sideways, then upwards"])
     d.logic = True
     d.style = "schematic"
-    d.note = ("<b>Scope of the comparison.</b> Matching rail spans do not make these schematic models exact copies of the technical scenes. Nanosheet Layout uses two representative sheets, while Device/Inverter use three. CFET moves GND to the backside in this example. The figures do not establish equal drive, timing, routability or density.")
+    d.note = ("<b>Scope of the comparison.</b> Matching rail spans do not make these schematic models exact copies of the technical scenes. Nanosheet Layout uses two representative sheets, while Device/Inverter use three. CFET moves GND to the backside in this example. The figures do not establish equal drive, timing, routability or density. For scale, imec's roadmap puts standard-cell height at roughly 115 nm for A14 nanosheets, 98 nm for A10 forksheets and under 80 nm for A7 CFETs; the spans drawn here are the model's own.")
     d.finish()
     B = d.bounds
     ctr = [(B["x"][0] + B["x"][1]) / 2, (B["y"][0] + B["y"][1]) / 2, (B["z"][0] + B["z"][1]) / 2]

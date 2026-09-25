@@ -46,7 +46,9 @@ so a section reads like a real cross-section rather than a shell.
 <img src="docs/compare.png" alt="Four inverter layouts side by side at one scale">
 
 On Android, a guided tour on first launch shows the gestures and every tool, with an
-animated hand doing each one; replay it from **?** › Help & features.
+animated hand doing each one; replay it from **?** › Help & features. Help also has a
+Process mode tour, a suggested order to learn the devices in, and a glossary of the terms
+the fabrication steps use.
 
 ## What it shows—and what it does not
 

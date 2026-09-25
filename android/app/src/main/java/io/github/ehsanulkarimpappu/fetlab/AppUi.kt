@@ -88,6 +88,7 @@ import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.selected
@@ -123,10 +124,13 @@ private val INV_KEYS = listOf("inv_fin" to "FinFET", "inv_ns" to "Nanosheet",
     "inv_fs" to "Forksheet", "inv_cfet" to "CFET", "inv_cmp" to "Compare")
 private val SHOW_KEYS = listOf("show_fin" to "FinFET", "show_ns" to "Nanosheet",
     "show_fs" to "Forksheet", "show_cfet" to "CFET", "show_cmp" to "Compare")
-/** Process-mode chips name a technology; the flow behind each is looked up at runtime. */
+/** Process-mode chips name a technology; the flow behind each is looked up at runtime.
+ *  The written device flows come first, then the patterning lessons (grouped under a label
+ *  from [LESSONS_FROM]), then the flows still being written. */
 private val PROC_KEYS = listOf("proc_fin" to "FinFET", "proc_ns" to "Nanosheet",
-    "proc_fs" to "Forksheet", "proc_cfet" to "CFET", "proc_sadp" to "SADP", "proc_saqp" to "SAQP",
-    "proc_pitchwalk" to "Pitch walk")
+    "proc_sadp" to "SADP", "proc_saqp" to "SAQP", "proc_pitchwalk" to "Pitch walk",
+    "proc_fs" to "Forksheet", "proc_cfet" to "CFET")
+private const val LESSONS_FROM = "proc_sadp"
 private val MODES = listOf("Device", "Inverter", "Layout", "Process")
 private const val PROCESS = 3
 private val TABS = listOf("Views", "Section", "Layers", "Specs", "Story")
@@ -313,7 +317,9 @@ fun FetLabApp(lib: Library, renderer: Renderer) {
     // Not saveable: the snapshot the tour restores from does not survive recreation either.
     var tourStep by remember { mutableIntStateOf(-1) }
     var welcomeSeen by remember { mutableStateOf(tourSeen(ctx)) }
-    val tourFocus = if (tourStep in catalog.tour.indices) catalog.tour[tourStep] else ""
+    // The main tour, or the Process mode tour.
+    var tourIds by remember { mutableStateOf(catalog.tour) }
+    val tourFocus = if (tourStep in tourIds.indices) tourIds[tourStep] else ""
     val tourTargets = remember { TourTargets() }
     val tourPlayer = remember { TourPlayer(tourTargets, scope, density.density) }
     var tourReturn by remember { mutableStateOf<TourReturn?>(null) }
@@ -518,7 +524,7 @@ fun FetLabApp(lib: Library, renderer: Renderer) {
         val before = old.parts.associateBy { it.id }
         // Moving between the tile and the single site is a zoom, not a process change.
         val rescale = old.step?.scale != sc.step?.scale
-        sceneKey = key; procAt[f.device] = n
+        sceneKey = key; if (tourStep < 0) procAt[f.device] = n
         renderer.scene = sc
         selected = null; renderer.highlight = null
         // With a section plane active, every step is seen in that plane where it has one.
@@ -650,18 +656,21 @@ fun FetLabApp(lib: Library, renderer: Renderer) {
 
     /* ------------------------------------------------ guided tour ------- */
 
-    fun startTour() {
+    fun startTour(ids: List<String> = catalog.tour) {
         if (!welcomeSeen) { markTourSeen(ctx); welcomeSeen = true }
         showHelp = false
+        tourIds = ids
         // The tour really switches scenes, turns the camera and cuts the model, so
         // remember what was on screen and put it all back when it ends.
         if (tourReturn == null) tourReturn = TourReturn(sceneKey, cfetSeq, cameraNow(), viewKey,
             tab, sheetLevel, parPick, selected,
             lib.scene(sceneKey).parts.associate { it.id to it.visible }, seeThrough)
+        playing = false
         tourStep = 0
     }
     fun exitTour() {
         tourStep = -1
+        secPlane = null; secMode = 0
         val r = tourReturn ?: return
         tourReturn = null
         flight?.cancel(); sceneSwitch?.cancel(); scrim = 0f
@@ -677,20 +686,22 @@ fun FetLabApp(lib: Library, renderer: Renderer) {
         setSeeThrough(r.see)
         draw()
     }
-    fun tourNext() { if (tourStep >= catalog.tour.lastIndex) exitTour() else tourStep++ }
+    fun tourNext() { if (tourStep >= tourIds.lastIndex) exitTour() else tourStep++ }
     fun tourBack() { if (tourStep > 0) tourStep-- }
     fun openFeature(s: GuideStop) {
         showHelp = false
         if (tourStep >= 0) exitTour()
+        // The Process mode features live on a process flow.
+        if (s.category == "Process mode" && mode != PROCESS) selectMode(PROCESS)
         if (s.tab >= 0) selectTab(s.tab) else sheetLevel = 0
     }
 
     // Each step is a short script for the hand. It runs once per step; the stage step
     // loops, because orbiting and pinching back and forth leave the model where it was.
     LaunchedEffect(tourStep) {
-        if (tourStep !in catalog.tour.indices) { tourPlayer.reset(); return@LaunchedEffect }
+        if (tourStep !in tourIds.indices) { tourPlayer.reset(); return@LaunchedEffect }
         tourPlayer.settle()       // the previous step may have been cut off mid-gesture
-        val id = catalog.tour[tourStep]
+        val id = tourIds[tourStep]
         if (catalog.stop(id).tab < 0) sheetLevel = 0
         with(tourPlayer) {
             // Lights the model between the card and the sheet as well as the sheet, so a
@@ -878,6 +889,68 @@ fun FetLabApp(lib: Library, renderer: Renderer) {
                     tap("about")          // only pointed at: opening About would cover the tour
                     hideHand()
                 }
+                // --- the Process mode tour, on the nanosheet flow ---
+                "p_stepper" -> {
+                    if (mode != PROCESS || techOf(sceneKey) != "ns") {
+                        switchScene(stepKey("ns", 0)); delay(700)
+                    }
+                    spot("procbar")
+                    repeat(2) {
+                        val f = lib.scene(sceneKey).flow ?: return@with
+                        val n = f.next(lib.scene(sceneKey).stepIndex, 1, showOps, routeIn(f)) ?: return@repeat
+                        tap("procbar:next") { goStep(n) }
+                        delay(1500)
+                    }
+                    hideHand()
+                }
+                "p_badge" -> {
+                    spot("procbar")
+                    tap("procbar") { selectTab(3) }
+                    delay(700)
+                    spot("sheet")
+                    delay(1400)
+                    hideHand()
+                }
+                "p_sites" -> {
+                    val f = lib.scene(sceneKey).flow
+                    spot("sitepill")
+                    val other = f?.sites?.firstOrNull { it.id != f.site }
+                    val back = f?.sites?.firstOrNull { it.id == f.site }
+                    if (other != null && back != null) {
+                        tap("site:${other.id}") { openSite(other.flow) }
+                        delay(1800)
+                        tap("site:${back.id}") { openSite(back.flow) }
+                    }
+                    hideHand()
+                }
+                "p_planes" -> {
+                    // The finished device, which has named section planes.
+                    val f = lib.scene(sceneKey).flow ?: return@with
+                    val at = f.steps.indices.lastOrNull { i ->
+                        !f.steps[i].isOp && f.onRoute(i, routeIn(f)) &&
+                            f.sections.any { it.views.containsKey(f.steps[i].scale) }
+                    }
+                    if (at != null && at != lib.scene(sceneKey).stepIndex) { goStep(at); delay(800) }
+                    spot("sheet")
+                    tap("tab:1") { selectTab(1) }
+                    delay(500)
+                    // The scene as it is now: showPlane and clearPlane read the one this step started on.
+                    val here = lib.scene(sceneKey)
+                    val pl = f.sections.firstOrNull { it.views.containsKey(here.step?.scale ?: "site") }
+                    if (pl != null) {
+                        tap("plane:0") {
+                            secPlane = pl.id; secMode = 2
+                            planeView(here)?.let { goToView(here, it, animate = true) }
+                        }
+                        delay(2600)
+                        tap("plane:0") {
+                            secPlane = null; secMode = 0
+                            (here.views.firstOrNull { it.key == here.step?.view } ?: here.views.firstOrNull())
+                                ?.let { goToView(here, it, animate = true) }
+                        }
+                    }
+                    hideHand()
+                }
             }
         }
     }
@@ -946,10 +1019,15 @@ fun FetLabApp(lib: Library, renderer: Renderer) {
                                  else sceneKey == k || (k == "cfet_mono" && sceneKey == "cfet_seq")
                     // A flow not written yet stays visible, dimmed, so the roadmap shows.
                     val ready = mode != PROCESS || flowFor(techOf(k)) != null
-                    Chip(if (ready) label else "$label · soon", active,
-                        Modifier.tourTarget("chip:$k").graphicsLayer { alpha = if (ready) 1f else 0.55f }) {
-                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                        selectChip(k)
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        if (mode == PROCESS && k == LESSONS_FROM) Text("LESSONS", fontFamily = Mono, fontSize = 10.sp,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(start = 6.dp, end = 10.dp).semantics { heading() })
+                        Chip(if (ready) label else "$label · soon", active,
+                            Modifier.tourTarget("chip:$k").graphicsLayer { alpha = if (ready) 1f else 0.55f }) {
+                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                            selectChip(k)
+                        }
                     }
                 }
             }
@@ -1054,14 +1132,23 @@ fun FetLabApp(lib: Library, renderer: Renderer) {
             if (showDims && scene.callouts.isNotEmpty())
                 CalloutOverlay(renderer, scene, viewKey, lightBg, bottomInset = stageInset)
 
-            if (!sectionUp) Text(scene.views.firstOrNull { it.key == viewKey }?.label ?: "",
-                style = MaterialTheme.typography.labelSmall, color = dim,
-                modifier = Modifier.align(Alignment.TopStart).padding(14.dp))
+            // In Process mode the device site (nFET, pFET or both) is picked on the stage itself,
+            // so it is never more than a tap away; the view's name sits under it.
+            val stageSites = scene.flow?.sites.orEmpty()
+            if (!sectionUp) Column(Modifier.align(Alignment.TopStart).padding(14.dp)) {
+                if (stageSites.isNotEmpty()) SitePill(scene.flow!!, glass, line, ink) { k ->
+                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                    openSite(k)
+                }
+                Text(scene.views.firstOrNull { it.key == viewKey }?.label ?: "",
+                    style = MaterialTheme.typography.labelSmall, color = dim,
+                    modifier = Modifier.padding(top = if (stageSites.isNotEmpty()) 6.dp else 0.dp))
+            }
 
             // Gestures are not discoverable, so say them once per scene and then get out of the way.
             var hint by remember(sceneKey) { mutableStateOf(true) }
             LaunchedEffect(sceneKey) { delay(4500); hint = false }
-            AnimatedVisibility(visible = hint && !sectionUp,
+            AnimatedVisibility(visible = hint && !sectionUp && stageSites.isEmpty(),
                 enter = fadeIn(tween(500)), exit = fadeOut(tween(700)),
                 modifier = Modifier.align(Alignment.TopEnd)) {
                 Text("drag to orbit · two fingers to pan · pinch to zoom · tap a layer",
@@ -1142,7 +1229,7 @@ fun FetLabApp(lib: Library, renderer: Renderer) {
                 val next = f?.next(sc.stepIndex, 1, showOps, routeIn(f))
                 if (f != null) ProcessBar(sc.step?.labelIn(routeIn(f)) ?: "", f.coreCount, sc.step?.title ?: "",
                     sc.step?.isOp == true, sc.step?.let { f.badge[it.match] } ?: "",
-                    sc.step?.let { it.match == "published" || it.match == "context" || it.match == "source" } == true, prev != null, next != null, playing,
+                    sc.step?.let { f.badge[it.match] == "Source stage" } == true, prev != null, next != null, playing,
                     glass, line, ink, dim,
                     onPrev = { playing = false; prev?.let { goStep(it) } },
                     onNext = { playing = false; next?.let { goStep(it) } },
@@ -1223,7 +1310,9 @@ fun FetLabApp(lib: Library, renderer: Renderer) {
                                 },
                                 onPick = { playing = false; goStep(it) }, onRef = { openUrl(it) },
                                 onSite = { openSite(it) },
-                                onCompare = { pl -> showPlane(pl, 2); sheetLevel = 1 })
+                                onCompare = { pl -> showPlane(pl, 2); sheetLevel = 1 },
+                                glossary = catalog,
+                                onDevice = if (sceneFor(0, techOf(sceneKey)) != null) ({ selectMode(0) }) else null)
                             else SpecsTab(scene, parPick, specsList) { t -> pickPar(t) }
                         }
                         else -> StoryTab(scene)
@@ -1329,9 +1418,9 @@ fun FetLabApp(lib: Library, renderer: Renderer) {
         // Glide across the screen between the two ends rather than jumping.
         val cardBias by animateFloatAsState(if (cardAtBottom) 1f else -1f,
             tween(480, easing = FastOutSlowInEasing), label = "tourCardBias")
-        if (tourStep in catalog.tour.indices) {
+        if (tourStep in tourIds.indices) {
             val stop = catalog.stop(tourFocus)
-            TourCard(stop, tourStep, catalog.tour.size,
+            TourCard(stop, tourStep, tourIds.size,
                 modifier = Modifier
                     .align(BiasAlignment(0f, cardBias))
                     .padding(16.dp)
@@ -1343,7 +1432,13 @@ fun FetLabApp(lib: Library, renderer: Renderer) {
             WelcomeGuide(onStart = { startTour() }, onSkip = { markTourSeen(ctx); welcomeSeen = true })
         if (showHelp)
             FeatureGuide(catalog, onOpen = { s -> openFeature(s) },
-                onTour = { startTour() }, onClose = { showHelp = false })
+                onTour = { startTour() }, onProcessTour = { startTour(catalog.processTour) },
+                onLearn = { l ->
+                    showHelp = false
+                    if (l.key == "process") selectMode(PROCESS) else switchScene(l.key)
+                    sheetLevel = 0
+                },
+                onClose = { showHelp = false })
     }
     }
 }
@@ -1611,7 +1706,16 @@ private fun ProcessBar(label: String, cores: Int, title: String, isOp: Boolean, 
                 // (a narrow phone, a large font), rather than shrinking or crowding the controls.
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                    Text((if (isOp) "OPERATION " else "STEP ") + "$label / $cores", color = dim,
+                    // An operation n.k is the k-th operation leading into core step n. Kept no
+                    // longer than the old "OPERATION n.k / N", so the badge never wraps and the
+                    // bar never grows taller over the model; TalkBack hears it in full.
+                    val core = label.substringBefore('.')
+                    val op = if (isOp && '.' in label) label.substringAfter('.') else null
+                    Text("STEP $core/$cores" + (op?.let { " · OP $it" } ?: ""),
+                        modifier = Modifier.semantics {
+                            contentDescription = "Step $core of $cores" + (op?.let { ", operation $it" } ?: "")
+                        },
+                        color = dim,
                         fontFamily = Mono, fontSize = 10.sp, maxLines = 1)
                     if (badge.isNotEmpty()) {
                         val tone = if (sourced) MaterialTheme.colorScheme.primary else dim
@@ -1629,7 +1733,7 @@ private fun ProcessBar(label: String, cores: Int, title: String, isOp: Boolean, 
             }
             BarIcon(if (playing) BarGlyph.Pause else BarGlyph.Play, true, ink, dim,
                 if (playing) "Pause" else "Play the steps", onPlay)
-            BarIcon(BarGlyph.Next, hasNext, ink, dim, "Next step", onNext)
+            BarIcon(BarGlyph.Next, hasNext, ink, dim, "Next step", onNext, Modifier.tourTarget("procbar:next"))
         }
     }
 }
@@ -1639,9 +1743,9 @@ private enum class BarGlyph { Back, Next, Play, Pause }
 /** Drawn rather than typed: the text arrows and play symbols can come out as emoji. */
 @Composable
 private fun BarIcon(glyph: BarGlyph, enabled: Boolean, ink: Color, dim: Color, label: String,
-                    onClick: () -> Unit) {
+                    onClick: () -> Unit, modifier: Modifier = Modifier) {
     val col = if (enabled) ink else dim.copy(alpha = 0.45f)
-    Box(Modifier.size(40.dp).clip(CircleShape)
+    Box(modifier.size(40.dp).clip(CircleShape)
         .clickable(enabled = enabled, role = Role.Button, onClickLabel = label, onClick = onClick)
         .semantics { contentDescription = label },
         contentAlignment = Alignment.Center) {
@@ -1716,6 +1820,26 @@ private fun FitTitle(text: String, color: Color) {
         })
 }
 
+/** The same choice as [SitePicker], as a compact pill on the stage. */
+@Composable
+private fun SitePill(flow: ProcessFlow, glass: Color, line: Color, ink: Color,
+                     onSite: (String) -> Unit) {
+    Surface(color = glass, shape = RoundedCornerShape(16.dp), border = BorderStroke(1.dp, line),
+        modifier = Modifier.tourTarget("sitepill")) {
+        Row(Modifier.padding(2.dp).selectableGroup()) {
+            for (s in flow.sites) {
+                val on = s.id == flow.site
+                Text(s.name, color = if (on) MaterialTheme.colorScheme.onPrimary else ink,
+                    fontFamily = PlexSans, fontSize = 12.sp, fontWeight = FontWeight.SemiBold,
+                    modifier = Modifier.tourTarget("site:${s.id}").clip(RoundedCornerShape(14.dp))
+                        .background(if (on) MaterialTheme.colorScheme.primary else Color.Transparent)
+                        .selectable(selected = on, role = Role.Tab) { if (!on) onSite(s.flow) }
+                        .padding(horizontal = 10.dp, vertical = 5.dp))
+            }
+        }
+    }
+}
+
 /** nFET, pFET or both sites: the technology's three flows, one of them on screen. */
 @Composable
 private fun SitePicker(flow: ProcessFlow, onSite: (String) -> Unit) {
@@ -1731,6 +1855,30 @@ private fun SitePicker(flow: ProcessFlow, onSite: (String) -> Unit) {
         }, fontFamily = PlexSans, fontSize = 11.5f.sp, lineHeight = 16.sp,
             color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(top = 6.dp))
     }
+}
+
+/** The glossary terms a step's text and notes use, as small chips; one tapped opens its definition. */
+@Composable
+@OptIn(ExperimentalLayoutApi::class)
+private fun StepTerms(glossary: GuideCatalog, st: ProcessStep) {
+    val terms = remember(st.id) { glossary.termsIn((listOf(st.body) + st.subs).joinToString(" ")) }
+    if (terms.isEmpty()) return
+    var open by remember(st.id) { mutableStateOf<String?>(null) }
+    FlowRow(Modifier.fillMaxWidth().padding(top = 6.dp), horizontalArrangement = Arrangement.spacedBy(5.dp),
+        verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        for (t in terms) {
+            val on = open == t.term
+            Text(t.term, fontFamily = PlexSans, fontSize = 11.5f.sp,
+                color = if (on) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.primary,
+                modifier = Modifier.clip(RoundedCornerShape(8.dp))
+                    .background(if (on) MaterialTheme.colorScheme.primaryContainer else Color.Transparent)
+                    .border(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.45f), RoundedCornerShape(8.dp))
+                    .clickable(role = Role.Button, onClickLabel = "define ${t.name}") { open = if (on) null else t.term }
+                    .semantics { this.selected = on }
+                    .padding(horizontal = 7.dp, vertical = 3.dp))
+        }
+    }
+    terms.firstOrNull { it.term == open }?.let { GlossRow(it, Modifier.padding(top = 4.dp)) }
 }
 
 /** What each region is doing at this step: processed, masked, or not yet reached. */
@@ -1781,7 +1929,7 @@ private fun RoutePicker(flow: ProcessFlow, here: String, onRoute: (String) -> Un
 private fun StepsTab(lib: Library, flow: ProcessFlow, index: Int, list: LazyListState,
                      showOps: Boolean, route: String, onOps: (Boolean) -> Unit, onRoute: (String) -> Unit,
                      onPick: (Int) -> Unit, onRef: (String) -> Unit, onCompare: (SectionPlane) -> Unit,
-                     onSite: (String) -> Unit) {
+                     onSite: (String) -> Unit, glossary: GuideCatalog, onDevice: (() -> Unit)?) {
     val here = flow.routeOr(route)
     // Keep the current step in view as the stepper or play moves it.
     LaunchedEffect(index) { list.animateScrollToItem(index + 1, scrollOffset = -24) }
@@ -1836,9 +1984,15 @@ private fun StepsTab(lib: Library, flow: ProcessFlow, index: Int, list: LazyList
                         Column(Modifier.padding(start = 34.dp, top = 5.dp)) {
                             Text(st.body, fontFamily = PlexSans, fontSize = 12.5f.sp, lineHeight = 18.sp,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            StepTerms(glossary, st)
                             RegionLine(st)
                             StepSource(flow, st)
                             CompareBlock(flow, st, onCompare)
+                            // The finished device is the Device mode model: one tap to explore it there.
+                            if (onDevice != null && st.id.endsWith("done"))
+                                OutlinedButton(onClick = onDevice, modifier = Modifier.padding(top = 8.dp)) {
+                                    Text("Open in Device mode", fontFamily = PlexSans, fontSize = 12.5f.sp)
+                                }
                         }
                     }
                 }
@@ -2012,6 +2166,7 @@ private fun LayersTab(lib: Library, scene: Scene, tick: Int, list: LazyListState
                 HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant,
                     modifier = Modifier.padding(top = 6.dp))
             }
+            item(key = "_legend") { MaterialLegend(lib, scene) }
             grouped.forEachIndexed { gi, (g, parts) ->
                 item(key = "h_$g") {
                     val groupOn = parts.any { it.visible }
@@ -2036,6 +2191,53 @@ private fun LayersTab(lib: Library, scene: Scene, tick: Int, list: LazyListState
                 }
             }
         }
+    }
+}
+
+/** The materials this scene draws, colour by colour; one tapped says what it stands for. */
+@Composable
+@OptIn(ExperimentalLayoutApi::class)
+private fun MaterialLegend(lib: Library, scene: Scene) {
+    val mats = remember(scene) { scene.parts.map { it.material }.distinct().mapNotNull { lib.materials[it] } }
+    if (mats.isEmpty()) return
+    var open by rememberSaveable { mutableStateOf(false) }
+    var pick by remember(scene) { mutableStateOf<String?>(null) }
+    Column(Modifier.fillMaxWidth().padding(top = 4.dp)) {
+        Row(Modifier.fillMaxWidth().heightIn(min = 36.dp).clip(RoundedCornerShape(10.dp))
+            .toggleable(value = open, role = Role.Switch) { open = it }.padding(horizontal = 4.dp),
+            verticalAlignment = Alignment.CenterVertically) {
+            Text("Material key · ${mats.size}", style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant)
+            // The colours at a glance, even while the key is closed.
+            Row(Modifier.weight(1f).padding(start = 8.dp), horizontalArrangement = Arrangement.spacedBy(3.dp)) {
+                for (m in mats.take(14)) Box(Modifier.size(9.dp).clip(RoundedCornerShape(2.dp))
+                    .background(matColor(lib, m.key)))
+            }
+            Text(if (open) "Hide" else "Show", fontFamily = Mono, fontSize = 10.5f.sp,
+                color = MaterialTheme.colorScheme.primary)
+        }
+        AnimatedVisibility(visible = open) {
+            Column {
+                FlowRow(Modifier.fillMaxWidth().padding(horizontal = 4.dp),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                    for (m in mats) Row(Modifier.heightIn(min = 30.dp).clip(RoundedCornerShape(8.dp))
+                        .clickable(role = Role.Button) { pick = if (pick == m.key) null else m.key }
+                        .semantics { this.selected = pick == m.key }
+                        .padding(horizontal = 2.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Box(Modifier.size(11.dp).clip(RoundedCornerShape(3.dp)).background(matColor(lib, m.key)))
+                        Text(m.label, fontFamily = PlexSans, fontSize = 12.sp,
+                            fontWeight = if (pick == m.key) FontWeight.SemiBold else FontWeight.Normal,
+                            color = MaterialTheme.colorScheme.onSurface, modifier = Modifier.padding(start = 6.dp))
+                    }
+                }
+                mats.firstOrNull { it.key == pick }?.let {
+                    Text(it.note, fontFamily = PlexSans, fontSize = 11.5f.sp, lineHeight = 16.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(start = 4.dp, end = 4.dp, top = 4.dp))
+                }
+            }
+        }
+        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant, modifier = Modifier.padding(top = 4.dp))
     }
 }
 

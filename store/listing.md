@@ -46,7 +46,8 @@ or a 3D field-solver extraction. Read the model notes and linked Technical refer
 
 BUILT FOR STUDYING
 
-Orbit, pan, zoom, identify layers and follow the optional guided tour. Replay it from Help.
+Orbit, pan, zoom, identify layers and follow the optional guided tour. Replay it from Help,
+which also has a Process mode tour, a suggested learning order and a glossary.
 Each scene keeps its cuts and hidden layers while you switch between architectures.
 The Android app works offline and requests no internet permission. It stores two local
 display preferences, with no analytics or personal-data collection. Reference and

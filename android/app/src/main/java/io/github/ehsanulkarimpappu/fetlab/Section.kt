@@ -220,7 +220,7 @@ fun PlanesBlock(lib: Library, sc: Scene, planes: List<SectionPlane>, planeId: St
     SectionLabel("SECTION PLANES")
     FlowRow(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(5.dp),
         verticalArrangement = Arrangement.spacedBy(5.dp)) {
-        for (p in planes) Chip(p.short, p.id == planeId) { onPlane(p) }
+        for ((i, p) in planes.withIndex()) Chip(p.short, p.id == planeId, Modifier.tourTarget("plane:$i")) { onPlane(p) }
     }
     val pl = planes.firstOrNull { it.id == planeId }
     Row(Modifier.fillMaxWidth().padding(top = 5.dp), horizontalArrangement = Arrangement.spacedBy(5.dp)) {

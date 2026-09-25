@@ -53,7 +53,8 @@ reads, so regenerating the geometry updates both.
   from the scene's own boxes), shown in the Steps and Section tabs and audited in
   `docs/PROCESS_AUDIT.md`.
 - A first-launch **guided tour** (spotlight plus an animated hand that performs each
-  gesture) and a searchable feature list, both under **?** in the header.
+  gesture) and a searchable feature list, both under **?** in the header, with a second
+  tour for Process mode, a "learn in order" path and a glossary.
 - Light or dark follows the system setting.
 
 Gestures: one finger orbits, two fingers pan and pinch-zoom, a tap identifies the layer
@@ -65,7 +66,8 @@ under your finger.
 Scene.kt      data model + the devices.json parser (org.json, no dependency)
 Renderer.kt   GLSurfaceView.Renderer — shaders, VBOs, section caps, ray picking, logic shading
 AppUi.kt      all Compose UI: header, chips, GL stage, overlays, control panel tabs
-Guide.kt      guided tour (spotlight, hand, card), feature list, tour targets, guide.json parser
+Guide.kt      guided tours (spotlight, hand, card), feature list, glossary, learning path,
+              tour targets, guide.json parser
 Story.kt      the Story tab's text blocks
 Theme.kt      Material 3 colour schemes and type
 AppInfo.kt    name, developer, links and attributions in one place
