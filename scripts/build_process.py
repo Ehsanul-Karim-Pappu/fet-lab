@@ -2953,7 +2953,9 @@ def flow_fin_pair(done):
 
 
 FLOWS = {"ns": flow_ns, "fin": flow_fin, "sadp": lesson("sadp"), "saqp": lesson("saqp"), "pitchwalk": flow_pitchwalk,
-         "ns_p": flow_ns_p_all, "ns_pair": flow_ns_pair, "fin_p": flow_fin_p_all, "fin_pair": flow_fin_pair}
+         "ns_p": flow_ns_p_all, "ns_pair": flow_ns_pair, "fin_p": flow_fin_p_all, "fin_pair": flow_fin_pair,
+         # The Si/Si CMOS design's lesson: a separate route (scripts/build_nssi.py), not a branch of these.
+         "ns~si": lambda done: __import__("build_nssi").flow(done)}
 
 
 def audit(key, dev, flow, refs):
@@ -3279,13 +3281,15 @@ def main():
     docs = []
     for key, fn in FLOWS.items():
         dev, steps, extra = fn(out)
-        if any(st["figs"] for st in steps):
+        if any(st["figs"] for st in steps) and key != "ns~si":        # its own views; no patent planes
             whole = dict(extra, steps=steps)
             attach_sections(key, whole, dev)
             extra["sections"] = whole["sections"]
         if key in ("ns", "ns_p", "ns_pair"):
-            # The Si/SiGe CMOS channel design's lesson; the Si/Si one is in development.
+            # The two channel designs' lessons, each named with its own source.
             extra["lesson_label"] = "Si/SiGe CMOS · Patent-based example: US 12,568,683 B2"
+        if key == "ns~si":
+            extra["lesson_label"] = "Si/Si CMOS · Patent-application example: US 2023/0178617 A1"
         out[key] = dict(extra, steps=steps, badge={k: BADGE[k] for k in extra["match"]},
                         badge_note={BADGE[k]: BADGE_NOTE[BADGE[k]] for k in extra["match"]})
         docs.append(audit(key, dev, out[key], refs))

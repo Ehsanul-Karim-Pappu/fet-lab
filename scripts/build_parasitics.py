@@ -21,7 +21,7 @@ W_DEP = 5.0                      # junction depletion width, nm — an assumptio
 
 # Relative permittivity. Conductors get None and are never used as a gap filler.
 EPS_R = {
-    "sio2": 3.9, "si3n4": 7.5, "highk": 22.0, "silicon": 11.7, "pts": 11.7, "pts_n": 11.7, "sige": 13.0,
+    "sio2": 3.9, "si3n4": 7.5, "highk": 22.0, "silicon": 11.7, "pts": 11.7, "pts_n": 11.7, "sige": 13.0, "siu": 11.7, "sic": 9.7,
     "mdi": 4.2, "bond": 3.9, "wall": 7.5,
     "mo": None, "tin": None, "nwf": None, "tungsten": None, "cobalt": None, "tisi": None,
 }
@@ -144,7 +144,7 @@ def analyse(dev):
     ids = lambda pred: [q["id"] for q in dev["parts"] if pred(q)]
     P_GATE = lambda q: q["material"] in ("mo", "tin", "nwf") or bare(q["id"]) == "gatew"
     P_MET  = lambda q: sd(q) and q["material"] in ("tisi", "cobalt", "tungsten")
-    P_EPI  = lambda q: sd(q) and q["material"] in ("silicon", "sige")
+    P_EPI  = lambda q: sd(q) and q["material"] in ("silicon", "sige", "sic", "siu")
     P_CH   = lambda q: bare(q["id"]).startswith(("sheet", "psheet", "fin")) and q["material"] in ("silicon", "sige")
     P_BODY = lambda q: bare(q["id"]) == "substrate" or q["id"].endswith("well") or bare(q["id"]) == "pts_n"
     P_IL   = lambda q: q["material"] == "sio2" and bare(q["id"]).startswith(("il", "pil"))
@@ -155,7 +155,7 @@ def analyse(dev):
     chan    = boxes_of(dev, P_CH)
     body    = boxes_of(dev, P_BODY)
     metal   = boxes_of(dev, lambda p: sd(p) and p["material"] in ("tisi", "cobalt", "tungsten"))
-    epi     = boxes_of(dev, lambda p: sd(p) and p["material"] in ("silicon", "sige"))
+    epi     = boxes_of(dev, P_EPI)
     side    = lambda bxs, s: [b for b in bxs if ((b[0] + b[1]) / 2) * s > 0]
 
     Y, Z = grid(dev)

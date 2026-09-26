@@ -387,7 +387,7 @@ class ContentTests(unittest.TestCase):
     def test_references_and_scope(self):
         ids = [r['id'] for r in self.refs['sources']]
         self.assertEqual(len(ids), len(set(ids)))
-        self.assertEqual(len(ids), 27)
+        self.assertEqual(len(ids), 28)
         for ref in self.refs['sources']:
             self.assertTrue(ref['url'].startswith('https://'))
             self.assertTrue(ref['supports'])
@@ -480,9 +480,15 @@ class ContentTests(unittest.TestCase):
                                     p['group'].endswith('Gate-all-around films') and p['material'] in ('nwf', 'tin')}
                     self.assertEqual(wf('n'), {'nwf'}); self.assertEqual(wf('p'), {'tin'})
                     epi = lambda k: {p['material'] for p in sc['parts'] if p['id'].startswith(k + '_epi_')}
-                    self.assertEqual(epi('n'), {'silicon'}); self.assertEqual(epi('p'), {'sige'})
+                    self.assertEqual(epi('n'), {'silicon'} if design == 'sige' else {'sic'})
+                    self.assertEqual(epi('p'), {'sige'})
+                    if design == 'si':
+                        # the route's undoped Si growth region under each source/drain, and the seed
+                        for k in ('n', 'p'):
+                            self.assertIn(f'{k}_seed', ids)
+                            for T in ('source', 'drain'): self.assertEqual(ids[f'{k}_undoped_{T}']['material'], 'siu')
                     # one shared gate, no cut, one gate contact
-                    self.assertIn('b_mo', ids); self.assertNotIn('p_gatew', ids)
+                    self.assertTrue('b_mo' in ids or 'gate_mo' in ids); self.assertNotIn('p_gatew', ids)
                     self.assertFalse(any('cut' in p['group'].lower() for p in sc['parts']))
                     # dielectric between every channel and the gate metal: the IL touches each sheet
                     for p in sc['parts']:
@@ -544,6 +550,73 @@ class ContentTests(unittest.TestCase):
             self.assertEqual(mats(parts, pre), mats(dev['parts'], pre), pre)
         for k in ('ns', 'ns_p', 'ns_pair'):
             self.assertIn('US 12,568,683 B2', flows[k]['lesson_label'])
+
+    def test_si_lesson_follows_its_route(self):
+        """The Si/Si lesson (US 2023/0178617 A1): Si sheets in every step once formed; the Ge-rich
+        layer until it is removed, then bottom isolation under both devices; the lower-Ge SiGe until
+        channel release; undoped Si before the source/drain; the pFET source/drain grown with the
+        nFET protected, then the nFET's with the pFET protected; and none of the Si/SiGe route's own
+        steps. Its last two frames are the Si/Si Device and Inverter scenes, part for part."""
+        flows = json.loads((ROOT / 'data/process.json').read_text())['flows']
+        devs = {d['key']: d for d in self.data['devices']}
+        f = flows['ns~si']
+        final = {p['id']: p for p in f['final']}
+        steps = f['steps']
+        ids = [s['id'] for s in steps]
+        order = ['stack', 'lines', 'sti', 'dummy', 'spacers', 'recess', 'indent', 'inner', 'undoped',
+                 'cavity', 'bdi', 'p_sd', 'n_sd', 'ild', 'pull', 'release', 'hk', 'wfm', 'gate', 'contacts',
+                 'done', 'wiring']
+        self.assertEqual([i for i in ids if i in order], order)
+        at = {s['id']: n for n, s in enumerate(steps)}
+        here = lambda s: {(p if isinstance(p, str) else p['id']) for p in s['parts']}
+        mats = lambda s: {(p if isinstance(p, str) else p['id']):
+                          (final[p] if isinstance(p, str) else p)['material'] for p in s['parts']}
+        for n, s in enumerate(steps):
+            h, m = here(s), mats(s)
+            if n >= at['stack']:
+                # three Si layers per device, always Si: first blanket, then per line, then the sheets
+                si = [i for i in h if m[i] == 'silicon' and ('sheet' in i or '_tsi' in i or i.startswith('t_si'))]
+                self.assertTrue(len(si) in (3, 6), (s['id'], si))
+            rich = {i for i in h if m[i] == 'sige' and 'Ge-rich' in ((final.get(i) or next(p for p in s['parts'] if not isinstance(p, str) and p['id'] == i))['name'])}
+            self.assertEqual(bool(rich), at['stack'] <= n < at['cavity'], s['id'])
+            self.assertEqual({'n_bdi', 'p_bdi'} <= h, n >= at['bdi'], s['id'])
+            low = {i for i in h if 'lower Ge' in ((final.get(i) or next(p for p in s['parts'] if not isinstance(p, str) and p['id'] == i))['name'])}
+            self.assertEqual(bool(low), at['stack'] <= n < at['release'], s['id'])
+            if n >= at['undoped']: self.assertTrue({'n_undoped_source', 'p_undoped_drain'} <= h)
+            if n < at['undoped']: self.assertFalse(any('undoped' in i for i in h))
+            # channels never turn into SiGe
+            for i in h:
+                if 'sheet' in i: self.assertEqual(m[i], 'silicon', (s['id'], i))
+        mask = lambda s: next((p['name'] for p in s['parts'] if isinstance(p, dict) and p['id'] == 't_liner'), '')
+        self.assertIn('nFET region', mask(steps[at['p_sd']]))
+        self.assertIn('pFET region', mask(steps[at['n_sd']]))
+        self.assertIn('p_epi_source', here(steps[at['p_sd']])); self.assertNotIn('n_epi_source', here(steps[at['p_sd']]))
+        # the other route's steps are not borrowed
+        for sid in ('p_release', 'p_chopen', 'bottom', 'pts_nmask'): self.assertNotIn(sid, ids)
+        # last frames = the Si/Si Device and Inverter scenes
+        sig = lambda parts: sorted((p['id'], p['material'], json.dumps(p['boxes'])) for p in parts)
+        done = [final[p] for p in steps[at['done']]['parts']]
+        self.assertEqual(sig(done), sig(devs['ns~si']['parts']))
+        wired = [final[p] for p in steps[-1]['parts']]
+        self.assertEqual(sig(wired), sig(devs['inv_ns~si']['parts']))
+        self.assertIn('US 2023/0178617 A1', f['lesson_label'])
+        self.assertIn('R28', f['refs'])
+        r28 = next(r for r in self.refs['sources'] if r['id'] == 'R28')
+        self.assertIn('Nanosheet epitaxy with full bottom isolation', r28['title'])
+        self.assertIn('Figs. 2–52', r28['supports'])
+        # the Si/Si scenes cite R28, not the unverified R15 note
+        for k in ('ns~si', 'inv_ns~si'):
+            self.assertIn('R28', devs[k]['note']); self.assertNotIn('R15', devs[k]['note'])
+
+    def test_each_design_has_its_lesson(self):
+        """The app opens "ns" for Si/SiGe and "ns~si" for Si/Si, and nothing says a lesson is
+        still in development."""
+        flows = json.loads((ROOT / 'data/process.json').read_text())['flows']
+        self.assertIn('ns', flows); self.assertIn('ns~si', flows)
+        src = (ROOT / 'android/app/src/main/java/io/github/ehsanulkarimpappu/fetlab/AppUi.kt').read_text()
+        self.assertIn('if (tech == "ns" && design == "si") "ns~si"', src)
+        self.assertNotIn('in development', src)
+        self.assertNotIn('in development', (ROOT / 'data/guide.json').read_text())
 
     def test_design_keys_match_the_app(self):
         """The app resolves its nanosheet chips to "<chip>~<design>[~x]", saves the design and the

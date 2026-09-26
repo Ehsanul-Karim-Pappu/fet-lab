@@ -70,17 +70,16 @@ def p_device(design, stack, exploded):
     return d
 
 
-def compose(design, exploded, wired):
-    stack = stack_of(exploded)
+def sige_pair(design, exploded, wired, stack):
+    """The Si/SiGe pair: the Process flows' own finished nFET and pFET, side by side on one gate."""
     nd, pd = n_device(design, stack), p_device(design, stack, exploded)
     P = {p["id"]: p for p in nd.parts}
     zsub = lim(P["substrate"]["boxes"][0])[5]
     dz = 2 * zsub                                    # the two cells abut
     cap = lim(P["gatecap"]["boxes"][0]); ymo, ycap, hzmo = cap[1], cap[4], cap[5]
     ym2 = lim(P["w_drain"]["boxes"][0])[4]
-    key = ("inv_" if wired else "") + f"ns~{design}" + ("~x" if exploded else "")
-    d = bd.Dev(key, "Nanosheet inverter" if wired else "Nanosheet CMOS pair",
-               DESIGNS[design] + (" · exploded gate view (not to scale)" if exploded else " · compact geometry"), "")
+    key, name, tag = scene_names(design, exploded, wired)
+    d = bd.Dev(key, name, tag, "")
     who = dict(n="nFET", p="pFET")
 
     def net(k, p):
@@ -138,6 +137,24 @@ def compose(design, exploded, wired):
         d.logic = True
 
     d.finish()
+    return d, dz, 2 * lim(P["sheet1"]["boxes"][0])[5]
+
+
+def scene_names(design, exploded, wired):
+    key = ("inv_" if wired else "") + f"ns~{design}" + ("~x" if exploded else "")
+    return (key, "Nanosheet inverter" if wired else "Nanosheet CMOS pair",
+            DESIGNS[design] + (" · exploded gate view (not to scale)" if exploded else " · compact geometry"))
+
+
+def compose(design, exploded, wired):
+    stack = stack_of(exploded)
+    if design == "si":
+        # The Si/Si pair is its lesson's own finished structure (scripts/build_nssi.py).
+        import build_nssi as nssi
+        d, _ = nssi.si_device(stack, wired, *scene_names(design, exploded, wired))
+        dz, wsh = nssi.DZ, 2 * nssi.HZ
+    else:
+        d, dz, wsh = sige_pair(design, exploded, wired, stack)
     B = d.bounds
     ctr = [(B["x"][0] + B["x"][1]) / 2, (B["y"][0] + B["y"][1]) / 2, (B["z"][0] + B["z"][1]) / 2]
     R = 2.3 * max(B["x"][1] - B["x"][0], B["y"][1] - B["y"][0], B["z"][1] - B["z"][0])
@@ -170,16 +187,19 @@ def compose(design, exploded, wired):
         ["Pitch", "Vertical pitch = sheet thickness + clear gap" + enl, f"{pitch:g} nm"],
         ["Stagger", "pFET sheets relative to the nFET's",
          f"{off:g} nm lower (half a pitch)" if design == "sige" else "same heights"],
-        ["BDI", "Bottom dielectric isolation", "under the nFET only" if design == "sige" else "under both devices"],
+        ["BDI", "Bottom dielectric isolation", "under the nFET only" if design == "sige" else
+         "under both devices, where a Ge-rich layer was"],
         ["WFM", "Work-function metal", "n-type (nFET) · TiN (pFET)"],
         ["S/D", "Source/drain epitaxy",
-         "Si:P (nFET) · SiGe:B, also from the sub-fin (pFET)" if design == "sige" else "Si:P (nFET) · SiGe:B (pFET)"],
+         "Si:P (nFET) · SiGe:B, also from the sub-fin (pFET)" if design == "sige" else
+         "SiC:P (nFET) · SiGe:B (pFET), each on an undoped Si region"],
         ["Gate", "Gate arrangement", "one shared gate, no gate cut"],
         ["L_G", "Physical gate length", f"{bd.LG:g} nm"],
-        ["W_sh", "Sheet width", f"{2 * lim(P['sheet1']['boxes'][0])[5]:g} nm"],
+        ["W_sh", "Sheet width", f"{wsh:g} nm"],
         ["EOT", "Equivalent oxide thickness of the drawn films" + enl, f"{eot:g} nm"],
         ["—", "These numbers", "the model's illustrative choices" + (", not the patent's" if design == "sige" else "")],
     ]
+    if design == "si": d.dims.insert(8, ["Seed", "Si seed layer under each stack, on the isolation", "2 nm"])
     if wired: d.dims.append(["Nets", "V_DD · V_SS · IN · OUT", "4"])
     if exploded: d.dims.append(["—", "Capacitance estimates", "shown with Exploded gate view off"])
 
@@ -194,13 +214,15 @@ def compose(design, exploded, wired):
                 "foundry flow; the thicknesses are the model's illustrative choices, not the patent's. The "
                 "Process lesson ends on these same two devices.")
     else:
-        body = ("<b>Si/Si CMOS: a generic example.</b> Si nanosheet channels in both devices, at the same "
-                "heights: a stack of Si layers between sacrificial SiGe layers, with the SiGe removed at channel "
-                "release in both [R1]. This is a separate nanosheet CMOS approach, not the finished state of the "
-                "Si/SiGe lesson. Bottom dielectric isolation is drawn under both devices, the full-isolation "
-                "scheme IBM compared with a punch-through stopper [R15]; its thicknesses and materials here are "
-                "illustrative and were not checked against that paper. Each device has its own work-function "
-                "metal on one shared gate. Its fabrication lesson is in development.")
+        body = ("<b>Si/Si CMOS: the full-bottom-isolation example.</b> Si nanosheet channels in both "
+                "devices, at the same heights, after the example route of IBM's application US 2023/0178617 A1 "
+                "[R28]: a Ge-rich bottom layer, a Si seed and Si layers between lower-Ge SiGe; the Ge-rich layer "
+                "replaced by bottom dielectric isolation under both devices; undoped Si grown in each "
+                "source/drain opening from the seed, under a SiGe:B (pFET) or SiC:P (nFET) source/drain; the "
+                "SiGe removed at channel release in both. A separate route from the Si/SiGe lesson's, not its "
+                "finished state. Each device has its own work-function metal on one shared gate. One example, "
+                "not a production foundry flow; the thicknesses are the model's illustrative choices. The "
+                "Process lesson ends on these same two devices.")
     if exploded:
         body += (" <b>Exploded gate view: schematic enlargement; dimensions are not to scale.</b> The gaps "
                  f"between sheets are drawn {gap:g} nm and the films {stack['til']:g}/{stack['thk']:g}/"

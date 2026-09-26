@@ -25,7 +25,7 @@
       "id": "design",
       "category": "The 3D view",
       "title": "Channel design and exploded gate view",
-      "body": "Nanosheet scenes come in two CMOS designs, picked on the stage and kept across Device, Inverter and Process: Si/SiGe CMOS (Si nFET and SiGe pFET sheets from one stack, the patent-based example the Process lesson follows) and Si/Si CMOS (Si sheets in both; its fabrication lesson is in development). In Device and Inverter, Exploded gate view enlarges the gaps and gate films so each can be seen and tapped. It is a schematic enlargement, not to scale, and changes neither the materials nor the connections.",
+      "body": "Nanosheet scenes come in two CMOS designs, picked on the stage and kept across Device, Inverter and Process, each with its own fabrication lesson: Si/SiGe CMOS (Si nFET and SiGe pFET sheets from one stack, after patent US 12,568,683 B2) and Si/Si CMOS (Si sheets in both, full bottom isolation, after application US 2023/0178617 A1). In Device and Inverter, Exploded gate view enlarges the gaps and gate films so each can be seen and tapped. It is a schematic enlargement, not to scale, and changes neither the materials nor the connections.",
       "gesture": "tap"
     },
     {

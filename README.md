@@ -55,8 +55,9 @@ the fabrication steps use.
 - FinFET: a tri-gate example with discrete fin-count sizing.
 - Nanosheet FET: gate-all-around channels with adjustable sheet width, as a CMOS pair in two
   channel designs, picked on the stage and shared by Device, Inverter and Process: **Si/SiGe CMOS**
-  (Si nFET and SiGe pFET sheets from one stack, the patent-based example the Process lesson
-  follows) and **Si/Si CMOS** (Si sheets in both; its fabrication lesson is in development). An
+  (Si nFET and SiGe pFET sheets from one stack, after patent US 12,568,683 B2) and **Si/Si CMOS**
+  (Si sheets in both with full bottom isolation, after application US 2023/0178617 A1), each with
+  its own Process lesson ending on the Device and Inverter scenes. An
   **Exploded gate view** enlarges the gaps and gate films for inspection, marked not to scale.
 - Forksheet: the classic inner-wall arrangement, not the later outer-wall variant.
 - CFET: a stacked nFET/pFET pair, with monolithic and sequential examples.

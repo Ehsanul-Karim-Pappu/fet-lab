@@ -18,6 +18,8 @@ MAT = {
  "highk":   dict(label="Hafnium dioxide (HfO₂)", color="#BE8250", note="Illustrative high-k gate dielectric; relative permittivity 22 is a model assumption"),
  "si3n4":   dict(label="Si₃N₄",              color="#E4AE1B", note="Gate spacers"),
  "wall":    dict(label="Dielectric wall",    color="#7A8AA0", note="SiN n–p separation wall (forksheet)"),
+ "siu":     dict(label="Undoped Si (growth region)", color="#D8C3CB", note="Undoped Si grown in the source/drain openings from the seed layer, under the doped source/drain (Si/Si CMOS route, R28)"),
+ "sic":     dict(label="SiC:P (n-type source/drain)", color="#EFB7A6", note="Phosphorus-doped SiC epitaxy, one n-type source/drain example R28 gives; composition and doping illustrative"),
  "cellmark":dict(label="Cell boundary",      color="#5C6B80", note="Drawing marker for the standard cell's edge; not a material"),
  "mdi":     dict(label="Middle-tier dielectric", color="#4E7F8C", note="Isolation role, not a specified compound; relative permittivity 4.2 assumed"),
  "bond":    dict(label="Bonding oxide",      color="#8FB6C0", note="Wafer-bond interface (sequential CFET)"),
@@ -49,7 +51,7 @@ MAT = {
  "vg":      dict(label="VG",                 color="#F5E93B", note="Via, gate to Metal 0"),
  "m0":      dict(label="Metal 0",            color="#F2C1A2", note="First routing level"),
 }
-ORDER = ["silicon","sige","sio2","highk","si3n4","wall","cellmark","mdi","bond",
+ORDER = ["silicon","siu","sic","sige","sio2","highk","si3n4","wall","cellmark","mdi","bond",
          "nwf","tin","mo","tisi","cobalt","tungsten","poly","ild","pts","pts_n","resist","resist_exp","chrome","liner","mandrel","mandrel2","patspacer",
          "pwell","nwell","fox","nanowire","md","po","vd","vg","m0"]
 

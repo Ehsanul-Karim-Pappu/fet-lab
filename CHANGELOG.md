@@ -23,12 +23,23 @@ named CMOS designs, and the app never switches between them silently.
   - Each device has its own work-function metal on one shared gate, with no gate cut.
   - These are the Process flows' own finished nFET and pFET, so the Process lesson's
     shared-gate ending is exactly the Device scene. A test checks this part for part.
-- **Si/Si CMOS**, a generic example:
-  - Si sheets in both devices, at the same heights, with bottom dielectric isolation under both
-    (the full-isolation scheme of R15; details not checked against the paper).
-  - Its own TiN pFET work-function metal and SiGe:B source/drain.
-  - Its fabrication lesson is **in development**: the Process chip says so and does not open,
-    and choosing Si/Si on a Process scene shows the Si/Si device instead, with a message.
+- **Si/Si CMOS**, the full-bottom-isolation example (IBM application US 2023/0178617 A1,
+  "Nanosheet epitaxy with full bottom isolation", Figs. 2–52, new reference R28):
+  - Si sheets in both devices, at the same heights, on a Si seed layer, with bottom dielectric
+    isolation under both where a Ge-rich sacrificial layer was.
+  - An undoped Si growth region in each source/drain opening, under a SiGe:B (pFET) or SiC:P
+    (nFET) source/drain; its own TiN pFET work-function metal.
+  - **Its own 23-step fabrication lesson**, opened by the Process chip when Si/Si is chosen:
+    - stack and lines, STI, sacrificial gates and spacers;
+    - the source/drain recess to the seed, SiGe indent, inner spacers and undoped Si growth;
+    - the Ge-rich layer removed and replaced by bottom isolation under both devices;
+    - the pFET source/drain with the nFET protected, then the nFET's with the pFET protected;
+    - ILD, gate removal, channel release in both devices, gate dielectric, separate
+      work-function metals and the gate fill;
+    - contacts, then inverter wiring as the lesson's educational completion.
+    - Its last two frames are the Si/Si Device and Inverter scenes, part for part (tested).
+    - None of the Si/SiGe route's isolation or channel-release steps are reused.
+  - Choosing a design on a nanosheet Process scene opens that design's lesson.
 - **Device mode** now shows the nanosheet as an nFET + pFET pair on a shared gate, like the
   forksheet and CFET. **Inverter mode** wires the same pair: IN on the shared gate, V_DD to the
   pFET source, V_SS to the nFET source, both drains to OUT (four nets, tested).

@@ -58,6 +58,8 @@ References support device concepts, not this model's exact dimensions, complete 
 
 - **R27** [Bulk finFET with punchthrough stopper region and method of fabrication (US 9,082,853 B2)](https://patents.google.com/patent/US9082853B2/en) — US patent. A punch-through stopper in the lower fin, including an option where dopant is supplied from an STI liner and diffused by anneal: why STI between fins does not by itself control leakage beneath the channel. One separately disclosed option, not a step of R24's route.
 
+- **R28** [Nanosheet epitaxy with full bottom isolation (US 2023/0178617 A1)](https://patents.google.com/patent/US20230178617A1/en) — IBM (applicant), US patent application. An example Si/Si nanosheet CMOS route in Figs. 2–52: a Ge-rich sacrificial bottom layer, a Si seed layer, then lower-Ge SiGe and Si channel layers; stack lines, STI, sacrificial gates, spacers, source/drain recess, SiGe indent and inner spacers; undoped Si grown from the seed and channel ends; the Ge-rich layer removed and replaced by bottom dielectric isolation under both devices; pFET SiGe:B and nFET SiC:P source/drain each with the other region protected; ILD, sacrificial-gate removal, SiGe removal releasing the Si channels of both devices, and separate work-function metals. One disclosed example, not a production foundry flow; the app's figure placements are from this written summary, not from its drawings.
+
 ## Unverified historical credit
 
 Earlier versions cited S. Rathore et al., Semiconductor Science and Technology (2021), without a title, DOI or figure number. The exact source has not been established. Retained here for provenance, not presented as a verified reference or silently replaced with a different paper.

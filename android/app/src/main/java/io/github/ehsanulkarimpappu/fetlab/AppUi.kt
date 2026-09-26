@@ -524,8 +524,11 @@ fun FetLabApp(lib: Library, renderer: Renderer) {
     fun routeIn(f: ProcessFlow?) = f?.let { routeOf[it.device] ?: it.defaultRoute } ?: ""
     var glowJob by remember { mutableStateOf<Job?>(null) }
     /** The flow for [tech], if one has been written: the device key it is filed under. */
+    /** The flow a technology opens in Process mode. The nanosheet has one lesson per channel
+     *  design: the Si/SiGe route ("ns", with its pFET and both-sites flows) and the Si/Si one. */
     fun flowFor(tech: String): String? =
-        (if (tech == "cfet") (if (cfetSeq) "cfet_seq" else "cfet_mono") else tech).takeIf { it in lib.flows }
+        (if (tech == "cfet") (if (cfetSeq) "cfet_seq" else "cfet_mono")
+         else if (tech == "ns" && design == "si") "ns~si" else tech).takeIf { it in lib.flows }
     fun openFlow(device: String) = switchScene(stepKey(device, procAt[device] ?: 0))
     /** Moves to the same technology's [key] flow (nFET, pFET or both sites) at the step that
      *  matches the current one: the same step if that flow has it, else the nearest earlier
@@ -628,14 +631,9 @@ fun FetLabApp(lib: Library, renderer: Renderer) {
         renderer.capsDirty = true; draw()
     }
 
-    /** The Si/Si CMOS fabrication lesson is not written yet: say so, and open nothing. */
-    fun siLessonPending() = Toast.makeText(ctx,
-        "The Si/Si CMOS fabrication lesson is in development. Switch Channel design to Si/SiGe CMOS " +
-        "for the patent-based lesson.", Toast.LENGTH_LONG).show()
     fun selectMode(i: Int) {
         // Only the viewing mode changes: the technology on screen carries across.
         val tech = techOf(sceneKey)
-        if (i == PROCESS && tech == "ns" && design == "si") { siLessonPending(); return }
         if (i == PROCESS) {
             val f = flowFor(tech) ?: lib.flows.keys.firstOrNull()
             if (f == null) notWritten("") else openFlow(f)
@@ -646,7 +644,6 @@ fun FetLabApp(lib: Library, renderer: Renderer) {
     }
     fun selectChip(k: String) {
         if (k.startsWith("proc_")) {
-            if (techOf(k) == "ns" && design == "si") { siLessonPending(); return }
             val f = flowFor(techOf(k))
             if (f == null) notWritten(PROC_KEYS.firstOrNull { it.first == k }?.second ?: k) else openFlow(f)
             return
@@ -654,18 +651,13 @@ fun FetLabApp(lib: Library, renderer: Renderer) {
         switchScene(if (k == "cfet_mono" && cfetSeq) "cfet_seq" else k)
     }
     /** A new channel design: the nanosheet scene on screen becomes the same scene of that
-     *  design, in the same view. In Process mode only Si/SiGe has a lesson, so choosing Si/Si
-     *  there shows the Si/Si device in Device mode instead, and says so. */
+     *  design, in the same view; in Process mode, that design's own lesson, where it was left. */
     fun changeDesign(d: String) {
         if (d == design) return
         design = d; saveDesign(ctx, d)
         playing = false
         when {
-            mode == PROCESS && techOf(sceneKey) == "ns" && d == "si" -> {
-                Toast.makeText(ctx, "Si/Si CMOS has no fabrication lesson yet (in development): " +
-                    "showing the Si/Si device in Device mode.", Toast.LENGTH_LONG).show()
-                switchScene("ns")
-            }
+            mode == PROCESS && techOf(sceneKey) == "ns" -> flowFor("ns")?.let { openFlow(it) }
             isDesignScene(sceneKey) -> switchScene(sceneKey, keepView = true)
         }
     }
@@ -830,7 +822,7 @@ fun FetLabApp(lib: Library, renderer: Renderer) {
                     // The next architecture along from the one on screen, in whichever mode
                     // is open (chip keys differ per mode: "ns", "inv_ns", "show_ns").
                     val keys = keysFor(mode).map { it.first }.filter { !it.endsWith("cmp") }
-                        .filter { mode != PROCESS || (flowFor(techOf(it)) != null && !(techOf(it) == "ns" && design == "si")) }
+                        .filter { mode != PROCESS || flowFor(techOf(it)) != null }
                     val here = keys.indexOfFirst { techOf(it) == techOf(sceneKey) }
                     if (keys.isNotEmpty()) {
                         val k = keys[(here + 1) % keys.size]
@@ -1090,14 +1082,13 @@ fun FetLabApp(lib: Library, renderer: Renderer) {
                                  else sceneKey == k || sceneKey.substringBefore('~') == k ||
                                       (k == "cfet_mono" && sceneKey == "cfet_seq")
                     // A flow not written yet stays visible, dimmed, so the roadmap shows. The
-                    // nanosheet lesson is the Si/SiGe design's; the Si/Si one is in development.
-                    val siPending = mode == PROCESS && techOf(k) == "ns" && design == "si"
-                    val ready = mode != PROCESS || (flowFor(techOf(k)) != null && !siPending)
+                    // nanosheet chip opens the chosen channel design's lesson.
+                    val ready = mode != PROCESS || flowFor(techOf(k)) != null
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         if (mode == PROCESS && k == LESSONS_FROM) Text("LESSONS", fontFamily = Mono, fontSize = 10.sp,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.padding(start = 6.dp, end = 10.dp).semantics { heading() })
-                        Chip(if (ready) label else if (siPending) "$label · in development" else "$label · soon", active,
+                        Chip(if (ready) label else "$label · soon", active,
                             Modifier.tourTarget("chip:$k").graphicsLayer { alpha = if (ready) 1f else 0.55f }) {
                             haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                             selectChip(k)
