@@ -513,7 +513,7 @@ CMP_ROW = ["Example node", "FinFET · nanosheet · forksheet · CFET", "3 nm · 
 def tag_nodes(devices):
     """Put the generation label at the top of every scene's table."""
     for dv in devices:
-        k = dv["key"].replace("show_", "").replace("inv_", "")
+        k = dv["key"].replace("show_", "").replace("inv_", "").split("~")[0]
         rows = [r for r in dv["dims"] if r[0] not in ("Node", "Example node")]
         if k.startswith("cmp"):
             dv["dims"] = [list(CMP_ROW)] + rows

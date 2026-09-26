@@ -33,7 +33,7 @@ so a section reads like a real cross-section rather than a shell.
 |---|---|
 | **Device** | Technical cross-sections of each architecture — section planes, exploded view, tap-to-identify. |
 | **Inverter** | An illustrative CMOS inverter cell for each architecture. Drive the input and the conducting path lights up. |
-| **Layout** | Schematic inverter layouts with simplified film stacks and exaggerated vertical dimensions; two representative nanosheets instead of the technical model's three. |
+| **Layout** | Schematic inverter layouts with simplified film stacks and simplified vertical dimensions (not to scale); two representative nanosheets instead of the technical model's three. |
 | **Process** | How a nanosheet FET or a FinFET is made, step by step, as real geometry: films, lithography, etch and fill on a 2 × 2 tile, then the selected site to the finished device, as the nFET, the pFET, or both sites with a gate cut or a shared gate. The stack lines or fins can be printed directly or by SADP or SAQP; a Pitch walk lesson lets the SAQP dimensions vary. Named section planes show a 2D section beside the 3D view, set against what each source's text describes. Android app for now; forksheet and CFET flows are coming. |
 
 <table>
@@ -53,7 +53,11 @@ the fabrication steps use.
 ## What it shows—and what it does not
 
 - FinFET: a tri-gate example with discrete fin-count sizing.
-- Nanosheet FET: gate-all-around channels with adjustable sheet width.
+- Nanosheet FET: gate-all-around channels with adjustable sheet width, as a CMOS pair in two
+  channel designs, picked on the stage and shared by Device, Inverter and Process: **Si/SiGe CMOS**
+  (Si nFET and SiGe pFET sheets from one stack, the patent-based example the Process lesson
+  follows) and **Si/Si CMOS** (Si sheets in both; its fabrication lesson is in development). An
+  **Exploded gate view** enlarges the gaps and gate films for inspection, marked not to scale.
 - Forksheet: the classic inner-wall arrangement, not the later outer-wall variant.
 - CFET: a stacked nFET/pFET pair, with monolithic and sequential examples.
 

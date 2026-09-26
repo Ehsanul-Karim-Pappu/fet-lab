@@ -157,7 +157,10 @@ class ProcessFlow(val device: String, val scope: String, val figures: String, va
                   val sites: List<Site> = emptyList(), val site: String = "",
                   /** "terminal": the routes are alternative endings that never rejoin (gate cut
                    *  or shared gate), rather than alternative runs of operations. */
-                  val routeKind: String = "") {
+                  val routeKind: String = "",
+                  /** What kind of lesson this is, shown at the top of its steps
+                   *  ("Patent-based example: US 12,568,683 B2"). */
+                  val lessonLabel: String = "") {
     fun plane(id: String?) = sections.firstOrNull { it.id == id }
     val coreCount get() = steps.count { !it.isOp }
     /** The route shown until the user picks one: the one marked default, else the first. */
@@ -361,7 +364,7 @@ class Library(val materials: Map<String, Material>, val order: List<String>, val
                     parsePlanes(fj.optJSONArray("sections")), parsePitchWalk(fj.optJSONObject("pitchwalk")),
                     fj.optJSONArray("sites")?.let { a -> List(a.length()) { k -> a.getJSONObject(k).let { o ->
                         Site(o.getString("id"), o.getString("name"), o.getString("flow")) } } } ?: emptyList(),
-                    fj.optString("site", ""), fj.optString("route_kind", ""))
+                    fj.optString("site", ""), fj.optString("route_kind", ""), fj.optString("lesson_label", ""))
                 for (sc in stepScenes) sc.flow = flow
                 scenes.addAll(stepScenes)
                 flows[dk] = flow

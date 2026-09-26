@@ -207,7 +207,7 @@ class ContentTests(unittest.TestCase):
                     self.assertEqual(flow['views'][vk].get('scale', 'site'), scale, (key, vk))
                 self.assertNotRegex(pl['text'], r'matches|reproduc')
             if key in want:
-                final = flow.get('final', devs[key]['parts'])
+                final = flow['final'] if 'final' in flow else devs[key]['parts']
                 for pid, names in want[key].items():
                     hit = {p['id'] for p in cut(final, planes[pid])}
                     self.assertLessEqual(set(names), hit, (key, pid))
@@ -399,7 +399,7 @@ class ContentTests(unittest.TestCase):
             self.assertNotIn('Rathore', scene['story'])
 
     def test_scene_names_and_capacitance_scope(self):
-        self.assertEqual(len(self.data['devices']), 16)
+        self.assertEqual(len(self.data['devices']), 22)       # the nanosheet pair: 2 designs × 2 displays × 2 modes
         count = 0
         for scene in self.data['devices']:
             if 'cmp' not in scene['key']:
@@ -417,7 +417,7 @@ class ContentTests(unittest.TestCase):
                 ids = {part['id'] for part in scene['parts']}
                 for term in cap['terms']:
                     self.assertTrue(set(term['a'] + term['b'] + term['via']) <= ids)
-        self.assertEqual(count, 5)
+        self.assertEqual(count, 6)          # fin, fs, both CFETs, and the two compact nanosheet CMOS pairs
 
     def test_nanosheet_process_stack(self):
         """One Si/SiGe stack makes both nanosheet devices, so every channel it leaves is
@@ -440,9 +440,143 @@ class ContentTests(unittest.TestCase):
                             and 'base' not in p['name']:
                         for b in p['boxes']:
                             self.assertLessEqual(b[4], 8.0, (key, st['id'], p['id']))
-        # Device mode's nanosheet keeps its spaced-out, noted stack.
-        ns = next(d for d in self.data['devices'] if d['key'] == 'ns')
-        self.assertIn('Process mode', ns['note'])
+        # The compact Si/SiGe CMOS scenes are that same pair of devices (see test_channel_designs).
+
+    # ---------------------------------------------------------- channel designs ----
+    def _lim(self, b):
+        return [b[i] - b[i + 3] / 2 for i in range(3)] + [b[i] + b[i + 3] / 2 for i in range(3)]
+
+    def _chan(self, parts, k):
+        """(material, y0, y1) of device [k]'s channel sheets, bottom up."""
+        return sorted((p['material'], round(self._lim(p['boxes'][0])[1], 3), round(self._lim(p['boxes'][0])[4], 3))
+                      for p in parts if p['id'].startswith((k + '_sheet', k + '_psheet')))
+
+    def test_channel_designs(self):
+        """Each design is its own device: Si/SiGe has Si nFET and SiGe pFET sheets, staggered, BDI
+        under the nFET only and the pFET's epitaxy on its sub-fin; Si/Si has Si sheets at the same
+        heights and BDI under both. Both have n- and p-type work-function metals on one shared gate."""
+        devs = {d['key']: d for d in self.data['devices']}
+        for base in ('ns', 'inv_ns'):
+            for design in ('sige', 'si'):
+                for x in ('', '~x'):
+                    sc = devs[f'{base}~{design}{x}']
+                    ids = {p['id']: p for p in sc['parts']}
+                    n, pch = self._chan(sc['parts'], 'n'), self._chan(sc['parts'], 'p')
+                    self.assertEqual(len(n), 3); self.assertEqual(len(pch), 3)
+                    self.assertEqual({m for m, *_ in n}, {'silicon'})
+                    self.assertEqual({m for m, *_ in pch}, {'sige'} if design == 'sige' else {'silicon'})
+                    ny = [(a, b) for _, a, b in n]; py = [(a, b) for _, a, b in pch]
+                    if design == 'sige':
+                        self.assertFalse(set(ny) & set(py), sc['key'])          # staggered, never level
+                        pitch = ny[1][0] - ny[0][0]
+                        for (a, _), (c, _) in zip(ny, py): self.assertAlmostEqual(a - c, pitch / 2, places=3)
+                        self.assertIn('n_bdi', ids); self.assertNotIn('p_bdi', ids)
+                        self.assertIn('p_sib_source', ids)                       # grown from the sub-fin
+                        self.assertEqual(ids['p_pts_n']['material'], 'pts_n')
+                    else:
+                        self.assertEqual(ny, py, sc['key'])                      # same heights
+                        self.assertIn('n_bdi', ids); self.assertIn('p_bdi', ids)
+                    wf = lambda k: {p['material'] for p in sc['parts'] if p['id'].startswith(k + '_') and
+                                    p['group'].endswith('Gate-all-around films') and p['material'] in ('nwf', 'tin')}
+                    self.assertEqual(wf('n'), {'nwf'}); self.assertEqual(wf('p'), {'tin'})
+                    epi = lambda k: {p['material'] for p in sc['parts'] if p['id'].startswith(k + '_epi_')}
+                    self.assertEqual(epi('n'), {'silicon'}); self.assertEqual(epi('p'), {'sige'})
+                    # one shared gate, no cut, one gate contact
+                    self.assertIn('b_mo', ids); self.assertNotIn('p_gatew', ids)
+                    self.assertFalse(any('cut' in p['group'].lower() for p in sc['parts']))
+                    # dielectric between every channel and the gate metal: the IL touches each sheet
+                    for p in sc['parts']:
+                        if p['id'].startswith(('n_sheet', 'p_sheet', 'p_psheet')):
+                            self.assertEqual(p['group'].split(' · ')[1], 'Channel stack')
+
+    def test_exploded_view_changes_only_sizes(self):
+        """The exploded gate view is a display state: the same parts, names, materials, groups
+        and nets as the compact geometry, marked not to scale, with no capacitance numbers."""
+        devs = {d['key']: d for d in self.data['devices']}
+        for base in ('ns', 'inv_ns'):
+            for design in ('sige', 'si'):
+                c, x = devs[f'{base}~{design}'], devs[f'{base}~{design}~x']
+                sig = lambda sc: [(p['id'], p['name'], p['material'], p['group'], p.get('net')) for p in sc['parts']]
+                self.assertEqual(sig(c), sig(x), design)
+                self.assertIn('not to scale', x['note']); self.assertIn('not to scale', x['tag'])
+                self.assertNotIn('parasitics', x)
+                self.assertEqual(set(c['views']), set(x['views']))
+
+    def test_inverter_connectivity(self):
+        """Every inverter wires IN to both gates, V_DD to the pFET source, V_SS to the nFET
+        source and both drains to OUT: exactly four conducting nets."""
+        COND = {'tisi', 'cobalt', 'tungsten', 'mo', 'tin', 'nwf'}
+        def touch(a, b, e=0.01):
+            a, b = self._lim(a), self._lim(b)
+            ov = [min(a[k + 3], b[k + 3]) - max(a[k], b[k]) for k in range(3)]
+            return all(o > -e for o in ov) and sum(o > e for o in ov) >= 2
+        devs = {d['key']: d for d in self.data['devices']}
+        for key in [k for k in devs if k.startswith('inv_ns~')]:
+            ps = [p for p in devs[key]['parts'] if p['material'] in COND or
+                  (p['material'] in ('silicon', 'sige') and ('source' in p['id'] or 'drain' in p['id']))]
+            par = {p['id']: p['id'] for p in ps}
+            def f(i):
+                while par[i] != i: i = par[i]
+                return i
+            for i, a in enumerate(ps):
+                for b in ps[i + 1:]:
+                    if any(touch(u, v) for u in a['boxes'] for v in b['boxes']): par[f(a['id'])] = f(b['id'])
+            nets = {}
+            for p in ps: nets.setdefault(f(p['id']), set()).add(p['net'])
+            self.assertEqual(sorted(tuple(sorted(v)) for v in nets.values()),
+                             [('gnd',), ('in',), ('out',), ('vdd',)], key)
+
+    def test_process_ends_on_the_sige_design(self):
+        """The Si/SiGe lesson's shared-gate ending is the Si/SiGe Device scene: the same channel
+        sheets (material and position), nFET-only BDI, work-function metals and epitaxy."""
+        flows = json.loads((ROOT / 'data/process.json').read_text())['flows']
+        dev = next(d for d in self.data['devices'] if d['key'] == 'ns~sige')
+        pair = flows['ns_pair']
+        end = [s for s in pair['steps'] if s.get('route') == 'shared'][-1]
+        parts = [p for p in end['parts'] if isinstance(p, dict)]
+        for k in ('n', 'p'):
+            self.assertEqual(self._chan(parts, k), self._chan(dev['parts'], k), k)
+        has = lambda ps, i: any(p['id'] == i for p in ps)
+        self.assertTrue(has(parts, 'n_bdi') and has(dev['parts'], 'n_bdi'))
+        self.assertFalse(has(parts, 'p_bdi') or has(dev['parts'], 'p_bdi'))
+        mats = lambda ps, pre: sorted({(p['id'], p['material']) for p in ps if p['id'].startswith(pre)})
+        for pre in ('n_tin', 'p_pwf', 'n_epi', 'p_epi', 'p_sib'):
+            self.assertEqual(mats(parts, pre), mats(dev['parts'], pre), pre)
+        for k in ('ns', 'ns_p', 'ns_pair'):
+            self.assertIn('US 12,568,683 B2', flows[k]['lesson_label'])
+
+    def test_design_keys_match_the_app(self):
+        """The app resolves its nanosheet chips to "<chip>~<design>[~x]", saves the design and the
+        exploded view, and starts on Si/SiGe; every key it can resolve to exists."""
+        src = (ROOT / 'android/app/src/main/java/io/github/ehsanulkarimpappu/fetlab/AppUi.kt').read_text()
+        self.assertIn('"channel_design", "sige"', src)
+        self.assertIn('"exploded_gate"', src)
+        self.assertIn('val DESIGNS = listOf("sige" to "Si/SiGe CMOS", "si" to "Si/Si CMOS")', src)
+        keys = {d['key'] for d in self.data['devices']}
+        for chip in ('ns', 'inv_ns'):
+            for design in ('sige', 'si'):
+                for x in ('', '~x'):
+                    self.assertIn(f'{chip}~{design}{x}', keys)
+        self.assertNotIn('ns', keys); self.assertNotIn('inv_ns', keys)
+
+    def test_no_false_dimension_claims(self):
+        """Pitch is sheet thickness plus clear gap wherever both are given; the model's numbers
+        are not attributed to the patent, and no text insists on how real gaps are filled."""
+        devs = [d for d in self.data['devices'] if d['key'].startswith(('ns~', 'inv_ns~'))]
+        for d in devs:
+            rows = {r[0]: r[2] for r in d['dims']}
+            num = lambda v: float(v.split()[0])
+            self.assertAlmostEqual(num(rows['Pitch']), num(rows['t_ch']) + num(rows['Gap']))
+            text = d['note'] + d['blurb'] + ' '.join(r[1] + ' ' + r[2] for r in d['dims'])
+            self.assertNotRegex(text, r'as in real stacks|real stacks space|7-12|7–12')
+            if '~sige' in d['key']: self.assertIn("not the patent's", text)
+        flows = json.loads((ROOT / 'data/process.json').read_text())['flows']
+        for k in ('ns', 'ns_p', 'ns_pair'):
+            for st in flows[k]['steps']:
+                t = st['body'] + ' '.join(st.get('subs', []))
+                self.assertNotRegex(t, r'as in real stacks|5 nm sheets at a 21 nm pitch', (k, st['id']))
+        lessons = [flows[k]['scope'] for k in ('sadp', 'saqp')]
+        for scope in lessons: self.assertIn('does not decide', scope)
 
     def test_guide_learning_aids(self):
         """Both tours name real stops, the learning path opens real scenes in order, and
@@ -453,7 +587,8 @@ class ContentTests(unittest.TestCase):
             self.assertTrue(g[tour]); self.assertTrue(set(g[tour]) <= ids, tour)
         scenes = {d['key'] for d in self.data['devices']}
         self.assertEqual([l['key'] for l in g['learn']], ['fin', 'ns', 'fs', 'cfet_mono', 'process'])
-        for l in g['learn'][:-1]: self.assertIn(l['key'], scenes)
+        # The nanosheet stop opens the scene of the chosen channel design.
+        for l in g['learn'][:-1]: self.assertTrue(l['key'] in scenes or l['key'] + '~sige' in scenes, l['key'])
         flows = json.loads((ROOT / 'data/process.json').read_text())['flows']
         text = ' '.join(' '.join([st['body']] + st.get('subs', [])) for f in flows.values() for st in f['steps'])
         dev_text = json.dumps([self.data, self.refs], ensure_ascii=False)

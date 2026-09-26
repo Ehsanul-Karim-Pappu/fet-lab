@@ -940,8 +940,8 @@ function doPick(e){const r=cv.getBoundingClientRect(),p=pick(e.clientX-r.left,e.
 
 /* ---- UI ---- */
 const MODES={
-  dev:[["fin","FinFET"],["ns","Nanosheet"],["fs","Forksheet"],["cfet","CFET"],["cmp","Compare"]],
-  inv:[["inv_fin","FinFET"],["inv_ns","Nanosheet"],["inv_fs","Forksheet"],["inv_cfet","CFET"],["inv_cmp","Compare"]],
+  dev:[["fin","FinFET"],["ns~sige~x","Nanosheet · Si/SiGe"],["ns~si~x","Nanosheet · Si/Si"],["fs","Forksheet"],["cfet","CFET"],["cmp","Compare"]],
+  inv:[["inv_fin","FinFET"],["inv_ns~sige~x","Nanosheet · Si/SiGe"],["inv_ns~si~x","Nanosheet · Si/Si"],["inv_fs","Forksheet"],["inv_cfet","CFET"],["inv_cmp","Compare"]],
   show:[["show_fin","FinFET"],["show_ns","Nanosheet"],["show_fs","Forksheet"],["show_cfet","CFET"],["show_cmp","Compare"]]};
 let MODE="dev";
 const dwrap=document.getElementById("devs"),seg=document.getElementById("cfetseg"),
@@ -949,6 +949,8 @@ const dwrap=document.getElementById("devs"),seg=document.getElementById("cfetseg
 /** The technology a scene shows, with the viewing mode stripped off. The two CFET
  *  scenes are one technology: only the device mode splits them into mono/sequential. */
 function techOf(key){
+  // A nanosheet channel design ("ns~sige~x") is its own technology between Device and
+  // Inverter; Layout has one nanosheet cell for both.
   const k=key.replace(/^(inv_|show_)/,"");
   return k.indexOf("cfet")===0?"cfet":k;}
 /** Last scene opened per mode per technology, so switching away from Sequential CFET

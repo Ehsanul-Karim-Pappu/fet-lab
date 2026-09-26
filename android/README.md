@@ -25,6 +25,9 @@ minSdk 26 (Android 8.0), targetSdk 35. Requires OpenGL ES 2.0.
 Sixteen scenes, loaded from `app/src/main/assets/devices.json` — the same file the web viewer
 reads, so regenerating the geometry updates both.
 
+- **Channel design** — the nanosheet scenes' CMOS design, Si/SiGe (the default) or Si/Si, on a pill
+  at the top of the stage and kept across Device, Inverter and Process; an **Exploded gate view**
+  switch in Device and Inverter enlarges the gaps and films (not to scale).
 - **Device mode** — FinFET, nanosheet, forksheet, CFET (monolithic / sequential) and the
   four-way footprint comparison.
 - **Inverter mode** — an illustrative CMOS inverter in each architecture, with an

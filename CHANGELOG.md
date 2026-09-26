@@ -5,6 +5,49 @@ All notable changes to FET Lab. Dates are the release date; versions follow
 
 ## Unreleased
 
+### Nanosheet channel designs: Si/SiGe CMOS and Si/Si CMOS
+
+The nanosheet scenes used to mix two different transistors: Device and Inverter showed Si
+channels in both devices, while Process built the patent's SiGe-channel pFET. There are now two
+named CMOS designs, and the app never switches between them silently.
+
+- **Channel design selector.** A pill at the top of the stage on every nanosheet scene, with
+  **Si/SiGe CMOS** and **Si/Si CMOS**. The choice is shared by Device, Inverter and Process, is
+  kept across tabs, views, sections and lessons, and is saved. It starts on Si/SiGe, the design
+  the Process lesson follows. The header's subtitle names the design too.
+- **Si/SiGe CMOS**, the patent-based example (US 12,568,683 B2):
+  - One alternating stack makes both devices: three Si nFET sheets and three SiGe pFET sheets,
+    staggered half a pitch apart rather than level.
+  - Bottom dielectric isolation is under the nFET only. The pFET's SiGe:B source/drain also
+    grows from its recessed sub-fin.
+  - Each device has its own work-function metal on one shared gate, with no gate cut.
+  - These are the Process flows' own finished nFET and pFET, so the Process lesson's
+    shared-gate ending is exactly the Device scene. A test checks this part for part.
+- **Si/Si CMOS**, a generic example:
+  - Si sheets in both devices, at the same heights, with bottom dielectric isolation under both
+    (the full-isolation scheme of R15; details not checked against the paper).
+  - Its own TiN pFET work-function metal and SiGe:B source/drain.
+  - Its fabrication lesson is **in development**: the Process chip says so and does not open,
+    and choosing Si/Si on a Process scene shows the Si/Si device instead, with a message.
+- **Device mode** now shows the nanosheet as an nFET + pFET pair on a shared gate, like the
+  forksheet and CFET. **Inverter mode** wires the same pair: IN on the shared gate, V_DD to the
+  pFET source, V_SS to the nFET source, both drains to OUT (four nets, tested).
+- **Exploded gate view** (Device and Inverter): a switch on the stage that enlarges the gaps
+  between sheets and the gate films so each film can be seen and tapped. It is marked
+  "Schematic enlargement; dimensions are not to scale". Materials, labels, sheet order and
+  connections are identical with it on and off; capacitance estimates use the compact
+  geometry only.
+- **Dimensions stated honestly:**
+  - The specs give sheet thickness, clear gap and vertical pitch, with pitch defined as
+    thickness plus gap.
+  - The 7 nm values are the model's illustrative choices, not the patent's.
+  - No text claims how real gaps are filled.
+- **Patterning lessons:** the SADP and SAQP lessons now say they pattern the stack lines and do
+  not decide whether a pFET's channels are Si or SiGe.
+- **Process lesson label:** the nanosheet lesson's Steps tab is headed "Si/SiGe CMOS ·
+  Patent-based example: US 12,568,683 B2".
+- **Web and PWA:** the web viewer lists both designs, in the exploded view.
+
 ### Audit of every scene: geometry and text fixes
 
 A measured audit of all 16 scenes and 9 process flows (connectivity, overlaps, film fits,

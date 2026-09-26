@@ -145,7 +145,7 @@ private fun firstOf(mode: Int) = keysFor(mode).first().first
 /** The technology a scene shows, with the viewing mode stripped off. The two CFET
  *  scenes are one technology: only the device mode splits them into mono/sequential. */
 private fun techOf(key: String): String {
-    val k = key.removePrefix("inv_").removePrefix("show_").removePrefix("proc_").substringBefore('@')
+    val k = key.removePrefix("inv_").removePrefix("show_").removePrefix("proc_").substringBefore('@').substringBefore('~')
         // A technology's pFET and both-sites flows (ns_p, ns_pair) are the same technology.
         .removeSuffix("_pair").removeSuffix("_p")
     return if (k.startsWith("cfet")) "cfet" else k
@@ -211,7 +211,7 @@ private fun Mark(modifier: Modifier = Modifier) {
 /** What the guided tour found on screen, so it can put it back when it ends. */
 private class TourReturn(val key: String, val seq: Boolean, val cam: Cam, val view: String,
                          val tab: Int, val sheet: Int, val par: String?, val selected: Part?,
-                         val visible: Map<String, Boolean>, val see: Float)
+                         val visible: Map<String, Boolean>, val see: Float, val design: String)
 
 /* How much of the stage shows through the floating control sheet, 0 (solid) to
  * [SEE_MAX]. Saved, since it suits a screen and a pair of eyes rather than a scene. */
@@ -222,6 +222,29 @@ private fun loadSeeThrough(ctx: Context) =
         .coerceIn(0f, SEE_MAX)
 private fun saveSeeThrough(ctx: Context, v: Float) =
     ctx.getSharedPreferences("ui", Context.MODE_PRIVATE).edit().putFloat("sheet_see_through", v).apply()
+
+/* The nanosheet CMOS channel design, shared by Device, Inverter and Process, and whether the
+ * Device and Inverter nanosheet scenes show the exploded gate view. Both are saved. Si/SiGe
+ * (the patent-based example, which the Process lesson follows) is the first-launch choice. */
+private val DESIGNS = listOf("sige" to "Si/SiGe CMOS", "si" to "Si/Si CMOS")
+private fun loadDesign(ctx: Context) =
+    ctx.getSharedPreferences("ui", Context.MODE_PRIVATE).getString("channel_design", "sige")
+        ?.takeIf { d -> DESIGNS.any { it.first == d } } ?: "sige"
+private fun saveDesign(ctx: Context, v: String) =
+    ctx.getSharedPreferences("ui", Context.MODE_PRIVATE).edit().putString("channel_design", v).apply()
+private fun loadExploded(ctx: Context) =
+    ctx.getSharedPreferences("ui", Context.MODE_PRIVATE).getBoolean("exploded_gate", false)
+private fun saveExploded(ctx: Context, v: Boolean) =
+    ctx.getSharedPreferences("ui", Context.MODE_PRIVATE).edit().putBoolean("exploded_gate", v).apply()
+
+/** The Device and Inverter nanosheet chips ("ns", "inv_ns") stand for the scene of the chosen
+ *  channel design and display ("ns~sige", "inv_ns~si~x"); every other key is itself. */
+private fun designKey(key: String, design: String, exploded: Boolean): String {
+    val base = key.substringBefore('~')
+    return if (base == "ns" || base == "inv_ns") "$base~$design" + (if (exploded) "~x" else "") else key
+}
+/** A Device or Inverter scene of one of the nanosheet channel designs. */
+private fun isDesignScene(key: String) = key.substringBefore('~').let { it == "ns" || it == "inv_ns" } && '~' in key
 
 private class SceneMemo(val cam: Cam, val view: String, val visible: Map<String, Boolean>,
                         val explode: Float, val par: String?, val selected: Part?)
@@ -274,6 +297,8 @@ fun FetLabApp(lib: Library, renderer: Renderer) {
 
     var mode by rememberSaveable { mutableStateOf(0) }
     var sceneKey by rememberSaveable { mutableStateOf("fin") }
+    var design by rememberSaveable { mutableStateOf(loadDesign(ctx)) }
+    var explodedGate by rememberSaveable { mutableStateOf(loadExploded(ctx)) }
     var cfetSeq by rememberSaveable { mutableStateOf(false) }
     var viewKey by rememberSaveable { mutableStateOf("") }
     var cx by rememberSaveable { mutableStateOf(1f) }
@@ -417,7 +442,8 @@ fun FetLabApp(lib: Library, renderer: Renderer) {
             explodeF, parPick, selected)
     }
 
-    fun openScene(key: String, animate: Boolean) {
+    fun openScene(key0: String, animate: Boolean) {
+        val key = designKey(key0, design, explodedGate)
         val sc = lib.scene(key)
         sceneKey = key
         mode = when {
@@ -456,8 +482,13 @@ fun FetLabApp(lib: Library, renderer: Renderer) {
         growJob?.cancel(); growJob = null
         renderer.growBox = null; renderer.deposit = emptyMap()
     }
-    fun switchScene(key: String) {
+    fun switchScene(key0: String, keepView: Boolean = false) {
+        val key = designKey(key0, design, explodedGate)
         if (key == sceneKey) return
+        // Changing the design or the exploded view keeps the view and any hidden layers: the
+        // two scenes have the same views and part ids.
+        val keepV = viewKey
+        val keepVis = lib.scene(sceneKey).parts.associate { it.id to it.visible }
         flight?.cancel()
         stopGrowth()
         sceneSwitch?.cancel()
@@ -466,6 +497,12 @@ fun FetLabApp(lib: Library, renderer: Renderer) {
             scrim = 1f
             kotlinx.coroutines.delay(140)
             openScene(key, animate = true)
+            if (keepView) {
+                val sc = lib.scene(key)
+                for (p in sc.parts) keepVis[p.id]?.let { p.visible = it }
+                layerTick++
+                sc.views.firstOrNull { it.key == keepV }?.let { goToView(sc, it, animate = false) }
+            }
             scrim = 0f
         }
     }
@@ -591,9 +628,14 @@ fun FetLabApp(lib: Library, renderer: Renderer) {
         renderer.capsDirty = true; draw()
     }
 
+    /** The Si/Si CMOS fabrication lesson is not written yet: say so, and open nothing. */
+    fun siLessonPending() = Toast.makeText(ctx,
+        "The Si/Si CMOS fabrication lesson is in development. Switch Channel design to Si/SiGe CMOS " +
+        "for the patent-based lesson.", Toast.LENGTH_LONG).show()
     fun selectMode(i: Int) {
         // Only the viewing mode changes: the technology on screen carries across.
         val tech = techOf(sceneKey)
+        if (i == PROCESS && tech == "ns" && design == "si") { siLessonPending(); return }
         if (i == PROCESS) {
             val f = flowFor(tech) ?: lib.flows.keys.firstOrNull()
             if (f == null) notWritten("") else openFlow(f)
@@ -604,11 +646,33 @@ fun FetLabApp(lib: Library, renderer: Renderer) {
     }
     fun selectChip(k: String) {
         if (k.startsWith("proc_")) {
+            if (techOf(k) == "ns" && design == "si") { siLessonPending(); return }
             val f = flowFor(techOf(k))
             if (f == null) notWritten(PROC_KEYS.firstOrNull { it.first == k }?.second ?: k) else openFlow(f)
             return
         }
         switchScene(if (k == "cfet_mono" && cfetSeq) "cfet_seq" else k)
+    }
+    /** A new channel design: the nanosheet scene on screen becomes the same scene of that
+     *  design, in the same view. In Process mode only Si/SiGe has a lesson, so choosing Si/Si
+     *  there shows the Si/Si device in Device mode instead, and says so. */
+    fun changeDesign(d: String) {
+        if (d == design) return
+        design = d; saveDesign(ctx, d)
+        playing = false
+        when {
+            mode == PROCESS && techOf(sceneKey) == "ns" && d == "si" -> {
+                Toast.makeText(ctx, "Si/Si CMOS has no fabrication lesson yet (in development): " +
+                    "showing the Si/Si device in Device mode.", Toast.LENGTH_LONG).show()
+                switchScene("ns")
+            }
+            isDesignScene(sceneKey) -> switchScene(sceneKey, keepView = true)
+        }
+    }
+    fun setExploded(on: Boolean) {
+        if (on == explodedGate) return
+        explodedGate = on; saveExploded(ctx, on)
+        if (isDesignScene(sceneKey)) switchScene(sceneKey, keepView = true)
     }
     // Play steps through the flow at reading pace, stopping on the last step.
     LaunchedEffect(playing, sceneKey) {
@@ -664,8 +728,13 @@ fun FetLabApp(lib: Library, renderer: Renderer) {
         // remember what was on screen and put it all back when it ends.
         if (tourReturn == null) tourReturn = TourReturn(sceneKey, cfetSeq, cameraNow(), viewKey,
             tab, sheetLevel, parPick, selected,
-            lib.scene(sceneKey).parts.associate { it.id to it.visible }, seeThrough)
+            lib.scene(sceneKey).parts.associate { it.id to it.visible }, seeThrough, design)
         playing = false
+        if (ids == catalog.processTour && design != "sige") {
+            design = "sige"
+            Toast.makeText(ctx, "The Process tour follows the Si/SiGe CMOS lesson: Channel design is set to " +
+                "Si/SiGe CMOS until the tour ends.", Toast.LENGTH_LONG).show()
+        }
         tourStep = 0
     }
     fun exitTour() {
@@ -674,6 +743,7 @@ fun FetLabApp(lib: Library, renderer: Renderer) {
         val r = tourReturn ?: return
         tourReturn = null
         flight?.cancel(); sceneSwitch?.cancel(); scrim = 0f
+        if (design != r.design) { design = r.design; saveDesign(ctx, r.design) }
         if (sceneKey != r.key) openScene(r.key, animate = false)
         cfetSeq = r.seq
         val sc = lib.scene(r.key)
@@ -691,8 +761,9 @@ fun FetLabApp(lib: Library, renderer: Renderer) {
     fun openFeature(s: GuideStop) {
         showHelp = false
         if (tourStep >= 0) exitTour()
-        // The Process mode features live on a process flow.
+        // The Process mode features live on a process flow; the channel design on a nanosheet scene.
         if (s.category == "Process mode" && mode != PROCESS) selectMode(PROCESS)
+        if (s.id == "design" && techOf(sceneKey) != "ns") switchScene(if (mode == 1) "inv_ns" else "ns")
         if (s.tab >= 0) selectTab(s.tab) else sheetLevel = 0
     }
 
@@ -759,7 +830,7 @@ fun FetLabApp(lib: Library, renderer: Renderer) {
                     // The next architecture along from the one on screen, in whichever mode
                     // is open (chip keys differ per mode: "ns", "inv_ns", "show_ns").
                     val keys = keysFor(mode).map { it.first }.filter { !it.endsWith("cmp") }
-                        .filter { mode != PROCESS || flowFor(techOf(it)) != null }
+                        .filter { mode != PROCESS || (flowFor(techOf(it)) != null && !(techOf(it) == "ns" && design == "si")) }
                     val here = keys.indexOfFirst { techOf(it) == techOf(sceneKey) }
                     if (keys.isNotEmpty()) {
                         val k = keys[(here + 1) % keys.size]
@@ -1016,14 +1087,17 @@ fun FetLabApp(lib: Library, renderer: Renderer) {
                 horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 items(keysFor(mode)) { (k, label) ->
                     val active = if (mode == PROCESS) techOf(sceneKey) == techOf(k)
-                                 else sceneKey == k || (k == "cfet_mono" && sceneKey == "cfet_seq")
-                    // A flow not written yet stays visible, dimmed, so the roadmap shows.
-                    val ready = mode != PROCESS || flowFor(techOf(k)) != null
+                                 else sceneKey == k || sceneKey.substringBefore('~') == k ||
+                                      (k == "cfet_mono" && sceneKey == "cfet_seq")
+                    // A flow not written yet stays visible, dimmed, so the roadmap shows. The
+                    // nanosheet lesson is the Si/SiGe design's; the Si/Si one is in development.
+                    val siPending = mode == PROCESS && techOf(k) == "ns" && design == "si"
+                    val ready = mode != PROCESS || (flowFor(techOf(k)) != null && !siPending)
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         if (mode == PROCESS && k == LESSONS_FROM) Text("LESSONS", fontFamily = Mono, fontSize = 10.sp,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.padding(start = 6.dp, end = 10.dp).semantics { heading() })
-                        Chip(if (ready) label else "$label · soon", active,
+                        Chip(if (ready) label else if (siPending) "$label · in development" else "$label · soon", active,
                             Modifier.tourTarget("chip:$k").graphicsLayer { alpha = if (ready) 1f else 0.55f }) {
                             haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                             selectChip(k)
@@ -1135,20 +1209,37 @@ fun FetLabApp(lib: Library, renderer: Renderer) {
             // In Process mode the device site (nFET, pFET or both) is picked on the stage itself,
             // so it is never more than a tap away; the view's name sits under it.
             val stageSites = scene.flow?.sites.orEmpty()
-            if (!sectionUp) Column(Modifier.align(Alignment.TopStart).padding(14.dp)) {
+            // The channel design, on every nanosheet scene of Device, Inverter and Process; the
+            // exploded gate view, on the Device and Inverter ones.
+            val designScene = isDesignScene(sceneKey)
+            val showDesign = designScene || (mode == PROCESS && techOf(sceneKey) == "ns")
+            val pills = stageSites.isNotEmpty() || showDesign
+            if (!sectionUp) Column(Modifier.align(Alignment.TopStart).padding(14.dp),
+                verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                if (showDesign) DesignPill(design, glass, line, ink, dim) { d ->
+                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                    changeDesign(d)
+                }
+                if (designScene) ExplodedToggle(explodedGate, glass, line, ink) { on ->
+                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                    setExploded(on)
+                }
                 if (stageSites.isNotEmpty()) SitePill(scene.flow!!, glass, line, ink) { k ->
                     haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                     openSite(k)
                 }
+                if (designScene && explodedGate)
+                    Text("Schematic enlargement; dimensions are not to scale.", fontFamily = PlexSans,
+                        fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.tertiary,
+                        modifier = Modifier.widthIn(max = 230.dp).semantics { liveRegion = LiveRegionMode.Polite })
                 Text(scene.views.firstOrNull { it.key == viewKey }?.label ?: "",
-                    style = MaterialTheme.typography.labelSmall, color = dim,
-                    modifier = Modifier.padding(top = if (stageSites.isNotEmpty()) 6.dp else 0.dp))
+                    style = MaterialTheme.typography.labelSmall, color = dim)
             }
 
             // Gestures are not discoverable, so say them once per scene and then get out of the way.
             var hint by remember(sceneKey) { mutableStateOf(true) }
             LaunchedEffect(sceneKey) { delay(4500); hint = false }
-            AnimatedVisibility(visible = hint && !sectionUp && stageSites.isEmpty(),
+            AnimatedVisibility(visible = hint && !sectionUp && !pills,
                 enter = fadeIn(tween(500)), exit = fadeOut(tween(700)),
                 modifier = Modifier.align(Alignment.TopEnd)) {
                 Text("drag to orbit · two fingers to pan · pinch to zoom · tap a layer",
@@ -1820,6 +1911,47 @@ private fun FitTitle(text: String, color: Color) {
         })
 }
 
+/** The nanosheet channel design, named, with the chosen one filled. */
+@Composable
+private fun DesignPill(design: String, glass: Color, line: Color, ink: Color, dim: Color, onPick: (String) -> Unit) {
+    Surface(color = glass, shape = RoundedCornerShape(16.dp), border = BorderStroke(1.dp, line),
+        modifier = Modifier.tourTarget("design")) {
+        Column(Modifier.padding(start = 10.dp, end = 2.dp, top = 4.dp, bottom = 2.dp)) {
+            Text("CHANNEL DESIGN", fontFamily = Mono, fontSize = 9.5f.sp, color = dim,
+                modifier = Modifier.semantics { heading() })
+            Row(Modifier.padding(top = 2.dp).selectableGroup()) {
+                for ((k, name) in DESIGNS) {
+                    val on = k == design
+                    Text(name, color = if (on) MaterialTheme.colorScheme.onPrimary else ink,
+                        fontFamily = PlexSans, fontSize = 12.sp, fontWeight = FontWeight.SemiBold,
+                        modifier = Modifier.tourTarget("design:$k").clip(RoundedCornerShape(14.dp))
+                            .background(if (on) MaterialTheme.colorScheme.primary else Color.Transparent)
+                            .selectable(selected = on, role = Role.RadioButton) { if (!on) onPick(k) }
+                            .padding(horizontal = 10.dp, vertical = 5.dp))
+                }
+            }
+        }
+    }
+}
+
+/** The exploded gate view: on, the gaps and gate films are enlarged for inspection. */
+@Composable
+private fun ExplodedToggle(on: Boolean, glass: Color, line: Color, ink: Color, onSet: (Boolean) -> Unit) {
+    Surface(color = glass, shape = RoundedCornerShape(16.dp), border = BorderStroke(1.dp, line)) {
+        Row(Modifier.clip(RoundedCornerShape(16.dp)).toggleable(value = on, role = Role.Switch, onValueChange = onSet)
+            .padding(horizontal = 10.dp, vertical = 5.dp), verticalAlignment = Alignment.CenterVertically) {
+            // A drawn switch: small enough to sit on the stage, read out as a switch.
+            Box(Modifier.size(width = 22.dp, height = 12.dp).clip(RoundedCornerShape(6.dp))
+                .background(if (on) MaterialTheme.colorScheme.primary else line)) {
+                Box(Modifier.padding(2.dp).size(8.dp).align(if (on) Alignment.CenterEnd else Alignment.CenterStart)
+                    .clip(CircleShape).background(if (on) MaterialTheme.colorScheme.onPrimary else ink))
+            }
+            Text("Exploded gate view", color = ink, fontFamily = PlexSans, fontSize = 12.sp,
+                fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(start = 8.dp))
+        }
+    }
+}
+
 /** The same choice as [SitePicker], as a compact pill on the stage. */
 @Composable
 private fun SitePill(flow: ProcessFlow, glass: Color, line: Color, ink: Color,
@@ -1937,6 +2069,10 @@ private fun StepsTab(lib: Library, flow: ProcessFlow, index: Int, list: LazyList
         modifier = Modifier.tourTarget("list:steps")) {
         item {
             Column(Modifier.padding(top = 2.dp, bottom = 10.dp)) {
+                if (flow.lessonLabel.isNotEmpty())
+                    Text(flow.lessonLabel.uppercase(), fontFamily = Mono, fontSize = 10.5f.sp,
+                        color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.padding(bottom = 6.dp).semantics { heading() })
                 flow.pitchWalk?.let { PitchWalkPanel(lib, it) }
                 if (flow.sites.isNotEmpty()) SitePicker(flow, onSite)
                 for (t in listOf(flow.scope, flow.branch, flow.figures)) if (t.isNotEmpty())

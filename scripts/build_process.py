@@ -288,14 +288,13 @@ NS_SKIPPED = {
 }
 
 # The Process stack (bd.NS_PROCESS_STACK), said where it shows.
-NS_STACK_SUB = ("Both layers are drawn 7 nm thick: in this route the Si layers become the nFET's "
-                "channels and the lower-Ge SiGe layers the pFET's, so both must be channel-thin. "
-                "Device mode's nanosheet spaces its sheets at a 21 nm pitch (16 nm apart) so every gate "
-                "film shows; this flow's stack is the tighter one. Thicknesses and Ge contents are illustrative, not the "
-                "patent's examples")
+NS_STACK_SUB = ("Both layers are drawn 7 nm thick (a 14 nm vertical pitch: sheet thickness plus clear "
+                "gap): in this route the Si layers become the nFET's channels and the lower-Ge SiGe "
+                "layers the pFET's, so both must be channel-thin. The 7 nm values and the Ge contents are "
+                "the model's illustrative choices, not the patent's")
 NS_FILMS_SUB = ("The films are drawn 0.5 nm SiO₂, 1.5 nm HfO₂ and 1.5 nm work-function metal on each "
-                "sheet: together they fill the 7 nm between the sheets, leaving no room for fill metal "
-                "there, as in real stacks. Thicknesses are illustrative")
+                "sheet; at these illustrative thicknesses they meet in the 7 nm gaps between the sheets. "
+                "Real gaps and films vary, and whether any fill metal gets between the sheets depends on them")
 
 HKMG_SUB = ("SiO₂, HfO₂, an n-type work-function metal and Mo stand for the interfacial, high-κ, "
             "work-function and fill layers; real nFET work-function metals are Al-containing (TiAl or "
@@ -789,9 +788,9 @@ def flow_ns(done):
     # 18
     F.drop("ild")
     F.snap("done", "The finished device",
-        "The finished nFET: three 7 nm Si sheets with 7 nm between them, each wrapped by the gate "
-        "films, which fill those spaces. Device mode draws a spaced-out version instead (5 nm sheets "
-        "at a 21 nm pitch, 16 nm apart, with thicker films) so each film is easier to see. Hiding the ILD here is a display choice, as in the "
+        "The finished nFET: three Si sheets, each wrapped by the gate films. With Channel design set "
+        "to Si/SiGe CMOS, Device and Inverter modes show this nFET beside its pFET on a shared gate; "
+        "their Exploded gate view enlarges the gaps and films for inspection. Hiding the ILD here is a display choice, as in the "
         "Device view; the ILD is not removed in fabrication.",
         match="published", figs=["18A/B"],
         subs=["The ILD is hidden for viewing only", NS_STACK_SUB],
@@ -800,9 +799,10 @@ def flow_ns(done):
                                skipped=NS_SKIPPED, refs=["R13", "R1", "R14", "R15", "R16", "R18", "R19", "R20", "R21"],
                                match=dict(MATCH, **PAT_MATCH), routes=ROUTES,
                                route_title="How the stack lines are printed", route_join="the stack etch",
-                               views=dict(cut=CUTAWAY, cutb=INDENT, **TILE_VIEWS, **FIELD_VIEWS),
-                               # Its finished parts: the Process stack's, not Device mode's.
-                               final=dev.parts)
+                               views=dict(dev.views, cut=CUTAWAY, cutb=INDENT, **TILE_VIEWS, **FIELD_VIEWS),
+                               # Its own finished parts, views and frame: Device mode's nanosheet
+                               # scenes are the CMOS variants, not this single nFET site.
+                               final=dev.parts, own=True, name=dev.name, bounds=dev.bounds)
 
 
 # ================================================= PITCH-SPLITTING ROUTES ===
@@ -1149,7 +1149,10 @@ def lesson(mode):
                   "alternative; the flow itself defaults to SADP. A patterning concept "
                   "applied to an illustrative layer, the nanosheet tile's Si/SiGe multilayer: the "
                   "sources do not say this stack is patterned this way, and a direct print (EUV single "
-                  "exposure, for example) is another way to make it [R18].",
+                  "exposure, for example) is another way to make it [R18]. It patterns the stack "
+                  "lines (the hard mask, then the multilayer and sub-fin under it); it does not decide "
+                  "whether a finished pFET's channels are Si or SiGe, which is set by which layers each "
+                  "device keeps later, not by how the lines are printed.",
             figures="Every step but the last is a patterning concept and corresponds to no figure. "
                     "The last, the stack etch, is the nanosheet flow's own, a teaching reconstruction "
                     "of the patent's Fig. 5A/B [R13], whose drawings were not available for visual "
@@ -1922,9 +1925,9 @@ TP_IL, TP_HK, TP_WF = (bd.NS_PROCESS_STACK[k] for k in ("til", "thk", "twf"))
 NS_P_REC = 4.0                           # how far the pFET's S/D recess goes into the sub-fin
 
 
-def ns_dims():
+def ns_dims(stack=None):
     """The nanosheet site's dimensions, read off the finished nFET so nothing can drift."""
-    n = bd.build_ns(bd.NS_PROCESS_STACK)
+    n = bd.build_ns(stack or bd.NS_PROCESS_STACK)
     P = {p["id"]: p for p in n.parts}
     sheets = [lim(P[f"sheet{i}"]["boxes"][0]) for i in (1, 2, 3)]
     D = dict(dev=n, P=P, hz=sheets[0][5], ys=[(s[2], s[3]) for s in sheets],
@@ -1936,15 +1939,20 @@ def ns_dims():
     return D
 
 
-def build_ns_p():
+def build_ns_p(stack=None, sheets=None):
     """The nanosheet pFET of the patent's route [R13], in the nFET's frame and dimensions:
     the lower-Ge SiGe layers are its channels, the Si layers and high-Ge base are gone from
     its gate region, there is no bottom dielectric isolation (the n-type stopper is under
     it instead), and its p-type source/drain grows from the SiGe ends and the recessed
     sub-fin."""
-    D = ns_dims(); P = D["P"]
+    # [stack] sets the frame and films (the Process stack by default); [sheets] the channel
+    # heights, by default the SiGe layers between the nFET's Si sheets (the exploded view
+    # passes the same staggered positions at its enlarged spacing).
+    stack = stack or bd.NS_PROCESS_STACK
+    D = ns_dims(stack); P = D["P"]
     hz, STI, zsub, hzmo, ymo, ycap = D["hz"], D["STI"], D["zsub"], D["hzmo"], D["ymo"], D["ycap"]
-    sub, ysd, sige, ys = D["sub"], D["ysd"], D["sige"], D["ys"]
+    sub, ysd, sige, ys = D["sub"], D["ysd"], sheets or D["sige"], D["ys"]
+    TP_IL, TP_HK, TP_WF = stack["til"], stack["thk"], stack["twf"]
     SUBFIN = -D["ypts"]
     d = bd.Dev("ns_p", "Nanosheet pFET", "GAA · 3 SiGe sheets",
                "The pFET the same stack makes: three lower-Ge SiGe sheets, a TiN p-type "
@@ -1992,7 +2000,7 @@ def build_ns_p():
         for k in ("nisi", "ni", "w"):
             q = P[f"{k}_{T.lower()}"]
             d.add(q["id"], q["name"], q["material"], q["boxes"], q["group"], q["explode"])
-    d.views = dict(bd.build_ns(bd.NS_PROCESS_STACK).views)
+    d.views = dict(bd.build_ns(stack).views)
     d.views["gaa"] = dict(d.views["gaa"], off=d.views["gaa"]["off"] + ["sib_source"])
     d.finish()
     worst, _ = bd.check(d)
@@ -2612,7 +2620,8 @@ def gate_ends(snap, G, g, *, n_state, p_state, n_done, p_done, figs_cut, figs_sh
          extra=[tmp("b_ildfill", "ILD · no second gate contact here", "ild", "Interlayer dielectric",
                     fill, (0, .6, 0))] if fill else [],
          match=m_src, figs=figs_shared, subs=SUBS + subs_x + [
-             "One gate contact is drawn, over the nFET; where it lands is illustrative"],
+             "One gate contact is drawn, over the nFET; where it lands is illustrative"] +
+             (["This is the arrangement the Si/SiGe CMOS Device and Inverter scenes show"] if sourced else []),
          regions=regions("contacted; shared gate", "shared gate"), **src)
 
 
@@ -3274,6 +3283,9 @@ def main():
             whole = dict(extra, steps=steps)
             attach_sections(key, whole, dev)
             extra["sections"] = whole["sections"]
+        if key in ("ns", "ns_p", "ns_pair"):
+            # The Si/SiGe CMOS channel design's lesson; the Si/Si one is in development.
+            extra["lesson_label"] = "Si/SiGe CMOS · Patent-based example: US 12,568,683 B2"
         out[key] = dict(extra, steps=steps, badge={k: BADGE[k] for k in extra["match"]},
                         badge_note={BADGE[k]: BADGE_NOTE[BADGE[k]] for k in extra["match"]})
         docs.append(audit(key, dev, out[key], refs))

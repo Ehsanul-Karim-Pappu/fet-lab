@@ -73,6 +73,9 @@ EOT = round(TIL + THK*3.9/22.0, 2)
 # 7 nm, and the gate films (0.5 nm SiO2, 1.5 nm HfO2, 1.5 nm work-function metal on each
 # sheet) fill each 7 nm gap between sheets with no fill metal, as in real stacks.
 NS_PROCESS_STACK = dict(tch=7.0, tsg=7.0, til=0.5, thk=1.5, twf=1.5)
+# The exploded gate view of the same devices: sheets as thick, gaps and films enlarged so each
+# film can be seen and tapped. A display choice, not a device: never quoted as dimensions.
+NS_EXPLODED_STACK = dict(tch=7.0, tsg=16.0, til=1.0, thk=2.0, twf=3.0)
 
 class Dev:
     def __init__(self, key, name, tag, blurb):
@@ -159,7 +162,9 @@ def build_ns(stack=None):
     ys=[y0+i*PITCH for i in range(NSH)]                 # 24.5 45.5 66.5 (Device mode)
     hz1,hz2,hz3 = hz+TIL, hz+TIL+THK, hz+TIL+THK+TTIN   # 16 18 21
     hzmo=hz3+5.0; ymo=ys[-1]+HY3+9.0; ycap=ymo+6.0
-    ysd=ys[-1]+HYS+3.0; ynisi=ysd+5.0; yplug=92.0; ym2=102.0
+    ysd=ys[-1]+HYS+3.0; ynisi=ysd+5.0
+    # Contacts rise at least 6 nm above the gate cap (a taller, enlarged stack lifts them).
+    yplug=max(92.0, ycap+6.0); ym2=yplug+10.0
     zsub=42.0; SUBFIN=8.0
 
     # The stack sits on a short Si sub-fin. The trench oxide beside it stops level with

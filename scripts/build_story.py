@@ -112,7 +112,7 @@ The rendering does not predict fabrication yield, self-heating or switching dela
 def attach():
     data = json.loads(DATA.read_text())
     for d in data["devices"]:
-        key = d["key"].replace("show_", "").replace("inv_", "")
+        key = d["key"].replace("show_", "").replace("inv_", "").split("~")[0]
         arch = "cfet" if key.startswith("cfet") else key
         d["story"] = STORY.get(arch, "") + COMMON
     DATA.write_text(json.dumps(data, separators=(",", ":")))
