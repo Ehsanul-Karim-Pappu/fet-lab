@@ -5,6 +5,22 @@ All notable changes to FET Lab. Dates are the release date; versions follow
 
 ## Unreleased
 
+### Termux build script
+
+`build_android_termux.sh` builds the debug APK on the phone. It is now in the repository and:
+
+- keeps its private build copy (synced with rsync, deleted files included), so rebuilds are
+  incremental instead of starting from scratch; `--clean` starts over;
+- names each APK after what it was built from, e.g. `fet-lab-finfet-process-20260926-6595236-debug.apk`
+  (branch, commit date, commit), with `-modified` when `android/` had uncommitted changes;
+- reads the SDK platform from `compileSdk` and lists every missing requirement at once, with
+  the command that installs it;
+- prints the commit being built and notes uncommitted changes in `android/`;
+- holds a Termux wake lock during the build, allows one build at a time, and explains a build
+  killed by Android (exit 137);
+- checks the APK can be read back and shows its package and version; `--install` opens
+  Android's installer, and `-- ARGS` passes options such as `--offline` to Gradle.
+
 ### Nanosheet channel designs: Si/SiGe CMOS and Si/Si CMOS
 
 The nanosheet scenes used to mix two different transistors: Device and Inverter showed Si

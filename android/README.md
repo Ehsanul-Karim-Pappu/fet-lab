@@ -18,6 +18,19 @@ Command line, from this directory with JDK 17 and the Android SDK configured:
 ./gradlew installDebug       # straight onto a connected device
 ```
 
+On the phone itself, in Termux, from the repository root:
+
+```bash
+bash build_android_termux.sh             # e.g. fet-lab-finfet-process-20260926-6595236-debug.apk
+bash build_android_termux.sh --install   # then opens Android's installer on it
+```
+
+It needs `pkg install openjdk-17 aapt2 rsync` (plus `apksigner` to verify the signature)
+and an SDK in `~/android-sdk` with `platforms;android-35` and `build-tools;34.0.0`; it says
+exactly what is missing. It builds in a private copy under `~/.cache/fet-lab-build`, which
+it keeps so later builds are incremental (`--clean` starts over), holds a wake lock while
+Gradle runs, and explains the usual Termux failures. `--help` lists the options.
+
 minSdk 26 (Android 8.0), targetSdk 35. Requires OpenGL ES 2.0.
 
 ## What the app does
