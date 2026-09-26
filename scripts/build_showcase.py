@@ -5,7 +5,7 @@ VD / VG / Metal 0), surface labels sitting on the geometry, light background, fl
 
 In-plane the figure is to scale — gate length, contact length, channel width, cell
 width and track pitch all come from the device cross-sections. Only the vertical
-direction is exaggerated, so the thin films stay visible.
+direction is simplified and not to scale.
 """
 import json, math, os
 from pathlib import Path
@@ -36,7 +36,7 @@ def L(d, text, at, size="m", tone="dark", v=None, lead=True, sd=0, pid=None):
 # nanometre here is the same nanometre there: the gate is drawn at its physical length,
 # the contact at the contacted length, the channel at its real width, and the cell at the
 # rail-to-rail width the inverter scenes derive. Only the vertical direction is
-# exaggerated — drawn to scale, the films would be a pixel or two on a phone.
+# simplified and not to scale: some heights are compressed (fins, sheet spacing).
 MW = 16.0                                        # Metal 0 track width
 OVH = 3.0                                        # MD overhang past the end of a channel
 
@@ -54,10 +54,14 @@ def plan(arch):
     xmd0 = xpo + LSP                             # spacer between gate and contact
     xmd1 = xmd0 + LSD                            # MD, at the contacted source/drain length
     half = a["cell"] / 2.0
-    step = a["cell"] / (len(a["bars"]) - 1)      # one uniform track pitch, rails on the edge
+    # One uniform track pitch with the rails on the cell edges. Without a front GND rail
+    # (CFET), only V_DD sits on the edge; the signal bars stay inside the cell.
+    rails = a["bars"][0] == "gnd"
+    step = a["cell"] / (len(a["bars"]) - 1 if rails else len(a["bars"]))
+    first = -half if rails else -half + step
     return dict(arch=arch, LG=a["LG"], cell=a["cell"], half=half, step=step, mw=MW,
                 xpo=xpo, xmd0=xmd0, xmd1=xmd1, xw=xmd1 + 10.0,
-                zbar={n: -half + i * step for i, n in enumerate(a["bars"])})
+                zbar={n: first + i * step for i, n in enumerate(a["bars"])})
 
 YPW0, YPW1 = -34.0, -14.0                        # P Well plinth
 YWL0, YWL1 = -14.0, -4.0                         # well layer
@@ -88,10 +92,8 @@ def deck(d, P, holes, arch_note, nband, pband, wall=None):
       "Wells & oxide", [0, -1.2, -.5])
     A(d, "nwell", "N Well", "nwell", [box(-XW, XW, YWL0, YWL1, 0, ZCELL)],
       "Wells & oxide", [0, -1.2, .5])
-    gx = 4.0
-    ox = [box(-XW, -gx, YOX0, YOX1, -ZCELL, ZCELL), box(gx, XW, YOX0, YOX1, -ZCELL, ZCELL),
-          box(-gx, gx, YOX0, YOX1, -ZCELL, -gate_z), box(-gx, gx, YOX0, YOX1, gate_z, ZCELL)]
-    ox = [b for b in ox if b[5] > 0.01]
+    # The gate sits on the field oxide; nothing passes through it to the wells.
+    ox = [box(-XW, XW, YOX0, YOX1, -ZCELL, ZCELL)]
     A(d, "fox", "SiO₂ field oxide", "fox", ox, "Wells & oxide", [0, -.8, 0])
 
     # --- source / drain contacts ------------------------------------------
@@ -132,7 +134,6 @@ def deck(d, P, holes, arch_note, nband, pband, wall=None):
     for z0, z1, bands in holes:
         for y0, y1 in gaps(YOX1, YPO1, bands):
             po.append(box(-XPO, XPO, y0, y1, z0, z1))
-    po.append(box(-gx, gx, YOX0, YOX1, -gate_z, gate_z))      # foot, through the oxide
     A(d, "po", "Po · gate electrode", "po", po, "Gate", [0, .9, 0], "in")
 
     # --- vias: each sits under its own Metal 0 track -----------------------
@@ -232,7 +233,7 @@ def show_ns():
             "A schematic nanosheet inverter layout with wells, channel regions, gate, contacts, vias and routing. Two representative sheets are drawn instead of the three in Device/Inverter; vertical spacing and the film stack are simplified.")
     P = plan("ns")
     XW, XMD0, XMD1 = P["xw"], P["xmd0"], P["xmd1"]
-    WSH = 30.0                                   # sheet width, from the device scene
+    WSH = 22.0                                   # sheet width, the Inverter scene's (its span is this cell's)
     rc = P["half"] / 2.0                         # one device row each side of centre
     ZN0, ZN1 = -rc - WSH / 2, -rc + WSH / 2
     ZP0, ZP1 =  rc - WSH / 2,  rc + WSH / 2
@@ -252,7 +253,7 @@ def show_ns():
     L(d, "Nanosheet", [XW, 25.5, ZP1 - 5], "s", "dark", LAYER_VIEWS, sd=1, pid=["p_ws2", "p_wsr2"])
     return finish(d, [
         ["L_G", "Physical gate length, as drawn", f'{P["LG"]:g} nm'],
-        ["Cell z", "Rail-to-rail span (z)", f'{P["cell"]:g} nm'],
+        ["Cell z", "Rail-to-rail span (z), rail centre to rail centre", f'{P["cell"]:g} nm'],
         ["M0 bars", "Drawn Metal 0 bar spacing (schematic; real M0 pitch is about 20–24 nm)", f'{P["step"]:.1f} nm'],
         ["Sheets", "Per device", "2"], ["Devices", "pMOS over N Well, nMOS over P Well", "2"],
         ["Gate", "Po, crossing both", "1"], ["Contacts", "MD columns", "3"],
@@ -269,8 +270,11 @@ def show_fs():
     wires = [(12.0, 17.0), (23.0, 28.0)]
     zn0, zn1 = -TW / 2 - WSH, -TW / 2
     zp0, zp1 =  TW / 2,        TW / 2 + WSH
+    # Under the gate the wall stops at the contacts' height, so the gate bridges over it.
+    XPO, YWT = P["xpo"], YMD1
     A(d, "wall", "Dielectric wall", "wall",
-      [box(-XW, XW, YOX1, YPO1, -TW / 2, TW / 2)], "Dielectric wall", [0, 1.3, 0])
+      [box(-XW, -XPO, YOX1, YPO1, -TW / 2, TW / 2), box(XPO, XW, YOX1, YPO1, -TW / 2, TW / 2),
+       box(-XPO, XPO, YOX1, YWT, -TW / 2, TW / 2)], "Dielectric wall", [0, 1.3, 0])
     for i, (y0, y1) in enumerate(wires):
         for z0, z1, pol, net in ((zn0, zn1, "n", "chan_n"), (zp0, zp1, "p", "chan_p")):
             grp = "nMOS channel" if pol == "n" else "pMOS channel"
@@ -280,14 +284,14 @@ def show_fs():
               [box(XMD1, XW, y0, y1, z0, z1)], grp, [1.5, 0, 0], "body")
             A(d, f"{pol}_wsr{i+1}", f"{pol}MOS sheet {i+1} · source stub", "nanowire",
               [box(-XW, -XMD1, y0, y1, z0, z1)], grp, [-1.5, 0, 0], "body")
-    deck(d, P, [(zn0, zn1, wires), (-TW / 2, TW / 2, [(YOX1, YPO1)]), (zp0, zp1, wires)],
+    deck(d, P, [(zn0, zn1, wires), (-TW / 2, TW / 2, [(YOX1, YWT)]), (zp0, zp1, wires)],
          "<b>Drawn lateral spans.</b> This example spans 106nm rail to rail, versus 136nm for the schematic nanosheet example. These are model measurements, not a general technology-area benefit or an equal-drive comparison.",
          (zn0, zn1), (zp0, zp1), wall=(-TW / 2, TW / 2))
     L(d, "Sheet", [XW, 25.5, zp1 - 5], "s", "dark", LAYER_VIEWS, sd=1, pid=["p_ws2", "p_wsr2"])
     L(d, "Wall", [XMD1 - 6, YPO1 - 4, 0], "s", "dark", LAYER_VIEWS, pid="wall")
     return finish(d, [
         ["L_G", "Physical gate length, as drawn", f'{P["LG"]:g} nm'],
-        ["Cell z", "Rail-to-rail span (z)", f'{P["cell"]:g} nm'],
+        ["Cell z", "Rail-to-rail span (z), rail centre to rail centre", f'{P["cell"]:g} nm'],
         ["M0 bars", "Drawn Metal 0 bar spacing (schematic; real M0 pitch is about 20–24 nm)", f'{P["step"]:.1f} nm'],
         ["Sheets", "Per device", "2"], ["Separation", "Dielectric wall", "no metal gap"],
         ["Gate", "Po, bridged over the wall", "1"], ["Contacts", "MD columns", "3"],
@@ -300,7 +304,7 @@ def show_fin():
     P = plan("fin")
     XW, XMD0, XMD1 = P["xw"], P["xmd0"], P["xmd1"]
     FW, FP = 6.0, 27.0                           # fin width and fin pitch, from the device scene
-    FY0, FY1 = 6.0, 34.0                         # fin height stays exaggerated for legibility
+    FY0, FY1 = 6.0, 34.0                         # fin height compressed (Device/Inverter draw 45 nm)
     rc = P["half"] / 2.0
     fins, holes = [], []
     for zc, pol in ((-rc, "n"), (rc, "p")):
@@ -322,7 +326,8 @@ def show_fin():
     L(d, "Fin", [XW, FY1, rc + FP / 2], "s", "dark", LAYER_VIEWS, sd=1, pid=["p_fs2", "p_fsr2"])
     return finish(d, [
         ["L_G", "Physical gate length, as drawn", f'{P["LG"]:g} nm'],
-        ["Cell z", "Rail-to-rail span (z)", f'{P["cell"]:g} nm'],
+        ["Cell z", "Rail-to-rail span (z), rail centre to rail centre", f'{P["cell"]:g} nm'],
+        ["M0 bars", "Drawn Metal 0 bar spacing (schematic; real M0 pitch is about 20–24 nm)", f'{P["step"]:.1f} nm'],
         ["Fin pitch", "Fin-to-fin, as drawn", f'{FP:g} nm'],
         ["Fins", "Per device", "2"], ["Gate faces", "Per fin", "3 (tri-gate)"],
         ["Gate", "Po, crossing all four fins", "1"], ["Contacts", "MD columns", "3"],
@@ -371,7 +376,7 @@ def show_cfet():
     A(d, "pwell", "P Well", "pwell",
       plate(-XW, XW, YPW[0], YPW[1], -ZC, ZC, [VIA]), "Wells & oxide", [0, -1.2, 0])
     A(d, "fox", "SiO₂ field oxide", "fox",
-      plate(-XW, XW, YOX[0], YOX[1], -ZC, ZC, [VIA, (-4.0, 4.0, -GZ, GZ)]),
+      plate(-XW, XW, YOX[0], YOX[1], -ZC, ZC, [VIA]),
       "Wells & oxide", [0, -.8, 0])
 
     # --- channels ----------------------------------------------------------
@@ -409,7 +414,6 @@ def show_cfet():
         po.append(box(-XPO, XPO, YPO[0], YPO[1], a, b))
     for y0, y1 in gaps(YPO[0], YPO[1], WN + WP):
         po.append(box(-XPO, XPO, y0, y1, -ZCH, ZCH))
-    po.append(box(-4, 4, YOX[0], YOX[1], -GZ, GZ))
     A(d, "po", "Po · gate through both tiers", "po", po, "Gate", [0, .9, 0], "in")
 
     # --- vias and Metal 0 ---------------------------------------------------
@@ -444,7 +448,7 @@ def show_cfet():
     d.note = ("<b>One lateral pair footprint.</b> Stacking changes the placement of the complementary devices, but isolation, contacts and routing still take space. Backside GND is a design choice in this example; the lower tier is not intrinsically inaccessible from the frontside.")
     return finish(d, [
         ["L_G", "Physical gate length, as drawn", f'{P["LG"]:g} nm'],
-        ["Cell z", "Rail-to-rail span (z)", f'{P["cell"]:g} nm'],
+        ["Cell z", "Rail-to-rail span (z), rail centre to rail centre", f'{P["cell"]:g} nm'],
         ["M0 bars", "Drawn Metal 0 bar spacing (schematic; real M0 pitch is about 20–24 nm)", f'{P["step"]:.1f} nm'],
         ["Tiers", "pMOS above nMOS", "2"], ["Sheets", "Per tier", "2"],
         ["Gate", "Po, continuous through both", "1"], ["Contacts", "MD, split top and bottom", "4"],
@@ -453,7 +457,7 @@ def show_cfet():
 # --------------------------------------------------------------- LAYOUT COMPARE
 def show_cmp():
     d = Dev("show_cmp", "Layout compare", "four cells, one scale",
-            "Four schematic inverter layouts at a common scale. The z spans match the technical inverter examples, but layer detail and vertical geometry are simplified.")
+            "Four schematic inverter layouts at a common scale. The z spans are the technical inverter examples' numbers, measured here between rail centres (the Inverter scenes measure to the rails' outer edges); layer detail and vertical geometry are simplified.")
     builders = [(show_fin, "FinFET", "2 fins per device", "fin"),
                 (show_ns, "Nanosheet", "2 representative sheets per device", "ns"),
                 (show_fs, "Forksheet", "wall between n and p", "fs"),
@@ -481,7 +485,7 @@ def show_cmp():
         L(d, sub, [0, ytop + 12, zc], "s", lead=False, v=["front", "hero"])
     w0 = cells[0][3]
     d.dims = [[nm, sub, f"{w:g} nm  ({w / w0 * 100:.0f}%)"] for nm, sub, zc, w, yt in cells]
-    d.dims.insert(0, ["—", "Rail-to-rail span (z)", "same number the Inverter scenes use"])
+    d.dims.insert(0, ["—", "Rail-to-rail span (z)", "the Inverter scenes' numbers, between rail centres"])
     d.dims.append(["—", "Metal 0 bars on top", "4 / 4 / 4 / 3 (CFET GND is on the back)"])
     d.dims.append(["—", "What grows", "sideways, then upwards"])
     d.logic = True

@@ -40,8 +40,11 @@ class ContentTests(unittest.TestCase):
             # A lesson (the SADP and SAQP chips) has no finished device behind it.
             # A pFET or both-sites flow carries its own finished parts ("final"), if any.
             lesson = flow.get('lesson', False) or (flow.get('own') and 'final' not in flow)
+            # The nanosheet nFET flow ends on its own finished parts (the Process stack) but
+            # keeps Device mode's views.
             dev = dict(parts=[], views={}) if lesson else \
-                dict(parts=flow['final'], views={}) if flow.get('own') else devs[key]
+                dict(parts=flow['final'], views={}) if flow.get('own') else \
+                dict(devs[key], parts=flow.get('final', devs[key]['parts']))
             final = {p['id'] for p in dev['parts']}
             views = {**dev['views'], **flow.get('views', {})}
             self.assertTrue(flow['scope'])
@@ -204,7 +207,7 @@ class ContentTests(unittest.TestCase):
                     self.assertEqual(flow['views'][vk].get('scale', 'site'), scale, (key, vk))
                 self.assertNotRegex(pl['text'], r'matches|reproduc')
             if key in want:
-                final = devs[key]['parts']
+                final = flow.get('final', devs[key]['parts'])
                 for pid, names in want[key].items():
                     hit = {p['id'] for p in cut(final, planes[pid])}
                     self.assertLessEqual(set(names), hit, (key, pid))
@@ -415,6 +418,31 @@ class ContentTests(unittest.TestCase):
                 for term in cap['terms']:
                     self.assertTrue(set(term['a'] + term['b'] + term['via']) <= ids)
         self.assertEqual(count, 5)
+
+    def test_nanosheet_process_stack(self):
+        """One Si/SiGe stack makes both nanosheet devices, so every channel it leaves is
+        channel-thin: the nFET's Si sheets and the pFET's SiGe sheets alike, in every step of
+        the nFET, pFET and both-sites flows. The gate films between the sheets fit their gap."""
+        flows = json.loads((ROOT / 'data/process.json').read_text())['flows']
+        for key in ('ns', 'ns_p', 'ns_pair'):
+            # The both-sites flow has no finished list: its last step carries the parts.
+            final = {p['id']: p for p in flows[key].get('final') or
+                     [q for q in flows[key]['steps'][-1]['parts'] if isinstance(q, dict)]}
+            chans = [p for p in final.values() if p['group'] == 'Channel stack']
+            self.assertEqual(len(chans), 6 if key == 'ns_pair' else 3, key)
+            for p in chans:
+                for b in p['boxes']:
+                    self.assertLessEqual(b[4], 8.0, (key, p['id']))          # sheet thickness
+            # Every stack layer, sacrificial or kept, in every step, is channel-thin too.
+            for st in flows[key]['steps']:
+                for p in st['parts']:
+                    if isinstance(p, dict) and p['group'] in ('Superlattice', 'Channel stack') \
+                            and 'base' not in p['name']:
+                        for b in p['boxes']:
+                            self.assertLessEqual(b[4], 8.0, (key, st['id'], p['id']))
+        # Device mode's nanosheet keeps its spaced-out, noted stack.
+        ns = next(d for d in self.data['devices'] if d['key'] == 'ns')
+        self.assertIn('Process mode', ns['note'])
 
     def test_guide_learning_aids(self):
         """Both tours name real stops, the learning path opens real scenes in order, and

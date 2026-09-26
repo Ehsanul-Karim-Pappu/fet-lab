@@ -5,6 +5,77 @@ All notable changes to FET Lab. Dates are the release date; versions follow
 
 ## Unreleased
 
+### Audit of every scene: geometry and text fixes
+
+A measured audit of all 16 scenes and 9 process flows (connectivity, overlaps, film fits,
+callouts against geometry, text against geometry) found these, now fixed:
+
+- **CFET (Device mode, both):** the bottom nFET's source and drain vias landed on one
+  backside metal plate, shorting its source to its drain. The backside now has a GND line
+  under the source and a separate drain line.
+- **CFET inverter:** the output riser stopped 2 nm short of the drains, so the nMOS drain
+  was floating and the circuit was not an inverter. The riser now contacts both drains.
+- **Forksheet (Device and Inverter):** the source/drain epitaxy sat on bare substrate under
+  a wall that stopped 10 nm above it, so the n and p source/drain faced each other with
+  nothing between them. Bottom isolation now runs under the source/drain too, and the wall
+  separates them all the way down. The forksheet's junction term is now 0, as the
+  nanosheet's is. Its "t_TiN" callout measured the nFET's n-type metal and is now t_WFM.
+- **Nanosheet inverter:** its source/drain also sat on bare substrate; it now sits on the
+  bottom isolation, as in Device mode.
+- **FinFET inverter:** the "Along the channel" view cut between the fins; it now cuts
+  through one.
+- **Layout scenes:**
+  - The gate had a foot through the field oxide that touched the wells, shorting the P and
+    N wells through the gate; it is gone.
+  - The forksheet's gate never crossed the wall, so its n and p gates were joined only by
+    that foot. The wall now stops below the gate, which bridges it.
+  - The CFET's IN bar sat on the cell edge; it is now inside the cell.
+  - The nanosheet cell uses the Inverter scene's 22 nm sheets that its span comes from.
+  - The FinFET layout has its Metal 0 row.
+  - The rail-to-rail row says it is measured rail centre to rail centre (the Inverter
+    scenes measure to the rails' outer edges).
+  - "Vertical dimensions exaggerated" now reads "simplified, not to scale": the fins and
+    sheet spacing are compressed, not enlarged.
+- **Both sites (FinFET and nanosheet):** after the dummy gate was pulled, the gate trench
+  between the two sites was drawn full of oxide, and so was the etched gate-cut slot. Both
+  are now open, as the text says.
+- **Nanosheet contacts:** the ILD stopped at the gate cap, so the contacts stood as free
+  pillars. It now rises around them, so they fill holes in it.
+- **Region labels:** the FinFET pFET flow showed "pFET · protected" on its own SiGe:B
+  epitaxy, and its copied masking steps showed the wrong regions; each step now shows its
+  own state. The single-site flows no longer claim a gate cut they don't draw, and their
+  branch texts now point to the pFET and Both sites flows.
+- **Texts:**
+  - The pitch-walk lesson's thicker-second-spacer case says which spaces shrink (the
+    spaces between second cores, by twice the change) and which doesn't (the space inside
+    a second core).
+  - The forksheet inverter's note says the TiN gate cap bridges the wall.
+  - The compare scene says "cell height" instead of "cell width".
+  - The cell outline has its own marker material, instead of the forksheet wall's.
+  - The nanosheet flow's finished-device text gives Device mode's real differences
+    (5 nm sheets, a 21 nm pitch, thicker films).
+- **Enlarged spacing now noted everywhere it's drawn:** the forksheet, CFET and inverter
+  notes say their sheets are drawn about 20 nm apart so each film shows, where real stacks
+  are 7–12 nm apart. The Process tile notes that its 84 nm stack pitch is enlarged.
+
+### Nanosheet Process stack: realistic for both devices
+
+The Process nanosheet flows (nFET, pFET and Both sites) used Device mode's stack: 5 nm Si
+sheets 21 nm apart, so 16 nm of SiGe between them. The pFET keeps those SiGe layers as its
+channels, so its sheets came out 12–16 nm thick, about three times a real sheet, and nothing
+said so. The shared stack is now 7 nm Si and 7 nm SiGe, so both devices' sheets are 7 nm. The
+gate films are 0.5 nm SiO₂, 1.5 nm HfO₂ and 1.5 nm work-function metal on each sheet for both
+devices, and they fill each 7 nm gap between sheets with no fill metal, as in real stacks. The
+pFET no longer needs thinner films than the nFET. The superlattice, gate-stack and
+finished-device steps say what the stack is, and why it differs from Device mode. Device
+mode's nanosheet is unchanged, with its sheets spaced out so each film shows; its note now
+points to Process mode's tighter stack. A new test checks that every layer of the shared stack
+is channel-thin in every step.
+
+The legacy web nanosheet page's note now names the n-type work-function metal (not TiN),
+counts ten materials, and says real sheets sit 7–12 nm apart with the work-function metal
+filling the gap, instead of calling the model's enlarged spacing "the real scaling wall".
+
 ### Learning path and Process mode structure
 
 - **Learn in order.** Help opens with a suggested path: FinFET → nanosheet → forksheet → CFET →

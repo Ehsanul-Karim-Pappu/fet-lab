@@ -117,7 +117,7 @@ was a thickness-extraction artifact, not a physical correction to the plate mode
 | --- | ---: | ---: | ---: | ---: |
 | FinFET | 85.88 → 88.10 | 15.46 → 15.46 | 15.79 (17.61 before the S/D recess; see 5.) | 0.00 |
 | Nanosheet | 75.12 → 80.30 | 7.83 → 5.09 | 16.51 | 0.00 (27.35 before BDI; see 4.) |
-| Forksheet | 107.08 → 112.42 | 10.60 → 6.95 | 24.21 | 40.11 |
+| Forksheet | 107.08 → 112.42 | 10.60 → 6.95 | 24.21 | 0.00 (40.11 before bottom isolation under the S/D) |
 | Monolithic CFET | 69.83 → 76.48 | 4.63 → 3.22 | 12.52 | 0.00 |
 | Sequential CFET | 69.83 → 76.48 | 4.63 → 3.22 | 12.52 | 0.00 |
 

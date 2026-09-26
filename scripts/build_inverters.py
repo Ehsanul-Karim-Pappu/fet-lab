@@ -10,10 +10,10 @@ from build_devices import (Dev, box, ring4, fork3, finwrap, gaps, check,
                            MAT, ORDER, WFM, WFL, TCH, LSP, LSD, TIL, THK, TTIN, EOT,
                            HYS, HY1, HY2, HY3)
 
-NOTE_NS = ("<b>One input, complementary devices.</b> The two gates share an input conductor. Each device has its own illustrative work-function metal: an Al-containing n-type metal for the nFET and TiN for the pFET. Actual threshold tuning requires process-specific gate stacks. IN/OUT colors show ideal logic states, not simulated currents.")
+NOTE_NS = ("<b>One input, complementary devices.</b> The two gates share an input conductor. Each device has its own illustrative work-function metal: an Al-containing n-type metal for the nFET and TiN for the pFET. Actual threshold tuning requires process-specific gate stacks. IN/OUT colors show ideal logic states, not simulated currents. Sheets are drawn 21nm apart (centre to centre) so every film shows; real stacks space them roughly 7-12nm apart, where the work-function metal fills the gap with no fill metal.")
 NOTE_FIN = ("<b>Fin-count sizing.</b> Both transistors use two fins, giving a geometric width ratio of 1. Adding a third pFET fin would make that ratio 1.5. Neither ratio guarantees electrical balance: mobility, threshold, strain and contacts also matter. This viewer does not calculate switching delay or current.")
-NOTE_FS = ("<b>A common input over a wall.</b> The two gate-fill regions join above the inner wall in this illustrative cell. Reduced n/p spacing can save lateral span, but does not remove all gate-patterning and contact constraints.")
-NOTE_CFET = ("<b>Stacked inverter example.</b> The nFET is below the pFET, with a common input and connected drains. A backside GND path and an output riser are choices in this drawing; they are not the only possible CFET contact scheme. The model is not a characterized standard cell.")
+NOTE_FS = ("<b>A common input over a wall.</b> The TiN gate cap bridges the inner wall, joining the two gate-fill regions, in this illustrative cell. Reduced n/p spacing can save lateral span, but does not remove all gate-patterning and contact constraints. Sheets are drawn 21nm apart (centre to centre) so every film shows; real stacks space them roughly 7-12nm apart, where the work-function metal fills the gap with no fill metal.")
+NOTE_CFET = ("<b>Stacked inverter example.</b> The nFET is below the pFET, with a common input and connected drains. A backside GND path and an output riser are choices in this drawing; they are not the only possible CFET contact scheme. The model is not a characterized standard cell. Sheets are drawn 20nm apart (centre to centre) so every film shows; real stacks space them roughly 7-12nm apart, where the work-function metal fills the gap with no fill metal.")
 
 def A(d, pid, name, mat, boxes, group, explode, net="body"):
     d.add(pid, name, mat, boxes, group, explode)
@@ -61,7 +61,7 @@ def deck(d, C):
 
     # --- cell boundary ----------------------------------------------------
     t = 1.2
-    A(d, "cellbox", "Cell boundary", "wall",
+    A(d, "cellbox", "Cell boundary", "cellmark",
       [box(-xc, xc, 0, t, zr + 6 - t, zr + 6),
        box(-xc, xc, 0, t, -zr - 6, -zr - 6 + t),
        box(-xc, -xc + t, 0, t, -zr - 6 + t, zr + 6 - t),
@@ -109,7 +109,7 @@ def inv_ns():
     ym0, ym0t, ym1, ym1t = ynisi, ynisi + 15, ynisi + 21, ynisi + 31
 
     A(d, "substrate", "Si substrate", "silicon", [box(-xc + 3, xc - 3, -22, 0, -zr - 2, zr + 2)], "Substrate & isolation", [0, -1.2, 0])
-    A(d, "sti", "STI / bottom isolation", "sio2", [box(-xsp, xsp, 0, STI, -zr - 2, zr + 2)], "Substrate & isolation", [0, -.8, 0])
+    A(d, "sti", "STI / bottom isolation", "sio2", [box(-xsd, xsd, 0, STI, -zr - 2, zr + 2)], "Substrate & isolation", [0, -.8, 0])
     for s, pol, grp in ((1, "p", "pMOS (pull-up)"), (-1, "n", "nMOS (pull-down)")):
         z0 = s * zc; net = "chan_p" if s > 0 else "chan_n"
         for i, yy in enumerate(ys):
@@ -126,7 +126,7 @@ def inv_ns():
             xa, xb = sorted((sx * xsp, sx * xsd))
             nt = ("vdd" if s > 0 else "gnd") if sx < 0 else "out"
             A(d, f"{pol}_epi_{T}", f"{pol}MOS {T} epi", "silicon" if s < 0 else "sige",
-              [box(xa, xb, 0, ysd, z0 - hz, z0 + hz)], grp, [sx * 1.6, 0, s * .4], nt)
+              [box(xa, xb, STI, ysd, z0 - hz, z0 + hz)], grp, [sx * 1.6, 0, s * .4], nt)
             A(d, f"{pol}_nisi_{T}", f"{pol}MOS {T} TiSiₓ", "tisi",
               [box(xa, xb, ysd, ynisi, z0 - hz, z0 + hz)], grp, [sx * 1.9, .3, s * .5], nt)
             sp = []
@@ -226,7 +226,8 @@ def inv_fin():
                    ("outn", "out", xsp + 6, xsd - 6, -zc - 7, -zc + 7, ym0t, ym1)],
              vianame={"vdd": "V_DD via", "gnd": "GND via", "outp": "Output via · pMOS", "outn": "Output via · nMOS"})
     deck(d, C)
-    return finish(d, C, "fin", zcut=zc, note=NOTE_FIN, extra_dims=[
+    # Along the channel through a fin (the inner pMOS fin), not between the two fins.
+    return finish(d, C, "fin", zcut=zc - FP / 2, note=NOTE_FIN, extra_dims=[
         ["Devices", "pMOS and nMOS, one gate", "2 × 2 fins"],
         ["W_eff", "Per device, 2H+W per fin", f"{2*(2*HF+WF):g} nm"],
         ["Cell z", "Rail-to-rail span (z)", f"{2*(zr+6):g} nm"],
@@ -245,7 +246,7 @@ def inv_fs():
     zg = z3 + 5; zr = zg + 10; xc = xsd + 4
     ym0, ym0t, ym1, ym1t = ynisi, ynisi + 15, ynisi + 21, ynisi + 31
     A(d, "substrate", "Si substrate", "silicon", [box(-xc + 3, xc - 3, -22, 0, -zr - 2, zr + 2)], "Substrate & isolation", [0, -1.2, 0])
-    A(d, "sti", "STI / bottom isolation", "sio2", [box(-xsp, xsp, 0, STI, -zr - 2, zr + 2)], "Substrate & isolation", [0, -.8, 0])
+    A(d, "sti", "STI / bottom isolation", "sio2", [box(-xsd, xsd, 0, STI, -zr - 2, zr + 2)], "Substrate & isolation", [0, -.8, 0])
     A(d, "wall", "SiN dielectric wall", "wall",
       [box(-xsp, xsp, STI, ymo, -zi, zi), box(xsp, xsd, STI, ynisi, -zi, zi), box(-xsd, -xsp, STI, ynisi, -zi, zi)],
       "Dielectric wall", [0, 1.6, 0], "body")
@@ -266,7 +267,7 @@ def inv_fs():
         for sx, T in ((-1, "source"), (1, "drain")):
             xa, xb = sorted((sx * xsp, sx * xsd)); zz = sorted((s * zi, s * zo))
             nt = ("vdd" if s > 0 else "gnd") if sx < 0 else "out"
-            A(d, f"{pol}_epi_{T}", f"{pol}MOS {T} epi", "sige" if s > 0 else "silicon", [box(xa, xb, 0, ysd, zz[0], zz[1])], grp, [sx * 1.6, 0, s * .5], nt)
+            A(d, f"{pol}_epi_{T}", f"{pol}MOS {T} epi", "sige" if s > 0 else "silicon", [box(xa, xb, STI, ysd, zz[0], zz[1])], grp, [sx * 1.6, 0, s * .5], nt)
             A(d, f"{pol}_nisi_{T}", f"{pol}MOS {T} TiSiₓ", "tisi", [box(xa, xb, ysd, ynisi, zz[0], zz[1])], grp, [sx * 1.9, .3, s * .6], nt)
             xa2, xb2 = sorted((sx * xg, sx * xsp)); sp = [box(xa2, xb2, STI, ycap, *sorted((s * zo, s * zg)))]
             for a, b in gaps(STI, ycap, [(y - HYS, y + HYS) for y in ys]):
@@ -305,7 +306,8 @@ def inv_cfet():
     ytsd = yt[-1] + HYS + 3; ynisi = ytsd + 5            # 97 -> 102
     ym0, ym0t, ym1, ym1t = ynisi, ynisi + 15, ynisi + 21, ynisi + 31
     zr = hzmo + 10; xc = xsd + 4; zmdi = hzmo + 6        # 31 / 40.5 / 27
-    rz0, rz1, rx0, rx1 = 12.0, 20.0, 18.0, 30.0          # output riser footprint
+    # Output riser: its -z face on the drains' +z face (z = hz), so it contacts both drains.
+    rz0, rz1, rx0, rx1 = hz, 20.0, 18.0, 30.0
     bs0, bs1 = -22.0, -12.0
 
     A(d, "rail_gnd_bs", "GND rail (backside metal)", "tungsten",
@@ -392,7 +394,7 @@ def inv_cmp():
 
     w0 = cells[0][2]
     for nm, zc, w, ytop in cells:
-        d.cal(f"w_{nm}", nm, f"{w:g} nm", f"cell width · {w / w0 * 100:.0f}% of FinFET",
+        d.cal(f"w_{nm}", nm, f"{w:g} nm", f"cell height (rail-to-rail span) · {w / w0 * 100:.0f}% of FinFET",
               [0, -26, zc - w / 2], [0, -26, zc + w / 2], [0, -52, zc], ["front", "iso"])
         d.cal(f"h_{nm}", nm, "", "rail to rail",
               [0, ytop, zc], [0, ytop + 1, zc], [0, ytop + 30, zc], ["front", "iso"])
@@ -406,7 +408,7 @@ def inv_cmp():
     ctr = [(B["x"][0] + B["x"][1]) / 2, (B["y"][0] + B["y"][1]) / 2, (B["z"][0] + B["z"][1]) / 2]
     zs = B["z"][1] - B["z"][0]
     d.views = {
-      "front": dict(n="Head on", s="cell widths, side by side", az=-1.5708, el=0.03, r=zs * 1.52, tgt=ctr, clip=None),
+      "front": dict(n="Head on", s="cell heights, side by side", az=-1.5708, el=0.03, r=zs * 1.52, tgt=ctr, clip=None),
       "iso": dict(n="All four", s="same scale", az=-1.40, el=0.28, r=zs * 1.55, tgt=ctr, clip=None),
       "top": dict(n="Top view", s="straight down", az=-1.5708, el=1.45, r=zs * 1.52, tgt=ctr, clip=None)}
     return d

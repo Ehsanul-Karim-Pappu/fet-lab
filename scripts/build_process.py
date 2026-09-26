@@ -252,9 +252,10 @@ NS_FIGURES = ("Figure numbers follow the patent's written description [R13]. Its
               "reconstruction, not a copy of a figure, and its orientation may differ.")
 NS_BRANCH = ("The patent builds a pFET and an nFET from one shared stack. This lesson follows "
              "the nFET only: the pFET steps (Figs. 10–11 and 15) and the pFET beside it in the "
-             "other figures are left out. The 2 × 2 tile's four sites are context for the "
-             "patterning: only the selected nFET is carried to a finished device, and no gate cut "
-             "is drawn, so each gate line would still be shared by an nFET and a pFET site.")
+             "other figures are left out here; they are in the pFET flow, and Both sites shows the "
+             "two together, with the choice of a gate cut or a shared gate. The 2 × 2 tile's four "
+             "sites are context for the patterning: only the selected nFET is carried to a finished "
+             "device. The labels under each step say what each region is doing at that point.")
 
 # A cut through the gate centre seen at an angle, so the cavities read as open space
 # rather than as the spacer wall behind them.
@@ -286,13 +287,25 @@ NS_SKIPPED = {
     "19A/B": "an alternative shared-gate arrangement to Fig. 18, not a later step",
 }
 
+# The Process stack (bd.NS_PROCESS_STACK), said where it shows.
+NS_STACK_SUB = ("Both layers are drawn 7 nm thick: in this route the Si layers become the nFET's "
+                "channels and the lower-Ge SiGe layers the pFET's, so both must be channel-thin. "
+                "Device mode's nanosheet spaces its sheets at a 21 nm pitch (16 nm apart) so every gate "
+                "film shows; this flow's stack is the tighter one. Thicknesses and Ge contents are illustrative, not the "
+                "patent's examples")
+NS_FILMS_SUB = ("The films are drawn 0.5 nm SiO₂, 1.5 nm HfO₂ and 1.5 nm work-function metal on each "
+                "sheet: together they fill the 7 nm between the sheets, leaving no room for fill metal "
+                "there, as in real stacks. Thicknesses are illustrative")
+
 HKMG_SUB = ("SiO₂, HfO₂, an n-type work-function metal and Mo stand for the interfacial, high-κ, "
             "work-function and fill layers; real nFET work-function metals are Al-containing (TiAl or "
             "TiAlC, usually over a thin TiN layer)")
 
 
 def flow_ns(done):
-    dev = bd.build_ns()
+    # The Process stack, not Device mode's spaced-out one: its SiGe layers are the pFET's
+    # channels in the pFET and Both sites flows (see bd.NS_PROCESS_STACK).
+    dev = bd.build_ns(bd.NS_PROCESS_STACK)
     F = Flow(dev)
     P = F.final
     # Everything is read off the finished parts, so the flow cannot drift from them.
@@ -323,10 +336,12 @@ def flow_ns(done):
         F.put(tmp("bsige", "SiGe, high Ge · sacrificial base layer", "sige", "Superlattice",
                   [box(x0, x1, 0, STI, z0, z1)], (0, -.6, 0)))
 
-    def ild_around():
+    def ild_around(ytop=None):
+        """The ILD around everything, up to the gate cap's top, or [ytop]: at the contacts, up
+        to the S/D metal's top, so the contacts fill holes in it."""
         others = [b for p in F.now.values() if p["id"] != "ild" for b in p["boxes"]]
         F.put(tmp("ild", "Interlayer dielectric (ILD)", "ild", "Interlayer dielectric",
-                  subtract((-XSD, XSD, 0, ycap, -zsub, zsub), others), (0, .6, 0)))
+                  subtract((-XSD, XSD, 0, ytop or ycap, -zsub, zsub), others), (0, .6, 0)))
 
     def film(t, window):
         return conformal(F.boxes(), t, window)
@@ -349,7 +364,8 @@ def flow_ns(done):
     SITE5 = (-XSD, XSD, sub[2], RY + 2.0, -hzmo, hzmo)    # the same, across its gate's own width
     TILE_SUBS = ["Pitches are illustrative: the gate pitch is one site's length, the stack pitch "
                  f"its width. The tile's gate pitch is about {PG:.0f} nm; a real contacted gate pitch "
-                 "at these nodes is about 45–48 nm"]
+                 f"at these nodes is about 45–48 nm. The stack pitch ({PS:.0f} nm) is enlarged too: real "
+                 "active pitches are a few tens of nm, which is why pitch splitting is used"]
 
     def t_multilayer(lines):
         """The multilayer, blanket over the window, or on each stack line once patterned.
@@ -605,7 +621,7 @@ def flow_ns(done):
         "same stack also makes a SiGe-channel pFET, where different layers survive, so not every "
         "SiGe layer is sacrificial everywhere [R13].",
         match="published", figs=["4A/B"],
-        subs=["Layer thicknesses and Ge contents are illustrative, not the patent's examples"],
+        subs=[NS_STACK_SUB],
         omitted=["The pFET's use of the same stack"])
     # 4
     tile_patterning()
@@ -755,12 +771,12 @@ def flow_ns(done):
         "cap on top. Reaching every surface between the sheets is the key step [R1].", view="cut",
         match="published", figs=["17A/B"],
         subs=[HKMG_SUB + "; the patent does not verify this combination, its thicknesses or its "
-              "work function"],
+              "work function", NS_FILMS_SUB],
         omitted=["The patent's separate pFET and nFET work-function treatments, gate cut and "
                  "self-aligned cap"])
     # 17
     F.add("nisi_source", "nisi_drain", "ni_source", "ni_drain", "w_source", "w_drain", "gatew")
-    ild_around()
+    ild_around(lim(F.final["w_drain"]["boxes"][0])[3])
     F.snap("contacts", "Middle-of-line contacts",
         "Contact openings are etched through the ILD, the semiconductor contact interface is formed "
         "(a silicide here) and metal fills the openings, with a contact onto the gate. These are "
@@ -773,16 +789,20 @@ def flow_ns(done):
     # 18
     F.drop("ild")
     F.snap("done", "The finished device",
-        "The same model as Device mode, part for part. Hiding the ILD here is a display choice, as "
-        "in the Device view; the ILD is not removed in fabrication.",
+        "The finished nFET: three 7 nm Si sheets with 7 nm between them, each wrapped by the gate "
+        "films, which fill those spaces. Device mode draws a spaced-out version instead (5 nm sheets "
+        "at a 21 nm pitch, 16 nm apart, with thicker films) so each film is easier to see. Hiding the ILD here is a display choice, as in the "
+        "Device view; the ILD is not removed in fabrication.",
         match="published", figs=["18A/B"],
-        subs=["The ILD is hidden for viewing only"],
+        subs=["The ILD is hidden for viewing only", NS_STACK_SUB],
         omitted=["The patent's final figures show the pFET beside this nFET"])
     return dev, F.done(), dict(scope=NS_SCOPE, figures=NS_FIGURES, branch=NS_BRANCH,
                                skipped=NS_SKIPPED, refs=["R13", "R1", "R14", "R15", "R16", "R18", "R19", "R20", "R21"],
                                match=dict(MATCH, **PAT_MATCH), routes=ROUTES,
                                route_title="How the stack lines are printed", route_join="the stack etch",
-                               views=dict(cut=CUTAWAY, cutb=INDENT, **TILE_VIEWS, **FIELD_VIEWS))
+                               views=dict(cut=CUTAWAY, cutb=INDENT, **TILE_VIEWS, **FIELD_VIEWS),
+                               # Its finished parts: the Process stack's, not Device mode's.
+                               final=dev.parts)
 
 
 # ================================================= PITCH-SPLITTING ROUTES ===
@@ -1157,10 +1177,10 @@ FIN_FIGURES = ("Figure numbers follow each source's written description. The dra
                "not a copy of a figure, and its orientation may differ. F1's A, B and C suffixes are "
                "its own section lines (its Fig. 1), not yet mapped onto the app's views.")
 FIN_BRANCH = ("The flow follows the nFET. The 2 × 2 tile's four sites are context for the "
-              "patterning: only the selected nFET is carried to a finished device. The tile's pFET "
-              "region (its n-well and two fins) receives none of its own steps, such as its masked "
-              "SiGe:B epitaxy or its work-function metal [R24][R25], and no gate cut is drawn, so "
-              "each gate line would still be shared by an nFET and a pFET site.")
+              "patterning: only the selected nFET is carried to a finished device. The pFET's own "
+              "steps, such as its masked SiGe:B epitaxy and its work-function metal [R24][R25], are "
+              "in the pFET flow, and Both sites shows the two together, with the choice of a gate "
+              "cut or a shared gate. The labels under each step say what each region is doing.")
 FIN_ROUTES = [
     dict(id="direct", name="Direct print",
          note="A hypothetical single immersion (193i) exposure at this model's 27 nm fin pitch, "
@@ -1822,8 +1842,9 @@ def flow_pitchwalk(done):
                       "neighbouring cores' spacers by the same amount.",
                 "s1": "A thinner first spacer makes narrower second cores, and widens the space between "
                       "first-core spacer pairs.",
-                "s2": "A thicker second spacer makes wider lines, and every space around them shrinks, "
-                      "but not all by the same amount."}[k],
+                "s2": "A thicker second spacer makes wider lines. The spaces between second cores "
+                      "each shrink by twice the change; the space inside each second core, set by the "
+                      "first spacer, does not change."}[k],
             view="pwcut", match="teach", subs=SUBS)
         fins(g)
         m = measured(case, p)
@@ -1895,13 +1916,15 @@ def flow_pitchwalk(done):
 # two single-site models side by side, one stack pitch apart, joined by their gate line.
 # A site selector moves between the three.
 PWF = "tin"                              # the pFET's work-function metal: TiN, the usual p-type one
-TP_IL, TP_HK, TP_WF = 0.5, 1.0, 1.0     # the pFET's gate films: they must fit the 5 nm Si gaps
+# The pFET's gate films, the same as the nFET's: between its SiGe sheets the Si layers leave
+# the same 7 nm the SiGe layers leave between the nFET's Si sheets.
+TP_IL, TP_HK, TP_WF = (bd.NS_PROCESS_STACK[k] for k in ("til", "thk", "twf"))
 NS_P_REC = 4.0                           # how far the pFET's S/D recess goes into the sub-fin
 
 
 def ns_dims():
     """The nanosheet site's dimensions, read off the finished nFET so nothing can drift."""
-    n = bd.build_ns()
+    n = bd.build_ns(bd.NS_PROCESS_STACK)
     P = {p["id"]: p for p in n.parts}
     sheets = [lim(P[f"sheet{i}"]["boxes"][0]) for i in (1, 2, 3)]
     D = dict(dev=n, P=P, hz=sheets[0][5], ys=[(s[2], s[3]) for s in sheets],
@@ -1969,7 +1992,7 @@ def build_ns_p():
         for k in ("nisi", "ni", "w"):
             q = P[f"{k}_{T.lower()}"]
             d.add(q["id"], q["name"], q["material"], q["boxes"], q["group"], q["explode"])
-    d.views = dict(bd.build_ns().views)
+    d.views = dict(bd.build_ns(bd.NS_PROCESS_STACK).views)
     d.views["gaa"] = dict(d.views["gaa"], off=d.views["gaa"]["off"] + ["sib_source"])
     d.finish()
     worst, _ = bd.check(d)
@@ -2045,10 +2068,12 @@ def flow_ns_p(done):
                 F.put(tmp(f"psi{i+1}", f"Si · layer {i+1} (removed from the pFET's gate later)", "silicon", GL,
                           [box(si[0], si[1], a, b, -hz, hz)]))
 
-    def ild_around():
+    def ild_around(ytop=None):
+        """The ILD around everything, up to the gate cap's top, or [ytop]: at the contacts, up
+        to the S/D metal's top, so the contacts fill holes in it."""
         others = [b for p in F.now.values() if p["id"] != "ild" for b in p["boxes"]]
         F.put(tmp("ild", "Interlayer dielectric (ILD)", "ild", "Interlayer dielectric",
-                  subtract((-XSD, XSD, 0, ycap, -zsub, zsub), others), (0, .6, 0)))
+                  subtract((-XSD, XSD, 0, ytop or ycap, -zsub, zsub), others), (0, .6, 0)))
 
     def core(sid, title, body, **kw):
         F.steps.extend(ops_of(sid))
@@ -2088,7 +2113,7 @@ def flow_ns_p(done):
         "become the channels, and the Si layers and the high-Ge base are removed from its gate "
         "region near the end [R13].",
         match="published", figs=["4A/B"],
-        subs=["Layer thicknesses and Ge contents are illustrative, chosen for the nFET model"])
+        subs=[NS_STACK_SUB])
     # 4
     F.drop("wafer", "pts0")
     F.add("substrate", "sti")
@@ -2211,13 +2236,13 @@ def flow_ns_p(done):
         "treatment is the pFET's, separate from the nFET's [R13]. With no bottom isolation, the "
         "same films also line the sub-fin's top under the gate: the n-type stopper keeps that "
         "surface from conducting.", view="cut", match="published", figs=["17A/B"],
-        subs=["The spaces between the SiGe sheets are the Si layers' 5 nm, set by the nFET model; "
-              "the pFET's films are drawn thinner (0.5 + 1 + 1 nm) so they fit and meet between the "
-              "sheets. A real shared stack is designed so both gates fit",
-              "TiN is drawn as the p-type work-function metal; its thickness here is set by the fit, not a recipe"])
+        subs=["Between the SiGe sheets the Si layers leave 7 nm, the same as between the nFET's "
+              "sheets, so the pFET's films are drawn at the nFET's thicknesses (0.5 nm SiO₂, 1.5 nm "
+              "HfO₂, 1.5 nm TiN) and fill those spaces, with no fill metal between the sheets",
+              "TiN is drawn as the p-type work-function metal; its thickness is illustrative, not a recipe"])
     # 17
     F.add("nisi_source", "nisi_drain", "ni_source", "ni_drain", "w_source", "w_drain", "gatew")
-    ild_around()
+    ild_around(lim(F.final["w_drain"]["boxes"][0])[3])
     F.snap("p_contacts", "Middle-of-line contacts",
         "Contacts are opened through the ILD, the silicide is formed on the SiGe:B and metal fills "
         "the openings, with a contact onto the gate [R13].", match="published", figs=["18A/B"],
@@ -2238,9 +2263,9 @@ def flow_ns_p(done):
             "orientation, composition and labels may differ from the published artwork.",
             "**Section planes.** X1–X1 (along the pFET stack), Y1–Y1 and Y2–Y2 are placed from the "
             "patent's written description only.",
-            "**The pFET's gate films.** Between its SiGe sheets the shared stack leaves the Si layers' "
-            "5 nm, set by the nFET model, so the pFET's films are drawn 0.5 + 1 + 1 nm and meet in the "
-            "middle; a real shared stack is designed so both gates fit.",
+            "**The shared stack's thicknesses.** Both layers are drawn 7 nm so that each device's "
+            "sheets are channel-thin and each gate's films fill the 7 nm between its sheets; the "
+            "patent's own layer thicknesses were not checked.",
             "When the protective liner over the pFET is removed, and the Si:B then SiGe:B epitaxy "
             "sequence, are model choices; the recess depth into the sub-fin is illustrative.",
             "The lithography operations are concept-level; the stack patterning routes are the nFET "
@@ -2316,6 +2341,14 @@ def pair_builder(G, nflow, nfinal, pflow, pfinal):
                                [box(-XGg, XGg, y0, ycap, c0, c1)], (0, 1.6, 0)))
         return out
 
+    def voids(kind):
+        """What stands empty on the gate line at [kind]: the whole trench once the dummy gate
+        is pulled, the slot once the cut is etched. The sites' dielectrics give way there."""
+        z0, z1 = zb
+        if kind == "trench": return [box(-XGg, XGg, y0, ycap, z0, z1)]
+        if kind == "cutopen": return [box(-XGg, XGg, y0, ycap, ZMID - CW / 2, ZMID + CW / 2)]
+        return []
+
     def hits(a, b):
         a, b = lim(a), lim(b)
         return all(min(a[k + 1], b[k + 1]) > max(a[k], b[k]) + 1e-6 for k in (0, 2, 4))
@@ -2347,7 +2380,7 @@ def pair_builder(G, nflow, nfinal, pflow, pfinal):
                                       q["material"], q["group"], bx, q["explode"]))
             parts += gap
         b = bridge(br) if br else []
-        parts = carve(parts, [x for q in b for x in q["boxes"]]) + b
+        parts = carve(parts, [x for q in b for x in q["boxes"]] + (voids(br) if br else [])) + b
         S.now = {q["id"]: q for q in parts}
         if film:        # the spacer film over the gate line between the stacks
             S.put(tmp("b_film", "Spacer dielectric (as deposited) · between the stacks", "si3n4", "Spacers",
@@ -2437,7 +2470,7 @@ def ns_pair(ns, nfinal, psteps, pfinal):
          regions=regions("p-type stopper", "n-type stopper"))
     snap("superlattice", "One Si/SiGe stack for both", "One multilayer grows over both regions: the "
          "nFET will keep its Si layers as channels, the pFET its lower-Ge SiGe layers [R13].",
-         n="superlattice", p="superlattice", figs=["4A/B"], subs=SUBS,
+         n="superlattice", p="superlattice", figs=["4A/B"], subs=SUBS + [NS_STACK_SUB],
          regions=regions("shared stack", "shared stack"))
     snap("pattern", "Both stacks patterned", "The two stack lines are patterned together, with shallow "
          "trench isolation between them [R13]. The operations are shown in the nFET and pFET flows, on "
@@ -2607,7 +2640,7 @@ def insert_pair_ops(F, pair_steps, ids):
         oid, to = oid if isinstance(oid, tuple) else (oid, None)
         op = json.loads(json.dumps(next(s for s in pair_steps if s["id"] == oid)))
         if to: op["of"] = to
-        op.pop("pair", None); op.pop("regions", None); op.pop("route", None); op.pop("from", None)
+        op.pop("pair", None); op.pop("route", None); op.pop("from", None)      # its own regions stay
         k = next(i for i, s in enumerate(F.steps) if s["level"] == "core" and s["id"] == op["of"])
         F.steps.insert(k, op)
 
@@ -2619,10 +2652,17 @@ def attach_regions(steps, pair_steps, side):
     last = None
     for st in steps:
         if st["level"] != "core": continue
-        m = next((s for s in cores if s["id"] == st["id"]), None) or \
-            next((s for s in cores if s["pair"][side] == st["id"]), None)
+        # The first state of the both-sites flow where this side has reached this step (the
+        # pFET's epitaxy is the pair's p_epi, not its nFET epi), else the step of the same id.
+        m = next((s for s in cores if s["pair"][side] == st["id"]), None) or \
+            next((s for s in cores if s["id"] == st["id"]), None)
         # A step the both-sites flow does not show (the finished device, say) keeps the last state.
-        last = m["regions"] if m else last
+        if m:
+            last = m["regions"]
+            # A single-site flow draws neither ending, so a route's state is said neutrally.
+            if m.get("route"):
+                last = {k: "contacted" if v.startswith("contacted") else "gate cut or shared (see Both sites)"
+                        for k, v in last.items()}
         if last: st["regions"] = last
     nxt = None
     for st in reversed(steps):
@@ -2633,7 +2673,7 @@ def attach_regions(steps, pair_steps, side):
 def flow_ns_p_all(done):
     dev, F, extra = flow_ns_p(done)
     ns = done["ns"]
-    nfinal = {p["id"]: p for p in bd.build_ns().parts}
+    nfinal = {p["id"]: p for p in bd.build_ns(bd.NS_PROCESS_STACK).parts}
     G, PF = ns_pair(ns, nfinal, F.steps, F.final)
     insert_pair_ops(F, PF.steps, ["pts_nmask", "p_open", "p_chopen"])
     extra["views"].update(pair_views(G))

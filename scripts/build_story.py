@@ -13,7 +13,7 @@ for every manufacturer. FinFET-to-GAA scaling improves gate control and sizing f
 forksheet and CFET also address how complementary devices fit into a cell. [R1, R2, R3]</p>
 <p>These are educational structures, not a foundry process or an electrical simulation.
 Dimensions describe the drawn boxes in nanometres. Layout mode simplifies the layer stack and
-exaggerates vertical spacing; it is not a mask layout or fabrication flow. Rail-to-rail span is
+simplifies vertical dimensions (not to scale); it is not a mask layout or fabrication flow. Rail-to-rail span is
 measured along z, a direction commonly called standard-cell height. Equal spans do not imply
 equal drive current, delay or routability. [R10, R12]</p>
 <h4>Materials and electrical limits</h4>
@@ -70,7 +70,7 @@ epitaxy, isolation and gate fill must be co-optimized; this model is not a proce
 also matter. More sheets do not automatically make a faster cell. Samsung announced initial
 3nm GAA production in June 2022; this does not assign every nanosheet technology to that node. [R6]</p>
 <p>Device and Inverter show three sheets per device. Layout deliberately shows two representative
-sheets with exaggerated vertical spacing, not a layer-for-layer copy of those technical scenes.</p>
+sheets with simplified vertical spacing (not to scale), not a layer-for-layer copy of those technical scenes.</p>
 """,
 "fs": """
 <h4>Bringing complementary devices closer</h4>

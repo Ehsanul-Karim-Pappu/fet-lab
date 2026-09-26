@@ -18,6 +18,7 @@ MAT = {
  "highk":   dict(label="Hafnium dioxide (HfO₂)", color="#BE8250", note="Illustrative high-k gate dielectric; relative permittivity 22 is a model assumption"),
  "si3n4":   dict(label="Si₃N₄",              color="#E4AE1B", note="Gate spacers"),
  "wall":    dict(label="Dielectric wall",    color="#7A8AA0", note="SiN n–p separation wall (forksheet)"),
+ "cellmark":dict(label="Cell boundary",      color="#5C6B80", note="Drawing marker for the standard cell's edge; not a material"),
  "mdi":     dict(label="Middle-tier dielectric", color="#4E7F8C", note="Isolation role, not a specified compound; relative permittivity 4.2 assumed"),
  "bond":    dict(label="Bonding oxide",      color="#8FB6C0", note="Wafer-bond interface (sequential CFET)"),
  "mo":      dict(label="Molybdenum (Mo)",    color="#E3D3B0", note="Illustrative gate-fill conductor; not a verified advanced-node recipe"),
@@ -48,7 +49,7 @@ MAT = {
  "vg":      dict(label="VG",                 color="#F5E93B", note="Via, gate to Metal 0"),
  "m0":      dict(label="Metal 0",            color="#F2C1A2", note="First routing level"),
 }
-ORDER = ["silicon","sige","sio2","highk","si3n4","wall","mdi","bond",
+ORDER = ["silicon","sige","sio2","highk","si3n4","wall","cellmark","mdi","bond",
          "nwf","tin","mo","tisi","cobalt","tungsten","poly","ild","pts","pts_n","resist","resist_exp","chrome","liner","mandrel","mandrel2","patspacer",
          "pwell","nwell","fox","nanowire","md","po","vd","vg","m0"]
 
@@ -63,6 +64,15 @@ XG, XSP, XSD = LG/2, LG/2+LSP, LG/2+LSP+LSD          # 7.5 / 14.5 / 36.5
 HYS  = TCH/2                                          # 2.5
 HY1, HY2, HY3 = HYS+TIL, HYS+TIL+THK, HYS+TIL+THK+TTIN   # 3.5 / 5.5 / 8.5
 EOT = round(TIL + THK*3.9/22.0, 2)
+
+# The Process nanosheet flows' stack. Their route [R13] makes the nFET and the pFET from one
+# Si/SiGe stack: the nFET keeps the Si layers as its channels and the pFET the SiGe ones, so
+# both layers must be channel-thin, and each device's gate has only the other layer's
+# thickness between its sheets. Device mode spaces its sheets 21 nm apart so every film shows;
+# the Process flows cannot, or the pFET's sheets would be 16 nm thick. Here both layers are
+# 7 nm, and the gate films (0.5 nm SiO2, 1.5 nm HfO2, 1.5 nm work-function metal on each
+# sheet) fill each 7 nm gap between sheets with no fill metal, as in real stacks.
+NS_PROCESS_STACK = dict(tch=7.0, tsg=7.0, til=0.5, thk=1.5, twf=1.5)
 
 class Dev:
     def __init__(self, key, name, tag, blurb):
@@ -130,12 +140,23 @@ def check(dev, step=0.5):
     return int(cnt.max()), len(bx)
 
 # ============================================================== NANOSHEET ===
-def build_ns():
+def build_ns(stack=None):
+    """Device mode's nanosheet, or with [stack] (NS_PROCESS_STACK) the Process flows' one:
+    the same parts, with the sheets, their spacing and the gate films at [stack]'s values."""
     d=Dev("ns","Nanosheet FET","GAA · 3 stacked sheets",
       "A gate-all-around nFET example with three silicon nanosheets. SiO2 and HfO2 represent the dielectric stack, an Al-containing n-type work-function metal the gate's work-function layer, and Mo an illustrative gate fill.")
     W, PITCH, NSH = 30.0, 21.0, 3
+    TCH, TIL, THK, TTIN = globals()["TCH"], globals()["TIL"], globals()["THK"], globals()["TTIN"]
+    if stack:
+        TCH, TIL, THK, TTIN = stack["tch"], stack["til"], stack["thk"], stack["twf"]
+        PITCH = TCH + stack["tsg"]
+    HYS = TCH/2; HY1, HY2, HY3 = HYS+TIL, HYS+TIL+THK, HYS+TIL+THK+TTIN
+    EOT = round(TIL + THK*3.9/22.0, 2)
     hz=W/2; STI=10.0
-    ys=[STI+HY3+6.0+i*PITCH for i in range(NSH)]        # 24.5 45.5 66.5
+    # Device mode leaves room for fill metal under the lowest sheet; the Process stack's
+    # bottom SiGe layer is as thick as the others.
+    y0 = STI+stack["tsg"]+HYS if stack else STI+HY3+6.0
+    ys=[y0+i*PITCH for i in range(NSH)]                 # 24.5 45.5 66.5 (Device mode)
     hz1,hz2,hz3 = hz+TIL, hz+TIL+THK, hz+TIL+THK+TTIN   # 16 18 21
     hzmo=hz3+5.0; ymo=ys[-1]+HY3+9.0; ycap=ymo+6.0
     ysd=ys[-1]+HYS+3.0; ynisi=ysd+5.0; yplug=92.0; ym2=102.0
@@ -201,7 +222,7 @@ def build_ns():
              "c":dict(n="Across channel",s="through the gate",az=1.5708,el=0,r=250,tgt=[0,46,0],clip=[0,None,None]),
              "gaa":dict(n="Gate-all-around",s="source side lifted off",az=-1.12,el=.30,r=205,tgt=[0,45,0],clip=[4,None,None],
                         off=["epi_source","nisi_source","ni_source","w_source","spacer_source"])}
-    d.note=("<b>Reading the wrap.</b> Each Si sheet is wrapped by a 1nm SiO2 interfacial layer, 2nm HfO2 and 3nm of n-type work-function metal in this model. The sheets are drawn at a 21nm vertical pitch so every film is visible, which leaves 4nm of Mo fill between neighbouring shells. Real stacks space their sheets more tightly, roughly 7-12nm apart, and there the work-function metal fills the gap between sheets with no room left for fill metal. The 1nm interfacial layer is also drawn thicker than today's roughly 0.5-0.8nm, so the model's EOT of " f"{EOT:g}nm is above the sub-1nm EOT of advanced-node gate stacks. These materials and dimensions are model choices.")
+    d.note=("<b>Reading the wrap.</b> Each Si sheet is wrapped by a 1nm SiO2 interfacial layer, 2nm HfO2 and 3nm of n-type work-function metal in this model. The sheets are drawn at a 21nm vertical pitch so every film is visible, which leaves 4nm of Mo fill between neighbouring shells. Real stacks space their sheets more tightly, roughly 7-12nm apart, and there the work-function metal fills the gap between sheets with no room left for fill metal; Process mode's nanosheet flows draw that tighter stack, with 7nm sheets and 7nm between them. The 1nm interfacial layer is also drawn thicker than today's roughly 0.5-0.8nm, so the model's EOT of " f"{EOT:g}nm is above the sub-1nm EOT of advanced-node gate stacks. These materials and dimensions are model choices.")
     return d.finish()
 
 # ================================================================= FINFET ===
@@ -301,7 +322,9 @@ def build_fs():
     ysd=ys[-1]+HYS+3.0; ynisi=ysd+5.0; yplug=92.0; ym2=102.0; zsub=zmo+5
 
     d.add("substrate","Si substrate","silicon",[box(-48,48,-26,0,-zsub,zsub)],"Substrate & isolation",[0,-1.2,0])
-    d.add("sti","STI / bottom isolation","sio2",[box(-XSP,XSP,0,STI,-zsub,zsub)],"Substrate & isolation",[0,-.8,0])
+    # Bottom isolation under the gate and the source/drain, so the n and p epitaxy sit on it
+    # and the wall separates them all the way down.
+    d.add("sti","STI / bottom isolation","sio2",[box(-XSD,XSD,0,STI,-zsub,zsub)],"Substrate & isolation",[0,-.8,0])
     d.add("wall","SiN dielectric wall","wall",[box(-XSD,XSD,STI,ymo,-zi,zi)],"Dielectric wall",[0,1.6,0])
 
     for s,pol in ((1,"n"),(-1,"p")):
@@ -334,7 +357,7 @@ def build_fs():
             mat = "silicon" if s>0 else "sige"
             lab = "Si:P" if s>0 else "SiGe:B"
             d.add(f"epi_{sg}_{T.lower()}",f"{sg}FET {T.lower()} epi ({lab})",mat,
-                  [box(xa,xb,0,ysd,zz[0],zz[1])],"Source / drain",[sx*1.6,0,s*.6])
+                  [box(xa,xb,STI,ysd,zz[0],zz[1])],"Source / drain",[sx*1.6,0,s*.6])
             d.add(f"nisi_{sg}_{T.lower()}",f"{sg}FET {T.lower()} TiSiₓ","tisi",
                   [box(xa,xb,ysd,ynisi,zz[0],zz[1])],"Source / drain",[sx*1.9,.3,s*.7])
             d.add(f"ni_{sg}_{T.lower()}",f"{sg}FET {T.lower()} Co plug","cobalt",
@@ -349,7 +372,7 @@ def build_fs():
     d.cal("tch","t<sub>ch</sub>",f"{TCH:g} nm","Sheet thickness",[-XSP,ys[1]-HYS,zo],[-XSP,ys[1]+HYS,zo],[-XSP-34,ys[1],zo+32],["iso","b","c","fork"])
     d.cal("W","W<sub>sh</sub>",f"{W:g} nm","Sheet width",[-XSP,ys[0]-HYS-.6,zi],[-XSP,ys[0]-HYS-.6,zo],[-XSP-10,ys[0]-26,zo+20],["iso","c"])
     d.cal("LG","L<sub>G</sub>",f"{LG:g} nm","Physical gate length",[-XG,ymo+2,zmo],[XG,ymo+2,zmo],[0,ymo+22,zmo+34],["iso","b"])
-    d.cal("tin","t<sub>TiN</sub>",f"{TTIN:g} nm","Three-sided, not four",[0,ys[2]+HY2,zo+.1],[0,ys[2]+HY3,zo+.1],[0,ys[2]+30,z3+34],["c","fork"])
+    d.cal("tin","t<sub>WFM</sub>",f"{TTIN:g} nm","n-type work-function metal · three-sided, not four",[0,ys[2]+HY2,zo+.1],[0,ys[2]+HY3,zo+.1],[0,ys[2]+30,z3+34],["c","fork"])
     d.dims=[["L_G","Physical gate length",f"{LG:g} nm"],["t_ch","Sheet thickness",f"{TCH:g} nm"],
             ["W_sh","Sheet width",f"{W:g} nm"],["Pitch","Sheet-to-sheet pitch",f"{PITCH:g} nm"],
             ["t_wall","Dielectric wall thickness",f"{WALL:g} nm"],
@@ -364,7 +387,7 @@ def build_fs():
                  off=[f"epi_{g}_source" for g in "np"]+[f"nisi_{g}_source" for g in "np"]+
                      [f"ni_{g}_source" for g in "np"]+[f"w_{g}_source" for g in "np"]+
                      [f"spacer_{g}_source" for g in "np"])}
-    d.note=("<b>Model choice.</b> An 8nm silicon-nitride wall separates the n/p stacks here. Real wall dimensions and chemistry depend on the integration scheme. Reduced lateral spacing must be balanced against gate control, stress, contact access and parasitics. This is the classic inner-wall concept, not the later outer-wall forksheet.")
+    d.note=("<b>Model choice.</b> An 8nm silicon-nitride wall separates the n/p stacks here. Real wall dimensions and chemistry depend on the integration scheme. Reduced lateral spacing must be balanced against gate control, stress, contact access and parasitics. This is the classic inner-wall concept, not the later outer-wall forksheet. Sheets are drawn 21nm apart (centre to centre) so every film shows; real stacks space them roughly 7-12nm apart, where the work-function metal fills the gap with no fill metal.")
     return d.finish()
 
 # =================================================================== CFET ===
@@ -390,8 +413,11 @@ def build_cfet(seq=False):
     ybond = ymdi0+6.0                            # bond plane inside the tier gap
 
     # ---- backside power -------------------------------------------------
-    d.add("bsm","Backside power metal (W)","tungsten",[box(-48,48,ybm0,ybm1,-zsub,zsub)],"Backside power",[0,-2.0,0])
-    ild=[box(-XSP,XSP,ybm1,0,-zsub,zsub)]
+    # Two backside lines: GND under the source, and the drain's own line (to the output),
+    # kept apart so the bottom nFET's source and drain are not shorted together.
+    d.add("bsm","Backside GND line (W) · bottom source","tungsten",[box(-48,-2,ybm0,ybm1,-zsub,zsub)],"Backside power",[0,-2.0,0])
+    d.add("bsm_drain","Backside drain line (W) · to the output, not GND","tungsten",[box(2,48,ybm0,ybm1,-zsub,zsub)],"Backside power",[.6,-2.0,0])
+    ild=[box(-XSP,XSP,ybm1,0,-zsub,zsub), box(-2,2,ybm0,ybm1,-zsub,zsub)]
     for s in (-1,1):
         xa,xb=sorted((s*XSP,s*XSD)); xc=(xa+xb)/2
         ild += [box(xa,xc-7,ybm1,0,-zsub,zsub), box(xc+7,xb,ybm1,0,-zsub,zsub),
@@ -482,7 +508,7 @@ def build_cfet(seq=False):
             ["W_sh","Sheet width",f"{W:g} nm"],["Pitch","Sheet pitch within a tier",f"{PITCH:g} nm"],
             ["t_MDI","Middle dielectric isolation",f"{MDI:g} nm"],
             ["N_sh","Sheets per tier","2"],["EOT","Equivalent oxide thickness of the drawn films (production stacks: below about 1 nm)",f"{EOT:g} nm"],
-            ["—","Bottom tier contact","backside power via"],
+            ["—","Bottom tier contacts","backside vias: source to GND, drain to its own line"],
             ["—","Gate","shared, strapped by a via" if seq else "shared, continuous Mo"],
             ["—","Active footprint (z)",f"{2*hz3:g} nm"]]
     d.views={"iso":dict(n="3D overview",s="the stacked pair",az=-.80,el=.30,r=360,tgt=[0,50,0],clip=None),
@@ -490,7 +516,7 @@ def build_cfet(seq=False):
              "c":dict(n="Across channel",s="through the gate",az=1.5708,el=0,r=300,tgt=[0,56,0],clip=[0,None,None]),
              "tier":dict(n="Tier interface",s="source side lifted off",az=-1.18,el=.26,r=270,tgt=[0,54,0],clip=[4,None,None],
                  off=["epi_n_source","epi_p_source","nisi_source","ni_source","w_source","spacer_source"])}
-    d.note=(("<b>Sequential integration.</b> A semiconductor layer is transferred by bonding before upper-tier device processing. The bonding dielectric separates the gates here; a via connects them for this inverter configuration. Post-transfer thermal limits depend on the process (around 500 degrees C or below in the flow discussed in R3), not on the architecture name alone. [R3, R5]" if seq else "<b>Complementary devices.</b> CFET means a vertically stacked nFET/pFET pair. Continuous gate fill is one implementation of a common input, not what defines CFET. This model uses backside access for the lower tier; frontside contacting is also possible. [R3, R4, R5]"))
+    d.note=(("<b>Sequential integration.</b> A semiconductor layer is transferred by bonding before upper-tier device processing. The bonding dielectric separates the gates here; a via connects them for this inverter configuration. Post-transfer thermal limits depend on the process (around 500 degrees C or below in the flow discussed in R3), not on the architecture name alone. [R3, R5]" if seq else "<b>Complementary devices.</b> CFET means a vertically stacked nFET/pFET pair. Continuous gate fill is one implementation of a common input, not what defines CFET. This model uses backside access for the lower tier; frontside contacting is also possible. [R3, R4, R5]")+" Sheets are drawn 20nm apart (centre to centre) so every film shows; real stacks space them roughly 7-12nm apart, where the work-function metal fills the gap with no fill metal.")
     return d.finish()
 
 # ================================================================ COMPARE ===
