@@ -31,6 +31,11 @@ exactly what is missing. It builds in a private copy under `~/.cache/fet-lab-bui
 it keeps so later builds are incremental (`--clean` starts over), holds a wake lock while
 Gradle runs, and explains the usual Termux failures. `--help` lists the options.
 
+Every build records the commit it came from: About shows it under the version, for example
+`Build 6595236 · finfet-process · 2026-09-26`, ending in `· modified` if uncommitted changes
+in `android/` went in. The Termux script passes it as `-Pfetlab.commit=…`; any other build
+reads it from git.
+
 minSdk 26 (Android 8.0), targetSdk 35. Requires OpenGL ES 2.0.
 
 ## What the app does

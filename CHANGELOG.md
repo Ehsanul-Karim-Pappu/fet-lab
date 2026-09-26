@@ -19,7 +19,14 @@ All notable changes to FET Lab. Dates are the release date; versions follow
 - holds a Termux wake lock during the build, allows one build at a time, and explains a build
   killed by Android (exit 137);
 - checks the APK can be read back and shows its package and version; `--install` opens
-  Android's installer, and `-- ARGS` passes options such as `--offline` to Gradle.
+  Android's installer on the private copy with the APK type given, and `-- ARGS` passes
+  options such as `--offline` to Gradle.
+
+The app now says which build it is: About shows a line such as
+`Build 6595236 · finfet-process · 2026-09-26` under the version (`· modified` when
+uncommitted changes in `android/` were included), and the feedback email's subject carries
+the commit. The Termux script passes the commit to Gradle; other builds read it from git, and
+a build that cannot see git leaves the line out. `android/.kotlin/` is now ignored by git.
 
 ### Nanosheet channel designs: Si/SiGe CMOS and Si/Si CMOS
 
