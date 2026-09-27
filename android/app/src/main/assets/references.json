@@ -196,7 +196,7 @@
       "title": "Nanosheet epitaxy with full bottom isolation (US 2023/0178617 A1)",
       "publisher": "IBM (applicant), US patent application",
       "url": "https://patents.google.com/patent/US20230178617A1/en",
-      "supports": "An example Si/Si nanosheet CMOS route in Figs. 2–52: a Ge-rich sacrificial bottom layer, a Si seed layer, then lower-Ge SiGe and Si channel layers; stack lines, STI, sacrificial gates, spacers, source/drain recess, SiGe indent and inner spacers; undoped Si grown from the seed and channel ends; the Ge-rich layer removed and replaced by bottom dielectric isolation under both devices; pFET SiGe:B and nFET SiC:P source/drain each with the other region protected; ILD, sacrificial-gate removal, SiGe removal releasing the Si channels of both devices, and separate work-function metals. One disclosed example, not a production foundry flow; the app's figure placements are from this written summary, not from its drawings."
+      "supports": "An example Si/Si nanosheet CMOS route in Figs. 2–52: a Ge-rich sacrificial bottom layer, a Si seed layer, then lower-Ge SiGe and Si channel layers; stack lines, STI, sacrificial gates, spacers, source/drain recess, SiGe indent and inner spacers; undoped Si grown from the seed and channel ends; the Ge-rich layer removed and replaced by bottom dielectric isolation under both devices; pFET SiGe:B and nFET SiC:P source/drain each with the other region protected; ILD, sacrificial-gate removal, SiGe removal releasing the Si channels of both devices, and separate work-function metals. One disclosed example, not a production foundry flow; the Si seed layer stays only under the inner spacers and the undoped Si; under the gate it is oxidized and etched at channel release, and the gate sits on the bottom isolation. PDF in docs/nsfet."
     },
     {
       "id": "R29",
@@ -238,14 +238,14 @@
       "title": "CFETs and the methods of forming the same (US 2024/0413156 A1)",
       "publisher": "Taiwan Semiconductor Manufacturing Company (applicant), US patent application",
       "url": "https://patents.google.com/patent/US20240413156A1/en",
-      "supports": "The sequential CFET Device scene: a lower transistor made in one wafer, an etch stop, a dielectric with an inter-metal line (Cu) and SiO2 bond layers, a second wafer fusion-bonded and the upper transistor made in it; deep contact plugs from the front and the back to the inter-metal line; front- and backside interconnect; SiOCN inner spacers, TiAl and TiN work-function metals. PDF in docs/cfet."
+      "supports": "The sequential CFET Device scene: a lower transistor made in one wafer, an etch stop, a dielectric with an inter-metal line (Cu) and SiO2 bond layers, a second wafer fusion-bonded and the upper transistor made in it; deep contact plugs from the front and the back to the inter-metal line; front- and backside interconnect; SiOCN inner spacers, TiAl and TiN work-function metals. PDF in docs/cfet. Its Chinese family member, CN 118712136 A (same applicant, inventors, figures and text), is in docs/cfet and is text-searchable."
     },
     {
       "id": "R35",
       "title": "Semiconductor device structure including forksheet transistors and methods of forming the same (US 2024/0178128 A1)",
       "publisher": "Taiwan Semiconductor Manufacturing Company (applicant), US patent application",
       "url": "https://patents.google.com/patent/US20240178128A1/en",
-      "supports": "The forksheet Inverter scene: n and p gate electrodes separated by the dielectric wall and planarised level with it (gate height 15 nm or less above the top channel); a gate bridge contact (barrier TiN, fill W and others), wider than the wall, on the wall and in contact with both gates; the gate via contact landing on it; SiN etch stops, CESL and silicided S/D contacts with a TiN barrier. PDF in docs/fsfet."
+      "supports": "Another way to join a forksheet's gates, described in the forksheet story but not drawn: n and p gate electrodes separated by the dielectric wall and planarised level with it (gate height 15 nm or less above the top channel); a gate bridge contact (barrier TiN, fill W and others), wider than the wall, on the wall and in contact with both gates; the gate via contact landing on it; SiN etch stops, CESL and silicided S/D contacts with a TiN barrier. PDF in docs/fsfet."
     }
   ],
   "unverified_legacy_credit": "Earlier versions cited S. Rathore et al., Semiconductor Science and Technology (2021), without a title, DOI or figure number. The exact source has not been established. Retained here for provenance, not presented as a verified reference or silently replaced with a different paper."

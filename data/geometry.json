@@ -38,7 +38,7 @@
   "highk": {
    "label": "Hafnium dioxide (HfO\u2082)",
    "color": "#BE8250",
-   "note": "High-\u03ba gate dielectric (Hf-based in every patent followed); relative permittivity 22 is a model assumption"
+   "note": "High-\u03ba gate dielectric, drawn as HfO\u2082: every patent followed lists Hf-based oxides among its options; relative permittivity 22 is a model assumption"
   },
   "si3n4": {
    "label": "Silicon nitride (SiN)",
@@ -53,7 +53,7 @@
   "cobalt": {
    "label": "Cobalt (Co)",
    "color": "#EE7A1A",
-   "note": "Contact conductor. The FinFET patent's contacts are Co in a TiN liner [R29]; elsewhere Co is the model's choice where a patent names no metal"
+   "note": "Contact conductor. Co in a TiN liner is one of the FinFET patent's contact options [R29]; elsewhere Co is the model's choice where a patent names no metal"
   },
   "tungsten": {
    "label": "Tungsten (W)",

@@ -5,6 +5,46 @@ All notable changes to FET Lab. Dates are the release date; versions follow
 
 ## Unreleased
 
+### Models that agree with each other
+
+- **Inverters are the Device models, wired.**
+  - The FinFET inverter is the Device nFET beside the Process lesson's pFET on one shared gate.
+  - The forksheet and CFET inverters are their Device scenes.
+  - Each gets one metal level over the contacts: GND, V_DD, OUT and IN.
+  - Inverter Compare now shows these four inverters; it used to show an older nanosheet cell.
+- **The lessons end on the Device models**, and a test checks it: nanosheet and FinFET both-sites
+  on the shared gate, Si/Si, and FinFET nFET.
+- **Contacts stop level with the gate cap** in every Device, as the FinFET's always did.
+  - Nanosheet: the tall Co plug and the W pad on top are gone.
+  - Forksheet and CFET: shortened too.
+- **Si/Si nanosheet, checked against its patent (US 2023/0178617 A1, now in `docs/nsfet`).**
+  - The Si seed layer stays only under the inner spacers and the undoped Si. Under the gate the
+    patent oxidizes and etches it away at channel release, so the extra thin "channel" is gone,
+    and the gate's high-κ and work-function metal lie on the bottom isolation.
+  - Outer spacers are SiBCN, from the patent's list.
+  - The gate cap is SiN, with the gate contact through it; it used to be a TiN cap.
+- **Nanosheet pair:** the pFET's gate cap no longer has a hole where its unused contact would be.
+- **CFET Layout:** the pFET is now below the nFET and all four nets are on the front, as in the
+  Device and Inverter; there is no backside GND.
+- **Sequential CFET:** the lower gate has a contact, a via and line on the back, marked as the
+  model's addition, since the patent draws none.
+- **Forksheet Inverter:** the Device wired up, with its one gate fill over the wall.
+  US 2024/0178128 A1's gate bridge is now described in the story as the alternative.
+- **Wording:** fixed the FinFET pFET metal name and some material notes (wall, cobalt, high-κ,
+  AlOₓ), and removed two CFET part names that described films that are not drawn.
+- **TSMC's CN 118712136 A** is the Chinese family member of the sequential CFET patent already
+  followed: the same text, with a text layer.
+
+### Screens
+
+- **Channel design pill:** now compact and top right in Device and Inverter too, the same as in
+  Process.
+- **Exploded gate view:** removed.
+- **Si/Si Process lesson:** now has cross sections: along the nFET, along the pFET, across the
+  gate, across the S/D.
+- **Section window:** the plane's name and the axis directions share one line, so the 2D drawing
+  keeps more height.
+
 ### Following the patents
 
 Each technology's scenes and Process flows now follow one patent example, with its materials and

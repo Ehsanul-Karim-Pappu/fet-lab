@@ -15,13 +15,13 @@ MAT = {
  "silicon": dict(label="Silicon (Si)",       color="#F2C2CF", note="Channels, substrate, sub-fins and Si source/drain epitaxy; each part names its doping. Doping and strain are not modeled"),
  "sige":    dict(label="Silicon-germanium (SiGe)", color="#B37FA0", note="SiGe layers and SiGe:B source/drain; each part names its Ge content where the patent gives one"),
  "sio2":    dict(label="Silicon oxide (SiO₂)", color="#8C1C13", note="STI, interfacial layers, BOX and isolation oxides; each part names its role"),
- "highk":   dict(label="Hafnium dioxide (HfO₂)", color="#BE8250", note="High-κ gate dielectric (Hf-based in every patent followed); relative permittivity 22 is a model assumption"),
+ "highk":   dict(label="Hafnium dioxide (HfO₂)", color="#BE8250", note="High-κ gate dielectric, drawn as HfO₂: every patent followed lists Hf-based oxides among its options; relative permittivity 22 is a model assumption"),
  "si3n4":   dict(label="Silicon nitride (SiN)", color="#E4AE1B", note="Spacers, liners, caps, etch stops and gate-cut fills; each part names its role and the patent it follows"),
  "sibcn":   dict(label="SiBCN (low-κ spacer film)", color="#D8C06A", note="Boron- and carbon-doped silicon nitride: the nanosheet patent's spacer and bottom-isolation film [R13], the forksheet patent's gate spacer [R31] and the monolithic CFET patent's spacer material [R33]"),
  "lowk":    dict(label="Low-κ dielectric", color="#9FB6C8", note="A low-κ film the patent names without one composition (inner spacers, isolation, ILD): SiOCN-class, drawn as one material"),
- "alox":    dict(label="Aluminium oxide (AlOₓ)", color="#C9D4DE", note="The FinFET's gate hard mask [R29], the nanosheet's protective liner [R13]"),
+ "alox":    dict(label="Aluminium oxide (AlOₓ)", color="#C9D4DE", note="The FinFET's gate hard mask [R29], the nanosheet's protective liner [R13] and the sequential CFET's etch stop [R34]"),
  "soc":     dict(label="Spin-on carbon (SOC)", color="#4A4A57", note="The FinFET's dummy contact material, about 50–95 % carbon, baked and planarised, then replaced by ILD and contacts [R29]"),
- "wall":    dict(label="SiN dielectric wall", color="#7A8AA0", note="The forksheet's insulating wall between the n and p stacks, and the contact partition wall on it: SiN in the forksheet patents [R31][R32]"),
+ "wall":    dict(label="SiN dielectric wall", color="#7A8AA0", note="The forksheet's insulating wall between the n and p stacks, and the contact partition wall on it: SiN in the imec forksheet patent the Device follows [R31]; other forksheet patents use other walls, such as a high-κ/low-κ bilayer [R32]"),
  "siu":     dict(label="Undoped Si (growth region)", color="#D8C3CB", note="Undoped Si grown in the source/drain openings from the seed layer, under the doped source/drain (Si/Si CMOS route, R28)"),
  "sic":     dict(label="SiC:P (n-type source/drain)", color="#EFB7A6", note="Phosphorus-doped SiC epitaxy, one n-type source/drain example R28 gives; composition and doping illustrative"),
  "cellmark":dict(label="Cell boundary",      color="#5C6B80", note="Drawing marker for the standard cell's edge; not a material"),
@@ -30,7 +30,7 @@ MAT = {
  "wfill":   dict(label="Tungsten (W) · gate fill", color="#A7A1CB", note="Gate fill metal: W in the nanosheet [R13], forksheet [R31][R32] and monolithic CFET [R33] patents; the sequential CFET patent names none, so W is the model's choice there"),
  "cofill":  dict(label="Cobalt (Co) · gate fill", color="#E7955A", note="The FinFET's gate electrode fill: Co is on its patent's gate-electrode list (TiN, TaN, TaC, Co, Ru, Al) [R29]"),
  "mo":      dict(label="Molybdenum (Mo) · gate fill", color="#E3D3B0", note="Gate fill of the Si/Si design, whose application names none: the model's choice"),
- "cobalt":  dict(label="Cobalt (Co)",        color="#EE7A1A", note="Contact conductor. The FinFET patent's contacts are Co in a TiN liner [R29]; elsewhere Co is the model's choice where a patent names no metal"),
+ "cobalt":  dict(label="Cobalt (Co)",        color="#EE7A1A", note="Contact conductor. Co in a TiN liner is one of the FinFET patent's contact options [R29]; elsewhere Co is the model's choice where a patent names no metal"),
  "tungsten":dict(label="Tungsten (W)",       color="#BFBBD2", note="Contact, via and plug conductor: the forksheet patents' contact fill [R31][R32], the CFET patents' contacts and plugs [R33][R34]"),
  "copper":  dict(label="Copper (Cu)",        color="#D98B4A", note="The sequential CFET's inter-metal line between the tiers and its interconnect lines [R34]"),
  "tisi":    dict(label="Titanium silicide (TiSiₓ)", color="#E6E2F0", note="Contact silicide formed through the contact opening; each part names its patent's wording. Thickness illustrative"),
@@ -217,8 +217,8 @@ def build_ns(stack=None):
     hz1,hz2,hz3 = hz+TIL, hz+TIL+THK, hz+TIL+THK+TTIN   # 16 18 21
     hzmo=hz3+5.0; ymo=ys[-1]+HY3+9.0; ycap=ymo+6.0
     ysd=ys[-1]+HYS+3.0; ynisi=ysd+5.0
-    # Contacts rise at least 6 nm above the gate cap (a taller, enlarged stack lifts them).
-    yplug=max(92.0, ycap+6.0); ym2=yplug+10.0
+    # The contacts stop level with the top of the SAC cap, as the FinFET's do with its hard mask.
+    yplug=ycap; ym2=ycap
     zsub=42.0; SUBFIN=8.0
 
     # The stack sits on a short Si sub-fin. The STI beside it (low-κ in the patent) stops
@@ -268,7 +268,6 @@ def build_ns(stack=None):
         d.add(f"epi_{T.lower()}",f"{T} epi (Si:P)","silicon",[box(xa,xb,STI,ysd,-hz,hz)],"Source / drain",[s*1.6,0,0])
         d.add(f"nisi_{T.lower()}",f"{T} TiSiₓ silicide (the patent: the contact may include a silicide)","tisi",[box(xa,xb,ysd,ynisi,-hz,hz)],"Source / drain",[s*1.9,.3,0])
         d.add(f"ni_{T.lower()}",f"{T} Co contact plug (model's choice)","cobalt",[box(xc-8,xc+8,ynisi,yplug,-12,12)],"Source / drain",[s*2.1,.8,0])
-        d.add(f"w_{T.lower()}",f"{T} W metal (model's choice)","tungsten",[box(xa,xb,yplug,ym2,-hz,hz)],"Source / drain",[s*2.3,1.3,0])
 
     d.cal("LG","L<sub>G</sub>",f"{LG:g} nm","Physical gate length",[-XG,ymo+2,hzmo],[XG,ymo+2,hzmo],[0,ymo+22,hzmo+36],["iso","b"])
     d.cal("LSP","L<sub>SP</sub>",f"{LSP:g} nm","Spacer length",[XG,ycap+1,hzmo],[XSP,ycap+1,hzmo],[XSP+30,ycap+16,hzmo+22],["iso","b"])
@@ -287,7 +286,7 @@ def build_ns(stack=None):
              "b":dict(n="Along channel",s="source · gate · drain",az=0,el=0,r=265,tgt=[0,42,0],clip=[None,None,0]),
              "c":dict(n="Across channel",s="through the gate",az=1.5708,el=0,r=250,tgt=[0,46,0],clip=[0,None,None]),
              "gaa":dict(n="Gate-all-around",s="source side lifted off",az=-1.12,el=.30,r=205,tgt=[0,45,0],clip=[4,None,None],
-                        off=["epi_source","nisi_source","ni_source","w_source","spacer_source","inner_source"])}
+                        off=["epi_source","nisi_source","ni_source","spacer_source","inner_source"])}
     d.note=("<b>Reading the wrap.</b> Each Si sheet is wrapped by an SiO2 interfacial layer, HfO2 and an n-type work-function metal; W fills the rest of the gate under a SiN SAC cap [R13]. Thicknesses and spacings are the model's choices. The model's EOT of " f"{EOT:g}nm is that of the drawn films.")
     return d.finish()
 
@@ -470,7 +469,7 @@ def build_fs():
     d.add("mo_c","W gate fill · common, above the wall","wfill",[box(-XG,XG,ywall,ymo,-zi,zi)],"Gate electrode",[0,1.2,0])
     d.add("spacer_c","SiBCN gate spacer · over the wall",
           "sibcn",[box(XG,XSP,ywall,ycap,-zi,zi), box(-XSP,-XG,ywall,ycap,-zi,zi)],"Spacers",[0,1.0,0])
-    gw=box(-XG,XG,ymo,ym2,-8,8)
+    gw=box(-XG,XG,ymo,ycap,-8,8)
     d.add("gatecap","SiN gate cap (the gate recessed; cap material the model's choice)","si3n4",
           carve((-XG,XG,ymo,ycap,-zmo,zmo),[gw]),"Gate electrode",[0,1.4,0])
     d.add("gatew","W gate contact","tungsten",[gw],"Gate electrode",[0,1.8,0])
@@ -483,7 +482,7 @@ def build_fs():
     d.cal("tin","t<sub>WFM</sub>",f"{TTIN:g} nm","work-function metal · three-sided, not four",[0,ys[2]+HY2,zo+.1],[0,ys[2]+HY3,zo+.1],[0,ys[2]+30,z3+34],["c","fork"])
     d.dims=[["L_G","Physical gate length",f"{LG:g} nm"],["t_ch","Sheet thickness",f"{TCH:g} nm"],
             ["W_sh","Sheet width",f"{W:g} nm"],["Pitch","Sheet-to-sheet pitch",f"{PITCH:g} nm"],
-            ["t_wall","Insulating wall (the patent: 8–20 nm)",f"{WALL:g} nm"],
+            ["t_wall","Insulating wall (the patent: 5–20 nm)",f"{WALL:g} nm"],
             ["Wall top","Above the top channel",f"{ywall-top:g} nm"],
             ["Partition","Contact partition wall (the patent: 10–24 nm)",f"{2*ZP:g} nm"],
             ["n–p","work-function metal to work-function metal across the wall",f"{WALL:g} nm"],
@@ -534,7 +533,7 @@ def build_cfet_mono():
     yt=[ymdi1+HY3, ymdi1+HY3+PITCH]              # 71.5 91.5  upper tier (n)
     ymo=yt[-1]+HY3+6.0; ycap=ymo+6.0             # 106 -> 112
     ylo=ymdi0-3.0; yup=ymdi1+2.0                 # lower S/D top (notched) · upper S/D bottom
-    ytsd=yt[-1]+HYS+3.0; ynisi=ytsd+3.0; ym2=ycap+12.0
+    ytsd=yt[-1]+HYS+3.0; ynisi=ytsd+3.0; ym2=ycap          # contacts stop level with the cap
     zsub=hzmo+6.0
     YB=[(y-HY3,y+HY3) for y in yb]; YT=[(y-HY3,y+HY3) for y in yt]
 
@@ -561,7 +560,7 @@ def build_cfet_mono():
         d.add(f"spacer_{t}",f"SiBCN spacers and inner spacers · {t} side","sibcn",sp,"Spacers",[s*1.3,0,0])
     for s,T in ((-1,"Source"),(1,"Drain")):
         xa,xb=sorted((s*XSP,s*XSD)); xc=(xa+xb)/2; t=T.lower()
-        d.add(f"epi_p_{t}",f"Lower pFET {t} epi (SiGe:B) · notched on top","sige",[box(xa,xb,STI,ylo,-hz,hz)],"Lower tier (p)",[s*1.6,-.4,0])
+        d.add(f"epi_p_{t}",f"Lower pFET {t} epi (SiGe:B)","sige",[box(xa,xb,STI,ylo,-hz,hz)],"Lower tier (p)",[s*1.6,-.4,0])
         d.add(f"iso_{t}",f"SiO₂ isolation layer · in the notch, between the {t} tiers","sio2",[box(xa,xb,ylo,yup,-hz,hz)],"Tier isolation",[s*1.5,0,0])
         d.add(f"epi_n_{t}",f"Upper nFET {t} epi (Si:P)","silicon",[box(xa,xb,yup,ytsd,-hz,hz)],"Upper tier (n)",[s*1.6,.4,0])
         d.add(f"nisi_{t}",f"Upper {t} silicide liner (TiSiₓ)","tisi",[box(xa,xb,ytsd,ynisi,-hz,hz)],"Upper tier (n)",[s*1.9,.7,0])
@@ -569,7 +568,7 @@ def build_cfet_mono():
     # source side, the upper source from above and the lower source through the space the
     # sacrificial TiOx around it left, beside the upper source but clear of it.
     xa,xb=XSP,XSD; xc=(xa+xb)/2
-    d.add("ni_drain","W common contact · both drains (TiN, silicide liner)","tungsten",
+    d.add("ni_drain","W common contact · both drains","tungsten",
           [box(xa,xb,STI,ym2,hz,hz+6), box(xc-8,xc+8,ynisi,ym2,-8,hz)],"Contacts",[1.8,1.0,.4])
     xa,xb=-XSD,-XSP; xc=(xa+xb)/2
     d.add("ni_source","W contact · upper nFET source","tungsten",[box(xc-8,xc+8,ynisi,ym2,-8,8)],"Contacts",[-1.8,1.0,0])
@@ -617,7 +616,7 @@ def build_cfet_seq():
     yt=[yu0+HY3+6.0, yu0+HY3+6.0+PITCH]          # upper tier (n)
     ymo=yt[-1]+HY3+6.0; ycap=ymo+6.0
     ybsd=yb[-1]+HYS+3.0                          # lower S/D top
-    ytsd=yt[-1]+HYS+3.0; ynisi=ytsd+3.0; ym2=ycap+12.0
+    ytsd=yt[-1]+HYS+3.0; ynisi=ytsd+3.0; ym2=ycap          # contacts stop level with the cap
     zsub=hzmo+6.0; BL0,BL1=-16.0,-8.0            # backside line level
     YB=[(y-HY3,y+HY3) for y in yb]; YT=[(y-HY3,y+HY3) for y in yt]
     xd0,xd1=XSP,XSD; xdc=(xd0+xd1)/2; xs0,xs1=-XSD,-XSP; xsc=(xs0+xs1)/2
@@ -626,11 +625,17 @@ def build_cfet_seq():
     P91=box(xsc-4,xsc+4,BL1,STI+4,-4,4)          # plug 91: back, onto the lower source
 
     # ---- backside: the substrate is gone; dielectric and lines under the lower tier ----
-    d.add("bsline_s","Backside line (Cu) · lower source (V_DD)","copper",[box(-48,-2,BL0,BL1,-zsub,zsub)],"Backside interconnect",[0,-2.0,0])
-    d.add("bsline_d","Backside line (Cu) · the drains' node","copper",[box(2,48,BL0,BL1,-zsub,zsub)],"Backside interconnect",[.6,-2.0,0])
+    # The lower gate is reached from the back too: the patent draws no gate contact, so this via
+    # and its line are the model's addition, under the fill's side beside the stack.
+    PG=box(-2,2,BL1,STI,hz3,hzmo)
+    d.add("bsline_s","Backside line (Cu) · lower source (V_DD)","copper",[box(-48,-4,BL0,BL1,-zsub,zsub)],"Backside interconnect",[0,-2.0,0])
+    d.add("bsline_g","Backside line (Cu) · lower gate (the model's addition)","copper",[box(-2.5,2.5,BL0,BL1,-zsub,zsub)],"Backside interconnect",[0,-2.0,0])
+    d.add("bsline_d","Backside line (Cu) · the drains' node","copper",[box(4,48,BL0,BL1,-zsub,zsub)],"Backside interconnect",[.6,-2.0,0])
     d.add("bsdiel","Backside dielectric (SiO₂)","sio2",
-          carve((-48,48,BL1,STI,-zsub,zsub),[P90,P91,box(-XSD,XSD,0,STI,-hz,hz)])+[box(-2,2,BL0,BL1,-zsub,zsub)],
+          carve((-48,48,BL1,STI,-zsub,zsub),[P90,P91,PG,box(-XSD,XSD,0,STI,-hz,hz)])
+          +[box(-4,-2.5,BL0,BL1,-zsub,zsub),box(2.5,4,BL0,BL1,-zsub,zsub)],
           "Backside interconnect",[0,-1.5,0])
+    d.add("gatew_p","W gate via · lower gate, from the back (the model's addition)","tungsten",[PG],"Lower tier (p)",[0,-1.2,0])
     # ---- lower tier (p), in the lower wafer ----
     d.add("lowbase","Lower wafer · isolation under the stack (SiO₂)","sio2",carve((-XSD,XSD,0,STI,-hz,hz),[P90,P91]),"Lower tier (p)",[0,-.9,0])
     cfet_tier(d,"p",yb,"Lower tier (p)",hz)
@@ -688,14 +693,14 @@ def build_cfet_seq():
             ["Between","Etch stop · dielectric and line · bond layers","AlOₓ · SiO₂ with Cu · SiO₂ + SiO₂"],
             ["N_sh","Sheets per tier","2"],["EOT","Equivalent oxide thickness of the drawn films (production stacks: below about 1 nm)",f"{EOT:g} nm"],
             ["—","Drains","joined by line 66: plug 70 from the front, plug 90 from the back"],
-            ["—","Gates","separate; the patent draws no gate-to-gate connection"],
+            ["—","Gates","separate; contacted from the front (upper) and the back (lower), the model's additions"],
             ["—","Active footprint (z)",f"{2*hz3:g} nm"]]
     d.views={"iso":dict(n="3D overview",s="the bonded pair",az=-.80,el=.30,r=380,tgt=[0,60,0],clip=None),
              "b":dict(n="Along channel",s="both tiers in section",az=0,el=0,r=340,tgt=[0,62,0],clip=[None,None,0]),
              "c":dict(n="Across channel",s="through the gate",az=1.5708,el=0,r=320,tgt=[0,64,0],clip=[0,None,None]),
              "tier":dict(n="Tier interface",s="source side lifted off",az=-1.18,el=.26,r=290,tgt=[0,60,0],clip=[4,None,None],
                  off=["epi_n_source","epi_p_source","nisi_source","ni_source","via_source","spacer_source","spacer_p_source"])}
-    d.note=("<b>After US 2024/0413156 A1.</b> The lower transistor, a pFET here (the patent allows either type on either tier), is made in the lower wafer; an AlOₓ etch stop, an oxide holding an inter-metal line (Cu) and a bond layer go on top. A second wafer is fusion-bonded oxide to oxide and the upper nFET is made in it, so its processing must respect the finished lower tier. Deep plugs join both drains to the inter-metal line, from the front through the upper drain and from the back through the lower drain, and interconnect runs on both faces. The two gates are separate: the patent draws no connection between them [R34]. The finished die sits flipped on a carrier; it is drawn upright. Dimensions and the W gate fill are the model's choices.")
+    d.note=("<b>After US 2024/0413156 A1.</b> The lower transistor, a pFET here (the patent allows either type on either tier), is made in the lower wafer; an AlOₓ etch stop, an oxide holding an inter-metal line (Cu) and a bond layer go on top. A second wafer is fusion-bonded oxide to oxide and the upper nFET is made in it, so its processing must respect the finished lower tier. Deep plugs join both drains to the inter-metal line, from the front through the upper drain and from the back through the lower drain, and interconnect runs on both faces. The two gates are separate: the patent draws no connection between them, nor gate contacts; the upper gate's contact from the front and the lower gate's via and line on the back are the model's additions [R34]. The finished die sits flipped on a carrier; it is drawn upright. Dimensions and the W gate fill are the model's choices.")
     return d.finish()
 
 # ================================================================ COMPARE ===

@@ -32,9 +32,9 @@ so a section reads like a real cross-section rather than a shell.
 | | |
 |---|---|
 | **Device** | Technical cross-sections of each architecture — section planes, exploded view, tap-to-identify. |
-| **Inverter** | An illustrative CMOS inverter cell for each architecture. Drive the input and the conducting path lights up. |
+| **Inverter** | Each architecture's Device model (the FinFET's with its pFET beside it) wired as a CMOS inverter by one metal level. Drive the input and the conducting path lights up. |
 | **Layout** | Schematic inverter layouts with simplified film stacks and simplified vertical dimensions (not to scale); two representative nanosheets instead of the technical model's three. |
-| **Process** | How a nanosheet FET or a FinFET is made, step by step, as real geometry: films, lithography, etch and fill on a 2 × 2 tile, then the selected site to the finished device, as the nFET, the pFET, or both sites with a gate cut or a shared gate. The stack lines or fins can be printed directly or by SADP or SAQP; a Pitch walk lesson lets the SAQP dimensions vary. Named section planes show a 2D section beside the 3D view, set against what each source's text describes. Android app for now; forksheet and CFET flows are coming. |
+| **Process** | How a nanosheet FET or a FinFET is made, step by step, as real geometry: films, lithography, etch and fill on a 2 × 2 tile, then the selected site to the finished device, as the nFET, the pFET, or both sites with a gate cut or a shared gate. The stack lines or fins can be printed directly or by SADP or SAQP; a Pitch walk lesson lets the SAQP dimensions vary. Named section planes show a 2D section beside the 3D view (tap a layer to name it, pinch to zoom), and a step's "Show cross section" button opens its plane. Each lesson ends on the Device model it names. Android app for now; forksheet and CFET flows are coming. |
 
 <table>
 <tr>
@@ -55,19 +55,25 @@ the fabrication steps use.
 - FinFET: a tri-gate example with discrete fin-count sizing.
 - Nanosheet FET: gate-all-around channels with adjustable sheet width, as a CMOS pair in two
   channel designs, picked on the stage and shared by Device, Inverter and Process: **Si/SiGe CMOS**
-  (Si nFET and SiGe pFET sheets from one stack, after patent US 12,568,683 B2) and **Si/Si CMOS**
-  (Si sheets in both with full bottom isolation, after application US 2023/0178617 A1), each with
-  its own Process lesson ending on the Device and Inverter scenes. An
-  **Exploded gate view** enlarges the gaps and gate films for inspection, marked not to scale.
-- Forksheet: the classic inner-wall arrangement, not the later outer-wall variant.
-- CFET: a stacked nFET/pFET pair, with monolithic and sequential examples.
+  (Si nFET and SiGe pFET sheets from one stack, after US 2023/0420457 A1, granted as
+  US 12,568,683 B2) and **Si/Si CMOS** (Si sheets in both with full bottom isolation, after
+  application US 2023/0178617 A1), each with its own Process lesson ending on the Device and
+  Inverter scenes.
+- Forksheet: the classic inner-wall arrangement after imec's EP 3 989 273 A1, not the later
+  outer-wall variant.
+- CFET: a stacked pair, pFET below the nFET, with a monolithic example (IBM, US 11,869,812 B2)
+  and a sequential one (TSMC, US 2024/0413156 A1).
+
+Each technology follows one patent example for its materials and steps; `docs/PATENT_ALIGNMENT.md`
+lists them, what each says, and what the model draws. The PDFs are in `docs/`.
 
 This is one educational roadmap, not a universal process sequence. FinFETs remain in use.
 Process mode follows one disclosed integration route for the nanosheet nFET and pFET, and
 disclosed FinFET stages, as a teaching sequence: each step names the source it follows and
 how closely, and none is a foundry recipe or a copy of a published drawing. A 2D section is
-cut from the app's own model, not taken from a patent figure; every figure mapping is
-text-verified only (the drawings have not been compared). The SADP and SAQP routes for the
+cut from the app's own model, not taken from a patent figure. The nanosheet lesson's states
+were compared with the drawings they name; the FinFET's figure numbers come from its patent's
+text, and the Si/Si lesson places its steps in the application's figure range. The SADP and SAQP routes for the
 nanosheet are illustrative alternatives, the FinFET's SAQP is adapted from a published
 example, and the pitch-walk variations are the app's own.
 Materials and dimensions are illustrative; the complete stack is not a verified foundry
@@ -148,7 +154,7 @@ appears in the app.
 - Dimensions are representative teaching values, not any foundry's process data.
 - The `Node` row is a generation label, not a measurement. Modern node names do not specify a unique physical feature size. The example labels here are
   illustrative, not a claim that each architecture belongs to one node.
-- The inverter cells route on one metal level plus local interconnect — the topology, not a
+- The inverter cells route on one metal level over the contacts — the topology, not a
   layout you could tape out.
 - The forksheet modelled is the classic inner-wall device; imec's later outer-wall variant
   is not included.

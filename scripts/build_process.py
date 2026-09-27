@@ -784,8 +784,8 @@ def flow_ns(done):
         match="published", figs=["17A/B"],
         subs=["The patent's examples for the cap are SiN, SiNC and SiBCN; SiN is drawn"])
     # 18
-    F.add("nisi_source", "nisi_drain", "ni_source", "ni_drain", "w_source", "w_drain", "gatew")
-    ild_around(lim(F.final["w_drain"]["boxes"][0])[3])
+    F.add("nisi_source", "nisi_drain", "ni_source", "ni_drain", "gatew")
+    ild_around(span(F.final["gatecap"])[3])
     F.snap("contacts", "Middle-of-line contacts",
         "Source/drain trenches are etched through the ILD and a gate trench through the SAC cap; the "
         "conductive fill, which may include a silicide, forms the source/drain contacts and the gate "
@@ -2071,11 +2071,10 @@ def build_ns_p(stack=None, sheets=None):
               [box(xa, xb, -NS_P_REC, 0, -hz, hz)], "Source / drain", [s * 1.5, -.3, 0])
         d.add(f"epi_{T.lower()}", f"{T} epi (SiGe:B)", "sige", [box(xa, xb, 0, ysd_p, -hz, hz)],
               "Source / drain", [s * 1.6, 0, 0])
-        ns_, ni_, w_ = (P[f"{k}_{T.lower()}"] for k in ("nisi", "ni", "w"))
+        ns_, ni_ = (P[f"{k}_{T.lower()}"] for k in ("nisi", "ni"))
         d.add(ns_["id"], ns_["name"], ns_["material"], [box(xa, xb, ysd_p, ynisi_p, -hz, hz)], ns_["group"], ns_["explode"])
         c = lim(ni_["boxes"][0])
         d.add(ni_["id"], ni_["name"], ni_["material"], [box(c[0], c[1], ynisi_p, c[3], c[4], c[5])], ni_["group"], ni_["explode"])
-        d.add(w_["id"], w_["name"], w_["material"], w_["boxes"], w_["group"], w_["explode"])
     d.views = dict(bd.build_ns(stack).views)
     d.views["gaa"] = dict(d.views["gaa"], off=d.views["gaa"]["off"] + ["sib_source"])
     d.ysd = ysd_p
@@ -2328,8 +2327,8 @@ def flow_ns_p(done):
         "gate cut [R13].", view="cut", match="published", figs=["17A/B"],
         subs=["SiN is drawn; the patent also names SiNC and SiBCN"])
     # 18
-    F.add("nisi_source", "nisi_drain", "ni_source", "ni_drain", "w_source", "w_drain", "gatew")
-    ild_around(lim(F.final["w_drain"]["boxes"][0])[3])
+    F.add("nisi_source", "nisi_drain", "ni_source", "ni_drain", "gatew")
+    ild_around(span(F.final["gatecap"])[3])
     F.snap("p_contacts", "Middle-of-line contacts",
         "Source/drain trenches through the ILD and a gate trench through the SAC cap; the fill, which "
         "may include a silicide, makes the contacts [R13]. The pFET's source/drain top sits lower than "
@@ -2890,7 +2889,8 @@ def fin_p_final():
         if p["id"].startswith("epi_"):
             q.update(material="sige", name=p["name"].replace("(SiP)", "(SiGeB)"))
         elif p["id"].startswith("tin") and p["id"] != "tin":
-            q.update(material=PWF, name=p["name"].replace("n-type work-function metal", "TiN p-type work-function metal"))
+            q.update(material=PWF, name=p["name"].replace(" (Al-containing)", "")
+                     .replace("n-type work-function metal", "TiN p-type work-function metal"))
         elif p["id"].startswith("fin"):
             q.update(name=p["name"].replace("(P well)", "(N well)"))
         elif p["id"] == "substrate":
@@ -3313,14 +3313,15 @@ def plane_view(pl, scale, bounds):
     """The camera for a plane at a scale: square on to the cut face, the kept half behind it."""
     b = bounds
     pos = pl.get("at", {}).get(scale, pl["pos"])
-    ym = (b["y"][0] + b["y"][1]) / 2 if scale != "site" else 40.0
-    r = {"site": 255.0, "tile": 460.0, "field": 660.0, "pair": 440.0}[scale]
+    fr = "pair" if pl.get("wide") else scale       # framing: a site scene may hold both devices
+    ym = (b["y"][0] + b["y"][1]) / 2 if fr != "site" else 40.0
+    r = {"site": 255.0, "tile": 460.0, "field": 660.0, "pair": 440.0}[fr]
     if pl["axis"] == "x":
         return dict(n=pl["name"], s="section plane", az=1.5708, el=0.1, r=r,
-                    tgt=[pos, min(ym, 60.0), (b["z"][0] + b["z"][1]) / 2 if scale != "site" else 0.0],
+                    tgt=[pos, min(ym, 60.0), (b["z"][0] + b["z"][1]) / 2 if fr != "site" else 0.0],
                     clip=[pos, None, None], scale=scale)
     return dict(n=pl["name"], s="section plane", az=0.0, el=0.1, r=r,
-                tgt=[(b["x"][0] + b["x"][1]) / 2 if scale != "site" else 0.0, min(ym, 60.0), pos],
+                tgt=[(b["x"][0] + b["x"][1]) / 2 if fr != "site" else 0.0, min(ym, 60.0), pos],
                 clip=[None, None, pos], scale=scale)
 
 
@@ -3359,6 +3360,27 @@ FIN_PAIR_PLANES = [
     dict(FIN_PLANES[1], id="along_pfin", name="Along a pFET fin", short="Along pFET fin", pos=13.5 - 81.0,
          scales=("pair",)),
 ]
+# The Si/Si lesson: both devices in one site scene, the nFET in front (z = 0), the pFET behind.
+# The application's drawings are not in the repository, so these are the app's own planes.
+NSSI_PLANES = [
+    dict(id="xn", name="Along the nFET stack, through the gate", short="Along nFET", axis="z", pos=0.0,
+         wide=True, text="Along the nFET's stack, crossing its gate. The app's own plane: the "
+                         "application's drawings were not compared."),
+    dict(id="xp", name="Along the pFET stack, through the gate", short="Along pFET", axis="z", pos=-84.0,
+         wide=True, text="Along the pFET's stack, crossing its gate. The app's own plane."),
+    dict(id="y1", name="Across both stacks, through the gate", short="Across · gate", axis="x", pos=0.0,
+         wide=True, text="Across both stacks through the gate region, where one gate line joins them. "
+                         "The app's own plane."),
+    dict(id="y2", name="Across both stacks, through the source/drain", short="Across · S/D", axis="x",
+         pos=None, wide=True, text="Across both stacks through the source/drain regions. The app's own "
+                                   "plane. Before the source/drain is grown, the plane is where it will be."),
+]
+NSSI_PLANE_OF = dict(
+    {k: ["xn", "y2"] for k in ("recess", "indent", "inner", "undoped", "cavity", "bdi", "n_sd")},
+    p_sd=["xp", "y2"], release=["xn", "y1"], hk=["xn", "y1"], wfm=["y1", "xn"], gate=["y1", "xn"],
+    contacts=["y2", "xn"], done=["xn", "y1"], wiring=["y2", "y1"])
+
+
 PW_PLANES = [
     dict(id="pw_across", name="Across the lines, mid-length", short="Across lines", axis="x", pos=0.0,
          scales=("field",),
@@ -3378,8 +3400,11 @@ def attach_sections(key, flow, dev):
     tech = "fin" if key.startswith("fin") or key == "pitchwalk" else "ns"
     planes = dict(pitchwalk=PW_PLANES, ns_p=NS_P_PLANES, ns_pair=NS_PAIR_PLANES, fin_p=FIN_P_PLANES,
                   fin_pair=FIN_PAIR_PLANES).get(key, FIN_PLANES if tech == "fin" else NS_PLANES)
+    if key == "ns~si":
+        planes = [dict(p, pos=NS_PLANES[2]["pos"]) if p["pos"] is None else p for p in NSSI_PLANES]
     plane_of = dict(ns_p={k: [("x1" if x == "x2" else x) for x in v] for k, v in NS_P_PLANE_OF.items()},
-                    fin_pair=FIN_PAIR_PLANE_OF).get(key, FIN_PLANE_OF if tech == "fin" else NS_PLANE_OF)
+                    fin_pair=FIN_PAIR_PLANE_OF, **{"ns~si": NSSI_PLANE_OF}).get(
+        key, FIN_PLANE_OF if tech == "fin" else NS_PLANE_OF)
     if key == "ns_pair":
         plane_of = {k: (["x1", "y1"] if k.startswith("p_") else ["x2", "y1"]) for k in
                     {st["id"] for st in flow["steps"]}}
@@ -3407,9 +3432,14 @@ def attach_sections(key, flow, dev):
     flow["sections"] = secs
     byid = {s["id"]: s for s in secs}
     for st in flow["steps"]:
-        if not st["figs"]: continue
-        src = (st.get("src") or ["R13" if tech == "ns" else "R29"])[0]
-        if tech == "ns":
+        # Steps are tied to planes through their figures; the Si/Si lesson maps no figures, so
+        # every step gets its planes directly.
+        if not st["figs"] and key != "ns~si": continue
+        src = "R28" if key == "ns~si" else (st.get("src") or ["R13" if tech == "ns" else "R29"])[0]
+        if key == "ns~si":
+            described = ("Placed in the application's Figs. 2–52 from its written description, not "
+                         "mapped to one figure: " + st["body"])
+        elif tech == "ns":
             described = " ".join(NS_FIG_TEXT[f] for f in st["figs"] if f in NS_FIG_TEXT)
         else:
             described = " ".join(dict.fromkeys(FIN_FIG_TEXT[(src, f.rstrip("ABC"))] for f in st["figs"]))
@@ -3419,12 +3449,14 @@ def attach_sections(key, flow, dev):
         for pid in want:
             pl = byid.get(pid)
             if not pl or st["scale"] not in pl["views"]: continue
+            vis = cut_by(parts, next(p for p in planes if p["id"] == pid), st["scale"])
+            if not vis and key == "ns~si": continue        # nothing named in this plane yet
             entries.append(dict(plane=pid, figs=st["figs"], src=src, described=described,
-                                visible=cut_by(parts, next(p for p in planes if p["id"] == pid), st["scale"]),
+                                visible=vis,
                                 omitted=list(st["omitted"]) + (
                                     ["The source's figures show the pFET beside the nFET; this site "
                                      f"view shows the {'pFET' if key == 'ns_p' else 'nFET'} only"]
-                                    if tech == "ns" and st["scale"] == "site" else []),
+                                    if tech == "ns" and st["scale"] == "site" and key != "ns~si" else []),
                                 status="text", status_text=TEXT_STATUS))
         if entries: st["compare"] = entries
 
@@ -3438,7 +3470,7 @@ def main():
     docs = []
     for key, fn in FLOWS.items():
         dev, steps, extra = fn(out)
-        if any(st["figs"] for st in steps) and key != "ns~si":        # its own views; no patent planes
+        if any(st["figs"] for st in steps) or key == "ns~si":       # the Si/Si lesson: its own planes
             whole = dict(extra, steps=steps)
             attach_sections(key, whole, dev)
             extra["sections"] = whole["sections"]

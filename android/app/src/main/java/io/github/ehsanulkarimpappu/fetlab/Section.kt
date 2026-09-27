@@ -39,6 +39,7 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
@@ -108,10 +109,18 @@ fun SectionPanel(lib: Library, sc: Scene, pl: SectionPlane, selected: Part?, onP
     var pan by remember(pl.id) { mutableStateOf(Offset.Zero) }
     Column(modifier.background(MaterialTheme.colorScheme.surface)) {
         // The heading, with the locator beside it rather than over the drawing.
-        Row(Modifier.fillMaxWidth().padding(start = 12.dp, top = 8.dp, end = 8.dp),
-            verticalAlignment = Alignment.Top) {
-            Text("SECTION · ${pl.name}".uppercase(), fontFamily = Mono, fontSize = 10.sp, lineHeight = 13.sp,
-                color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.weight(1f).padding(end = 8.dp))
+        Row(Modifier.fillMaxWidth().padding(start = 12.dp, top = 6.dp, end = 8.dp),
+            verticalAlignment = Alignment.CenterVertically) {
+            // One line: the plane and which way the page runs, so the drawing keeps the height.
+            val axes = if (pl.axis == 'x') "← +z · y up · from +x" else "x: S → D · y up · from +z"
+            Text(pl.short.uppercase() + "  ·  " + axes, fontFamily = Mono, fontSize = 10.sp, lineHeight = 13.sp,
+                maxLines = 1, overflow = TextOverflow.Ellipsis,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.weight(1f).padding(end = 8.dp).semantics {
+                    contentDescription = "Section ${pl.name}. " + if (pl.axis == 'x')
+                        "Plus z to the left, y up, seen from plus x, the drain side." else
+                        "x runs source to drain, y up, seen from plus z."
+                })
             corner()
         }
         Box(Modifier.weight(1f).fillMaxWidth().clipToBounds()) {
@@ -173,11 +182,6 @@ fun SectionPanel(lib: Library, sc: Scene, pl: SectionPlane, selected: Part?, onP
                         .clip(RoundedCornerShape(8.dp)).background(MaterialTheme.colorScheme.surface.copy(alpha = 0.92f))
                         .clickable { zoom = 1f; pan = Offset.Zero }.padding(horizontal = 8.dp, vertical = 4.dp))
         }
-        // Which way the page runs, so a student can hold it against a figure.
-        Text(if (pl.axis == 'x') "← +z across the ${sc.acrossWord()}   ·   up: y   ·   seen from +x (drain side)"
-             else "x: source → drain   ·   up: y   ·   seen from +z",
-            fontFamily = Mono, fontSize = 10.5f.sp, color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(start = 12.dp, end = 12.dp, bottom = 6.dp))
     }
 }
 

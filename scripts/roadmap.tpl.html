@@ -482,10 +482,11 @@ const bindSet=o=>{const f=(b,l,n)=>{gl.bindBuffer(gl.ARRAY_BUFFER,b);gl.enableVe
   gl.vertexAttribPointer(l,n,gl.FLOAT,false,0,0);};f(o.p,A.pos,3);f(o.n,A.nrm,3);f(o.c,A.col,3);f(o.e,A.exp,3);};
 
 /* ---- surface texture (procedural: no image assets, works everywhere) ---- */
+const GATE_FILLS=new Set(["mo","wfill","cofill"]);
 const TEXSET=[
-  [["mo","tin","nickel","tungsten","nisi","md","po","vd","vg","m0"],[0.10,0.28,1]],
+  [["mo","wfill","cofill","copper","tin","nwf","cobalt","tungsten","tisi","md","po","vd","vg","m0"],[0.10,0.28,1]],
   [["silicon","sige","nanowire"],                                   [0.09,0.40,0]],
-  [["sio2","highk","si3n4","wall","mdi","bond","fox"],              [0.07,0.18,0]],
+  [["sio2","highk","si3n4","sibcn","lowk","alox","wall","mdi","bond","fox"],[0.07,0.18,0]],
   [["pwell","nwell"],                                               [0.055,0.10,0]]];
 const TEXMAP={};
 TEXSET.forEach(([keys,v])=>keys.forEach(k=>{TEXMAP[k]=v;}));
@@ -570,7 +571,7 @@ function draw(){
   gl.enable(gl.BLEND);gl.blendFunc(gl.SRC_ALPHA,gl.ONE_MINUS_SRC_ALPHA);
   if(S.edges){gl.enable(gl.POLYGON_OFFSET_FILL);gl.polygonOffset(1.2,1.2);}
   const solid=[],ghost=[];
-  DEV.parts.forEach(p=>{if(!p.on)return;(S.ghost&&p.material==="mo"?ghost:solid).push(p);});
+  DEV.parts.forEach(p=>{if(!p.on)return;(S.ghost&&GATE_FILLS.has(p.material)?ghost:solid).push(p);});
   solid.forEach(p=>{const st=style(p);const tx=texOf(p.material);
     gl.uniform3f(U.tex,tx[0],tx[1],tx[2]);gl.uniform1f(U.a,1);
     gl.uniform1f(U.tint,p===HOT?st[0]*1.28:st[0]);
@@ -940,8 +941,8 @@ function doPick(e){const r=cv.getBoundingClientRect(),p=pick(e.clientX-r.left,e.
 
 /* ---- UI ---- */
 const MODES={
-  dev:[["fin","FinFET"],["ns~sige~x","Nanosheet · Si/SiGe"],["ns~si~x","Nanosheet · Si/Si"],["fs","Forksheet"],["cfet","CFET"],["cmp","Compare"]],
-  inv:[["inv_fin","FinFET"],["inv_ns~sige~x","Nanosheet · Si/SiGe"],["inv_ns~si~x","Nanosheet · Si/Si"],["inv_fs","Forksheet"],["inv_cfet","CFET"],["inv_cmp","Compare"]],
+  dev:[["fin","FinFET"],["ns~sige","Nanosheet · Si/SiGe"],["ns~si","Nanosheet · Si/Si"],["fs","Forksheet"],["cfet","CFET"],["cmp","Compare"]],
+  inv:[["inv_fin","FinFET"],["inv_ns~sige","Nanosheet · Si/SiGe"],["inv_ns~si","Nanosheet · Si/Si"],["inv_fs","Forksheet"],["inv_cfet","CFET"],["inv_cmp","Compare"]],
   show:[["show_fin","FinFET"],["show_ns","Nanosheet"],["show_fs","Forksheet"],["show_cfet","CFET"],["show_cmp","Compare"]]};
 let MODE="dev";
 const dwrap=document.getElementById("devs"),seg=document.getElementById("cfetseg"),
@@ -949,7 +950,7 @@ const dwrap=document.getElementById("devs"),seg=document.getElementById("cfetseg
 /** The technology a scene shows, with the viewing mode stripped off. The two CFET
  *  scenes are one technology: only the device mode splits them into mono/sequential. */
 function techOf(key){
-  // A nanosheet channel design ("ns~sige~x") is its own technology between Device and
+  // A nanosheet channel design ("ns~sige") is its own technology between Device and
   // Inverter; Layout has one nanosheet cell for both.
   const k=key.replace(/^(inv_|show_)/,"");
   return k.indexOf("cfet")===0?"cfet":k;}

@@ -24,8 +24,8 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import build_devices as bd
 import build_process as bp
-from build_devices import box, ring4
-from build_process import tmp, subtract, conformal, lim
+from build_devices import box, ring4, carve
+from build_process import tmp, subtract, conformal, lim, span
 
 XG, XSP, XSD = bd.XG, bd.XSP, bd.XSD          # gate, spacer and site half-lengths: 7.5 / 14.5 / 36.5
 HZ, DZ, ZSUB = 15.0, 84.0, 42.0               # sheet half-width; pFET line 84 nm behind; cell half-width
@@ -47,7 +47,7 @@ def dims(stack):
     top = si[-1][1]
     ymo = top + F + 9.0; ycap = ymo + 6.0
     ysd = top + 3.0; ynisi = ysd + 5.0
-    yplug = max(92.0, ycap + 6.0); ym2 = yplug + 10.0
+    yplug = ycap; ym2 = ycap          # contacts stop level with the gate cap, as in the Si/SiGe design
     hzmo = HZ + F + 5.0
     return dict(t=t, g=g, F=F, y0=y0, sg=sg, si=si, top=top, ymo=ymo, ycap=ycap, ysd=ysd,
                 ynisi=ynisi, yplug=yplug, ym2=ym2, hzmo=hzmo, films=(stack["til"], stack["thk"], stack["twf"]))
@@ -79,7 +79,10 @@ def final_parts(stack, wired):
         add(f"{k}_subfin", f"{WHO[k]} · Si sub-fin", "silicon", [foot(k, -8, 0)], g + "Substrate & isolation", (0, -1.0, sd * .6))
         add(f"{k}_bdi", f"{WHO[k]} · Bottom dielectric isolation (where the Ge-rich layer was)", "si3n4",
             [foot(k, 0, TB)], g + "Substrate & isolation", (0, -.8, sd * .6))
-        add(f"{k}_seed", f"{WHO[k]} · Si seed layer", "silicon", [foot(k, TB, D["y0"])], g + "Channel stack", (0, -.4, sd * .6))
+        # The seed stays only under the inner spacers and the undoped Si: under the gate it is
+        # oxidized and etched away at channel release, and the gate sits on the BDI [R28].
+        add(f"{k}_seed", f"{WHO[k]} · Si seed layer (under the inner spacers and the undoped Si)", "silicon",
+            [foot(k, TB, D["y0"], -XSD, -XG), foot(k, TB, D["y0"], XG, XSD)], g + "Channel stack", (0, -.4, sd * .6))
         for i, (a, b) in enumerate(D["si"]):
             add(f"{k}_sheet{i+1}", f"{WHO[k]} · Si nanosheet {i+1}", "silicon", [foot(k, a, b, -XSP, XSP)],
                 g + "Channel stack", (0, 0, sd * .6), "chan_" + k if wired else "body")
@@ -99,12 +102,13 @@ def final_parts(stack, wired):
                 for q in bx: q[2] += zc
                 add(f"{k}_{nm}{i+1}", f"{WHO[k]} · {lab} · sheet {i+1}", mat, bx, g + "Gate-all-around films",
                     ["radial", yc, 1.0 + 1.1 * ("il", "hk", "wf").index(nm), zc], "in" if nm == "wf" and wired else "body")
-            y0 = D["y0"]
-            bx = [box(-XG, XG, y0 + o, y0 + o + t, zc - HZ - o - t, zc + HZ + o + t),
-                  box(-XG, XG, TB, y0 + o, zc + HZ + o, zc + HZ + o + t),
-                  box(-XG, XG, TB, y0 + o, zc - HZ - o - t, zc - HZ - o)]
-            add(f"{k}_{nm}s", f"{WHO[k]} · {lab} · over the seed layer", mat, bx, g + "Gate-all-around films",
-                (0, -.3, sd * .6), "in" if nm == "wf" and wired else "body")
+            # Under the lowest sheet the gate stack lies on the BDI, where the seed was removed:
+            # high-κ and work-function metal as floor films (no interfacial oxide on the dielectric).
+            if nm != "il":
+                f0 = TB + (0.0 if nm == "hk" else thk)
+                bx = [box(-XG, XG, f0, f0 + t, zc - HZ, zc + HZ)]
+                add(f"{k}_{nm}s", f"{WHO[k]} · {lab} · on the bottom isolation", mat, bx,
+                    g + "Gate-all-around films", (0, -.3, sd * .6), "in" if nm == "wf" and wired else "body")
             o += t
         for s, T in ((-1, "source"), (1, "drain")):
             xa, xb = sorted((s * XSP, s * XSD)); xc = (xa + xb) / 2
@@ -118,23 +122,24 @@ def final_parts(stack, wired):
                 [foot(k, D["ysd"], D["ynisi"], xa, xb)], g + "Source / drain", (s * 1.9, .3, sd * .6), net)
             add(f"{k}_ni_{T}", f"{WHO[k]} · {T.capitalize()} Co contact plug", "cobalt",
                 [box(xc - 8, xc + 8, D["ynisi"], D["yplug"], zc - 8, zc + 8)], g + "Source / drain", (s * 2.1, .8, sd * .6), net)
-            add(f"{k}_w_{T}", f"{WHO[k]} · {T.capitalize()} W metal", "tungsten",
-                [foot(k, D["yplug"], D["ym2"], xa, xb)], g + "Source / drain", (s * 2.3, 1.3, sd * .6), net)
     # One gate over both: spacers either side, Mo fill, TiN cap, one contact (over the nFET).
     films = [b for p in out if p["group"].endswith("Gate-all-around films") for b in p["boxes"]]
     for s, T in ((-1, "source"), (1, "drain")):
         xa, xb = sorted((s * XG, s * XSP))
-        add(f"spacer_{T}", f"Si₃N₄ outer gate spacer · {T} side", "si3n4",
+        add(f"spacer_{T}", f"SiBCN outer gate spacer · {T} side", "sibcn",
             subtract((xa, xb, 0, D["ycap"], gz0, gz1), stackboxes), "Spacers", (s * 1.3, 0, 0))
     # What the gate fill wraps: the BDI, the seed, the released sheets and their films.
     solid = [b for p in out if p["id"][2:].startswith(("bdi", "seed", "sheet")) for b in p["boxes"]] + films
     add("gate_mo", "Mo gate fill · one gate over both devices", "mo",
         subtract((-XG, XG, 0, D["ymo"], gz0, gz1), solid),
         "Gate electrode", (0, 1.0, 0), "in" if wired else "body")
-    add("gatecap", "TiN gate cap", "tin", [box(-XG, XG, D["ymo"], D["ycap"], gz0, gz1)], "Gate electrode",
-        (0, 1.4, 0), "in" if wired else "body")
-    add("gatew", "W gate contact · one for the shared gate", "tungsten",
-        [box(-XG, XG, D["ycap"], D["ym2"], -20, 20)], "Gate electrode", (0, 1.8, 0), "in" if wired else "body")
+    # The application says the gate is capped; the cap is drawn as SiN, as in the Si/SiGe design,
+    # and the gate contact goes down through it onto the fill.
+    gw = box(-XG, XG, D["ymo"], D["ycap"], -20, 20)
+    add("gatecap", "SiN gate cap (material the model's choice)", "si3n4",
+        carve((-XG, XG, D["ymo"], D["ycap"], gz0, gz1), [gw]), "Gate electrode", (0, 1.4, 0), "body")
+    add("gatew", "W gate contact · one for the shared gate, through the cap", "tungsten",
+        [gw], "Gate electrode", (0, 1.8, 0), "in" if wired else "body")
     if wired:
         # Educational completion: one metal level wiring the pair as an inverter.
         y0, y1 = D["ym2"], D["ym2"] + 8.0
@@ -252,7 +257,11 @@ def flow(done=None):
     # 3
     for pid in ["t_wafer", "t_bot", "t_seed"] + [f"t_sg{i+1}" for i in range(3)] + [f"t_si{i+1}" for i in range(3)]:
         F.drop(pid)
-    F.add("substrate", "n_subfin", "p_subfin", "n_seed", "p_seed")
+    F.add("substrate", "n_subfin", "p_subfin")
+    # The seed runs the stack's full length until channel release removes it under the gate.
+    for k in ("n", "p"):
+        F.put(tmp(f"seed_{k}", f"{WHO[k]} · Si seed layer", "silicon", "Channel stack",
+                  [foot(k, TB, Y0)], (0, -.4, 0)))
     for k in ("n", "p"): layers(k)
     for k in ("n", "p"):
         F.put(tmp(f"{k}_thm", f"{WHO[k]} · Stack hard mask", "si3n4", "Patterning", [foot(k, TOP, TOP + 6)], (0, 1.3, 0)))
@@ -360,16 +369,21 @@ def flow(done=None):
          "[R28].", view="gate", subs=SUBS, regions=("gate trench open", "gate trench open"))
     # 17
     for k in ("n", "p"): F.drop_prefix(f"{k}_t")
+    F.drop("seed_n", "seed_p")
+    F.add("n_seed", "p_seed")
     snap("release", "Channel release",
          "Inside the gate opening a selective etch removes the lower-Ge SiGe layers in both devices, "
-         "releasing the Si channels; the Si sheets, the seed and the inner spacers stay. This route "
-         "releases both devices the same way [R28].", view="gate", subs=SUBS,
+         "releasing the Si channels. A controlled oxidation and etch then thin the channels slightly and "
+         "remove the exposed seed layer, which stays only under the inner spacers and the undoped Si; "
+         "the gate will sit on the bottom isolation. This route releases both devices the same way [R28].",
+         view="gate", subs=SUBS + ["The thinning (1 nm or less) is not drawn"],
          regions=("Si channels released", "Si channels released"))
     # 18
-    F.add(*[f"{k}_{nm}{i}" for k in ("n", "p") for nm in ("il", "hk") for i in ("1", "2", "3", "s")])
+    F.add(*[f"{k}_il{i}" for k in ("n", "p") for i in ("1", "2", "3")],
+          *[f"{k}_hk{i}" for k in ("n", "p") for i in ("1", "2", "3", "s")])
     snap("hk", "Gate dielectric",
          "An interfacial oxide forms on the released Si, and a high-κ dielectric is deposited all round "
-         "each sheet and over the seed [R28].", view="gate", subs=SUBS + [
+         "each sheet and on the bottom isolation below them [R28].", view="gate", subs=SUBS + [
              "SiO₂ and HfO₂ stand for the interfacial and high-κ layers; thicknesses are illustrative"],
          regions=("high-κ", "high-κ"))
     # 19
@@ -380,19 +394,24 @@ def flow(done=None):
          subs=SUBS + ["The n-type metal stands for an Al-containing stack such as TiAl or TiAlC; its masks "
                       "are not drawn"], regions=("n-type work function", "p-type work function"))
     # 20
-    F.add("gate_mo", "gatecap")
+    F.add("gate_mo")
+    cap = F.final["gatecap"]
+    F.put(tmp("t_cap", cap["name"], cap["material"], cap["group"],
+              [box(-XG, XG, D["ymo"], D["ycap"], *span(cap)[4:])], (0, 1.4, 0)))
     snap("gate", "Gate fill",
          "A conductive gate material fills the trench over both devices, is planarized and capped: one "
          "gate line, so the two gates are one electrode, the inverter's input [R28].", view="gate",
-         subs=SUBS + ["Mo fill and a TiN cap are illustrative"], regions=("gate", "gate"))
+         subs=SUBS + ["The Mo fill and the SiN cap are illustrative; the application names neither"],
+         regions=("gate", "gate"))
     # 21
-    F.add(*[f"{k}_{c}_{T}" for k in ("n", "p") for c in ("nisi", "ni", "w") for T in ("source", "drain")], "gatew")
+    F.drop("t_cap")
+    F.add(*[f"{k}_{c}_{T}" for k in ("n", "p") for c in ("nisi", "ni") for T in ("source", "drain")], "gatecap", "gatew")
     ild(D["ym2"])
     snap("contacts", "Middle-of-line contacts",
          "Contact openings are etched through the ILD; a silicide forms on each source/drain and metal "
          "fills the openings, with one contact on the shared gate. The contacts complete the depicted "
          "devices for teaching; the application does not give this contact scheme.", view="sd",
-         match="teach", subs=SUBS + ["The TiSiₓ, Co and W contact stack is illustrative"],
+         match="teach", subs=SUBS + ["The TiSiₓ and Co contacts are illustrative"],
          regions=("contacted", "contacted"))
     # 22
     F.drop("t_ild")

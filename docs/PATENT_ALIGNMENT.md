@@ -15,14 +15,17 @@ The PDFs are in `docs/<technology>/`. Links carry no tracking parameters.
 | FinFET: Device, Inverter, Process | TSMC, *FinFET structures and methods of forming the same*, US 9,812,358 B1 | R29 | `docs/finfet/FinFET_US9812358B1.pdf` |
 | FinFET fins, SAQP | GlobalFoundries, *Methods for fabricating integrated circuits using self-aligned quadruple patterning*, US 9,171,764 B2 | R30 | `docs/finfet/FinFET_SAQP_US9171764B2.pdf` |
 | Nanosheet, Si/SiGe CMOS: Device, Inverter, Process | IBM, *Single stack dual channel gate-all-around nanosheet with strained PFET and bottom dielectric isolation NFET*, US 2023/0420457 A1 (granted as US 12,568,683 B2) | R13 | `docs/nsfet/` (full text; all figures) |
-| Forksheet: Device | imec, *A method for forming a semiconductor device and a semiconductor device*, EP 3 989 273 A1 | R31 | `docs/fsfet/Forksheet_Imec_EP3989273A1.pdf` |
-| Forksheet: Inverter (gate bridge) | TSMC, *Semiconductor device structure including forksheet transistors and methods of forming the same*, US 2024/0178128 A1 | R35 | `docs/fsfet/Forksheet_TSMC_US20240178128A1.pdf` |
+| Forksheet: Device, Inverter | imec, *A method for forming a semiconductor device and a semiconductor device*, EP 3 989 273 A1 | R31 | `docs/fsfet/Forksheet_Imec_EP3989273A1.pdf` |
+| Forksheet: gate-bridge variant (text only) | TSMC, *Semiconductor device structure including forksheet transistors and methods of forming the same*, US 2024/0178128 A1 | R35 | `docs/fsfet/Forksheet_TSMC_US20240178128A1.pdf` |
 | Forksheet: second example | TSMC, *Semiconductor device structure including forksheet transistors and methods of forming the same*, US 11,862,700 B2 | R32 | `docs/fsfet/Forksheet_TSMC_US11862700B2.pdf` |
 | Monolithic CFET: Device, Inverter | IBM, *Stacked complementary field effect transistors*, US 11,869,812 B2 | R33 | `docs/cfet/CFET_Monolithic_IBM_US11869812B2.pdf` |
 | Sequential CFET: Device | TSMC, *CFETs and the methods of forming the same*, US 2024/0413156 A1 | R34 | `docs/cfet/CFET_Sequential_TSMC_US20240413156A1.pdf` |
 
 Outside this set:
-- The Si/Si CMOS nanosheet design follows US 2023/0178617 A1 (R28). It is unchanged.
+- The Si/Si CMOS nanosheet design follows IBM's US 2023/0178617 A1 (R28),
+  `docs/nsfet/Nanosheet_SiSi_IBM_US20230178617A1.pdf` (see its section below).
+- The TSMC sequential CFET patent's Chinese family member, CN 118712136 A, is in
+  `docs/cfet/CN118712136A.pdf`: the same disclosure as R34, with a text layer.
 - SADP has no patent in the set and keeps its published references (R16, R19–R21).
 - The pitch-walk lesson varies the SAQP dimensions of R30's route and keeps R22–R23 for pitch walk
   itself.
@@ -176,7 +179,7 @@ fin removal are named in the text, and the pitch-walk lesson varies the spacing.
     still draws gate contacts 1812 and 1814.
 
 **Drawn:**
-- Spacer, BDI and inner spacers: SiBCN.
+- Spacers and BDI: SiBCN. Inner spacers: low-κ, as the patent's inner-spacer step says.
 - WFMs: TiN (p) and an Al-containing n-type metal (Ti and Al and their alloys are on the list).
 - Fill W; SAC cap SiN.
 - Contacts: TiSiₓ and Co, with a W gate contact; the patent names no metals here.
@@ -184,8 +187,9 @@ fin removal are named in the text, and the pitch-walk lesson varies the spacing.
 
 ## Forksheet: EP 3 989 273 A1 (imec, Figs. 1–6), US 11,862,700 B2 and US 2024/0178128 A1 (TSMC)
 
-The imec application is followed for the Device, US 2024/0178128 A1 for the Inverter's gate
-bridge (below); US 11,862,700 B2 is a second example of the wall and its materials.
+The imec application is followed for the Device, and the Inverter is that Device wired up.
+US 2024/0178128 A1's gate bridge is described in the story as another way to join the gates, not
+drawn; US 11,862,700 B2 is a second example of the wall and its materials.
 
 - **Stack:** Si channel layers 114 and SiGe second layers 116, with Ge at least 20 % higher.
   - The top second layer 116a is thicker, so the wall rises above the top channel.
@@ -231,8 +235,8 @@ bridge (below); US 11,862,700 B2 is a second example of the wall and its materia
 
 **Drawn:**
 - Si channels; a SiN wall and SiN contact partition wall.
-- Spacers: SiBCN. Inner spacers: SiCO.
-- Si:B and Si:P source/drain; SiN liner.
+- Spacers: SiBCN. Inner spacers: SiN, the first of the patent's options.
+- Si:B and Si:P source/drain. The SiN liner 133 is not drawn.
 - HfO₂, TiN (p), TiAlC (n); W fill over the wall.
 - TiN and W contacts; a SiN gate cap. The imec text names the cap only as hard-mask material, so
   SiN is the model's choice.
@@ -318,11 +322,12 @@ The face-to-back process of Figs. 1A–1N is followed.
 **Drawn:**
 - Lower pFET (SiGe:B), upper nFET (Si:P).
 - W is the gate fill metal. The patent names none, so this is the model's choice.
-- Separate gates. The inverter's gate-to-gate via is a teaching addition: the patent has none.
+- Separate gates; the patent joins them nowhere. The Inverter follows R33 instead, so no
+  sequential-CFET inverter is drawn.
 - The finished die sits flipped on a carrier. Device mode shows it upright, with the carrier not
   drawn.
 
-## Forksheet Inverter: US 2024/0178128 A1 (TSMC)
+## Forksheet gate-bridge variant: US 2024/0178128 A1 (TSMC)
 
 - **Gates:** the n and p gate electrodes are separated by the dielectric wall and planarised level
   with it; the gate rises 15 nm or less above the top channel.
@@ -331,5 +336,21 @@ The face-to-back process of Figs. 1A–1N is followed.
 - **Gate via:** lands on the bridge contact.
 - **Etch stops:** SiN etch-stop layers and a CESL.
 - **S/D contacts:** silicided, with a TiN barrier.
-- **Drawn:** `bridge` (W, net "in") over the wall, and the SiN etch stop `esl`. The contact metals
-  and the wall width are the model's.
+- **Not drawn.** The Inverter is the imec Device wired up, whose one gate fill over the wall
+  already joins the gates; this patent is cited for the alternative.
+
+## Si/Si nanosheet: US 2023/0178617 A1 (IBM)
+
+- **Stack:** sacrificial layer 112, SiGe with 45–70 % Ge, 5–15 nm; seed layer 113, the channel
+  material (Si), 2–5 nm; then SiGe 114 (15–35 % Ge) and Si 116 in turn, 5–12 nm each.
+- **Seed layer:** undoped Si 140 grows from it and from the channel ends in the S/D trenches
+  [0079–0080]. At channel release a controlled oxidation and etch thin the channels and remove
+  the exposed seed [0117–0119]; it remains only below the inner spacers and the undoped Si, above
+  the bottom isolation 146. The gate stack sits on the bottom isolation [0121–0123].
+- **Spacers:** gate spacer 130 SiON, SiOCN, SiOC or SiBCN; inner spacers 138 SiN; BDI 146 SiN.
+- **S/D:** pFET SiGe, boron-doped; nFET SiC doped with phosphorus.
+- **Gate:** high-κ about 2 nm; pFET TiN (or TaN, TiC, TiAlC), nFET TiAlC. No fill metal, gate cap
+  or contact metal is named; the Mo fill, SiN cap and Co contacts are the model's.
+- **ILD 170:** silicon nitride.
+- **Drawn:** the seed only under the inner spacers and the undoped Si; SiBCN outer spacers; SiN
+  inner spacers and BDI; the gate's high-κ and work-function metal on the BDI below the sheets.

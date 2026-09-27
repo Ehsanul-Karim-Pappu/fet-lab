@@ -83,7 +83,7 @@ def sige_pair(design, exploded, wired, stack):
     zsub = lim(P["substrate"]["boxes"][0])[5]
     dz = 2 * zsub                                    # the two cells abut
     cap = span(P["gatecap"]); ymo, ycap, hzmo = cap[1], cap[4], cap[5]
-    ym2 = lim(P["w_drain"]["boxes"][0])[4]
+    ym2 = ycap                                       # the contacts' tops, level with the cap
     key, name, tag = scene_names(design, exploded, wired)
     d = bd.Dev(key, name, tag, "")
     who = dict(n="nFET", p="pFET")
@@ -100,7 +100,16 @@ def sige_pair(design, exploded, wired, stack):
 
     for k, dev, shift in (("n", nd, 0.0), ("p", pd, -dz)):
         for p in dev.parts:
-            if k == "p" and p["id"] == "gatew": continue          # one gate contact: the gate is shared
+            if k == "p" and p["id"] == "gatew":
+                # One gate contact: the gate is shared, so the pFET's contact opening in the cap
+                # is never made; the cap material fills its place.
+                cap = next(q for q in dev.parts if q["id"] == "gatecap")
+                bx = [list(q) for q in p["boxes"]]
+                for q in bx: q[2] = round(q[2] + shift, 4)
+                d.add("p_capfill", f"pFET · {cap['name'].split(' (')[0]} · no second gate contact here",
+                      cap["material"], bx, f"{who[k]} · {cap['group']}", list(cap["explode"]))
+                d.parts[-1]["net"] = "body"
+                continue
             bx = [list(b) for b in p["boxes"]]
             for b in bx: b[2] = round(b[2] + shift, 4)
             ex = list(p["explode"])
@@ -265,11 +274,11 @@ def scenes():
     out = []
     for wired in (False, True):
         for design in ("sige", "si"):
-            for exploded in (False, True):
-                d = compose(design, exploded, wired)
-                mx, n = check(d)
-                if mx != 1: sys.exit(f"{d.key}: {mx} solids overlap")
-                out.append(d)
+            # The compact geometry only: the exploded gate view was removed from the app.
+            d = compose(design, False, wired)
+            mx, n = check(d)
+            if mx != 1: sys.exit(f"{d.key}: {mx} solids overlap")
+            out.append(d)
     return out
 
 

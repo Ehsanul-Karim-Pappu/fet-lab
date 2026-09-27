@@ -233,16 +233,12 @@ private fun loadDesign(ctx: Context) =
         ?.takeIf { d -> DESIGNS.any { it.first == d } } ?: "sige"
 private fun saveDesign(ctx: Context, v: String) =
     ctx.getSharedPreferences("ui", Context.MODE_PRIVATE).edit().putString("channel_design", v).apply()
-private fun loadExploded(ctx: Context) =
-    ctx.getSharedPreferences("ui", Context.MODE_PRIVATE).getBoolean("exploded_gate", false)
-private fun saveExploded(ctx: Context, v: Boolean) =
-    ctx.getSharedPreferences("ui", Context.MODE_PRIVATE).edit().putBoolean("exploded_gate", v).apply()
 
 /** The Device and Inverter nanosheet chips ("ns", "inv_ns") stand for the scene of the chosen
- *  channel design and display ("ns~sige", "inv_ns~si~x"); every other key is itself. */
-private fun designKey(key: String, design: String, exploded: Boolean): String {
+ *  channel design ("ns~sige", "inv_ns~si"); every other key is itself. */
+private fun designKey(key: String, design: String): String {
     val base = key.substringBefore('~')
-    return if (base == "ns" || base == "inv_ns") "$base~$design" + (if (exploded) "~x" else "") else key
+    return if (base == "ns" || base == "inv_ns") "$base~$design" else key
 }
 /** A Device or Inverter scene of one of the nanosheet channel designs. */
 private fun isDesignScene(key: String) = key.substringBefore('~').let { it == "ns" || it == "inv_ns" } && '~' in key
@@ -299,7 +295,6 @@ fun FetLabApp(lib: Library, renderer: Renderer) {
     var mode by rememberSaveable { mutableStateOf(0) }
     var sceneKey by rememberSaveable { mutableStateOf("fin") }
     var design by rememberSaveable { mutableStateOf(loadDesign(ctx)) }
-    var explodedGate by rememberSaveable { mutableStateOf(loadExploded(ctx)) }
     var cfetSeq by rememberSaveable { mutableStateOf(false) }
     var viewKey by rememberSaveable { mutableStateOf("") }
     var cx by rememberSaveable { mutableStateOf(1f) }
@@ -448,7 +443,7 @@ fun FetLabApp(lib: Library, renderer: Renderer) {
     }
 
     fun openScene(key0: String, animate: Boolean) {
-        val key = designKey(key0, design, explodedGate)
+        val key = designKey(key0, design)
         val sc = lib.scene(key)
         sceneKey = key
         mode = when {
@@ -488,7 +483,7 @@ fun FetLabApp(lib: Library, renderer: Renderer) {
         renderer.growBox = null; renderer.deposit = emptyMap()
     }
     fun switchScene(key0: String, keepView: Boolean = false) {
-        val key = designKey(key0, design, explodedGate)
+        val key = designKey(key0, design)
         if (key == sceneKey) return
         // Changing the design or the exploded view keeps the view and any hidden layers: the
         // two scenes have the same views and part ids.
@@ -670,11 +665,6 @@ fun FetLabApp(lib: Library, renderer: Renderer) {
             mode == PROCESS && techOf(sceneKey) == "ns" -> flowFor("ns")?.let { openFlow(it) }
             isDesignScene(sceneKey) -> switchScene(sceneKey, keepView = true)
         }
-    }
-    fun setExploded(on: Boolean) {
-        if (on == explodedGate) return
-        explodedGate = on; saveExploded(ctx, on)
-        if (isDesignScene(sceneKey)) switchScene(sceneKey, keepView = true)
     }
     // Play steps through the flow at reading pace, stopping on the last step.
     LaunchedEffect(playing, sceneKey) {
@@ -1292,38 +1282,23 @@ fun FetLabApp(lib: Library, renderer: Renderer) {
             // In Process mode the device site (nFET, pFET or both) is picked on the stage itself,
             // so it is never more than a tap away; the view's name sits under it.
             val stageSites = scene.flow?.sites.orEmpty()
-            // The channel design, on every nanosheet scene of Device, Inverter and Process; the
-            // exploded gate view, on the Device and Inverter ones.
+            // The channel design, on every nanosheet scene of Device, Inverter and Process: a
+            // compact pill on the right, the site (Process) on the left, so neither covers the model.
             val designScene = isDesignScene(sceneKey)
             val showDesign = designScene || (mode == PROCESS && techOf(sceneKey) == "ns")
             val pills = stageSites.isNotEmpty() || showDesign
-            // In Process the site sits on the left and the channel design on the right, both
-            // compact, so neither covers the model.
-            val splitPills = mode == PROCESS && showDesign
             if (!sectionUp) Column(Modifier.align(Alignment.TopStart).padding(14.dp),
                 verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                if (showDesign && !splitPills) DesignPill(design, glass, line, ink, dim) { d ->
-                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                    changeDesign(d)
-                }
-                if (designScene) ExplodedToggle(explodedGate, glass, line, ink) { on ->
-                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                    setExploded(on)
-                }
-                if (stageSites.isNotEmpty()) SitePill(scene.flow!!, glass, line, ink, compact = mode == PROCESS) { k ->
+                if (stageSites.isNotEmpty()) SitePill(scene.flow!!, glass, line, ink) { k ->
                     haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                     openSite(k)
                 }
-                if (designScene && explodedGate)
-                    Text("Schematic enlargement; dimensions are not to scale.", fontFamily = PlexSans,
-                        fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.tertiary,
-                        modifier = Modifier.widthIn(max = 230.dp).semantics { liveRegion = LiveRegionMode.Polite })
                 Text(scene.views.firstOrNull { it.key == viewKey }?.label ?: "",
                     style = MaterialTheme.typography.labelSmall, color = dim)
             }
-            if (!sectionUp && splitPills)
+            if (!sectionUp && showDesign)
                 Box(Modifier.align(Alignment.TopEnd).padding(14.dp)) {
-                    DesignPill(design, glass, line, ink, dim, compact = true) { d ->
+                    DesignPill(design, glass, line, ink) { d ->
                         haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                         changeDesign(d)
                     }
@@ -2018,47 +1993,23 @@ private fun FitTitle(text: String, color: Color) {
         })
 }
 
-/** The nanosheet channel design, named, with the chosen one filled. [compact] drops the
- *  heading and the word CMOS (still read aloud) for the Process stage. */
+/** The nanosheet channel design, the chosen one filled: "Si/SiGe" or "Si/Si", read aloud
+ *  with the word CMOS. */
 @Composable
-private fun DesignPill(design: String, glass: Color, line: Color, ink: Color, dim: Color,
-                       compact: Boolean = false, onPick: (String) -> Unit) {
+private fun DesignPill(design: String, glass: Color, line: Color, ink: Color, onPick: (String) -> Unit) {
     Surface(color = glass, shape = RoundedCornerShape(16.dp), border = BorderStroke(1.dp, line),
         modifier = Modifier.tourTarget("design")) {
-        Column(if (compact) Modifier.padding(2.dp) else Modifier.padding(start = 10.dp, end = 2.dp, top = 4.dp, bottom = 2.dp)) {
-            if (!compact) Text("CHANNEL DESIGN", fontFamily = Mono, fontSize = 9.5f.sp, color = dim,
-                modifier = Modifier.semantics { heading() })
-            Row(Modifier.padding(top = if (compact) 0.dp else 2.dp).selectableGroup()) {
-                for ((k, name) in DESIGNS) {
-                    val on = k == design
-                    Text(if (compact) name.removeSuffix(" CMOS") else name,
-                        color = if (on) MaterialTheme.colorScheme.onPrimary else ink,
-                        fontFamily = PlexSans, fontSize = if (compact) 11.sp else 12.sp, fontWeight = FontWeight.SemiBold,
-                        modifier = Modifier.tourTarget("design:$k").clip(RoundedCornerShape(14.dp))
-                            .background(if (on) MaterialTheme.colorScheme.primary else Color.Transparent)
-                            .selectable(selected = on, role = Role.RadioButton) { if (!on) onPick(k) }
-                            .semantics { contentDescription = "$name channel design" }
-                            .padding(horizontal = if (compact) 8.dp else 10.dp, vertical = if (compact) 4.dp else 5.dp))
-                }
+        Row(Modifier.padding(2.dp).selectableGroup()) {
+            for ((k, name) in DESIGNS) {
+                val on = k == design
+                Text(name.removeSuffix(" CMOS"), color = if (on) MaterialTheme.colorScheme.onPrimary else ink,
+                    fontFamily = PlexSans, fontSize = 11.sp, fontWeight = FontWeight.SemiBold,
+                    modifier = Modifier.tourTarget("design:$k").clip(RoundedCornerShape(14.dp))
+                        .background(if (on) MaterialTheme.colorScheme.primary else Color.Transparent)
+                        .selectable(selected = on, role = Role.RadioButton) { if (!on) onPick(k) }
+                        .semantics { contentDescription = "$name channel design" }
+                        .padding(horizontal = 8.dp, vertical = 4.dp))
             }
-        }
-    }
-}
-
-/** The exploded gate view: on, the gaps and gate films are enlarged for inspection. */
-@Composable
-private fun ExplodedToggle(on: Boolean, glass: Color, line: Color, ink: Color, onSet: (Boolean) -> Unit) {
-    Surface(color = glass, shape = RoundedCornerShape(16.dp), border = BorderStroke(1.dp, line)) {
-        Row(Modifier.clip(RoundedCornerShape(16.dp)).toggleable(value = on, role = Role.Switch, onValueChange = onSet)
-            .padding(horizontal = 10.dp, vertical = 5.dp), verticalAlignment = Alignment.CenterVertically) {
-            // A drawn switch: small enough to sit on the stage, read out as a switch.
-            Box(Modifier.size(width = 22.dp, height = 12.dp).clip(RoundedCornerShape(6.dp))
-                .background(if (on) MaterialTheme.colorScheme.primary else line)) {
-                Box(Modifier.padding(2.dp).size(8.dp).align(if (on) Alignment.CenterEnd else Alignment.CenterStart)
-                    .clip(CircleShape).background(if (on) MaterialTheme.colorScheme.onPrimary else ink))
-            }
-            Text("Exploded gate view", color = ink, fontFamily = PlexSans, fontSize = 12.sp,
-                fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(start = 8.dp))
         }
     }
 }
@@ -2066,18 +2017,18 @@ private fun ExplodedToggle(on: Boolean, glass: Color, line: Color, ink: Color, o
 /** The same choice as [SitePicker], as a compact pill on the stage. */
 @Composable
 private fun SitePill(flow: ProcessFlow, glass: Color, line: Color, ink: Color,
-                     compact: Boolean = false, onSite: (String) -> Unit) {
+                     onSite: (String) -> Unit) {
     Surface(color = glass, shape = RoundedCornerShape(16.dp), border = BorderStroke(1.dp, line),
         modifier = Modifier.tourTarget("sitepill")) {
         Row(Modifier.padding(2.dp).selectableGroup()) {
             for (s in flow.sites) {
                 val on = s.id == flow.site
                 Text(s.name, color = if (on) MaterialTheme.colorScheme.onPrimary else ink,
-                    fontFamily = PlexSans, fontSize = if (compact) 11.sp else 12.sp, fontWeight = FontWeight.SemiBold,
+                    fontFamily = PlexSans, fontSize = 11.sp, fontWeight = FontWeight.SemiBold,
                     modifier = Modifier.tourTarget("site:${s.id}").clip(RoundedCornerShape(14.dp))
                         .background(if (on) MaterialTheme.colorScheme.primary else Color.Transparent)
                         .selectable(selected = on, role = Role.Tab) { if (!on) onSite(s.flow) }
-                        .padding(horizontal = if (compact) 8.dp else 10.dp, vertical = if (compact) 4.dp else 5.dp))
+                        .padding(horizontal = 8.dp, vertical = 4.dp))
             }
         }
     }

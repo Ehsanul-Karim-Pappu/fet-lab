@@ -223,7 +223,8 @@ class ContentTests(unittest.TestCase):
                     self.assertIn(st['scale'], planes[c['plane']]['views'], st['id'])
                     self.assertEqual(c['figs'], st['figs'])
                     self.assertIn(c['src'], flow['refs'])
-                    self.assertTrue(c['described'] and c['visible'], st['id'])
+                    # A step with no figure (the Si/Si lesson maps none) has nothing to describe.
+                    self.assertTrue(c['visible'] and (c['described'] or not st['figs']), st['id'])
                     self.assertIn(c['status'], ('text', 'visual', 'unverified'))
                     self.assertNotRegex((c['described'] + c['status_text']).lower(), r'exact|matches fig')
 
@@ -397,6 +398,26 @@ class ContentTests(unittest.TestCase):
             for grp in re.findall(r'\[([^\]]+)\]', why):
                 for r in re.findall(r'R\d+', grp): self.assertIn(r, ids, (key, r))
 
+    def test_lessons_end_on_the_scenes(self):
+        """Each both-sites lesson ends on the Device (or Inverter) model it names: the same
+        material volumes, the ILD and the Inverter's metal level aside."""
+        flows = json.loads((ROOT / 'data/process.json').read_text())['flows']
+        devs = {d['key']: d for d in self.data['devices']}
+        skip = ('Interlayer dielectric', 'Patterning', 'Region masks', 'Metal 1')
+        def vol(parts):
+            r = {}
+            for p in parts:
+                if p['material'] == 'ild' or p['group'] in skip: continue
+                r[p['material']] = r.get(p['material'], 0) + sum(b[3] * b[4] * b[5] for b in p['boxes'])
+            return {m: round(v) for m, v in r.items()}
+        for key, dev, sid in (('ns_pair', 'ns~sige', 'shared'), ('fin_pair', 'inv_fin', 'shared'),
+                              ('ns~si', 'ns~si', 'done'), ('fin', 'fin', 'done')):
+            f = flows[key]
+            final = {p['id']: p for p in (f.get('final') or devs[key if key in devs else dev]['parts'])}
+            st = next(s for s in f['steps'] if s['id'] == sid)
+            parts = [final[q] if isinstance(q, str) else q for q in st['parts']]
+            self.assertEqual(vol(parts), vol(devs[dev]['parts']), (key, dev))
+
     def test_references_and_scope(self):
         ids = [r['id'] for r in self.refs['sources']]
         self.assertEqual(len(ids), len(set(ids)))
@@ -412,7 +433,7 @@ class ContentTests(unittest.TestCase):
             self.assertNotIn('Rathore', scene['story'])
 
     def test_scene_names_and_capacitance_scope(self):
-        self.assertEqual(len(self.data['devices']), 22)       # the nanosheet pair: 2 designs × 2 displays × 2 modes
+        self.assertEqual(len(self.data['devices']), 18)       # the nanosheet pair: 2 designs × 2 modes
         count = 0
         for scene in self.data['devices']:
             if 'cmp' not in scene['key']:
@@ -471,7 +492,7 @@ class ContentTests(unittest.TestCase):
         devs = {d['key']: d for d in self.data['devices']}
         for base in ('ns', 'inv_ns'):
             for design in ('sige', 'si'):
-                for x in ('', '~x'):
+                for x in ('',):
                     sc = devs[f'{base}~{design}{x}']
                     ids = {p['id']: p for p in sc['parts']}
                     n, pch = self._chan(sc['parts'], 'n'), self._chan(sc['parts'], 'p')
@@ -508,18 +529,13 @@ class ContentTests(unittest.TestCase):
                         if p['id'].startswith(('n_sheet', 'p_sheet', 'p_psheet')):
                             self.assertEqual(p['group'].split(' · ')[1], 'Channel stack')
 
-    def test_exploded_view_changes_only_sizes(self):
-        """The exploded gate view is a display state: the same parts, names, materials, groups
-        and nets as the compact geometry, marked not to scale, with no capacitance numbers."""
-        devs = {d['key']: d for d in self.data['devices']}
-        for base in ('ns', 'inv_ns'):
-            for design in ('sige', 'si'):
-                c, x = devs[f'{base}~{design}'], devs[f'{base}~{design}~x']
-                sig = lambda sc: [(p['id'], p['name'], p['material'], p['group'], p.get('net')) for p in sc['parts']]
-                self.assertEqual(sig(c), sig(x), design)
-                self.assertIn('not to scale', x['note']); self.assertIn('not to scale', x['tag'])
-                self.assertNotIn('parasitics', x)
-                self.assertEqual(set(c['views']), set(x['views']))
+    def test_no_exploded_view(self):
+        """The exploded gate view was removed: no enlarged scenes, and no toggle for one."""
+        keys = {d['key'] for d in self.data['devices']}
+        self.assertFalse([k for k in keys if k.endswith('~x')])
+        src = (ROOT / 'android/app/src/main/java/io/github/ehsanulkarimpappu/fetlab/AppUi.kt').read_text()
+        self.assertNotIn('exploded_gate', src)
+        self.assertNotIn('~x"', (ROOT / 'web/finfet-to-cfet.html').read_text())
 
     def test_inverter_connectivity(self):
         """Every inverter wires IN to both gates, V_DD to the pFET source, V_SS to the nFET
@@ -530,7 +546,7 @@ class ContentTests(unittest.TestCase):
             ov = [min(a[k + 3], b[k + 3]) - max(a[k], b[k]) for k in range(3)]
             return all(o > -e for o in ov) and sum(o > e for o in ov) >= 2
         devs = {d['key']: d for d in self.data['devices']}
-        for key in [k for k in devs if k.startswith('inv_ns~')]:
+        for key in [k for k in devs if k.startswith('inv_') and k != 'inv_cmp']:
             ps = [p for p in devs[key]['parts'] if p['material'] in COND or
                   (p['material'] in ('silicon', 'sige') and ('source' in p['id'] or 'drain' in p['id']))]
             par = {p['id']: p['id'] for p in ps}
@@ -632,17 +648,15 @@ class ContentTests(unittest.TestCase):
         self.assertNotIn('in development', (ROOT / 'data/guide.json').read_text())
 
     def test_design_keys_match_the_app(self):
-        """The app resolves its nanosheet chips to "<chip>~<design>[~x]", saves the design and the
-        exploded view, and starts on Si/SiGe; every key it can resolve to exists."""
+        """The app resolves its nanosheet chips to "<chip>~<design>", saves the design, and starts
+        on Si/SiGe; every key it can resolve to exists."""
         src = (ROOT / 'android/app/src/main/java/io/github/ehsanulkarimpappu/fetlab/AppUi.kt').read_text()
         self.assertIn('"channel_design", "sige"', src)
-        self.assertIn('"exploded_gate"', src)
         self.assertIn('val DESIGNS = listOf("sige" to "Si/SiGe CMOS", "si" to "Si/Si CMOS")', src)
         keys = {d['key'] for d in self.data['devices']}
         for chip in ('ns', 'inv_ns'):
             for design in ('sige', 'si'):
-                for x in ('', '~x'):
-                    self.assertIn(f'{chip}~{design}{x}', keys)
+                self.assertIn(f'{chip}~{design}', keys)
         self.assertNotIn('ns', keys); self.assertNotIn('inv_ns', keys)
 
     def test_no_false_dimension_claims(self):

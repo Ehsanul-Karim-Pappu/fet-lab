@@ -61,11 +61,24 @@ supporting reference. The patents are R13 and R29–R35 in `data/references.json
   - The finger waits less after each tap (`TourPlayer.tap`, `spot`, `moveHand`).
   - Not compiled here, since this container has no Android SDK. Check it with the Termux build.
 
+- **#46 and the review after it:**
+  - The inverters are built from the Device models.
+  - The lessons end on the Device models, and a test checks it.
+  - Contacts are level with the caps.
+  - The Si/Si seed follows R28.
+  - The CFET Layout matches the Device.
+  - The sequential CFET's lower gate has a contact.
+  - Cross sections were added to the Si/Si lesson; the section header is one line.
+  - The exploded gate view is gone, and the design pill is compact everywhere.
+  - Audit fixes; README and CHANGELOG updated.
+
 ## Remaining, in order
 
-1. **#46:** final delivery.
-   - Build on the phone and run the tours once.
-   - Update the README.
+1. Build on the phone; fix anything the Kotlin compiler reports. It has not been compiled here.
+2. Open questions for the user:
+   - The nanosheet pair is wider in z than the FinFET pair: 168 against 152 nm. The cause is the
+     84 nm stack pitch the SAQP lesson sets.
+   - The Layout spans are schematic numbers, not the Inverter spans.
 
 ## Rules that hold throughout
 
@@ -76,4 +89,4 @@ supporting reference. The patents are R13 and R29–R35 in `data/references.json
 
 ## Exact next step
 
-Start #46: fix anything the Termux build reports, then update the README.
+Fix anything the Termux build reports.

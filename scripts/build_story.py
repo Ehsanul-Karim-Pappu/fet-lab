@@ -27,7 +27,7 @@ pFETs, and nFETs get an Al-containing n-type metal (TiAl or TiAlC over thin TiN,
 Ti-based silicides replaced NiSi at FinFET-era nodes. Work-function tuning, doping and strain are
 not simulated. [R7, R8, R9, R11]</p>
 <p>Layout colors identify Channel, MD, Po, VD, VG and Metal 0 roles rather than chemical
-compositions. SiO2 is an illustrative bonding dielectric. [R3, R12]</p>
+compositions. The sequential CFET's bonding layers are drawn as SiO2, one of the options its patent lists. [R3, R12, R34]</p>
 <p>Capacitance values are geometry-only estimates. They omit 3D fringe fields, quantum and
 depletion corrections to gate capacitance, and calibrated junction behavior. Unfilled gaps
 are treated as vacuum rather than realistic inter-layer dielectric. Both absolute values and
@@ -86,9 +86,10 @@ an illustrative dimension, not a universal recipe. [R1, R2, R31, R32]</p>
 Electrostatics, stress and parasitics differ from a fully wrapped sheet. Benefits must be
 evaluated at comparable performance and design rules, not inferred from footprint alone. [R1]</p>
 <h4>Joining the two gates</h4>
-<p>The Inverter follows a TSMC forksheet patent instead: the wall rises level with the gates,
-splitting them, and a gate bridge contact on the wall touches both, forming the inverter input.
-The Device and the Inverter therefore show two ways the gate can cross the wall. [R35]</p>
+<p>In the Device and the Inverter, which is the Device wired up, the one gate fill over the wall
+is already the inverter's input. A TSMC forksheet patent joins the gates another way: the wall
+rises level with the gates, splitting them, and a gate bridge contact on the wall touches both.
+That variant is not drawn. [R31, R35]</p>
 <h4>Not the only forksheet design</h4>
 <p>Imec's later outer-wall design places the wall at the cell boundary instead, and addresses
 limitations of the earlier design. It is not modeled here. Forksheet is a researched scaling
@@ -110,11 +111,11 @@ and then processes the upper tier; post-transfer processing must protect the low
 sequential Device follows a TSMC patent: each tier has its own gate, an inter-metal line joins
 the drains, and deep plugs reach lines on the back of the wafer. [R3, R34]</p>
 <h4>Contacting the lower device</h4>
-<p>The monolithic Device and the Inverter contact both tiers from the front: the lower source is
-reached through a space left beside the upper one, as in the IBM patent. imec has demonstrated
-stacked contacts patterned from the frontside. The sequential Device and the Layout example use
-the back of the wafer instead; backside contacting can reduce congestion, but is not a physical
-requirement defining CFET. [R4, R33, R34]</p>
+<p>The monolithic Device, the Inverter and the Layout contact both tiers from the front: the lower
+source is reached through a space left beside the upper one, as in the IBM patent. imec has
+demonstrated stacked contacts patterned from the frontside. The sequential Device uses the back of
+the wafer instead; backside contacting can reduce congestion, but is not a physical requirement
+defining CFET. [R4, R33, R34]</p>
 <p>Two sheets per tier and the contact metals are model choices. The rendering does not predict
 fabrication yield, self-heating or switching delay.</p>
 """
