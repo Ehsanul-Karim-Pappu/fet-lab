@@ -349,6 +349,10 @@ fun FetLabApp(lib: Library, renderer: Renderer) {
     val tourTargets = remember { TourTargets() }
     val tourPlayer = remember { TourPlayer(tourTargets, scope, density.density) }
     var tourReturn by remember { mutableStateOf<TourReturn?>(null) }
+    // The technology chips, held here so the tour can scroll the lessons into view.
+    val chipList = rememberLazyListState()
+    // Set the first time Process opens; the tour it starts is launched further down.
+    var autoProcessTour by remember { mutableStateOf(false) }
     // Held here rather than in the tabs so the tour's finger can scroll them.
     val layersList = rememberLazyListState()
     val specsList = rememberLazyListState()
@@ -638,6 +642,11 @@ fun FetLabApp(lib: Library, renderer: Renderer) {
         if (i == PROCESS) {
             val f = flowFor(tech) ?: lib.flows.keys.firstOrNull()
             if (f == null) notWritten("") else openFlow(f)
+            // The first time Process opens, its own short tour shows how the mode works.
+            if (f != null && tourStep < 0 && !processTourSeen(ctx) && catalog.processTour.isNotEmpty()) {
+                markProcessTourSeen(ctx)
+                autoProcessTour = true
+            }
             return
         }
         val next = sceneFor(i, tech) ?: firstOf(i)
@@ -723,7 +732,7 @@ fun FetLabApp(lib: Library, renderer: Renderer) {
             tab, sheetLevel, parPick, selected,
             lib.scene(sceneKey).parts.associate { it.id to it.visible }, seeThrough, design)
         playing = false
-        if (ids == catalog.processTour && design != "sige") {
+        if (ids.any { it.startsWith("p_") } && design != "sige") {
             design = "sige"
             Toast.makeText(ctx, "The Process tour follows the Si/SiGe CMOS lesson: Channel design is set to " +
                 "Si/SiGe CMOS until the tour ends.", Toast.LENGTH_LONG).show()
@@ -750,6 +759,12 @@ fun FetLabApp(lib: Library, renderer: Renderer) {
         draw()
     }
     fun tourNext() { if (tourStep >= tourIds.lastIndex) exitTour() else tourStep++ }
+    LaunchedEffect(autoProcessTour) {
+        if (!autoProcessTour) return@LaunchedEffect
+        delay(700)
+        autoProcessTour = false
+        if (tourStep < 0) startTour(catalog.processTour)
+    }
     fun tourBack() { if (tourStep > 0) tourStep-- }
     fun openFeature(s: GuideStop) {
         showHelp = false
@@ -806,6 +821,36 @@ fun FetLabApp(lib: Library, renderer: Renderer) {
                         if (list.dispatchRawDelta(step) < step * 0.5f || now > give) break   // hit the end
                     }
                 }
+            }
+            // The Process stops run on the nanosheet flow, the one with every feature.
+            suspend fun inProcessNs() {
+                if (mode != PROCESS || techOf(sceneKey) != "ns") { switchScene(stepKey("ns", 0)); delay(700) }
+            }
+            fun planesHere(): List<SectionPlane> {
+                val sc = lib.scene(sceneKey)
+                return sc.flow?.sections?.filter { it.views.containsKey(sc.step?.scale ?: "site") }.orEmpty()
+            }
+            // Read the scene as it is now: showPlane and clearPlane read the one this step started on.
+            fun setPlaneNow(pl: SectionPlane, m: Int) {
+                val sc = lib.scene(sceneKey)
+                secPlane = pl.id; secMode = m
+                planeView(sc)?.let { goToView(sc, it, animate = true) }
+            }
+            fun clearPlaneNow() {
+                if (secPlane == null) return
+                val sc = lib.scene(sceneKey)
+                secPlane = null; secMode = 0
+                (sc.views.firstOrNull { it.key == sc.step?.view } ?: sc.views.firstOrNull())
+                    ?.let { goToView(sc, it, animate = true) }
+            }
+            // The last core step on the route that has named planes: the finished device.
+            suspend fun toPlaneStep() {
+                val f = lib.scene(sceneKey).flow ?: return
+                val at = f.steps.indices.lastOrNull { i ->
+                    !f.steps[i].isOp && f.onRoute(i, routeIn(f)) &&
+                        f.sections.any { it.views.containsKey(f.steps[i].scale) }
+                }
+                if (at != null && at != lib.scene(sceneKey).stepIndex) { goStep(at); delay(800) }
             }
             when (id) {
                 "modes" -> {
@@ -955,15 +1000,13 @@ fun FetLabApp(lib: Library, renderer: Renderer) {
                 }
                 // --- the Process mode tour, on the nanosheet flow ---
                 "p_stepper" -> {
-                    if (mode != PROCESS || techOf(sceneKey) != "ns") {
-                        switchScene(stepKey("ns", 0)); delay(700)
-                    }
+                    inProcessNs()
                     spot("procbar")
                     repeat(2) {
                         val f = lib.scene(sceneKey).flow ?: return@with
                         val n = f.next(lib.scene(sceneKey).stepIndex, 1, showOps, routeIn(f)) ?: return@repeat
                         tap("procbar:next") { goStep(n) }
-                        delay(1500)
+                        delay(1100)
                     }
                     hideHand()
                 }
@@ -975,43 +1018,91 @@ fun FetLabApp(lib: Library, renderer: Renderer) {
                     delay(1400)
                     hideHand()
                 }
+                "p_lessons" -> {
+                    if (mode != PROCESS) { selectMode(PROCESS); delay(700) }
+                    spot("arch")
+                    for (k in listOf("proc_sadp", "proc_saqp", "proc_pitchwalk")) {
+                        val i = PROC_KEYS.indexOfFirst { it.first == k }
+                        if (i < 0 || flowFor(techOf(k)) == null) continue
+                        chipList.animateScrollToItem(maxOf(0, i - 1))
+                        tap("chip:$k") { selectChip(k) }
+                        delay(1500)
+                    }
+                    chipList.animateScrollToItem(0)
+                    hideHand()
+                }
                 "p_sites" -> {
+                    inProcessNs()
                     val f = lib.scene(sceneKey).flow
                     spot("sitepill")
                     val other = f?.sites?.firstOrNull { it.id != f.site }
                     val back = f?.sites?.firstOrNull { it.id == f.site }
                     if (other != null && back != null) {
                         tap("site:${other.id}") { openSite(other.flow) }
-                        delay(1800)
+                        delay(1300)
                         tap("site:${back.id}") { openSite(back.flow) }
                     }
                     hideHand()
                 }
                 "p_planes" -> {
-                    // The finished device, which has named section planes.
-                    val f = lib.scene(sceneKey).flow ?: return@with
-                    val at = f.steps.indices.lastOrNull { i ->
-                        !f.steps[i].isOp && f.onRoute(i, routeIn(f)) &&
-                            f.sections.any { it.views.containsKey(f.steps[i].scale) }
-                    }
-                    if (at != null && at != lib.scene(sceneKey).stepIndex) { goStep(at); delay(800) }
+                    inProcessNs()
+                    toPlaneStep()
                     spot("sheet")
                     tap("tab:1") { selectTab(1) }
-                    delay(500)
-                    // The scene as it is now: showPlane and clearPlane read the one this step started on.
-                    val here = lib.scene(sceneKey)
-                    val pl = f.sections.firstOrNull { it.views.containsKey(here.step?.scale ?: "site") }
+                    delay(400)
+                    // Each named plane in turn, shown as 3D and section together.
+                    val n = planesHere().size
+                    for (i in 0 until minOf(n, 3)) {
+                        tap("plane:$i") { setPlaneNow(planesHere()[i], 2) }
+                        delay(1700)
+                    }
+                    hideHand()
+                }
+                "p_secmode" -> {
+                    inProcessNs()
+                    toPlaneStep()
+                    if (tab != 1) selectTab(1)
+                    if (secPlane == null) planesHere().firstOrNull()?.let { setPlaneNow(it, 2) }
+                    delay(300)
+                    spot("sheet")
+                    for (m in listOf(0, 1, 2)) {
+                        tap("secmode:$m") { secMode = m }
+                        delay(1400)
+                    }
+                    hideHand()
+                }
+                "p_locator" -> {
+                    inProcessNs()
+                    toPlaneStep()
+                    if (tab != 1) selectTab(1)
+                    if (secPlane == null) planesHere().firstOrNull()?.let { setPlaneNow(it, 2) }
+                    delay(300)
+                    spot("locator")
+                    // Another plane, so the dashed line visibly moves in the preview.
+                    val ps = planesHere()
+                    val j = ps.indexOfFirst { it.id != secPlane }
+                    if (j >= 0) tap("plane:$j") { setPlaneNow(ps[j], secMode.coerceAtLeast(2)) }
+                    delay(2200)
+                    hideHand()
+                }
+                "p_show" -> {
+                    inProcessNs()
+                    clearPlaneNow()
+                    // A step on the current route that names a plane to see it in.
+                    val f = lib.scene(sceneKey).flow ?: return@with
+                    val here = routeIn(f)
+                    val at = f.steps.indices.firstOrNull { i ->
+                        !f.steps[i].isOp && f.onRoute(i, here) && f.steps[i].compare.any { c -> f.plane(c.plane) != null }
+                    }
+                    if (at != null && at != lib.scene(sceneKey).stepIndex) { goStep(at); delay(700) }
+                    selectTab(3); sheetLevel = 2
+                    delay(900)
+                    spot("sheet")
+                    val st = lib.scene(sceneKey).step
+                    val pl = st?.compare?.firstNotNullOfOrNull { f.plane(it.plane) }
                     if (pl != null) {
-                        tap("plane:0") {
-                            secPlane = pl.id; secMode = 2
-                            planeView(here)?.let { goToView(here, it, animate = true) }
-                        }
-                        delay(2600)
-                        tap("plane:0") {
-                            secPlane = null; secMode = 0
-                            (here.views.firstOrNull { it.key == here.step?.view } ?: here.views.firstOrNull())
-                                ?.let { goToView(here, it, animate = true) }
-                        }
+                        tap("showsec:0") { setPlaneNow(pl, 2); sheetLevel = 1 }
+                        delay(2400)
                     }
                     hideHand()
                 }
@@ -1076,7 +1167,7 @@ fun FetLabApp(lib: Library, renderer: Renderer) {
             }
             Spacer(Modifier.height(6.dp))
             Column(Modifier.tourTarget("arch")) {
-            LazyRow(contentPadding = PaddingValues(horizontal = 16.dp),
+            LazyRow(state = chipList, contentPadding = PaddingValues(horizontal = 16.dp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 items(keysFor(mode)) { (k, label) ->
                     val active = if (mode == PROCESS) techOf(sceneKey) == techOf(k)

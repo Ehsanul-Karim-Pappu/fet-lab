@@ -247,13 +247,13 @@ fun PlanesBlock(lib: Library, sc: Scene, planes: List<SectionPlane>, planeId: St
     val pl = planes.firstOrNull { it.id == planeId }
     Row(Modifier.fillMaxWidth().padding(top = 5.dp), horizontalArrangement = Arrangement.spacedBy(5.dp)) {
         for ((i, name) in listOf("3D", "Section", "Both").withIndex())
-            Chip(name, mode == i && pl != null, Modifier.weight(1f)) { if (pl != null) onMode(i) }
+            Chip(name, mode == i && pl != null, Modifier.weight(1f).tourTarget("secmode:$i")) { if (pl != null) onMode(i) }
     }
     Surface(color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f), shape = RoundedCornerShape(12.dp),
         modifier = Modifier.fillMaxWidth().padding(top = 5.dp)) {
         // The locator beside its explanation, so the block stays short.
         Row(Modifier.padding(8.dp), verticalAlignment = Alignment.Top) {
-            Locator(lib, sc, pl, Modifier.size(width = 104.dp, height = 68.dp))
+            Locator(lib, sc, pl, Modifier.size(width = 104.dp, height = 68.dp).tourTarget("locator"))
             Column(Modifier.weight(1f).padding(start = 8.dp)) {
                 Text("From above: x runs source → drain, z across the ${sc.acrossWord()}; dashed: the plane, " +
                         "arrow: the side seen.",
@@ -274,10 +274,10 @@ fun CompareBlock(flow: ProcessFlow, st: ProcessStep, onShow: (SectionPlane) -> U
     if (planes.isEmpty()) return
     FlowRow(Modifier.fillMaxWidth().padding(top = 8.dp), horizontalArrangement = Arrangement.spacedBy(6.dp),
         verticalArrangement = Arrangement.spacedBy(6.dp)) {
-        for (pl in planes)
+        for ((i, pl) in planes.withIndex())
             Text("Show cross section · ${pl.short}", fontFamily = PlexSans, fontSize = 12.5f.sp,
                 fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.clip(RoundedCornerShape(8.dp))
+                modifier = Modifier.tourTarget("showsec:$i").clip(RoundedCornerShape(8.dp))
                     .border(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.6f), RoundedCornerShape(8.dp))
                     .clickable { onShow(pl) }.padding(horizontal = 10.dp, vertical = 6.dp)
                     .semantics { contentDescription = "Show the cross section ${pl.name}" })

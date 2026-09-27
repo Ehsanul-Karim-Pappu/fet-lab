@@ -25,6 +25,16 @@ These patents are added as references R29–R35.
   drag to pan; double-tap or "Reset zoom" restores the view.
 - **Nanosheet stage:** the site picker (nFET, pFET, Both) sits on the left, and the Si/SiGe and
   Si/Si design picker on the right, both compact.
+- **Tours:** the guided tour now ends with a pass through Process: the stepper, the sites, the
+  section planes and the patterning lessons. A Process-only tour starts by itself the first time
+  Process is opened, and can be replayed from Help. It covers:
+  - the stepper and the nFET / pFET / Both selector;
+  - each section plane in turn, then 3D / Section / Both;
+  - the top-down preview with its dashed plane line;
+  - "Show cross section" in Steps, and the source badge;
+  - the SADP, SAQP and pitch-walk lessons.
+- **Finger timing:** after each tap the animated finger waits about 0.3 s instead of 0.65 s, and
+  it moves between controls faster.
 - **Why tab:** Story is renamed "Why" in Process, with its own text for every lesson (nanosheet,
   FinFET, both-sites, SADP, SAQP, pitch walk, Si/Si). Device, Inverter and Layout keep Story.
 

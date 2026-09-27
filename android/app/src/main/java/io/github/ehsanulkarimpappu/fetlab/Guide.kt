@@ -131,12 +131,21 @@ class GuideCatalog(val stops: List<GuideStop>, val tour: List<String>, val proce
 
 private const val PREFS = "guide"
 private const val KEY_TOUR_SEEN = "tour_seen_v1"
+private const val KEY_PROCESS_TOUR_SEEN = "process_tour_seen_v1"
 
 fun tourSeen(ctx: Context): Boolean =
     ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getBoolean(KEY_TOUR_SEEN, false)
 
 fun markTourSeen(ctx: Context) {
     ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit().putBoolean(KEY_TOUR_SEEN, true).apply()
+}
+
+/** The Process-only tour runs by itself the first time Process is opened. */
+fun processTourSeen(ctx: Context): Boolean =
+    ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getBoolean(KEY_PROCESS_TOUR_SEEN, false)
+
+fun markProcessTourSeen(ctx: Context) {
+    ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit().putBoolean(KEY_PROCESS_TOUR_SEEN, true).apply()
 }
 
 /* ============================================================ targets ==== */
@@ -201,10 +210,10 @@ class TourPlayer(val targets: TourTargets, private val scope: CoroutineScope, pr
     suspend fun spot(id: String) {
         spotId = id
         rect(id)
-        delay(520)
+        delay(360)
     }
 
-    private suspend fun moveHand(to: Offset, ms: Int = 560) {
+    private suspend fun moveHand(to: Offset, ms: Int = 440) {
         if (handAlpha.value < 0.02f) hand.snapTo(Offset(to.x + 70f * px, to.y + 170f * px))
         coroutineScope {
             launch { handAlpha.animateTo(1f, tween(220)) }
@@ -222,12 +231,12 @@ class TourPlayer(val targets: TourTargets, private val scope: CoroutineScope, pr
     suspend fun tap(id: String, effect: () -> Unit = {}) {
         val r = rect(id) ?: return
         moveHand(r.center)
-        delay(120)
-        press.animateTo(1f, tween(110))
+        delay(60)
+        press.animateTo(1f, tween(100))
         ripple(r.center)
         effect()
-        press.animateTo(0f, tween(170))
-        delay(650)
+        press.animateTo(0f, tween(150))
+        delay(280)
     }
 
     /** Presses at [from], slides to [to] over [ms], calling [onStep] with each progress delta. */

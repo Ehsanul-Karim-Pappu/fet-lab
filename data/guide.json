@@ -95,15 +95,47 @@
       "id": "p_sites",
       "category": "Process mode",
       "title": "nFET, pFET or both sites",
-      "body": "The pill at the top of the stage picks the device the flow follows. The pFET shares the nFET's early steps and then has its own masked steps; Both sites shows the two side by side, joined by their gate line.",
+      "body": "The pill at the top left of the stage picks the device the flow follows: the nFET, the pFET, or both sites side by side on one gate line. The pFET shares the nFET's early stages, then has its own masked steps. On the nanosheet, the channel design (Si/SiGe or Si/Si CMOS) is picked at the top right.",
       "gesture": "tap"
     },
     {
       "id": "p_planes",
       "category": "Process mode",
       "title": "Section planes",
-      "body": "On steps with a source figure, Section lists named planes through the model. Pick one to see the cut in 3D, as a flat section, or both, with a small map showing where the plane sits.",
+      "body": "On steps with a source figure, the Section tab lists named planes through the model: along the nFET or pFET, across the gate, across the source/drain. Pick one to see its 2D section, cut from the same model. Tap a layer in the section to name it; pinch to zoom.",
       "tab": 1,
+      "gesture": "tap"
+    },
+    {
+      "id": "p_secmode",
+      "category": "Process mode",
+      "title": "3D, section or both",
+      "body": "With a plane picked, choose 3D only, the 2D section only, or Both: the section over the top of the stage and the 3D view below it.",
+      "tab": 1,
+      "gesture": "tap"
+    },
+    {
+      "id": "p_locator",
+      "category": "Process mode",
+      "title": "Where the plane runs",
+      "body": "The small drawing beside the planes is the model seen from above. The dashed line is the section plane; the arrow shows the side it is seen from.",
+      "tab": 1,
+      "gesture": "none"
+    },
+    {
+      "id": "p_show",
+      "category": "Process mode",
+      "title": "From a step to its cross section",
+      "body": "In Steps, a step shown best in a plane has a Show cross section button under its text. One tap opens that plane's section beside the model.",
+      "tab": 3,
+      "gesture": "tap"
+    },
+    {
+      "id": "p_lessons",
+      "category": "Process mode",
+      "title": "Patterning lessons: SADP, SAQP, pitch walk",
+      "body": "After the device flows come the patterning lessons: self-aligned double and quadruple patterning, which print lines finer than one exposure can, and pitch walk, how small errors in SAQP make the spaces between lines uneven.",
+      "tab": -1,
       "gesture": "tap"
     }
   ],
@@ -115,13 +147,21 @@
     "section",
     "layers",
     "specs",
-    "story"
+    "story",
+    "p_stepper",
+    "p_sites",
+    "p_planes",
+    "p_lessons"
   ],
   "process_tour": [
     "p_stepper",
-    "p_badge",
     "p_sites",
-    "p_planes"
+    "p_planes",
+    "p_secmode",
+    "p_locator",
+    "p_show",
+    "p_badge",
+    "p_lessons"
   ],
   "learn": [
     {
