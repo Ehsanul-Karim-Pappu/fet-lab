@@ -343,7 +343,7 @@ class Library(val materials: Map<String, Material>, val order: List<String>, val
                     val sc = Scene(stepKey(dk, i), base.name, tag,
                         sj.getString("title"), "", false, base.style, lo, hi, parts,
                         views.filter { it.scale == scale }, emptyList(), groups)
-                    sc.story = base.story
+                    sc.story = fj.optString("why", "").ifEmpty { base.story }
                     sc.stepIndex = i
                     stepScenes.add(sc)
                 }

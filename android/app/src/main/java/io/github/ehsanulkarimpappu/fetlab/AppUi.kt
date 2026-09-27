@@ -135,7 +135,8 @@ private val MODES = listOf("Device", "Inverter", "Layout", "Process")
 private const val PROCESS = 3
 private val TABS = listOf("Views", "Section", "Layers", "Specs", "Story")
 /** In Process mode the Specs tab lists the fabrication steps instead. */
-private val PROC_TABS = listOf("Views", "Section", "Layers", "Steps", "Story")
+// Process's narrative tab is "Why": why the steps come in their order, per lesson.
+private val PROC_TABS = listOf("Views", "Section", "Layers", "Steps", "Why")
 
 private fun keysFor(mode: Int) = when (mode) {
     0 -> DEV_KEYS; 1 -> INV_KEYS; 2 -> SHOW_KEYS; else -> PROC_KEYS
@@ -1205,9 +1206,12 @@ fun FetLabApp(lib: Library, renderer: Renderer) {
             val designScene = isDesignScene(sceneKey)
             val showDesign = designScene || (mode == PROCESS && techOf(sceneKey) == "ns")
             val pills = stageSites.isNotEmpty() || showDesign
+            // In Process the site sits on the left and the channel design on the right, both
+            // compact, so neither covers the model.
+            val splitPills = mode == PROCESS && showDesign
             if (!sectionUp) Column(Modifier.align(Alignment.TopStart).padding(14.dp),
                 verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                if (showDesign) DesignPill(design, glass, line, ink, dim) { d ->
+                if (showDesign && !splitPills) DesignPill(design, glass, line, ink, dim) { d ->
                     haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                     changeDesign(d)
                 }
@@ -1215,7 +1219,7 @@ fun FetLabApp(lib: Library, renderer: Renderer) {
                     haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                     setExploded(on)
                 }
-                if (stageSites.isNotEmpty()) SitePill(scene.flow!!, glass, line, ink) { k ->
+                if (stageSites.isNotEmpty()) SitePill(scene.flow!!, glass, line, ink, compact = mode == PROCESS) { k ->
                     haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                     openSite(k)
                 }
@@ -1226,6 +1230,13 @@ fun FetLabApp(lib: Library, renderer: Renderer) {
                 Text(scene.views.firstOrNull { it.key == viewKey }?.label ?: "",
                     style = MaterialTheme.typography.labelSmall, color = dim)
             }
+            if (!sectionUp && splitPills)
+                Box(Modifier.align(Alignment.TopEnd).padding(14.dp)) {
+                    DesignPill(design, glass, line, ink, dim, compact = true) { d ->
+                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                        changeDesign(d)
+                    }
+                }
 
             // Gestures are not discoverable, so say them once per scene and then get out of the way.
             var hint by remember(sceneKey) { mutableStateOf(true) }
@@ -1916,23 +1927,27 @@ private fun FitTitle(text: String, color: Color) {
         })
 }
 
-/** The nanosheet channel design, named, with the chosen one filled. */
+/** The nanosheet channel design, named, with the chosen one filled. [compact] drops the
+ *  heading and the word CMOS (still read aloud) for the Process stage. */
 @Composable
-private fun DesignPill(design: String, glass: Color, line: Color, ink: Color, dim: Color, onPick: (String) -> Unit) {
+private fun DesignPill(design: String, glass: Color, line: Color, ink: Color, dim: Color,
+                       compact: Boolean = false, onPick: (String) -> Unit) {
     Surface(color = glass, shape = RoundedCornerShape(16.dp), border = BorderStroke(1.dp, line),
         modifier = Modifier.tourTarget("design")) {
-        Column(Modifier.padding(start = 10.dp, end = 2.dp, top = 4.dp, bottom = 2.dp)) {
-            Text("CHANNEL DESIGN", fontFamily = Mono, fontSize = 9.5f.sp, color = dim,
+        Column(if (compact) Modifier.padding(2.dp) else Modifier.padding(start = 10.dp, end = 2.dp, top = 4.dp, bottom = 2.dp)) {
+            if (!compact) Text("CHANNEL DESIGN", fontFamily = Mono, fontSize = 9.5f.sp, color = dim,
                 modifier = Modifier.semantics { heading() })
-            Row(Modifier.padding(top = 2.dp).selectableGroup()) {
+            Row(Modifier.padding(top = if (compact) 0.dp else 2.dp).selectableGroup()) {
                 for ((k, name) in DESIGNS) {
                     val on = k == design
-                    Text(name, color = if (on) MaterialTheme.colorScheme.onPrimary else ink,
-                        fontFamily = PlexSans, fontSize = 12.sp, fontWeight = FontWeight.SemiBold,
+                    Text(if (compact) name.removeSuffix(" CMOS") else name,
+                        color = if (on) MaterialTheme.colorScheme.onPrimary else ink,
+                        fontFamily = PlexSans, fontSize = if (compact) 11.sp else 12.sp, fontWeight = FontWeight.SemiBold,
                         modifier = Modifier.tourTarget("design:$k").clip(RoundedCornerShape(14.dp))
                             .background(if (on) MaterialTheme.colorScheme.primary else Color.Transparent)
                             .selectable(selected = on, role = Role.RadioButton) { if (!on) onPick(k) }
-                            .padding(horizontal = 10.dp, vertical = 5.dp))
+                            .semantics { contentDescription = "$name channel design" }
+                            .padding(horizontal = if (compact) 8.dp else 10.dp, vertical = if (compact) 4.dp else 5.dp))
                 }
             }
         }
@@ -1960,18 +1975,18 @@ private fun ExplodedToggle(on: Boolean, glass: Color, line: Color, ink: Color, o
 /** The same choice as [SitePicker], as a compact pill on the stage. */
 @Composable
 private fun SitePill(flow: ProcessFlow, glass: Color, line: Color, ink: Color,
-                     onSite: (String) -> Unit) {
+                     compact: Boolean = false, onSite: (String) -> Unit) {
     Surface(color = glass, shape = RoundedCornerShape(16.dp), border = BorderStroke(1.dp, line),
         modifier = Modifier.tourTarget("sitepill")) {
         Row(Modifier.padding(2.dp).selectableGroup()) {
             for (s in flow.sites) {
                 val on = s.id == flow.site
                 Text(s.name, color = if (on) MaterialTheme.colorScheme.onPrimary else ink,
-                    fontFamily = PlexSans, fontSize = 12.sp, fontWeight = FontWeight.SemiBold,
+                    fontFamily = PlexSans, fontSize = if (compact) 11.sp else 12.sp, fontWeight = FontWeight.SemiBold,
                     modifier = Modifier.tourTarget("site:${s.id}").clip(RoundedCornerShape(14.dp))
                         .background(if (on) MaterialTheme.colorScheme.primary else Color.Transparent)
                         .selectable(selected = on, role = Role.Tab) { if (!on) onSite(s.flow) }
-                        .padding(horizontal = 10.dp, vertical = 5.dp))
+                        .padding(horizontal = if (compact) 8.dp else 10.dp, vertical = if (compact) 4.dp else 5.dp))
             }
         }
     }

@@ -28,52 +28,52 @@
   "silicon": {
    "label": "Silicon (Si)",
    "color": "#F2C2CF",
-   "note": "Channel, substrate and illustrative nFET S/D regions; doping and strain are not modeled"
+   "note": "Channels, substrate, sub-fins and Si source/drain epitaxy; each part names its doping. Doping and strain are not modeled"
   },
   "sio2": {
-   "label": "SiO\u2082",
+   "label": "Silicon oxide (SiO\u2082)",
    "color": "#8C1C13",
-   "note": "STI, interfacial layer, backside ILD"
+   "note": "STI, interfacial layers, BOX and isolation oxides; each part names its role"
   },
   "highk": {
    "label": "Hafnium dioxide (HfO\u2082)",
    "color": "#BE8250",
-   "note": "Illustrative high-k gate dielectric; relative permittivity 22 is a model assumption"
+   "note": "High-\u03ba gate dielectric (Hf-based in every patent followed); relative permittivity 22 is a model assumption"
   },
   "si3n4": {
-   "label": "Si\u2083N\u2084",
+   "label": "Silicon nitride (SiN)",
    "color": "#E4AE1B",
-   "note": "Gate spacers"
+   "note": "Spacers, liners, caps, etch stops and gate-cut fills; each part names its role and the patent it follows"
   },
   "mo": {
-   "label": "Molybdenum (Mo)",
+   "label": "Molybdenum (Mo) \u00b7 gate fill",
    "color": "#E3D3B0",
-   "note": "Illustrative gate-fill conductor; not a verified advanced-node recipe"
+   "note": "Gate fill of the Si/Si design, whose application names none: the model's choice"
   },
   "cobalt": {
    "label": "Cobalt (Co)",
    "color": "#EE7A1A",
-   "note": "Illustrative contact plug and local-interconnect conductor; Co, W and Ru are all used at advanced nodes, and real contact stacks are process-dependent"
+   "note": "Contact conductor. The FinFET patent's contacts are Co in a TiN liner [R29]; elsewhere Co is the model's choice where a patent names no metal"
   },
   "tungsten": {
    "label": "Tungsten (W)",
    "color": "#BFBBD2",
-   "note": "Illustrative contact/via/routing conductor; not all real routing uses tungsten"
+   "note": "Contact, via and plug conductor: the forksheet patents' contact fill [R31][R32], the CFET patents' contacts and plugs [R33][R34]"
   },
   "tisi": {
    "label": "Titanium silicide (TiSi\u2093)",
    "color": "#E6E2F0",
-   "note": "Contact silicide. Ti-based silicides replaced NiSi at FinFET-era nodes, formed through the contact opening; thickness illustrative, and SiGe contacts can need a different treatment"
+   "note": "Contact silicide formed through the contact opening; each part names its patent's wording. Thickness illustrative"
   },
   "tin": {
    "label": "Titanium nitride (TiN)",
    "color": "#BE5518",
-   "note": "TiN is a typical p-type work-function metal, so it is drawn for pFETs, and it is the gate cap here. Effective work function is not modeled"
+   "note": "The p-type work-function metal in every patent followed, and a contact liner or barrier where the patent names one. Effective work function is not modeled"
   },
   "nwf": {
-   "label": "n-type work-function metal",
+   "label": "n-type work-function metal (Al-containing)",
    "color": "#3E9C8F",
-   "note": "Illustrative nFET work-function layer. Real n-type stacks are Al-containing metals such as TiAl or TiAlC, usually over a thin TiN layer; effective work function is not modeled"
+   "note": "TiAlC or TiAl in the forksheet and CFET patents, an Al-containing layer from the FinFET patent's list, the nanosheet patent's n-type metal; effective work function is not modeled"
   }
  },
  "order": [

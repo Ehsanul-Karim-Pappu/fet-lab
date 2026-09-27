@@ -4,7 +4,7 @@ ROOT=os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 G=json.load(open(os.path.join(ROOT,"data/devices.json"))); MAT=G["materials"]
 OUT=os.path.join(ROOT,"models"); os.makedirs(OUT,exist_ok=True)
 h2=lambda h:[int(h.lstrip('#')[i:i+2],16) for i in (0,2,4)]
-METAL={"mo","cobalt","tungsten","tisi","tin","nwf"}
+METAL={"mo","wfill","cofill","copper","cobalt","tungsten","tisi","tin","nwf"}
 def pm(p):
     ms=[]
     for cx,cy,cz,dx,dy,dz in p["boxes"]:

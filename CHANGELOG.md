@@ -5,6 +5,29 @@ All notable changes to FET Lab. Dates are the release date; versions follow
 
 ## Unreleased
 
+### Following the patents
+
+Each technology's scenes and Process flows now follow one patent example, with its materials and
+steps (see `docs/PATENT_ALIGNMENT.md`):
+
+- Nanosheet: US 2023/0420457 A1.
+- FinFET: US 9,812,358 B1, with SAQP after US 9,171,764 B2.
+- Forksheet: EP 3 989 273 A1 for the Device, US 2024/0178128 A1 for the Inverter.
+- CFET: US 11,869,812 B2 (monolithic) and US 2024/0413156 A1 (sequential).
+
+These patents are added as references R29–R35.
+
+### Process screen
+
+- **Steps:** the "Compare with the source" panel is gone. Each step keeps a "Show cross section"
+  button for its planes.
+- **2D section:** no layer list. Tap a layer to see its name over the drawing. Pinch to zoom and
+  drag to pan; double-tap or "Reset zoom" restores the view.
+- **Nanosheet stage:** the site picker (nFET, pFET, Both) sits on the left, and the Si/SiGe and
+  Si/Si design picker on the right, both compact.
+- **Why tab:** Story is renamed "Why" in Process, with its own text for every lesson (nanosheet,
+  FinFET, both-sites, SADP, SAQP, pitch walk, Si/Si). Device, Inverter and Layout keep Story.
+
 ### Termux build script
 
 `build_android_termux.sh` builds the debug APK on the phone. It is now in the repository and:

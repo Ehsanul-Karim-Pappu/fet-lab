@@ -5,6 +5,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.gestures.detectTransformGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -20,14 +21,20 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.drawscope.withTransform
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -88,14 +95,17 @@ private class Fit(rects: List<SecRect>, w: Float, h: Float, margin: Float) {
 private fun rgb(c: FloatArray, a: Float = 1f) = Color(c[0], c[1], c[2], a)
 
 /** The section drawn flat: every cut box in its material's colour, the [selected] part
- *  outlined in both this and the 3D view; a tap picks the part under the finger. */
-@OptIn(ExperimentalLayoutApi::class)
+ *  outlined in both this and the 3D view. A tap picks the part under the finger and names it
+ *  over the drawing; two fingers zoom and pan, and a double tap resets the view. */
 @Composable
 fun SectionPanel(lib: Library, sc: Scene, pl: SectionPlane, selected: Part?, onPick: (Part?) -> Unit,
                  modifier: Modifier = Modifier, corner: @Composable () -> Unit = {}) {
     val rects = sectionOf(sc, pl)
     val accent = MaterialTheme.colorScheme.primary
     val edge = MaterialTheme.colorScheme.outline
+    // Zoom and pan, screen = base * zoom + pan; a new plane starts unzoomed.
+    var zoom by remember(pl.id) { mutableStateOf(1f) }
+    var pan by remember(pl.id) { mutableStateOf(Offset.Zero) }
     Column(modifier.background(MaterialTheme.colorScheme.surface)) {
         // The heading, with the locator beside it rather than over the drawing.
         Row(Modifier.fillMaxWidth().padding(start = 12.dp, top = 8.dp, end = 8.dp),
@@ -104,16 +114,23 @@ fun SectionPanel(lib: Library, sc: Scene, pl: SectionPlane, selected: Part?, onP
                 color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.weight(1f).padding(end = 8.dp))
             corner()
         }
-        Box(Modifier.weight(1f).fillMaxWidth()) {
+        Box(Modifier.weight(1f).fillMaxWidth().clipToBounds()) {
             // Read aloud: which plane, and what it cuts, since the drawing itself is not.
             val said = rects.map { it.part.material }.distinct().mapNotNull { lib.materials[it]?.label }
             Canvas(Modifier.matchParentSize().semantics {
                 contentDescription = "2D section, ${pl.name}. " + if (said.isEmpty()) "It cuts nothing in this step."
-                    else "It cuts: " + said.joinToString(", ") + ". Tap a material to select it in 3D."
+                    else "It cuts: " + said.joinToString(", ") + ". Tap a layer to name it and select it in 3D; " +
+                        "pinch to zoom."
+            }.pointerInput(pl.id) {
+                detectTransformGestures { centroid, move, factor, _ ->
+                    val z = (zoom * factor).coerceIn(1f, 8f)
+                    pan = if (z <= 1.001f) Offset.Zero else centroid - (centroid - pan) * (z / zoom) + move
+                    zoom = z
+                }
             }.pointerInput(rects) {
-                detectTapGestures { off ->
+                detectTapGestures(onDoubleTap = { zoom = 1f; pan = Offset.Zero }) { off ->
                     val f = Fit(rects, size.width.toFloat(), size.height.toFloat(), 18f)
-                    val u = f.u(off.x); val v = f.v(off.y)
+                    val u = f.u((off.x - pan.x) / zoom); val v = f.v((off.y - pan.y) / zoom)
                     // The smallest box under the finger, so a thin film beats the block behind it.
                     onPick(rects.filter { u in it.u0..it.u1 && v in it.v0..it.v1 }
                         .minByOrNull { (it.u1 - it.u0) * (it.v1 - it.v0) }?.part)
@@ -121,41 +138,46 @@ fun SectionPanel(lib: Library, sc: Scene, pl: SectionPlane, selected: Part?, onP
             }) {
                 if (rects.isEmpty()) return@Canvas
                 val f = Fit(rects, size.width, size.height, 18f)
-                for (r in rects) {
-                    val m = lib.materials[r.part.material]?.color ?: floatArrayOf(.6f, .6f, .6f)
-                    val tl = Offset(f.x(r.u0), f.y(r.v1)); val sz = Size((r.u1 - r.u0) * f.s, (r.v1 - r.v0) * f.s)
-                    drawRect(rgb(m), tl, sz)
-                    drawRect(edge.copy(alpha = 0.55f), tl, sz, style = Stroke(1f))
-                }
-                for (r in rects) if (r.part === selected) {
-                    drawRect(accent, Offset(f.x(r.u0), f.y(r.v1)),
-                        Size((r.u1 - r.u0) * f.s, (r.v1 - r.v0) * f.s), style = Stroke(3.5f))
+                withTransform({ translate(pan.x, pan.y); scale(zoom, zoom, pivot = Offset.Zero) }) {
+                    for (r in rects) {
+                        val m = lib.materials[r.part.material]?.color ?: floatArrayOf(.6f, .6f, .6f)
+                        val tl = Offset(f.x(r.u0), f.y(r.v1)); val sz = Size((r.u1 - r.u0) * f.s, (r.v1 - r.v0) * f.s)
+                        drawRect(rgb(m), tl, sz)
+                        drawRect(edge.copy(alpha = 0.55f), tl, sz, style = Stroke(1f / zoom))
+                    }
+                    for (r in rects) if (r.part === selected) {
+                        drawRect(accent, Offset(f.x(r.u0), f.y(r.v1)),
+                            Size((r.u1 - r.u0) * f.s, (r.v1 - r.v0) * f.s), style = Stroke(3.5f / zoom))
+                    }
                 }
             }
             if (rects.isEmpty())
                 Text("This plane does not cut anything in this step.", fontFamily = PlexSans, fontSize = 12.sp,
                     color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.align(Alignment.Center))
+            // The tapped layer's name, over the drawing so it takes no height from it.
+            selected?.takeIf { s -> rects.any { it.part === s } }?.let { s ->
+                val m = lib.materials[s.material]
+                Surface(color = MaterialTheme.colorScheme.surface.copy(alpha = 0.92f), shape = RoundedCornerShape(8.dp),
+                    modifier = Modifier.align(Alignment.TopStart).padding(8.dp)
+                        .border(1.dp, accent.copy(alpha = 0.6f), RoundedCornerShape(8.dp))) {
+                    Row(Modifier.padding(horizontal = 8.dp, vertical = 5.dp), verticalAlignment = Alignment.CenterVertically) {
+                        if (m != null) Box(Modifier.size(9.dp).clip(RoundedCornerShape(2.dp)).background(rgb(m.color)))
+                        Text(" " + s.name, fontFamily = PlexSans, fontSize = 11.sp, fontWeight = FontWeight.SemiBold,
+                            color = MaterialTheme.colorScheme.onSurface)
+                    }
+                }
+            }
+            if (zoom > 1.001f)
+                Text("Reset zoom", fontFamily = PlexSans, fontSize = 11.sp, fontWeight = FontWeight.SemiBold,
+                    color = accent, modifier = Modifier.align(Alignment.BottomEnd).padding(8.dp)
+                        .clip(RoundedCornerShape(8.dp)).background(MaterialTheme.colorScheme.surface.copy(alpha = 0.92f))
+                        .clickable { zoom = 1f; pan = Offset.Zero }.padding(horizontal = 8.dp, vertical = 4.dp))
         }
         // Which way the page runs, so a student can hold it against a figure.
         Text(if (pl.axis == 'x') "← +z across the ${sc.acrossWord()}   ·   up: y   ·   seen from +x (drain side)"
              else "x: source → drain   ·   up: y   ·   seen from +z",
             fontFamily = Mono, fontSize = 10.5f.sp, color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(horizontal = 12.dp))
-        FlowRow(Modifier.fillMaxWidth().padding(horizontal = 10.dp, vertical = 6.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            for (mk in rects.map { it.part.material }.distinct()) {
-                val m = lib.materials[mk] ?: continue
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Box(Modifier.size(9.dp).clip(RoundedCornerShape(2.dp)).background(rgb(m.color)))
-                    Text(" " + m.label, fontFamily = PlexSans, fontSize = 10.5f.sp,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant)
-                }
-            }
-        }
-        selected?.let {
-            Text("Selected: ${it.name}", fontFamily = PlexSans, fontSize = 11.sp, fontWeight = FontWeight.SemiBold,
-                color = accent, modifier = Modifier.padding(start = 12.dp, end = 12.dp, bottom = 8.dp))
-        }
+            modifier = Modifier.padding(start = 12.dp, end = 12.dp, bottom = 6.dp))
     }
 }
 
@@ -183,7 +205,7 @@ fun Locator(lib: Library, sc: Scene, pl: SectionPlane?, modifier: Modifier = Mod
         for (p in sc.parts) {
             if (!p.visible) continue
             val keep = p.group in setOf("Fins", "Superlattice", "Channel", "Dummy gate", "Gate electrode") ||
-                p.material in setOf("poly", "mo")
+                p.material in setOf("poly", "mo", "wfill", "cofill")
             if (!keep) continue
             val c = lib.materials[p.material]?.color ?: continue
             for (b in p.boxes) {
@@ -244,35 +266,20 @@ fun PlanesBlock(lib: Library, sc: Scene, planes: List<SectionPlane>, planeId: St
     }
 }
 
-/** Under a step in the Steps tab: the step set against its source, plane by plane. */
+/** Under a step in the Steps tab: a button for each plane the step is best seen in. */
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun CompareBlock(flow: ProcessFlow, st: ProcessStep, onShow: (SectionPlane) -> Unit) {
-    for (c in st.compare) {
-        val pl = flow.plane(c.plane) ?: continue
-        Surface(color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.55f), shape = RoundedCornerShape(12.dp),
-            modifier = Modifier.fillMaxWidth().padding(top = 8.dp)) {
-            Column(Modifier.padding(10.dp)) {
-                Text("COMPARE WITH THE SOURCE · ${pl.short.uppercase()}", fontFamily = Mono, fontSize = 10.sp,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant)
-                @Composable fun line(head: String, body: String) {
-                    if (body.isEmpty()) return
-                    Text(head, fontFamily = PlexSans, fontSize = 11.sp, fontWeight = FontWeight.SemiBold,
-                        color = MaterialTheme.colorScheme.onSurface, modifier = Modifier.padding(top = 6.dp))
-                    Text(body, fontFamily = PlexSans, fontSize = 11.5f.sp, lineHeight = 16.sp,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant)
-                }
-                line("Source", "[${c.src}] Fig. " + c.figs.joinToString(", "))
-                line("What the source's text describes", c.described)
-                line("What the app shows in this plane (${pl.name.lowercase()})", c.visible.joinToString(", "))
-                line("Left out or different", c.omitted.joinToString("; "))
-                line(if (c.status == "visual") "Checked against the drawing" else "Not yet checked against the drawing",
-                    c.statusText + ". " + pl.text)
-                Text("Show this section", fontFamily = PlexSans, fontSize = 12.5f.sp, fontWeight = FontWeight.SemiBold,
-                    color = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.padding(top = 8.dp).clip(RoundedCornerShape(8.dp))
-                        .border(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.6f), RoundedCornerShape(8.dp))
-                        .clickable { onShow(pl) }.padding(horizontal = 10.dp, vertical = 6.dp))
-            }
-        }
+    val planes = st.compare.mapNotNull { flow.plane(it.plane) }.distinctBy { it.id }
+    if (planes.isEmpty()) return
+    FlowRow(Modifier.fillMaxWidth().padding(top = 8.dp), horizontalArrangement = Arrangement.spacedBy(6.dp),
+        verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        for (pl in planes)
+            Text("Show cross section · ${pl.short}", fontFamily = PlexSans, fontSize = 12.5f.sp,
+                fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.clip(RoundedCornerShape(8.dp))
+                    .border(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.6f), RoundedCornerShape(8.dp))
+                    .clickable { onShow(pl) }.padding(horizontal = 10.dp, vertical = 6.dp)
+                    .semantics { contentDescription = "Show the cross section ${pl.name}" })
     }
 }

@@ -26,6 +26,12 @@ DESIGNS = {"sige": "Si/SiGe CMOS", "si": "Si/Si CMOS"}
 XG, XSP = bd.XG, bd.XSP
 
 
+def span(part):
+    """A part's bounding box over all its boxes, in lim()'s order (mins, then maxes)."""
+    bs = [lim(b) for b in part["boxes"]]
+    return [min(v[k] for v in bs) for k in range(3)] + [max(v[k] for v in bs) for k in range(3, 6)]
+
+
 def lim(b):
     return [b[i] - b[i + 3] / 2 for i in range(3)] + [b[i] + b[i + 3] / 2 for i in range(3)]
 
@@ -76,7 +82,7 @@ def sige_pair(design, exploded, wired, stack):
     P = {p["id"]: p for p in nd.parts}
     zsub = lim(P["substrate"]["boxes"][0])[5]
     dz = 2 * zsub                                    # the two cells abut
-    cap = lim(P["gatecap"]["boxes"][0]); ymo, ycap, hzmo = cap[1], cap[4], cap[5]
+    cap = span(P["gatecap"]); ymo, ycap, hzmo = cap[1], cap[4], cap[5]
     ym2 = lim(P["w_drain"]["boxes"][0])[4]
     key, name, tag = scene_names(design, exploded, wired)
     d = bd.Dev(key, name, tag, "")
@@ -86,8 +92,9 @@ def sige_pair(design, exploded, wired, stack):
         if not wired: return "body"
         i, m = p["id"], p["material"]
         if i.startswith(("sheet", "psheet")): return "chan_" + k
-        if m in ("mo", "nwf") or (m == "tin") or i == "gatew": return "in"
-        if m in ("silicon", "sige", "tisi", "cobalt", "tungsten") and ("source" in i or "drain" in i):
+        sd = "source" in i or "drain" in i
+        if m in ("mo", "wfill", "cofill", "nwf") or (m == "tin" and not sd) or i == "gatew": return "in"
+        if m in ("silicon", "sige", "tisi", "tin", "cobalt", "tungsten") and sd:
             return ("gnd" if k == "n" else "vdd") if "source" in i else "out"
         return "body"
 
@@ -103,16 +110,20 @@ def sige_pair(design, exploded, wired, stack):
                 ex[2] += 0.6 if k == "n" else -0.6          # and the two devices part a little
             d.add(f"{k}_{p['id']}", f"{who[k]} · {p['name']}", p["material"], bx, f"{who[k]} · {p['group']}", ex)
             d.parts[-1]["net"] = net(k, p)
-    # The gate line between the two devices: spacers either side, Mo fill and TiN cap.
+    # The gate line between the two devices: spacers either side, the gate fill and its cap,
+    # in the device's own materials.
     z0, z1 = -dz + hzmo, -hzmo
     g = "Shared gate"
-    d.add("b_spacers", "Si₃N₄ gate spacers · between the devices", "si3n4",
+    spm, fm, cm = (P[i]["material"] for i in ("spacer_source", "mo", "gatecap"))
+    fname = P["mo"]["name"].split(" (")[0]
+    d.add("b_spacers", bd.MAT[spm]["label"].split(" (")[0] + " gate spacers · between the devices", spm,
           [box(XG, XSP, 0, ycap, z0, z1), box(-XSP, -XG, 0, ycap, z0, z1)], g, [0, 0, 0])
     d.parts[-1]["net"] = "body"
-    d.add("b_mo", "Mo gate fill · joins the two gates", "mo", [box(-XG, XG, 0, ymo, z0, z1)], g, [0, 1.0, 0])
+    d.add("b_mo", fname + " · joins the two gates", fm, [box(-XG, XG, 0, ymo, z0, z1)], g, [0, 1.0, 0])
     d.parts[-1]["net"] = "in" if wired else "body"
-    d.add("b_cap", "TiN gate cap · between the devices", "tin", [box(-XG, XG, ymo, ycap, z0, z1)], g, [0, 1.4, 0])
-    d.parts[-1]["net"] = "in" if wired else "body"
+    d.add("b_cap", P["gatecap"]["name"].split(" (")[0] + " · between the devices", cm,
+          [box(-XG, XG, ymo, ycap, z0, z1)], g, [0, 1.4, 0])
+    d.parts[-1]["net"] = ("in" if wired else "body") if cm in ("tin", "mo", "wfill") else "body"
 
     if wired:
         # One metal level over the contacts: V_SS to the nFET source, V_DD to the pFET source,

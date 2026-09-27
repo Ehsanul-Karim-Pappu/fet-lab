@@ -319,7 +319,7 @@ class Renderer(private val lib: Library) : GLSurfaceView.Renderer {
         val new = fresh; val glow = freshGlow
         for (p in sc.parts) {
             if (!p.visible) continue
-            if (ghost && p.material == "mo") continue
+            if (ghost && p.material in gateFills) continue
             if (!clampPart(p, gb, dep)) continue
             val st = style(sc, p)
             val tx = texOf(p.material)
@@ -357,7 +357,7 @@ class Renderer(private val lib: Library) : GLSurfaceView.Renderer {
         if (ghost) {
             G.glDepthMask(false); G.glUniform3f(uTex, 0f, 1f, 0f)
             for (p in sc.parts) {
-                if (!p.visible || p.material != "mo") continue
+                if (!p.visible || p.material !in gateFills) continue
                 if (!clampPart(p, gb, dep)) continue
                 G.glUniform1f(uA, 0.16f); G.glUniform1f(uTint, 1.3f)
                 G.glDrawElements(G.GL_TRIANGLES, p.count, G.GL_UNSIGNED_SHORT, p.start * 2)
@@ -423,9 +423,11 @@ class Renderer(private val lib: Library) : GLSurfaceView.Renderer {
     private val texDiel = floatArrayOf(0.07f, 0.18f, 0f)
     private val texWell = floatArrayOf(0.055f, 0.10f, 0f)
     private val texNone = floatArrayOf(0f, 1f, 0f)
-    private val metals = setOf("mo", "tin", "nwf", "cobalt", "tungsten", "tisi", "md", "po", "vd", "vg", "m0")
+    // Gate-fill metals: the ghost view makes these see-through to show the channel inside.
+    private val gateFills = setOf("mo", "wfill", "cofill")
+    private val metals = setOf("mo", "wfill", "cofill", "copper", "tin", "nwf", "cobalt", "tungsten", "tisi", "md", "po", "vd", "vg", "m0")
     private val semis = setOf("silicon", "sige", "nanowire")
-    private val diels = setOf("sio2", "highk", "si3n4", "wall", "mdi", "bond", "fox")
+    private val diels = setOf("sio2", "highk", "si3n4", "sibcn", "lowk", "alox", "wall", "mdi", "bond", "fox")
     private val wells = setOf("pwell", "nwell")
 
     private fun texOf(mat: String): FloatArray {

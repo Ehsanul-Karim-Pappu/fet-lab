@@ -445,7 +445,7 @@ def show_cfet():
     for net, label in (("in", "IN"), ("out", "OUT"), ("vdd", "V_DD")):
         L(d, label, [-XW, mid(*YM), ZB[net]], "m", sd=-1, pid=f"m0_{net}")
 
-    d.note = ("<b>One lateral pair footprint.</b> Stacking changes the placement of the complementary devices, but isolation, contacts and routing still take space. Backside GND is a design choice in this example; the lower tier is not intrinsically inaccessible from the frontside.")
+    d.note = ("<b>One lateral pair footprint.</b> Stacking changes the placement of the complementary devices, but isolation, contacts and routing still take space. Backside GND is a design choice in this example; the lower tier is not intrinsically inaccessible from the frontside. The Device and Inverter scenes follow the patents instead, with the pFET in the lower tier and front contacts; this schematic keeps its own tier order.")
     return finish(d, [
         ["L_G", "Physical gate length, as drawn", f'{P["LG"]:g} nm'],
         ["Cell z", "Rail-to-rail span (z), rail centre to rail centre", f'{P["cell"]:g} nm'],

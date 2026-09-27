@@ -46,17 +46,23 @@ sheets with simplified vertical spacing (not to scale), not a layer-for-layer co
 ## fs
 
 Bringing complementary devices closer
-The classic inner-wall forksheet puts adjacent nFET and pFET stacks against a dielectric wall,
-reducing the separation needed for gate integration. This model uses an 8nm silicon-nitride
-wall; that is an illustrative dimension, not a universal recipe. [R1, R2]
+The inner-wall forksheet puts adjacent nFET and pFET stacks against a dielectric wall,
+reducing the separation needed between them. The Device follows imec's forksheet patent: a
+silicon-nitride wall between the stacks, one gate fill running over the wall, and a contact
+partition wall on it that keeps the two devices' source/drain contacts apart. The 8 nm wall is
+an illustrative dimension, not a universal recipe. [R1, R2, R31, R32]
 What changes at the channel?
-The wall-facing surface is not wrapped by gate metal here, leaving three gated faces.
+The wall-facing surface is not wrapped by gate metal, leaving three gated faces.
 Electrostatics, stress and parasitics differ from a fully wrapped sheet. Benefits must be
 evaluated at comparable performance and design rules, not inferred from footprint alone. [R1]
+Joining the two gates
+The Inverter follows a TSMC forksheet patent instead: the wall rises level with the gates,
+splitting them, and a gate bridge contact on the wall touches both, forming the inverter input.
+The Device and the Inverter therefore show two ways the gate can cross the wall. [R35]
 Not the only forksheet design
-Imec's later outer-wall design places the wall differently and addresses limitations of the
-earlier design. It is not modeled here. Forksheet is a researched scaling option, not a
-mandatory production step for every manufacturer. [R2]
+Imec's later outer-wall design places the wall at the cell boundary instead, and addresses
+limitations of the earlier design. It is not modeled here. Forksheet is a researched scaling
+option, not a mandatory production step for every manufacturer. [R2]
 
 
 ## cfet
@@ -64,22 +70,25 @@ mandatory production step for every manufacturer. [R2]
 A complementary pair, stacked vertically
 CFET stacks nFET and pFET instead of placing them side by side. Contacts, routing, isolation
 and thermal constraints limit the resulting area benefit: there is no universal 2x density
-gain. This model places pFET above nFET; other tier orders exist. Complementary refers to the
-n/p pair, not a particular gate connection. [R3, R4]
+gain. Following the patents, these Device and Inverter scenes put the pFET in the lower tier and
+the nFET above it; other tier orders exist. Complementary refers to the n/p pair, not a particular
+gate connection. [R3, R4, R33, R34]
 Monolithic and sequential integration
-Monolithic integration forms both tiers in a shared process flow, with demanding vertical
-patterning and selective processing. Sequential integration forms the lower devices, transfers
-a semiconductor layer using bonding, and processes the upper tier. Post-transfer processing
-must protect the lower tier; thermal limits are process-dependent. [R3]
-Our monolithic example uses continuous gate fill. The sequential example connects separate
-gate conductors with a via to form an inverter input. Common-gate and split-gate CFET options
-exist: the integration name alone does not specify the circuit. [R5]
+Monolithic integration forms both tiers from one stack in a shared process flow, with
+demanding vertical patterning and selective processing. The monolithic Device follows an IBM
+patent: SiBCN fills the gap between the tiers, and one W gate fill surrounds both. [R3, R33]
+Sequential integration forms the lower devices, bonds a new semiconductor layer above them
+and then processes the upper tier; post-transfer processing must protect the lower tier. The
+sequential Device follows a TSMC patent: each tier has its own gate, an inter-metal line joins
+the drains, and deep plugs reach lines on the back of the wafer. [R3, R34]
 Contacting the lower device
-This model uses backside GND to ease lower-tier access. Frontside contacts are possible too:
-imec demonstrated stacked contacts patterned from the frontside. Backside contacting can
-reduce congestion, but is not a physical requirement defining CFET. [R4]
-Two sheets per tier, the material palette and middle-tier isolation are model choices.
-The rendering does not predict fabrication yield, self-heating or switching delay.
+The monolithic Device and the Inverter contact both tiers from the front: the lower source is
+reached through a space left beside the upper one, as in the IBM patent. imec has demonstrated
+stacked contacts patterned from the frontside. The sequential Device and the Layout example use
+the back of the wafer instead; backside contacting can reduce congestion, but is not a physical
+requirement defining CFET. [R4, R33, R34]
+Two sheets per tier and the contact metals are model choices. The rendering does not predict
+fabrication yield, self-heating or switching delay.
 
 
 ## model scope
@@ -94,20 +103,22 @@ simplifies vertical dimensions (not to scale); it is not a mask layout or fabric
 measured along z, a direction commonly called standard-cell height. Equal spans do not imply
 equal drive current, delay or routability. [R10, R12]
 Materials and electrical limits
-Si, SiGe, SiO2, HfO2, Si3N4, TiN and an n-type work-function metal represent semiconductor,
-dielectric and gate-stack materials. The work-function metal differs by polarity: TiN, a typical
-p-type work-function metal, is drawn for pFETs, and nFETs get an Al-containing n-type metal (TiAl
-or TiAlC over thin TiN, in practice). The Mo gate fill and the TiSix, Co and W contacts are an
-illustrative palette, not a verified recipe for any node; Ti-based silicides replaced NiSi at
-FinFET-era nodes. Real stacks depend on process and polarity. Work-function tuning, doping and strain
-are not simulated. [R7, R8, R9, R11]
+Each Device and Inverter scene follows one patent example for its materials where the patent
+names them: a W gate fill, SiN self-aligned-contact caps and SiBCN spacers on the nanosheet [R13],
+a Co gate fill under an AlOx hard mask on the FinFET [R29], a SiN wall on the forksheet [R31, R35]
+and SiBCN between the CFET tiers [R33]. Where a patent leaves a choice open, the model picks one
+and the part's name says so; the Si/Si nanosheet design keeps an illustrative Mo gate fill. The
+work-function metal differs by polarity: TiN, a typical p-type work-function metal, is drawn for
+pFETs, and nFETs get an Al-containing n-type metal (TiAl or TiAlC over thin TiN, in practice).
+Ti-based silicides replaced NiSi at FinFET-era nodes. Work-function tuning, doping and strain are
+not simulated. [R7, R8, R9, R11]
 Layout colors identify Channel, MD, Po, VD, VG and Metal 0 roles rather than chemical
-compositions. Middle-tier isolation has no specified chemistry here. SiO2 is an illustrative
-bonding dielectric. [R3, R12]
+compositions. SiO2 is an illustrative bonding dielectric. [R3, R12]
 Capacitance values are geometry-only estimates. They omit 3D fringe fields, quantum and
 depletion corrections to gate capacitance, and calibrated junction behavior. Unfilled gaps
 are treated as vacuum rather than realistic inter-layer dielectric. Both absolute values and
 architecture ratios depend on these assumptions. Zero can mean that a coupling is absent from
 the drawn geometry, not absent from a real device.
-Technical references [R1–R12] are available in About (Android) and below the web viewer.
-They support the concepts, not the numerical accuracy of this model.
+Technical references and the patents followed are listed in About (Android) and below the
+web viewer. They support the concepts and the materials, not the numerical accuracy of this
+model.

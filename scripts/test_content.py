@@ -158,10 +158,11 @@ class ContentTests(unittest.TestCase):
         proc = json.loads((ROOT / 'data/process.json').read_text())
         audit = (ROOT / 'docs/PROCESS_AUDIT.md').read_text()
         for key, flow in proc['flows'].items():
-            # A flow that maps figures says the drawings were not compared; one that maps none
-            # (the FinFET, so far) says so instead.
+            # A flow that maps figures says whether its drawings were compared; one that maps
+            # none says so instead.
             if any(st['figs'] for st in flow['steps']):
-                self.assertIn('not available for visual comparison', flow['figures'])
+                self.assertRegex(flow['figures'], r'compared with (the|that) drawing|not yet been compared|'
+                                                  r'not available for visual comparison')
             else:
                 self.assertIn('No source figures are mapped', flow['figures'])
             self.assertTrue(flow['branch'])
@@ -330,7 +331,7 @@ class ContentTests(unittest.TestCase):
         channel, fin or source/drain; the shared gate keeps them one conductor. The two are
         alternative routes: neither follows the other."""
         flows = json.loads((ROOT / 'data/process.json').read_text())['flows']
-        metals = {'mo', 'tin', 'nwf', 'tungsten', 'cobalt', 'tisi'}
+        metals = {'mo', 'wfill', 'cofill', 'tin', 'nwf', 'tungsten', 'cobalt', 'tisi'}
         def touch(a, b):
             d = [min(a[k] + a[k + 3] / 2, b[k] + b[k + 3] / 2) - max(a[k] - a[k + 3] / 2, b[k] - b[k + 3] / 2) for k in range(3)]
             return min(d) >= -1e-6 and sorted(d)[1] > 1e-6
@@ -355,7 +356,7 @@ class ContentTests(unittest.TestCase):
             self.assertEqual(by['shared']['route'], 'shared')
             self.assertTrue(all(by[i].get('route') == 'cut' for i in ids[ids.index('cut_coat'):ids.index('shared')]))
             self.assertEqual(by['shared']['label'], by['gatecut']['label'])
-            for sid in ('hkmg' if key == 'ns_pair' else 'metal', 'shared'):
+            for sid in ('hkmg' if key == 'ns_pair' else 'grecess', 'shared'):
                 self.assertTrue(joined(by[sid]), (key, sid))
             for sid in ('cut_etch', 'gatecut', 'contacts_cut'):
                 self.assertFalse(joined(by[sid]), (key, sid))
@@ -384,10 +385,22 @@ class ContentTests(unittest.TestCase):
         for name in ('nisi', 'nickel', 'pwf'):
             self.assertNotIn(name, self.data['materials'])
 
+    def test_process_why(self):
+        """Every Process lesson has its own Why text, and every reference it cites exists."""
+        flows = json.loads((ROOT / 'data/process.json').read_text())['flows']
+        ids = {r['id'] for r in self.refs['sources']}
+        seen = set()
+        for key, flow in flows.items():
+            why = flow.get('why', '')
+            self.assertIn('<h4>', why, key)
+            self.assertNotIn(why, seen, key); seen.add(why)
+            for grp in re.findall(r'\[([^\]]+)\]', why):
+                for r in re.findall(r'R\d+', grp): self.assertIn(r, ids, (key, r))
+
     def test_references_and_scope(self):
         ids = [r['id'] for r in self.refs['sources']]
         self.assertEqual(len(ids), len(set(ids)))
-        self.assertEqual(len(ids), 28)
+        self.assertEqual(len(ids), 35)
         for ref in self.refs['sources']:
             self.assertTrue(ref['url'].startswith('https://'))
             self.assertTrue(ref['supports'])
@@ -511,7 +524,7 @@ class ContentTests(unittest.TestCase):
     def test_inverter_connectivity(self):
         """Every inverter wires IN to both gates, V_DD to the pFET source, V_SS to the nFET
         source and both drains to OUT: exactly four conducting nets."""
-        COND = {'tisi', 'cobalt', 'tungsten', 'mo', 'tin', 'nwf'}
+        COND = {'tisi', 'cobalt', 'tungsten', 'mo', 'wfill', 'cofill', 'copper', 'tin', 'nwf'}
         def touch(a, b, e=0.01):
             a, b = self._lim(a), self._lim(b)
             ov = [min(a[k + 3], b[k + 3]) - max(a[k], b[k]) for k in range(3)]
