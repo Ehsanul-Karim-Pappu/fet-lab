@@ -26,6 +26,8 @@ All notable changes to FET Lab. Dates are the release date; versions follow
 - **Nanosheet pair:** the pFET's gate cap no longer has a hole where its unused contact would be.
 - **CFET Layout:** the pFET is now below the nFET and all four nets are on the front, as in the
   Device and Inverter; there is no backside GND.
+- **Monolithic CFET:** the 3 nm clearance between the V_DD contact's riser and the upper nFET's
+  source is now drawn as the dielectric that fills it (ILD 1310 in the patent), not an empty slot.
 - **Sequential CFET:** the lower gate has a contact, a via and line on the back, marked as the
   model's addition, since the patent draws none.
 - **Forksheet Inverter:** the Device wired up, with its one gate fill over the wall.

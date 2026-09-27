@@ -574,6 +574,10 @@ def build_cfet_mono():
     d.add("ni_source","W contact · upper nFET source","tungsten",[box(xc-8,xc+8,ynisi,ym2,-8,8)],"Contacts",[-1.8,1.0,0])
     d.add("ni_lo_source","W contact · lower pFET source, through the space the TiOₓ left","tungsten",
           [box(xa,xb,STI,ylo,hz,hz+6), box(xa,xb,ylo,ym2,hz+3,hz+9)],"Contacts",[-1.8,.4,.6])
+    # The riser is set 3 nm off the upper source so the two nets cannot touch; in the patent
+    # that space is ILD 1310 (SiO₂, SiN or SiOC). Drawn here, since the scenes hide the ILD.
+    d.add("vdd_gap","ILD (SiO₂) · keeps the V_DD contact off the upper nFET source","sio2",
+          [box(xa,xb,ylo,ym2,hz,hz+3)],"Contacts",[-1.6,.4,.3])
 
     d.cal("mdi","Tier gap",f"{MDI:g} nm","SiBCN between the tiers",[XG+1,ymdi0,-hz],[XG+1,ymdi1,-hz],[XSP+30,(ymdi0+ymdi1)/2,-hzmo-28],["iso","b","c","tier"])
     d.cal("tch","t<sub>ch</sub>",f"{TCH:g} nm","Sheet thickness",[-XSP,yb[0]-HYS,hz],[-XSP,yb[0]+HYS,hz],[-XSP-34,yb[0]-6,hz+34],["iso","b","c","tier"])
@@ -593,7 +597,7 @@ def build_cfet_mono():
              "b":dict(n="Along channel",s="both tiers in section",az=0,el=0,r=310,tgt=[0,58,0],clip=[None,None,0]),
              "c":dict(n="Across channel",s="through the gate",az=1.5708,el=0,r=300,tgt=[0,60,0],clip=[0,None,None]),
              "tier":dict(n="Tier interface",s="source side lifted off",az=-1.18,el=.26,r=270,tgt=[0,56,0],clip=[4,None,None],
-                 off=["epi_n_source","epi_p_source","iso_source","nisi_source","ni_source","ni_lo_source","spacer_source"])}
+                 off=["epi_n_source","epi_p_source","iso_source","nisi_source","ni_source","ni_lo_source","vdd_gap","spacer_source"])}
     d.note=("<b>After US 11,869,812 B2.</b> One stack makes both tiers: a pFET below with SiGe:B source/drain, an nFET above with Si:P. The high-Ge SiGe between the tiers is removed and the spacer material fills the gap. The top of the lower source/drain is recessed into a notch and an oxide layer fills it, so the upper source/drain grows clear of the lower one. One gate serves both tiers. Every contact is made from the front: one via lands on both drains, and the lower source is reached through the space a sacrificial TiOₓ spacer left beside it [R33]. Dimensions are the model's choices.")
     return d.finish()
 
