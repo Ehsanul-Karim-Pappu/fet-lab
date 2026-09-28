@@ -390,11 +390,17 @@ def build_fin():
 def fs_floor(d, sg, s, zi, z3, ytop0, XG_, grp):
     """Gate films on a sub-fin's top under the gate: with no bottom isolation, the lowest
     stretch of gate sits on the sub-fin, so the films line it too."""
+    zf=zi+22.0                                           # the sub-fin's outer face
     for k,(nm,mat,t) in enumerate((("SiO₂ interfacial layer","sio2",TIL),("HfO₂ high-κ","highk",THK),
                                    (WFL[sg],WFM[sg],TTIN))):
         y0=ytop0+sum((TIL,THK,TTIN)[:k])
+        bx=[box(-XG_,XG_,y0,y0+t,*sorted((s*zi,s*z3)))]
+        # The interfacial oxide grows on the silicon only; over the STI the high-κ lies directly
+        # on the oxide, taking the interfacial layer's place.
+        if k==0: bx=[box(-XG_,XG_,y0,y0+t,*sorted((s*zi,s*zf)))]
+        if k==1: bx.append(box(-XG_,XG_,ytop0,ytop0+TIL,*sorted((s*zf,s*z3))))
         d.add(f"floor_{('il','hk','wf')[k]}_{sg}",f"{nm} · on the {sg}FET sub-fin (bottom of the gate)",mat,
-              [box(-XG_,XG_,y0,y0+t,*sorted((s*zi,s*z3)))],grp,[0,-.4,s*.3])
+              bx,grp,[0,-.4,s*.3])
     return ytop0+TIL+THK+TTIN
 
 def build_fs():
@@ -413,7 +419,9 @@ def build_fs():
     zmo=z3+5.0; STI=10.0; ZP=6.0                         # partition wall half-width: 12 nm, wider than the wall
     ys=[STI+HY3+6.0+i*PITCH for i in range(NSH)]
     top=ys[-1]+HYS
-    ywall=top+8.0                                        # thicker top sacrificial layer: the wall rises above the top channel
+    # The top sacrificial layer 116a is thicker than the others (the gaps are 16 nm), so the wall,
+    # level with its top, rises well above the top channel [R31, 0060-0064].
+    ywall=top+20.0
     ymo=ywall+6.0; ycap=ymo+6.0
     ysd=top+3.0; ym2=ycap+10.0; zsub=zmo+5; YB=6.0       # wall base embedded 6 nm in the substrate
     GS="Substrate & isolation"
@@ -459,16 +467,25 @@ def build_fs():
             lab = "Si:P" if sg=="n" else "Si:B"
             d.add(f"epi_{sg}_{T.lower()}",f"{sg}FET {T.lower()} epi ({lab})","silicon",
                   [box(xa,xb,STI,ysd,zz[0],zz[1])],"Source / drain",[sx*1.6,0,s*.6])
-            d.add(f"nisi_{sg}_{T.lower()}",f"{sg}FET {T.lower()} contact · TiN (ALD)","tin",
-                  [box(xa,xb,ysd,ysd+1,zz[0],zz[1])],"Source / drain",[sx*1.9,.3,s*.7])
+            # Liner 133 (SiN, an etch stop) stays on the spacer face and the wall tip, opened at
+            # the contact bottom [R31, 0073, 0093].
+            xs=(xb-1,xb) if sx<0 else (xa,xa+1)            # the spacer-side face
+            xa2,xb2=(xa,xb-1) if sx<0 else (xa+1,xb)
+            zw=sorted((s*zi,s*(zi+1)))                      # the wall-tip face
+            zz2=sorted((s*(zi+1),s*zo)); zc2=sorted((s*ZP,s*zo))
+            d.add(f"liner_{sg}_{T.lower()}",f"SiN liner 133 · on the spacer and the wall tip ({sg} {T.lower()})","si3n4",
+                  [box(xs[0],xs[1],ysd,ywall,zz[0],zz[1]), box(xs[0],xs[1],ywall,ycap,zc[0],zc[1]),
+                   box(xa2,xb2,ysd,ywall,zw[0],zw[1])],"Spacers",[sx*1.9,.6,s*.5])
+            d.add(f"nisi_{sg}_{T.lower()}",f"{sg}FET {T.lower()} contact · TiN (ALD; the floor drawn)","tin",
+                  [box(xa2,xb2,ysd,ysd+1,zz2[0],zz2[1])],"Source / drain",[sx*1.9,.3,s*.7])
             d.add(f"ni_{sg}_{T.lower()}",f"{sg}FET {T.lower()} contact · W fill (CVD)","tungsten",
-                  [box(xa,xb,ysd+1,ywall,zz[0],zz[1]), box(xa,xb,ywall,ycap,zc[0],zc[1])],"Source / drain",[sx*2.1,.8,s*.8])
+                  [box(xa2,xb2,ysd+1,ywall,zz2[0],zz2[1]), box(xa2,xb2,ywall,ycap,zc2[0],zc2[1])],"Source / drain",[sx*2.1,.8,s*.8])
     # The contact partition wall on top of the insulating wall, one each side of the gate:
     # the n and p contacts are etched through one opening and it keeps them apart [R31].
     for sx,t in ((-1,"source"),(1,"drain")):
         xa,xb=sorted((sx*XSP,sx*XSD))
         d.add(f"cpw_{t}",f"SiN contact partition wall · {t} side","wall",[box(xa,xb,ywall,ycap,-ZP,ZP)],"Dielectric wall",[sx*1.4,1.8,0])
-    d.add("mo_c","W gate fill · common, above the wall","wfill",[box(-XG,XG,ywall,ymo,-zi,zi)],"Gate electrode",[0,1.2,0])
+    d.add("mo_c","W gate fill · common, above the wall (the option the patent's background describes)","wfill",[box(-XG,XG,ywall,ymo,-zi,zi)],"Gate electrode",[0,1.2,0])
     d.add("spacer_c","SiBCN gate spacer · over the wall",
           "sibcn",[box(XG,XSP,ywall,ycap,-zi,zi), box(-XSP,-XG,ywall,ycap,-zi,zi)],"Spacers",[0,1.0,0])
     gw=box(-XG,XG,ymo,ycap,-8,8)
@@ -499,7 +516,7 @@ def build_fs():
                  off=[f"epi_{g}_source" for g in "np"]+[f"nisi_{g}_source" for g in "np"]+
                      [f"ni_{g}_source" for g in "np"]+[f"spacer_{g}_source" for g in "np"]+
                      [f"inner_{g}_source" for g in "np"]+["cpw_source"])}
-    d.note=("<b>After EP 3 989 273 A1.</b> A SiN insulating wall separates the n and p stacks; its base sits in the substrate and a thicker top sacrificial layer lets it rise above the top channel, so the work-function metals stay apart and the source/drain epitaxy is confined sideways. The TiN (p) and TiAlC (n) work-function metals are joined by a common W fill above the wall. The source/drain contacts, TiN then W, are etched in one opening on each side of the gate, split by a SiN contact partition wall formed on top of the insulating wall [R31]. This is the classic inner-wall forksheet, not imec's later outer-wall one. Dimensions are the model's choices, within the patent's ranges where it gives them.")
+    d.note=("<b>After EP 3 989 273 A1.</b> A SiN insulating wall separates the n and p stacks; its base sits in the substrate and a thicker top sacrificial layer lets it rise above the top channel, so the work-function metals stay apart and the source/drain epitaxy is confined sideways. The TiN (p) and TiAlC (n) work-function metals are joined by a common W fill above the wall, the option the patent's background describes; its own figures do not cut through the gate at the wall. A SiN liner stays on the spacers and the wall tip. The source/drain contacts, TiN then W, are etched in one opening on each side of the gate, split by a SiN contact partition wall formed on top of the insulating wall [R31]. This is the classic inner-wall forksheet, not imec's later outer-wall one. Dimensions are the model's choices, within the patent's ranges where it gives them.")
     return d.finish()
 
 # =================================================================== CFET ===

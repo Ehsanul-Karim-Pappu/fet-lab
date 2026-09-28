@@ -191,7 +191,7 @@ The imec application is followed for the Device, and the Inverter is that Device
 US 2024/0178128 A1's gate bridge is described in the story as another way to join the gates, not
 drawn; US 11,862,700 B2 is a second example of the wall and its materials.
 
-- **Stack:** Si channel layers 114 and SiGe second layers 116, with Ge at least 20 % higher.
+- **Stack:** Si channel layers 114 and SiGe second layers 116, with more Ge in the second layers (y > x; a 20-point difference is one example [0059]).
   - The top second layer 116a is thicker, so the wall rises above the top channel.
   - Sheets 10–30 nm wide and 3–10 nm thick.
 - **Insulating wall 120:**
@@ -208,7 +208,8 @@ drawn; US 11,862,700 B2 is a second example of the wall and its materials.
   - selective-area Si epitaxy, P-doped and N-doped;
   - each region is masked while the other is grown;
   - the wall confines them laterally.
-- **Liner 133:** SiN by ALD, an etch stop.
+- **Liner 133:** SiN by ALD, an etch stop. It is optional [0073], but the figures draw it, and it stays
+  on the spacers and the wall tip, opened only at the contact bottoms [0093].
 - **Material layer 134:** ILD, flowable oxide CVD, then CMP.
 - **Contact partition wall 142:**
   - the wall materials, etched in a trench above the wall (stopping on the wall or the liner) and
@@ -220,7 +221,9 @@ drawn; US 11,862,700 B2 is a second example of the wall and its materials.
   - HCl-based dry etch releases the SiGe; the sheets stay attached to the wall.
   - HfO₂ (or HfSiO, LaO, AlO, ZrO).
   - pWFM TiN or TaN; nWFM TiAl or TiAlC.
-  - Gate fill W, Al, Co or Ru, common above the wall.
+  - Gate fill W, Al, Co or Ru. A common gate metal joining the two sides is the option the
+    background describes ([0004], Fig. 1); the inventive figures do not cut through the gate at
+    the wall, and [0109] extends the wall with the partition wall during the WFM etch.
 - **S518:** the gate is recessed; a gate cut is optional.
 
 **The TSMC patent, as a second example, told in the scene note:**
@@ -236,10 +239,18 @@ drawn; US 11,862,700 B2 is a second example of the wall and its materials.
 **Drawn:**
 - Si channels; a SiN wall and SiN contact partition wall.
 - Spacers: SiBCN. Inner spacers: SiN, the first of the patent's options.
-- Si:B and Si:P source/drain. The SiN liner 133 is not drawn.
-- HfO₂, TiN (p), TiAlC (n); W fill over the wall.
-- TiN and W contacts; a SiN gate cap. The imec text names the cap only as hard-mask material, so
+- Si:B and Si:P source/drain (the patent: P- and N-doped Si; the dopants are the model's).
+- The thicker top second layer 116a: the wall rises 20 nm above the top channel, more than the
+  16 nm gaps between sheets ([0060]–[0064]).
+- SiN liner 133 on the spacers and the wall tip in the contact openings.
+- HfO₂, TiN (p), TiAlC (n); W fill, common over the wall (the background's option, above).
+- Floor films on the sub-fin under the lowest sheet; the interfacial oxide on the silicon only.
+- TiN and W contacts (the TiN drawn only at the floor). A SiN gate cap: cap 130 is the dummy
+  gate's hard mask, and after RMG the patent only recesses the gate (S518), so
   SiN is the model's choice.
+- **Simplified:** the partition wall and contacts are far shorter than the patent's aspect ratio
+  of 8 or more ([0013]); spacer 132 on the wall and S/D sidewalls is not drawn; the contacts are
+  not recessed ([0095]) and stay within the epi's width.
 
 ## Monolithic CFET: US 11,869,812 B2 (IBM, Figs. 1A–18)
 

@@ -5,6 +5,19 @@ All notable changes to FET Lab. Dates are the release date; versions follow
 
 ## Unreleased
 
+### Forksheet, checked figure by figure against EP 3 989 273 A1
+
+- **Top SiGe layer 116a** is now thicker than the others, as the patent requires ([0060]–[0064]).
+  The wall rises 20 nm above the top channel; it was 8 nm, less than the 16 nm gaps.
+- **SiN liner 133** now stays on the spacers and the wall tip in the contact openings, opened at
+  the contact bottom ([0073], [0093]).
+- **Floor films:** the interfacial oxide now grows only on the silicon sub-fin; over the STI the
+  high-κ lies directly on the oxide.
+- **Wording:**
+  - The common W fill over the wall is now credited to the patent's background ([0004], Fig. 1).
+  - The SiN gate cap is marked as the model's.
+  - The Ge difference is described as the patent's example.
+
 ### Monolithic CFET, checked figure by figure against US 11,869,812 B2
 
 - **Lower source/drain:** now has the patent's notch: the top centre is recessed, leaving an ear

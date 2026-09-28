@@ -156,7 +156,9 @@ def analyse(dev):
     P_OX   = lambda q: q["material"] == "highk" or P_IL(q)
     gate    = boxes_of(dev, P_GATE)
     il      = boxes_of(dev, P_IL)
-    hk      = boxes_of(dev, lambda p: p["material"] == "highk")
+    # The film thickness is read off the films round the channels; the floor films under the
+    # lowest sheet (forksheet, Si/Si) step over the STI and are not uniform.
+    hk      = boxes_of(dev, lambda p: p["material"] == "highk" and not bare(p["id"]).startswith("floor"))
     chan    = boxes_of(dev, P_CH)
     body    = boxes_of(dev, P_BODY)
     metal   = boxes_of(dev, P_MET)
