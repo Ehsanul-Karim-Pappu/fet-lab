@@ -1201,13 +1201,17 @@ fun FetLabApp(lib: Library, renderer: Renderer) {
                 scene.flow?.plane(secPlane)?.views?.containsKey(scene.step?.scale ?: "site") == true
             // The step bar's (or the IN/OUT bar's) height, measured below.
             var logicBarH by remember { mutableStateOf(0.dp) }
+            // With the section on top (Both), the step bar gives way to the controls drawn on the
+            // 3D strip itself (StepOverlay), so the strip runs down to the sheet.
+            val barH = if (split) 0.dp else logicBarH
+            val splitTop = (with(density) { stageH.toDp() } - stageInset) * 0.46f
             // With the section on top (Both), the 3D view gets exactly the strip left between the
-            // section and the step bar, not the part hidden behind the bar and the sheet.
+            // section and the sheet, not the part hidden behind it.
             AndroidView(factory = { glView }, modifier = Modifier.fillMaxSize()
-                .padding(top = if (split) (with(density) { stageH.toDp() } - stageInset) * 0.46f else 0.dp,
-                    bottom = if (split) stageInset + logicBarH else 0.dp))
+                .padding(top = if (split) splitTop else 0.dp,
+                    bottom = if (split) stageInset + barH else 0.dp))
             // ...and once the strip has its size, the model is framed to fill it.
-            LaunchedEffect(split, sceneKey, secPlane, stageH, stageInset, logicBarH) {
+            LaunchedEffect(split, sceneKey, secPlane, stageH, stageInset, barH) {
                 if (!split) return@LaunchedEffect
                 delay(80)
                 flight?.join()
@@ -1393,7 +1397,7 @@ fun FetLabApp(lib: Library, renderer: Renderer) {
             }
 
             val flow = scene.flow
-            AnimatedVisibility(visible = flow != null,
+            AnimatedVisibility(visible = flow != null && !split,
                 enter = fadeIn() + slideInVertically { it }, exit = fadeOut() + slideOutVertically { it },
                 modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = stageInset)
                     .onSizeChanged { logicBarH = with(density) { it.height.toDp() } }) {
@@ -1416,6 +1420,24 @@ fun FetLabApp(lib: Library, renderer: Renderer) {
                         playing = !playing
                     },
                     onTitle = { selectTab(3) })
+            }
+            // Both: the step's number, play, name, badge and the step arrows over the 3D strip.
+            if (split && flow != null) {
+                val prev = flow.next(scene.stepIndex, -1, showOps, routeIn(flow))
+                val next = flow.next(scene.stepIndex, 1, showOps, routeIn(flow))
+                Box(Modifier.fillMaxSize().padding(top = splitTop, bottom = stageInset)) {
+                    StepOverlay(scene.step?.labelIn(routeIn(flow)) ?: "", flow.coreCount, scene.step?.title ?: "",
+                        scene.step?.isOp == true, scene.step?.let { flow.badge[it.match] } ?: "",
+                        scene.step?.let { flow.badge[it.match] == "Source stage" } == true,
+                        prev != null, next != null, playing, glass, line, ink, dim,
+                        onPrev = { playing = false; prev?.let { goStep(it) } },
+                        onNext = { playing = false; next?.let { goStep(it) } },
+                        onPlay = {
+                            if (!playing && next == null) goStep(0)
+                            playing = !playing
+                        },
+                        onTitle = { selectTab(3) })
+                }
             }
 
             if (scrimA > 0.005f)
@@ -1926,6 +1948,58 @@ private fun ProcessBar(label: String, cores: Int, title: String, isOp: Boolean, 
                 if (playing) "Pause" else "Play the steps", onPlay)
             BarIcon(BarGlyph.Next, hasNext, ink, dim, "Next step", onNext, Modifier.tourTarget("procbar:next"))
         }
+    }
+}
+
+/** The stepper drawn over the 3D strip when the section is on top (Both): play and the step
+ *  number top-left, the step's name (wrapped) and its badge top-right, back and forward at the
+ *  strip's edges. Nothing sits along the bottom, so the strip keeps the bar's height. */
+@Composable
+private fun BoxScope.StepOverlay(label: String, cores: Int, title: String, isOp: Boolean, badge: String,
+                                 sourced: Boolean, hasPrev: Boolean, hasNext: Boolean, playing: Boolean,
+                                 glass: Color, line: Color, ink: Color, dim: Color,
+                                 onPrev: () -> Unit, onNext: () -> Unit, onPlay: () -> Unit, onTitle: () -> Unit) {
+    val soft = glass.copy(alpha = glass.alpha * 0.8f)
+    val core = label.substringBefore('.')
+    val op = if (isOp && '.' in label) label.substringAfter('.') else null
+    Row(Modifier.align(Alignment.TopStart).padding(8.dp).clip(RoundedCornerShape(20.dp)).background(soft)
+        .border(1.dp, line, RoundedCornerShape(20.dp)).padding(end = 10.dp),
+        verticalAlignment = Alignment.CenterVertically) {
+        BarIcon(if (playing) BarGlyph.Pause else BarGlyph.Play, true, ink, dim,
+            if (playing) "Pause" else "Play the steps", onPlay)
+        Text("STEP $core/$cores" + (op?.let { " · OP $it" } ?: ""),
+            modifier = Modifier.semantics {
+                contentDescription = "Step $core of $cores" + (op?.let { ", operation $it" } ?: "")
+            },
+            color = dim, fontFamily = Mono, fontSize = 10.sp, maxLines = 1)
+    }
+    Column(Modifier.align(Alignment.TopEnd).padding(8.dp).fillMaxWidth(0.48f)
+        .clip(RoundedCornerShape(14.dp)).background(soft).border(1.dp, line, RoundedCornerShape(14.dp))
+        .semantics(mergeDescendants = true) { liveRegion = LiveRegionMode.Polite }
+        .clickable(onClickLabel = "open this step's source", onClick = onTitle)
+        .tourTarget("procbar")
+        .padding(horizontal = 9.dp, vertical = 6.dp),
+        horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(3.dp)) {
+        AnimatedContent(targetState = title, label = "stepTitleOver",
+            transitionSpec = { fadeIn(tween(220)) togetherWith fadeOut(tween(160)) }) { t ->
+            Text(t, color = ink, fontFamily = PlexSans, fontSize = 13.sp, lineHeight = 16.sp,
+                fontWeight = FontWeight.SemiBold, textAlign = TextAlign.End)
+        }
+        if (badge.isNotEmpty()) {
+            val tone = if (sourced) MaterialTheme.colorScheme.primary else dim
+            Text(badge.uppercase(), color = tone, fontFamily = Mono, fontSize = 10.sp,
+                maxLines = 1, modifier = Modifier
+                    .border(1.dp, tone.copy(alpha = 0.6f), RoundedCornerShape(6.dp))
+                    .padding(horizontal = 5.dp, vertical = 1.dp))
+        }
+    }
+    val arrow = Modifier.padding(horizontal = 6.dp).clip(CircleShape).background(soft)
+        .border(1.dp, line, CircleShape)
+    Box(Modifier.align(Alignment.CenterStart).then(arrow)) {
+        BarIcon(BarGlyph.Back, hasPrev, ink, dim, "Previous step", onPrev)
+    }
+    Box(Modifier.align(Alignment.CenterEnd).then(arrow)) {
+        BarIcon(BarGlyph.Next, hasNext, ink, dim, "Next step", onNext, Modifier.tourTarget("procbar:next"))
     }
 }
 

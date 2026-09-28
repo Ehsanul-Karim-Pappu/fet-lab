@@ -5,6 +5,14 @@ All notable changes to FET Lab. Dates are the release date; versions follow
 
 ## Unreleased
 
+### Process: the stepper on the 3D view when the cross section is on top
+
+- With the cross section and the 3D view shown together, the step bar under the model is gone and
+  the 3D view takes its height. Play and the step number sit top-left on the 3D view, the step's
+  name (wrapped, never cut) and its source badge top-right, and the back and forward arrows at its
+  left and right edges. Tapping the name still opens the step's source in Steps.
+- Other layouts keep the step bar as it was.
+
 ### FinFET, checked figure by figure against US 9,812,358 B1 and US 9,171,764 B2
 
 - **Seal spacers:** they now go with the dummy gate (Fig. 12B), so the gate films sit directly on the

@@ -80,7 +80,7 @@
       "id": "p_stepper",
       "category": "Process mode",
       "title": "Step through the fabrication",
-      "body": "The stepper under the model moves one step at a time, or plays the whole flow. \"STEP 6 of 18 · OPERATION 5\" is the fifth operation leading into core step 6; switch on Show every operation in Steps to see them all.",
+      "body": "The stepper under the model moves one step at a time, or plays the whole flow; with a cross section on top, the same controls sit on the 3D view: play and the step number top-left, the name top-right, arrows at the sides. \"STEP 6 of 18 · OPERATION 5\" is the fifth operation leading into core step 6; switch on Show every operation in Steps to see them all.",
       "gesture": "tap"
     },
     {
