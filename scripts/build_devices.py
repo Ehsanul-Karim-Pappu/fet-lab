@@ -636,13 +636,17 @@ def build_cfet_seq():
     d.add("bsline_s","Backside line (Cu) · lower source (V_DD)","copper",[box(-48,-4,BL0,BL1,-zsub,zsub)],"Backside interconnect",[0,-2.0,0])
     d.add("bsline_g","Backside line (Cu) · lower gate (the model's addition)","copper",[box(-2.5,2.5,BL0,BL1,-zsub,zsub)],"Backside interconnect",[0,-2.0,0])
     d.add("bsline_d","Backside line (Cu) · the drains' node","copper",[box(4,48,BL0,BL1,-zsub,zsub)],"Backside interconnect",[.6,-2.0,0])
-    d.add("bsdiel","Backside dielectric (SiO₂)","sio2",
-          carve((-48,48,BL1,STI,-zsub,zsub),[P90,P91,PG,box(-XSD,XSD,0,STI,-hz,hz)])
+    # With the lower wafer's substrate ground away, the backside dielectric (an etch stop and a
+    # low-κ layer, 93) meets the stack directly; the STI oxide stays beside it [R34].
+    FOOT=box(-XSD,XSD,0,STI,-hz,hz)
+    d.add("bsdiel","Backside dielectric 93 (etch stop and low-κ; the low-κ drawn)","lowk",
+          carve((-48,48,BL1,0,-zsub,zsub),[P90,P91,PG])+carve(lim6(FOOT),[P90,P91])
           +[box(-4,-2.5,BL0,BL1,-zsub,zsub),box(2.5,4,BL0,BL1,-zsub,zsub)],
           "Backside interconnect",[0,-1.5,0])
+    d.add("sti_l","STI (SiO₂) · beside the lower stack","sio2",
+          carve((-48,48,0,STI,-zsub,zsub),[P90,P91,PG,FOOT]),"Lower tier (p)",[0,-.9,0])
     d.add("gatew_p","W gate via · lower gate, from the back (the model's addition)","tungsten",[PG],"Lower tier (p)",[0,-1.2,0])
     # ---- lower tier (p), in the lower wafer ----
-    d.add("lowbase","Lower wafer · isolation under the stack (SiO₂)","sio2",carve((-XSD,XSD,0,STI,-hz,hz),[P90,P91]),"Lower tier (p)",[0,-.9,0])
     cfet_tier(d,"p",yb,"Lower tier (p)",hz)
     mo=[box(-XG,XG,STI,ylg,hz3,hzmo), box(-XG,XG,STI,ylg,-hzmo,-hz3)]
     for a,b in gaps(STI,ylg,YB): mo.append(box(-XG,XG,a,b,-hz3,hz3))

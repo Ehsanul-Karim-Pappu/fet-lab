@@ -327,6 +327,15 @@ The face-to-back process of Figs. 1A–1N is followed.
 - The finished die sits flipped on a carrier. Device mode shows it upright, with the carrier not
   drawn.
 
+- **Checked against CN 118712136 A (same disclosure, text-searchable):**
+  - The upper stack sits directly on bond layer 68U. 68U is formed on stack 22U [0041], and
+    substrate 120 and the top SiGe layer are removed after bonding [0043]–[0044].
+  - Plug 91 lands on a lower source/drain, with an optional silicide under it [0059]. Deep plug
+    90 is etched through 50L [0056].
+  - Backside dielectric 93 is an etch stop and a low-κ layer [0059]; 92 is low-κ [0060]. With
+    substrate 20 removed [0055], it meets the lower stack directly. STI 32 (FCVD oxide) stays
+    beside the stack.
+
 ## Forksheet gate-bridge variant: US 2024/0178128 A1 (TSMC)
 
 - **Gates:** the n and p gate electrodes are separated by the dielectric wall and planarised level

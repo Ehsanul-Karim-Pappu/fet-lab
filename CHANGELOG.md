@@ -20,6 +20,9 @@ All notable changes to FET Lab. Dates are the release date; versions follow
   - No oxide under the upper stack: the upper wafer is thinned to its stack, which sits on bond
     layer 68U, as in the patent.
   - Backside plug 91 now lands on the lower source instead of entering it.
+  - The backside dielectric is low-κ (layer 93: an etch stop and a low-κ film) and meets the
+    lower stack directly. The oxide drawn under the lower stack is gone; STI oxide stays beside
+    the stack. Checked against CN 118712136 A, paragraphs [0041]–[0044] and [0055]–[0060].
 - **No more empty slivers.** A scan of every scene and lesson step for thin empty gaps between
   solids found three, now filled:
   - FinFET: the silicide is now as wide as the contact opening, so the TiN liner meets the ILD
