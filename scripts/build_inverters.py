@@ -174,8 +174,8 @@ def inv_cfet():
     def net(p):
         i, m = p["id"], p["material"]
         if i in ("epi_n_source", "nisi_source", "ni_source"): return "gnd"
-        if i in ("epi_p_source", "ni_lo_source"): return "vdd"
-        if i in ("epi_n_drain", "epi_p_drain", "nisi_drain", "ni_drain"): return "out"
+        if i in ("epi_p_source", "ni_lo_source", "sil_lo_source"): return "vdd"
+        if i in ("epi_n_drain", "epi_p_drain", "sil_up_drain", "sil_lo_drain", "ni_drain"): return "out"
         if i.startswith("sheet_"): return "chan_" + i[6]
         if m in ("wfill", "nwf", "tin") or i == "gatew": return "in"
         return "body"

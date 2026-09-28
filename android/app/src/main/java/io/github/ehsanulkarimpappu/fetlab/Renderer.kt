@@ -427,7 +427,7 @@ class Renderer(private val lib: Library) : GLSurfaceView.Renderer {
     private val gateFills = setOf("mo", "wfill", "cofill")
     private val metals = setOf("mo", "wfill", "cofill", "copper", "tin", "nwf", "cobalt", "tungsten", "tisi", "md", "po", "vd", "vg", "m0")
     private val semis = setOf("silicon", "sige", "nanowire")
-    private val diels = setOf("sio2", "highk", "si3n4", "sibcn", "lowk", "alox", "wall", "mdi", "bond", "fox")
+    private val diels = setOf("sio2", "highk", "si3n4", "sibcn", "lowk", "alox", "tiox", "wall", "mdi", "bond", "fox")
     private val wells = setOf("pwell", "nwell")
 
     private fun texOf(mat: String): FloatArray {

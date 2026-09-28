@@ -5,6 +5,22 @@ All notable changes to FET Lab. Dates are the release date; versions follow
 
 ## Unreleased
 
+### Monolithic CFET, checked figure by figure against US 11,869,812 B2
+
+- **Lower source/drain:** now has the patent's notch: the top centre is recessed, leaving an ear
+  on each side (Fig. 9, claim 1). The SiO₂ isolation layer 1110 fills the notch, covers the top,
+  and fills the side where the sacrificial TiOₓ was removed first.
+- **Common drain contact:** now the patent's vertical via, down through the upper drain and the
+  isolation into the lower drain's top (Figs. 15–17). It used to be a slab along the sides.
+- **Silicide:** each contact now has TiSiₓ where it meets a source/drain, the lower tier's
+  included (col. 11:26–33).
+- **TiOₓ spacer:** left in place beside the lower drain, where no contact removes it; it's a new
+  material.
+- **Labelled as the model's choices:** the TiN/TiAlC work-function split (the patent names one
+  work-function metal), the SiN cap and the gate contact.
+- `docs/PATENT_ALIGNMENT.md` now lists what is drawn, the model's choices, and where the
+  drawings and text disagree.
+
 ### Section view, CFET Layout, spacer film
 
 - **Both (3D and section):**

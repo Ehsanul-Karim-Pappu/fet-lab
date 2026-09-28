@@ -263,8 +263,8 @@ drawn; US 11,862,700 B2 is a second example of the wall and its materials.
    S/D top.
 9. **Fig. 9.** Notches recessed into the top of the lower S/D.
 10. **Fig. 10.** OPL 1010 masks one side; 810 is removed on the other.
-11. **Fig. 11.** Isolation layer 1110 (SiO₂, SiN, SiOC): deposited, CMP, recessed, above the lower S/D
-    and 810.
+11. **Fig. 11.** Isolation layer 1110 (SiO₂, SiN, SiOC): deposited around and above the lower S/D
+    and 810, CMP, recessed.
 12. **Fig. 12.** Upper S/D 1210: Si:P, for the nFET, from the upper Si channels.
 13. **Fig. 13.** ILD 1310 (SiO₂, SiN, SiOC), CMP removing caps 510 and hard masks 220.
 14. **Fig. 14.**
@@ -279,15 +279,34 @@ drawn; US 11,862,700 B2 is a second example of the wall and its materials.
 17. **Fig. 17.** Contact 1710: a silicide liner (Ti, Ni, Co or NiPt), a thin TiN layer, then Cu, Ag,
     Au, W, Co or Ru.
 
-**Drawn:**
-- Lower pFET (SiGe:B), upper nFET (Si:P), two Si sheets per tier, on a BOX.
+**Drawn** (checked against Figs. 1A–18 and the text):
+- Lower pFET (SiGe:B), upper nFET (Si:P), two Si sheets per tier, on a BOX. Layer 120 is optional
+  in the patent: a BOX or a bottom dielectric isolation.
 - SiBCN spacer material between the tiers in the gate region, and as spacers and inner spacers.
-- SiO₂ isolation layer in the notch above the lower S/D.
-- One common gate: HfO₂, TiN around the lower sheets, TiAlC around the upper, W fill. Gate cap SiN.
-- Front-side contacts only: TiSiₓ, TiN, W.
-  - Drain side: one common contact reaches both drains, which is the inverter's output.
-  - Source side: the upper source is contacted from above, and the lower source through the space
-    where the TiOₓ was.
+- **The notch (Fig. 9, claim 1):** the lower S/D's top centre is recessed 4 nm, leaving an ear on
+  each side.
+- **Isolation layer 1110** (SiO₂) fills the notch, covers the lower S/D, and fills its −z side,
+  where the TiOₓ 810 was removed first (Figs. 10–11). On the drain side it also covers the 810
+  left in place on the +z side (col. 12:1–6).
+- **Common drain via (Figs. 15–17):** a vertical W via through the upper drain and 1110, landing
+  in the lower drain's top. It has a TiSiₓ liner where it meets each S/D (col. 11:26–33).
+- **Upper source:** a via from above onto its silicide.
+- **Lower source:** a contact filling the space the TiOₓ left on its +z side, with a silicide on
+  the S/D, rising beside the upper source. ILD 1310 (SiO₂) keeps it clear.
+- **Not drawn:** the thin TiN adhesion layer of contact 1710.
+
+**The model's choices, not the patent's:**
+- The patent names one HKMG and "a work function metal" for both tiers (col. 11:2–8,
+  col. 12:12–13). The TiN (lower) and TiAlC (upper) split is the model's, as is the W fill (one of
+  the listed metals).
+- The gate cap 1420 has no material in the patent; SiN is the model's.
+- The gate contact: the patent shows S/D contacts only.
+- Leaving the drain side's 810 in place is the model's reading: the text removes 810 only where
+  a contact reaches the lower tier.
+
+**Drawings against the text:**
+- Figs. 14–17 still hatch SiGe 140 inside the stack, although the text replaces it with the HKMG.
+- Col. 11:15's "910" means 1210.
 
 ## Sequential CFET: US 2024/0413156 A1 (TSMC, Figs. 1A–1N)
 

@@ -25,7 +25,7 @@ EPS_R = {
     "mdi": 4.2, "bond": 3.9, "wall": 7.5,
     # SiBCN spacers about 4.5; the low-κ STI and inner spacers taken as 3.0; AlOₓ about 9;
     # the patterning films never reach a finished device and are given nominal values.
-    "sibcn": 4.5, "lowk": 3.0, "alox": 9.0, "soc": 3.0, "barc": 3.0, "sihm": 4.0,
+    "sibcn": 4.5, "lowk": 3.0, "alox": 9.0, "soc": 3.0, "barc": 3.0, "sihm": 4.0, "tiox": 40.0,
     "mo": None, "wfill": None, "cofill": None, "copper": None, "tin": None, "nwf": None, "tungsten": None, "cobalt": None, "tisi": None,
 }
 CONDUCTOR = {m for m, v in EPS_R.items() if v is None}
