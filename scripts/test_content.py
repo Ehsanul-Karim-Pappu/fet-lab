@@ -389,6 +389,14 @@ class ContentTests(unittest.TestCase):
         for name in ('nisi', 'nickel', 'pwf'):
             self.assertNotIn(name, self.data['materials'])
 
+    def test_process_sources_match_citations(self):
+        """Each lesson's source list is exactly the references its texts cite."""
+        proc = json.loads((ROOT / 'data/process.json').read_text())
+        for key, flow in proc['flows'].items():
+            blob = json.dumps({k: v for k, v in flow.items() if k not in ('final', 'bounds', 'refs')}, ensure_ascii=False)
+            cited = {r for m in re.findall(r'\[(R\d+(?:, R\d+)*)\]', blob) for r in m.split(', ')}
+            self.assertEqual(set(flow.get('refs', [])), cited, key)
+
     def test_process_why(self):
         """Every Process lesson has its own Why text, and every reference it cites exists."""
         flows = json.loads((ROOT / 'data/process.json').read_text())['flows']

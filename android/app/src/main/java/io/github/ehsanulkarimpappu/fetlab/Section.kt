@@ -128,8 +128,8 @@ fun SectionPanel(lib: Library, sc: Scene, pl: SectionPlane, selected: Part?, onP
             val said = rects.map { it.part.material }.distinct().mapNotNull { lib.materials[it]?.label }
             Canvas(Modifier.matchParentSize().semantics {
                 contentDescription = "2D section, ${pl.name}. " + if (said.isEmpty()) "It cuts nothing in this step."
-                    else "It cuts: " + said.joinToString(", ") + ". Tap a layer to name it and select it in 3D; " +
-                        "pinch to zoom."
+                    else "It cuts: " + said.joinToString(", ") + ". Tap a layer to see its name and select it in 3D. " +
+                        "Pinch to zoom."
             }.pointerInput(pl.id) {
                 detectTransformGestures { centroid, move, factor, _ ->
                     val z = (zoom * factor).coerceIn(1f, 8f)
@@ -161,7 +161,7 @@ fun SectionPanel(lib: Library, sc: Scene, pl: SectionPlane, selected: Part?, onP
                 }
             }
             if (rects.isEmpty())
-                Text("This plane does not cut anything in this step.", fontFamily = PlexSans, fontSize = 12.sp,
+                Text("This plane cuts nothing in this step.", fontFamily = PlexSans, fontSize = 12.sp,
                     color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.align(Alignment.Center))
             // The tapped layer's name, over the drawing so it takes no height from it.
             selected?.takeIf { s -> rects.any { it.part === s } }?.let { s ->
@@ -195,8 +195,8 @@ fun Locator(lib: Library, sc: Scene, pl: SectionPlane?, modifier: Modifier = Mod
     val accent = MaterialTheme.colorScheme.primary
     val ink = MaterialTheme.colorScheme.onSurfaceVariant
     Canvas(modifier.semantics {
-        contentDescription = if (pl == null) "Locator, seen from above: choose a section plane to place it"
-            else "Locator, seen from above: the dashed line is the plane ${pl.name}, the arrow the side it is seen from"
+        contentDescription = if (pl == null) "Locator, seen from above: choose a section plane to show it here"
+            else "Locator, seen from above: the dashed line is the plane ${pl.name}, the arrow shows the side it is seen from"
     }) {
         val x0 = sc.lo[0]; val x1 = sc.hi[0]; val z0 = sc.lo[2]; val z1 = sc.hi[2]
         val m = 10f
@@ -259,8 +259,8 @@ fun PlanesBlock(lib: Library, sc: Scene, planes: List<SectionPlane>, planeId: St
         Row(Modifier.padding(8.dp), verticalAlignment = Alignment.Top) {
             Locator(lib, sc, pl, Modifier.size(width = 104.dp, height = 68.dp).tourTarget("locator"))
             Column(Modifier.weight(1f).padding(start = 8.dp)) {
-                Text("From above: x runs source → drain, z across the ${sc.acrossWord()}; dashed: the plane, " +
-                        "arrow: the side seen.",
+                Text("From above: x runs source → drain, z across the ${sc.acrossWord()}. Dashed: the plane. " +
+                        "Arrow: the viewing side.",
                     fontFamily = PlexSans, fontSize = 10.5f.sp, lineHeight = 14.sp,
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
                 if (pl != null) Text(pl.text, fontFamily = PlexSans, fontSize = 10.5f.sp, lineHeight = 14.sp,

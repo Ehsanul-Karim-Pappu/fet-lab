@@ -225,24 +225,24 @@ def compose(design, exploded, wired):
 
     if design == "sige":
         body = ("<b>Si/SiGe CMOS: the patent-based example.</b> One alternating Si/SiGe stack makes both "
-                "devices: the nFET keeps its three Si layers as channels and the pFET its three lower-Ge SiGe "
-                "layers, so the pFET's sheets sit between the nFET's heights, staggered. Bottom dielectric "
-                "isolation is under the nFET only; the pFET's SiGe:B source/drain grows from the recessed "
-                "sub-fin as well as from the sheet ends, which helps put its channels under compressive strain. "
-                "Each device has its own work-function metal on one shared gate: this uses the patent's "
-                "shared-gate arrangement, with no gate cut. One disclosed example [R13], not a universal "
-                "foundry flow; the thicknesses are the model's illustrative choices, not the patent's. The "
-                "Process lesson ends on these same two devices.")
+                "devices. The nFET keeps its three Si layers as channels, and the pFET keeps its three lower-Ge "
+                "SiGe layers. So the pFET's sheets sit between the nFET's heights: they are staggered. Bottom "
+                "dielectric isolation (BDI) is under the nFET only. The pFET's SiGe:B source/drain grows from "
+                "the recessed sub-fin as well as from the sheet ends, which helps put its channels under "
+                "compressive strain. Each device has its own work-function metal on one shared gate. This uses "
+                "the patent's shared-gate arrangement, with no gate cut. It is one disclosed example [R13], not "
+                "a universal foundry flow. The thicknesses are the model's illustrative choices, not the "
+                "patent's. The Process lesson ends on these same two devices.")
     else:
-        body = ("<b>Si/Si CMOS: the full-bottom-isolation example.</b> Si nanosheet channels in both "
-                "devices, at the same heights, after the example route of IBM's application US 2023/0178617 A1 "
-                "[R28]: a Ge-rich bottom layer, a Si seed and Si layers between lower-Ge SiGe; the Ge-rich layer "
-                "replaced by bottom dielectric isolation under both devices; undoped Si grown in each "
-                "source/drain opening from the seed, under a SiGe:B (pFET) or SiC:P (nFET) source/drain; the "
-                "SiGe removed at channel release in both. A separate route from the Si/SiGe lesson's, not its "
-                "finished state. Each device has its own work-function metal on one shared gate. One example, "
-                "not a production foundry flow; the thicknesses are the model's illustrative choices. The "
-                "Process lesson ends on these same two devices.")
+        body = ("<b>Si/Si CMOS: the full-bottom-isolation example.</b> Both devices have Si nanosheet "
+                "channels, at the same heights. They follow the example route of IBM's application "
+                "US 2023/0178617 A1 [R28]. The stack is a Ge-rich bottom layer, a Si seed, and Si layers between "
+                "lower-Ge SiGe. The Ge-rich layer is replaced by bottom dielectric isolation under both devices. "
+                "Undoped Si is grown in each source/drain opening from the seed, under a SiGe:B (pFET) or SiC:P "
+                "(nFET) source/drain. The SiGe is removed at channel release in both. This is a separate route "
+                "from the Si/SiGe lesson's, not its finished state. Each device has its own work-function metal "
+                "on one shared gate. It is one example, not a production foundry flow, and the thicknesses are "
+                "the model's illustrative choices. The Process lesson ends on these same two devices.")
     if exploded:
         body += (" <b>Exploded gate view: schematic enlargement; dimensions are not to scale.</b> The gaps "
                  f"between sheets are drawn {gap:g} nm and the films {stack['til']:g}/{stack['thk']:g}/"
@@ -251,11 +251,11 @@ def compose(design, exploded, wired):
     else:
         body += " In this compact geometry the drawn films meet in the gaps between one device's sheets."
     if design == "sige":
-        body += (" The shared gate carries one gate contact, as an inverter's input needs; the patent's Fig. 19 "
+        body += (" The shared gate carries one gate contact, as an inverter's input needs. The patent's Fig. 19 "
                  "draws two on the one gate [R13].")
     if wired:
-        body += (" The inverter: both gates take IN through the shared gate, the pFET source connects to V_DD, "
-                 "the nFET source to V_SS (GND), and the two drains join at OUT.")
+        body += (" In the inverter, both gates take IN through the shared gate. The pFET source connects to "
+                 "V_DD, the nFET source to V_SS (GND), and the two drains join at OUT.")
     d.note = body
     d.blurb = ("An nFET and a pFET on one shared gate" + (", wired as an inverter" if wired else "") +
                (": Si nFET channels and SiGe pFET channels, from one stack." if design == "sige"

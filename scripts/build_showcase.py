@@ -230,7 +230,7 @@ def finish(d, dims):
 # ------------------------------------------------------------------ NANOSHEET
 def show_ns():
     d = Dev("show_ns", "Nanosheet inverter · layout", "schematic GAA · 2 representative sheets",
-            "A schematic nanosheet inverter layout with wells, channel regions, gate, contacts, vias and routing. Two representative sheets are drawn instead of the three in Device/Inverter; vertical spacing and the film stack are simplified.")
+            "A schematic nanosheet inverter layout: wells, channel regions, gate, contacts, vias and routing. It draws two representative sheets instead of the three in Device and Inverter. Vertical spacing and the film stack are simplified.")
     P = plan("ns")
     XW, XMD0, XMD1 = P["xw"], P["xmd0"], P["xmd1"]
     WSH = 22.0                                   # sheet width, the Inverter scene's (its span is this cell's)
@@ -248,13 +248,13 @@ def show_ns():
             A(d, f"{pol}_wsr{i+1}", f"{pol}MOS nanosheet {i+1} · source stub", "nanowire",
               [box(-XW, -XMD1, y0, y1, z0, z1)], grp, [-1.5, 0, 0], "body")
     deck(d, P, [(ZN0, ZN1, wires), (ZP0, ZP1, wires)],
-         "<b>Reading the schematic.</b> Two representative Si nanosheets per device pass through the shared gate. nFET is over the p-well and pFET over the n-well. The connected drains form OUT. MD, Po, VD, VG and Metal 0 are explanatory layer-role names, not universal foundry naming conventions.",
+         "<b>Reading the schematic.</b> Two representative Si nanosheets per device pass through the shared gate. The nFET sits over the p-well and the pFET over the n-well. The connected drains form OUT. MD (source/drain contact), Po (gate), VD and VG (vias) and Metal 0 (the first routing level) are names for layer roles, used here to explain. They are not universal foundry naming conventions.",
          (ZN0, ZN1), (ZP0, ZP1))
     L(d, "Nanosheet", [XW, 25.5, ZP1 - 5], "s", "dark", LAYER_VIEWS, sd=1, pid=["p_ws2", "p_wsr2"])
     return finish(d, [
         ["L_G", "Physical gate length, as drawn", f'{P["LG"]:g} nm'],
         ["Cell z", "Rail-to-rail span (z), rail centre to rail centre", f'{P["cell"]:g} nm'],
-        ["M0 bars", "Drawn Metal 0 bar spacing (schematic; real M0 pitch is about 20–24 nm)", f'{P["step"]:.1f} nm'],
+        ["M0 bars", "Drawn Metal 0 bar spacing (schematic; real M0 pitch is about 20–24 nm, a typical value)", f'{P["step"]:.1f} nm'],
         ["Sheets", "Per device", "2"], ["Devices", "pMOS over N Well, nMOS over P Well", "2"],
         ["Gate", "Po, crossing both", "1"], ["Contacts", "MD columns", "3"],
         ["Metal 0", "V_DD · IN · OUT · GND", "4 bars"],
@@ -263,7 +263,7 @@ def show_ns():
 # ------------------------------------------------------------------ FORKSHEET
 def show_fs():
     d = Dev("show_fs", "Forksheet inverter · layout", "n and p astride a dielectric wall",
-            "A schematic inner-wall forksheet inverter layout. The wall narrows the drawn n/p separation and the gate regions connect above it.")
+            "A schematic inner-wall forksheet inverter layout. The wall narrows the drawn n/p separation, and the gate regions connect above it.")
     P = plan("fs")
     XW, XMD0, XMD1 = P["xw"], P["xmd0"], P["xmd1"]
     WSH, TW = 22.0, 8.0                          # sheet width and wall, from the device scene
@@ -285,14 +285,14 @@ def show_fs():
             A(d, f"{pol}_wsr{i+1}", f"{pol}MOS sheet {i+1} · source stub", "nanowire",
               [box(-XW, -XMD1, y0, y1, z0, z1)], grp, [-1.5, 0, 0], "body")
     deck(d, P, [(zn0, zn1, wires), (-TW / 2, TW / 2, [(YOX1, YWT)]), (zp0, zp1, wires)],
-         "<b>Drawn lateral spans.</b> This example spans 106nm rail to rail, versus 136nm for the schematic nanosheet example. These are model measurements, not a general technology-area benefit or an equal-drive comparison.",
+         "<b>Drawn lateral spans.</b> This example spans 106nm rail to rail. The schematic nanosheet example spans 136nm. These are measurements of the model. They do not show a general area benefit for the technology, and they are not an equal-drive comparison.",
          (zn0, zn1), (zp0, zp1), wall=(-TW / 2, TW / 2))
     L(d, "Sheet", [XW, 25.5, zp1 - 5], "s", "dark", LAYER_VIEWS, sd=1, pid=["p_ws2", "p_wsr2"])
     L(d, "Wall", [XMD1 - 6, YPO1 - 4, 0], "s", "dark", LAYER_VIEWS, pid="wall")
     return finish(d, [
         ["L_G", "Physical gate length, as drawn", f'{P["LG"]:g} nm'],
         ["Cell z", "Rail-to-rail span (z), rail centre to rail centre", f'{P["cell"]:g} nm'],
-        ["M0 bars", "Drawn Metal 0 bar spacing (schematic; real M0 pitch is about 20–24 nm)", f'{P["step"]:.1f} nm'],
+        ["M0 bars", "Drawn Metal 0 bar spacing (schematic; real M0 pitch is about 20–24 nm, a typical value)", f'{P["step"]:.1f} nm'],
         ["Sheets", "Per device", "2"], ["Separation", "Dielectric wall", "no metal gap"],
         ["Gate", "Po, bridged over the wall", "1"], ["Contacts", "MD columns", "3"],
         ["Metal 0", "V_DD · IN · OUT · GND", "4 bars + drain jog"], ["Gate faces", "Per sheet", "3"]])
@@ -300,7 +300,7 @@ def show_fs():
 # --------------------------------------------------------------------- FINFET
 def show_fin():
     d = Dev("show_fin", "FinFET inverter · layout", "tri-gate · 2 fins per device",
-            "A schematic tri-gate inverter layout with two fins per transistor. Gate and contact shapes are simplified; material-role colors do not constitute a process recipe.")
+            "A schematic tri-gate inverter layout with two fins per transistor. Gate and contact shapes are simplified. The colors mark material roles; they are not a process recipe.")
     P = plan("fin")
     XW, XMD0, XMD1 = P["xw"], P["xmd0"], P["xmd1"]
     FW, FP = 6.0, 27.0                           # fin width and fin pitch, from the device scene
@@ -321,13 +321,13 @@ def show_fin():
             holes.append((z0, z1, [(FY0, FY1)]))
     band = FP / 2 + FW / 2
     deck(d, P, sorted(holes),
-         "<b>Geometric sizing only.</b> Two fins are shown for each transistor. Equal counts do not establish a balanced inverter. This layout illustrates connectivity and fin-count granularity, not a characterized library cell.",
+         "<b>Geometric sizing only.</b> Two fins are shown for each transistor. Equal fin counts do not by themselves make a balanced inverter [R10]. This layout shows connectivity, and how width comes in whole-fin steps. It is not a characterized library cell.",
          (-rc - band, -rc + band), (rc - band, rc + band))
     L(d, "Fin", [XW, FY1, rc + FP / 2], "s", "dark", LAYER_VIEWS, sd=1, pid=["p_fs2", "p_fsr2"])
     return finish(d, [
         ["L_G", "Physical gate length, as drawn", f'{P["LG"]:g} nm'],
         ["Cell z", "Rail-to-rail span (z), rail centre to rail centre", f'{P["cell"]:g} nm'],
-        ["M0 bars", "Drawn Metal 0 bar spacing (schematic; real M0 pitch is about 20–24 nm)", f'{P["step"]:.1f} nm'],
+        ["M0 bars", "Drawn Metal 0 bar spacing (schematic; real M0 pitch is about 20–24 nm, a typical value)", f'{P["step"]:.1f} nm'],
         ["Fin pitch", "Fin-to-fin, as drawn", f'{FP:g} nm'],
         ["Fins", "Per device", "2"], ["Gate faces", "Per fin", "3 (tri-gate)"],
         ["Gate", "Po, crossing all four fins", "1"], ["Contacts", "MD columns", "3"],
@@ -349,7 +349,7 @@ def plate(x0, x1, y0, y1, z0, z1, holes=()):
 
 def show_cfet():
     d = Dev("show_cfet", "CFET inverter · layout", "one stack, power from the back",
-            "A schematic stacked inverter with the pFET below the nFET, as in the Device and Inverter scenes, and backside power: V_DD and GND rails run on the back of the wafer, only IN and OUT on the front. A riser joins the drains; a deep via takes the upper nFET's source down past the lower tier.")
+            "A schematic stacked inverter. As in the Device and Inverter scenes, the pFET is below the nFET. Power comes from the back: the V_DD and GND rails run on the back of the wafer, and only IN and OUT are on the front. A riser joins the drains. A deep via takes the upper nFET's source down past the lower tier.")
     P = plan("cfet")
     XW, XMD0, XMD1, XPO = P["xw"], P["xmd0"], P["xmd1"], P["xpo"]
     ZB, hw = P["zbar"], P["mw"] / 2.0
@@ -449,11 +449,11 @@ def show_cfet():
     for net, label in (("in", "IN"), ("out", "OUT")):
         L(d, label, [-XW, mid(*YM), ZB[net]], "m", sd=-1, pid=f"m0_{net}")
 
-    d.note = ("<b>One lateral pair footprint, powered from the back.</b> Stacking changes the placement of the complementary devices, but isolation, contacts and routing still take space. The tier order is the Device and Inverter scenes' (pFET below, after the monolithic CFET patent); the power delivery is imec's direction for CFET: both rails move to the back of the wafer, which frees the front for signals, and backside contacts can ease access to the lower device [R4, R12]. The Device and Inverter scenes contact everything from the front instead; both are possible. Schematic, not to scale vertically.")
+    d.note = ("<b>One lateral pair footprint, powered from the back.</b> Stacking changes where the complementary devices sit, but isolation, contacts and routing still take space. The tier order matches the Device and Inverter scenes: pFET below, after the monolithic CFET patent [R33]. The power delivery follows imec's direction for CFET. Both rails move to the back of the wafer, which frees the front for signals, and backside contacts can ease access to the lower device [R4, R12]. The Device and Inverter scenes contact everything from the front instead; both are possible [R4]. Schematic; not to scale vertically.")
     return finish(d, [
         ["L_G", "Physical gate length, as drawn", f'{P["LG"]:g} nm'],
         ["Cell z", "Rail-to-rail span (z), rail centre to rail centre", f'{P["cell"]:g} nm'],
-        ["M0 bars", "Drawn Metal 0 bar spacing (schematic; real M0 pitch is about 20–24 nm)", f'{P["step"]:.1f} nm'],
+        ["M0 bars", "Drawn Metal 0 bar spacing (schematic; real M0 pitch is about 20–24 nm, a typical value)", f'{P["step"]:.1f} nm'],
         ["Tiers", "nMOS above pMOS", "2"], ["Sheets", "Per tier", "2"],
         ["Gate", "Po, continuous through both", "1"], ["Contacts", "MD, split top and bottom", "4"],
         ["Metal 0", "IN · OUT (front)", "2 bars"], ["Power", "V_DD and GND", "backside metal"]])
@@ -461,11 +461,11 @@ def show_cfet():
 # --------------------------------------------------------------- LAYOUT COMPARE
 def show_cmp():
     d = Dev("show_cmp", "Layout compare", "four cells, one scale",
-            "Four schematic inverter layouts at a common scale. The CFET cell takes its power from the back. The z spans are the Layout mode's own schematic numbers, measured between rail centres, not the Inverter scenes' spans; layer detail and vertical geometry are simplified.")
+            "Four schematic inverter layouts at one common scale. The CFET cell takes its power from the back. The z spans are the Layout mode's own schematic numbers, measured between rail centres. They are not the Inverter scenes' spans. Layer detail and vertical geometry are simplified.")
     builders = [(show_fin, "FinFET", "2 fins per device", "fin"),
                 (show_ns, "Nanosheet", "2 representative sheets per device", "ns"),
                 (show_fs, "Forksheet", "wall between n and p", "fs"),
-                (show_cfet, "CFET", "pMOS stacked on nMOS", "cfet")]
+                (show_cfet, "CFET", "nMOS stacked on pMOS", "cfet")]
     cur, GAP, cells = -320.0, 28.0, []
     for build, nm, sub, arch in builders:
         src = build()
@@ -489,12 +489,12 @@ def show_cmp():
         L(d, sub, [0, ytop + 12, zc], "s", lead=False, v=["front", "hero"])
     w0 = cells[0][3]
     d.dims = [[nm, sub, f"{w:g} nm  ({w / w0 * 100:.0f}%)"] for nm, sub, zc, w, yt in cells]
-    d.dims.insert(0, ["—", "Rail-to-rail span (z)", "the Inverter scenes' numbers, between rail centres"])
+    d.dims.insert(0, ["—", "Rail-to-rail span (z)", "the Layout mode's own numbers, between rail centres"])
     d.dims.append(["—", "Metal 0 bars on top", "4 / 4 / 4 / 2 (CFET power is on the back)"])
     d.dims.append(["—", "What grows", "sideways, then upwards"])
     d.logic = True
     d.style = "schematic"
-    d.note = ("<b>Scope of the comparison.</b> Matching rail spans do not make these schematic models exact copies of the technical scenes. Nanosheet Layout uses two representative sheets, while Device/Inverter use three. The figures do not establish equal drive, timing, routability or density. For scale, imec's roadmap puts standard-cell height at roughly 115 nm for A14 nanosheets, 98 nm for A10 forksheets and under 80 nm for A7 CFETs; the spans drawn here are the model's own.")
+    d.note = ("<b>Scope of the comparison.</b> These schematic models are not exact copies of the technical scenes. Nanosheet Layout uses two representative sheets, while Device and Inverter use three. The figures do not show equal drive, timing, routability or density. For scale, imec's roadmap puts standard-cell height at roughly 115 nm for A14 nanosheets, 98 nm for A10 forksheets and under 80 nm for A7 CFETs [R12]. The spans drawn here are the model's own.")
     d.finish()
     B = d.bounds
     ctr = [(B["x"][0] + B["x"][1]) / 2, (B["y"][0] + B["y"][1]) / 2, (B["z"][0] + B["z"][1]) / 2]

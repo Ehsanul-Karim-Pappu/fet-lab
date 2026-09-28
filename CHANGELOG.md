@@ -5,6 +5,31 @@ All notable changes to FET Lab. Dates are the release date; versions follow
 
 ## Unreleased
 
+### Every text rewritten for easy reading, and every reference cited
+
+- **Plain language throughout.** The Device, Inverter and Layout stories and notes, every Process
+  step, the Si/Si lesson, the Why tab, the guided tour, the app's own labels and hints, and the
+  reference descriptions in About now use short sentences with the main point first. Technical
+  terms (CMP, epitaxy, STI, ILD, BDI, SAC, work-function metal, EOT and others) are explained where
+  they first appear. Facts, numbers, figure numbers and caveats are unchanged; an automatic
+  comparison checked that no number or citation was lost, and two missing "about 50 % Ge" were put
+  back.
+- **All 35 references are now cited.** R5 (CFET common and split gates), R17 (the coat, expose,
+  develop and etch cycle), R23 (SAQP core control and pitch walk), R24 (a second gate-last FinFET
+  route) and R26 (the gate cap that keeps contacts from shorting to the gate) were listed but not
+  cited anywhere. Each is now cited where it supports the text.
+- **Each lesson's source list is exactly what it cites**, worked out from its texts and checked by
+  a new test. The SADP lesson lacked R17, SAQP lacked R22 and the FinFET pair lacked R30. The FinFET
+  lessons listed R7 and R25, and the pFET nanosheet listed R1, without citing them.
+- **Uncited claims** are now either cited or marked as typical values or general background: the
+  45–48 nm gate pitch, the 20–24 nm M0 pitch, the 7–12 nm sheet spacing, the NiSi-to-Ti silicide
+  change, and the SiGe strain explanation in the pFET nanosheet lesson.
+- **Corrections found in the review:**
+  - The Layout compare said the CFET was "pMOS stacked on nMOS"; it is nMOS on pMOS, like
+    every other scene.
+  - It also called its spans the Inverter scenes' numbers; they are the Layout mode's own.
+  - The Why text for Si/Si now says the two devices' work-function metals differ too.
+
 ### Process: growing, etching and polishing between steps
 
 - **Growth on every step that adds material.** It no longer runs on blanket films only: 92 steps now

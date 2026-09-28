@@ -766,7 +766,7 @@ fun FetLabApp(lib: Library, renderer: Renderer) {
         playing = false
         if (ids.any { it.startsWith("p_") } && design != "sige") {
             design = "sige"
-            Toast.makeText(ctx, "The Process tour follows the Si/SiGe CMOS lesson: Channel design is set to " +
+            Toast.makeText(ctx, "The Process tour uses the Si/SiGe CMOS lesson, so Channel design is set to " +
                 "Si/SiGe CMOS until the tour ends.", Toast.LENGTH_LONG).show()
         }
         tourStep = 0
@@ -1776,9 +1776,9 @@ private fun AboutScreen(onClose: () -> Unit) {
                 item {
                     AboutCard {
                         AboutLabel("Source and support")
-                        Text("Found a bug, or the geometry looks wrong? Open an issue on the " +
-                             "repository — that is the fastest way to get it fixed, and it keeps " +
-                             "the fix visible to everyone else.",
+                        Text("Found a bug, or does the geometry look wrong? Open an issue on the " +
+                             "repository. It is the fastest way to get it fixed, and everyone " +
+                             "can see the fix.",
                             fontFamily = PlexSans, fontSize = 13.sp, lineHeight = 19.sp,
                             color = MaterialTheme.colorScheme.onSurfaceVariant)
                         Spacer(Modifier.height(14.dp))
@@ -2207,7 +2207,7 @@ private fun SitePicker(flow: ProcessFlow, onSite: (String) -> Unit) {
         Text(when (flow.site) {
             "p" -> "Following the pFET. It shares the nFET's early stages, then has its own masked steps."
             "both" -> "One nFET and one pFET side by side, joined by their gate line: two devices, not a finished circuit."
-            else -> "Following the nFET. Its pFET neighbour has a flow of its own, and Both sites shows the two together."
+            else -> "Following the nFET. The pFET next to it has its own flow; Both sites shows the two together."
         }, fontFamily = PlexSans, fontSize = 11.5f.sp, lineHeight = 16.sp,
             color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(top = 6.dp))
     }
@@ -2265,8 +2265,8 @@ private fun RoutePicker(flow: ProcessFlow, here: String, onRoute: (String) -> Un
         Column(Modifier.padding(horizontal = 12.dp, vertical = 10.dp)) {
             Text(flow.routeTitle.uppercase(), style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant)
-            Text(if (flow.routeKind == "terminal") "Two alternative endings, not one after the other: pick one to step through."
-                 else "Pick a route: the substeps below change to match, then rejoin at ${flow.routeJoin}.",
+            Text(if (flow.routeKind == "terminal") "Two different endings, not done one after the other. Pick one to step through."
+                 else "Pick a route. The substeps below change to match it, then rejoin at ${flow.routeJoin}.",
                 fontFamily = PlexSans, fontSize = 11.5f.sp, lineHeight = 16.sp,
                 color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(top = 2.dp, bottom = 8.dp))
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -2310,7 +2310,7 @@ private fun StepsTab(lib: Library, flow: ProcessFlow, index: Int, list: LazyList
                     Column(Modifier.weight(1f)) {
                         Text("Show every operation", fontFamily = PlexSans, fontSize = 13.sp,
                             color = MaterialTheme.colorScheme.onSurface)
-                        Text("Resist, exposure, etch and fill between the main steps, some on a 2 × 2 tile",
+                        Text("Adds resist, exposure, etch and fill between main steps; some use a 2 × 2 tile",
                             fontFamily = PlexSans, fontSize = 11.5f.sp, lineHeight = 16.sp,
                             color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
@@ -2437,7 +2437,7 @@ private fun SectionTab(scene: Scene, cx: Float, cy: Float, cz: Float, explode: F
             Toggle("Edge outlines", edges, onEdges),
             Toggle("Surface texture", tex, onTex),
             Toggle("Dimension callouts", dims, onDims),
-            Toggle("Ghost the gate fill", ghost, onGhost),
+            Toggle("Fade the gate fill", ghost, onGhost),
             Toggle("Slow rotate", spin, onSpin))
         for (row in toggles.chunked(2)) {
             Row(Modifier.fillMaxWidth().padding(vertical = 2.dp),
@@ -2631,7 +2631,7 @@ private fun StoryTab(scene: Scene) {
     val blocks = remember(scene) { storyBlocks(scene.story) }
     LazyColumn(contentPadding = PaddingValues(bottom = 24.dp)) {
         if (blocks.isEmpty()) item {
-            Text("No background written for this scene yet.",
+            Text("No background text for this scene yet.",
                 fontFamily = PlexSans, fontSize = 13.sp,
                 color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
@@ -2665,9 +2665,9 @@ private fun LazyListScope.parasiticSection(
         Spacer(Modifier.height(18.dp))
         Text("Capacitance estimates", fontFamily = PlexSans, fontWeight = FontWeight.SemiBold,
             fontSize = 14.sp, color = MaterialTheme.colorScheme.onSurface)
-        Text("From this model's own geometry — L_G ${P.lg.toInt()} nm, W_eff " +
+        Text("Worked out from this model's own geometry: L_G ${P.lg.toInt()} nm, W_eff " +
              "${P.weff.toInt()} nm (total shown), gate-stack span ${P.foot.toInt()} nm. " +
-             "C_gc + C_ge = ${P.gateParPct}% of C_ox in this approximation. Tap a row to highlight it; read the limitations below.",
+             "In this approximation, C_gc + C_ge = ${P.gateParPct}% of C_ox. Tap a row to highlight it, and read the limits below.",
             fontFamily = PlexSans, fontSize = 12.sp, lineHeight = 17.sp,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.padding(top = 4.dp, bottom = 8.dp))

@@ -453,8 +453,8 @@ fun WelcomeGuide(onStart: () -> Unit, onSkip: () -> Unit) {
                 Text("New here?", style = MaterialTheme.typography.titleLarge,
                     color = MaterialTheme.colorScheme.onSurface)
                 Spacer(Modifier.height(8.dp))
-                Text("A minute-long tour of the model, the tools around it, and how they " +
-                     "connect. You can skip it now and replay it any time from Help.",
+                Text("A one-minute tour of the model, its tools and how they work together. " +
+                     "You can skip it now and replay it any time from Help.",
                     fontFamily = PlexSans, fontSize = 13.5f.sp, lineHeight = 19.sp,
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
                 Spacer(Modifier.height(18.dp))

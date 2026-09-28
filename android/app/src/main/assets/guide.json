@@ -4,35 +4,35 @@
       "id": "modes",
       "category": "Getting around",
       "title": "Device, Inverter, Layout, Process",
-      "body": "Explore device structures, illustrative CMOS inverter circuits, schematic layouts and, in Process, how a device is made. The selected architecture carries across modes. Layout simplifies the layer stack and vertical geometry.",
+      "body": "Device shows the structure, Inverter an illustrative CMOS inverter, Layout a schematic layout, and Process how the device is made. The selected architecture carries across modes. Layout simplifies the layer stack and vertical geometry.",
       "gesture": "tap"
     },
     {
       "id": "arch",
       "category": "Getting around",
       "title": "Compare architectures",
-      "body": "Explore four device architectures on one possible scaling roadmap: FinFET, nanosheet FET, inner-wall forksheet and CFET. Tap an architecture button, or Compare to see the examples side by side.",
+      "body": "Four device architectures, on one possible scaling roadmap: FinFET, nanosheet FET, inner-wall forksheet and CFET. Tap an architecture button to open one, or Compare to see the examples side by side.",
       "gesture": "tap"
     },
     {
       "id": "stage",
       "category": "The 3D view",
       "title": "Orbit, pan, zoom, inspect",
-      "body": "Drag with one finger to orbit. Two fingers to pan. Pinch to zoom. Tap any layer to see what it's made of.",
+      "body": "Drag with one finger to orbit, two fingers to pan, and pinch to zoom. Tap any layer to see what it's made of.",
       "gesture": "pinch"
     },
     {
       "id": "design",
       "category": "The 3D view",
       "title": "Channel design",
-      "body": "Nanosheet scenes come in two CMOS designs, picked on the stage (top right) and kept across Device, Inverter and Process, each with its own fabrication lesson: Si/SiGe CMOS (Si nFET and SiGe pFET sheets from one stack, after patent US 2023/0420457 A1) and Si/Si CMOS (Si sheets in both, full bottom isolation, after application US 2023/0178617 A1).",
+      "body": "Nanosheet scenes come in two CMOS designs, picked on the stage (top right). Si/SiGe CMOS: Si nFET and SiGe pFET sheets from one stack, after patent US 2023/0420457 A1. Si/Si CMOS: Si sheets in both and full bottom isolation, after application US 2023/0178617 A1. The choice is kept across Device, Inverter and Process, and each design has its own fabrication lesson.",
       "gesture": "tap"
     },
     {
       "id": "views",
       "category": "Tools",
       "title": "Views",
-      "body": "Choose a preset 3D overview or a view along or across the channel. Presets vary by scene; architecture-specific details appear in the specialized views.",
+      "body": "Choose a preset: a 3D overview, or a view along or across the channel. Presets vary by scene; the specialized views show architecture-specific details.",
       "tab": 0,
       "gesture": "tap"
     },
@@ -40,7 +40,7 @@
       "id": "section",
       "category": "Tools",
       "title": "Section",
-      "body": "Slide to cut the model open on any axis, or pull the layers apart. Display holds the sheet's see-through, slow rotate and the other display switches.",
+      "body": "Slide to cut the model open on any axis, or to pull the layers apart. Under Display: the sheet's see-through, slow rotate and the other display switches.",
       "tab": 1,
       "gesture": "drag"
     },
@@ -48,7 +48,7 @@
       "id": "layers",
       "category": "Tools",
       "title": "Layers",
-      "body": "Hide any single layer to see what's underneath it — or hide a whole group, or everything, with one tap.",
+      "body": "Hide any single layer to see what's underneath it. Or hide a whole group, or everything, with one tap.",
       "tab": 2,
       "gesture": "tap"
     },
@@ -56,7 +56,7 @@
       "id": "specs",
       "category": "Tools",
       "title": "Specs",
-      "body": "Read model dimensions and design notes. On individual Device scenes, tap a capacitance row to highlight the modeled coupling. Values are geometry-only estimates, not measurements or a field-solver extraction.",
+      "body": "Read the model's dimensions and design notes. On individual Device scenes, tap a capacitance row to highlight the modeled coupling. The values are geometry-only estimates, not measurements or a field-solver extraction.",
       "tab": 3,
       "gesture": "tap"
     },
@@ -64,7 +64,7 @@
       "id": "steps",
       "category": "Tools",
       "title": "Steps (Process mode)",
-      "body": "In Process, the Steps tab takes the place of Specs: every fabrication step with what it shows, the source it follows and what the model leaves out. Step with the arrows on the stage or press play. Show every operation adds the resist, exposure, etch and fill substeps; where the patterning routes part (the nanosheet's stack lines, the FinFET's fins), choose how they are printed: direct print, SADP or SAQP. The SADP and SAQP chips show those routes on their own, and Pitch walk lets the SAQP dimensions vary. The site selector switches between the nFET, the pFET and both sites, where the gate line ends in a gate cut or a shared gate. The Section tab's planes show a 2D section beside the 3D view, and a step that cites a figure compares it with what the source's text describes. The nanosheet and FinFET have flows so far; forksheet and CFET are coming.",
+      "body": "In Process, the Steps tab takes the place of Specs. It lists every fabrication step: what it shows, the source it follows and what the model leaves out. Step with the arrows on the stage, or press play. Show every operation adds the resist, exposure, etch and fill substeps. Where the patterning routes part (the nanosheet's stack lines, the FinFET's fins), choose how they are printed: direct print, SADP or SAQP. The SADP and SAQP chips show those routes on their own, and Pitch walk lets the SAQP dimensions vary. The site selector switches between the nFET, the pFET and both sites; with both, the gate line ends in a gate cut or a shared gate. The Section tab's planes show a 2D section beside the 3D view. A step that cites a figure compares it with what the source's text describes. The nanosheet and FinFET have flows so far; forksheet and CFET are coming.",
       "tab": 3,
       "gesture": "tap"
     },
@@ -80,7 +80,7 @@
       "id": "p_stepper",
       "category": "Process mode",
       "title": "Step through the fabrication",
-      "body": "The stepper under the model moves one step at a time, or plays the whole flow; with a cross section on top, the same controls sit on the 3D view: play and the step number top-left, the name top-right, arrows at the sides. \"STEP 6 of 18 · OPERATION 5\" is the fifth operation leading into core step 6; switch on Show every operation in Steps to see them all.",
+      "body": "The stepper under the model moves one step at a time, or plays the whole flow. With a cross section on top, the same controls sit on the 3D view: play and the step number top left, the name top right, arrows at the sides. \"STEP 6/18 · OP 5\" is the fifth operation leading into core step 6; switch on Show every operation in Steps to see them all.",
       "gesture": "tap"
     },
     {
@@ -95,7 +95,7 @@
       "id": "p_sites",
       "category": "Process mode",
       "title": "nFET, pFET or both sites",
-      "body": "The pill at the top left of the stage picks the device the flow follows: the nFET, the pFET, or both sites side by side on one gate line. The pFET shares the nFET's early stages, then has its own masked steps. On the nanosheet, the channel design (Si/SiGe or Si/Si CMOS) is picked at the top right.",
+      "body": "The pill at the top left of the stage picks the device the flow follows: the nFET, the pFET, or both side by side on one gate line. The pFET shares the nFET's early stages, then has its own masked steps. On the nanosheet, pick the channel design (Si/SiGe or Si/Si CMOS) at the top right.",
       "gesture": "tap"
     },
     {
@@ -110,7 +110,7 @@
       "id": "p_secmode",
       "category": "Process mode",
       "title": "3D, section or both",
-      "body": "With a plane picked, choose 3D only, the 2D section only, or Both: the section over the top of the stage and the 3D view below it.",
+      "body": "With a plane picked, choose 3D only, the 2D section only, or Both. Both puts the section at the top of the stage and the 3D view below it.",
       "tab": 1,
       "gesture": "tap"
     },
@@ -126,7 +126,7 @@
       "id": "p_show",
       "category": "Process mode",
       "title": "From a step to its cross section",
-      "body": "In Steps, a step shown best in a plane has a Show cross section button under its text. One tap opens that plane's section beside the model.",
+      "body": "In Steps, a step best seen in a plane has a Show cross section button under its text. One tap opens that plane's section beside the model.",
       "tab": 3,
       "gesture": "tap"
     },
@@ -134,7 +134,7 @@
       "id": "p_lessons",
       "category": "Process mode",
       "title": "Patterning lessons: SADP, SAQP, pitch walk",
-      "body": "After the device flows come the patterning lessons: self-aligned double and quadruple patterning, which print lines finer than one exposure can, and pitch walk, how small errors in SAQP make the spaces between lines uneven.",
+      "body": "After the device flows come the patterning lessons. Self-aligned double and quadruple patterning (SADP, SAQP) print lines finer than one exposure can. Pitch walk shows how small errors in SAQP make the spaces between lines uneven.",
       "tab": -1,
       "gesture": "tap"
     }
@@ -177,12 +177,12 @@
     {
       "key": "fs",
       "title": "3 · Forksheet",
-      "body": "A dielectric wall lets the nFET and pFET stacks sit closer together, shrinking the cell sideways."
+      "body": "A dielectric wall lets the nFET and pFET stacks sit closer together. That shrinks the cell sideways."
     },
     {
       "key": "cfet_mono",
       "title": "4 · CFET",
-      "body": "The nFET and pFET are stacked on top of each other, so the cell shrinks again by growing upwards."
+      "body": "The nFET and pFET are stacked on top of each other. The cell shrinks again, this time by growing upwards."
     },
     {
       "key": "process",
@@ -194,7 +194,7 @@
     {
       "term": "BDI",
       "name": "Bottom dielectric isolation",
-      "text": "A dielectric layer under the nanosheet stack that separates the channels and source/drain from the substrate, cutting leakage through the silicon below.",
+      "text": "A dielectric layer under the nanosheet stack. It separates the channels and source/drain from the substrate, cutting leakage through the silicon below.",
       "match": [
         "BDI",
         "bottom dielectric"
@@ -212,7 +212,7 @@
     {
       "term": "CMP",
       "name": "Chemical-mechanical polishing",
-      "text": "Polishing that flattens the wafer, stopping on a harder layer; used after fills such as STI oxide, ILD and metal.",
+      "text": "Polishing that flattens the wafer and stops on a harder layer. It is used after fills such as STI oxide, ILD and metal.",
       "match": [
         "CMP"
       ]
@@ -220,7 +220,7 @@
     {
       "term": "CPP",
       "name": "Contacted poly pitch",
-      "text": "The gate-to-gate spacing with a contact between neighbours, the key horizontal pitch of a logic cell: about 45–48 nm at 3 nm-class and 2 nm nodes.",
+      "text": "The gate-to-gate spacing, with a contact between neighbours. It is the key horizontal pitch of a logic cell: about 45–48 nm at 3 nm-class and 2 nm nodes (a typical value).",
       "match": [
         "CPP",
         "gate pitch"
@@ -229,7 +229,7 @@
     {
       "term": "EOT",
       "name": "Equivalent oxide thickness",
-      "text": "The SiO₂ thickness that would give the same gate capacitance as the real stack: the interfacial layer plus the high-κ thickness × 3.9/κ. Advanced nodes are below about 1 nm.",
+      "text": "The SiO₂ thickness that would give the same gate capacitance as the real stack. It is the interfacial layer plus the high-κ thickness × 3.9/κ. Advanced nodes are typically below about 1 nm.",
       "match": [
         "EOT"
       ]
@@ -237,7 +237,7 @@
     {
       "term": "Epitaxy",
       "name": "Epitaxial growth",
-      "text": "Growing crystal silicon or SiGe on an exposed crystal surface, so it continues the lattice. The source and drain are grown this way: Si:P for nFETs, SiGe:B for pFETs.",
+      "text": "Growing crystal silicon or SiGe on an exposed crystal surface, so the new layer continues the lattice. The source and drain are grown this way, for example Si:P for nFETs and SiGe:B for pFETs.",
       "match": [
         "epitax"
       ]
@@ -255,7 +255,7 @@
     {
       "term": "Gate cut",
       "name": "Gate cut",
-      "text": "Cutting a gate line so that two neighbouring devices get separate gates; the alternative is a shared gate joining them.",
+      "text": "Cutting a gate line so that two neighbouring devices get separate gates. The alternative is a shared gate joining them.",
       "match": [
         "gate cut"
       ]
@@ -263,7 +263,7 @@
     {
       "term": "High-κ / HKMG",
       "name": "High-κ metal gate",
-      "text": "A gate dielectric with a higher permittivity than SiO₂ (here HfO₂) under a metal gate, so the gate controls the channel through a physically thicker film with less leakage.",
+      "text": "A gate dielectric with a higher permittivity than SiO₂ (here HfO₂), under a metal gate. The gate then controls the channel through a physically thicker film, with less leakage.",
       "match": [
         "high-κ",
         "HKMG"
@@ -272,7 +272,7 @@
     {
       "term": "IL",
       "name": "Interfacial layer",
-      "text": "A thin SiO₂ film, under 1 nm in production, between the silicon channel and the high-κ dielectric.",
+      "text": "A thin SiO₂ film, typically under 1 nm in production, between the silicon channel and the high-κ dielectric.",
       "match": [
         "interfacial"
       ]
@@ -288,7 +288,7 @@
     {
       "term": "Inner spacer",
       "name": "Inner spacer",
-      "text": "Dielectric formed in recesses of the SiGe layers at the ends of a nanosheet stack, so the gate between the sheets is kept apart from the source and drain.",
+      "text": "Dielectric formed in recesses of the SiGe layers at the ends of a nanosheet stack. It keeps the gate between the sheets apart from the source and drain.",
       "match": [
         "inner spacer"
       ]
@@ -296,7 +296,7 @@
     {
       "term": "Mandrel",
       "name": "Mandrel",
-      "text": "A sacrificial printed line in SADP and SAQP. Spacers are formed on its sides, then it is removed and the spacers become the pattern.",
+      "text": "A sacrificial printed line in SADP and SAQP. Spacers are formed on its sides; then it is removed, and the spacers become the pattern.",
       "match": [
         "mandrel"
       ]
@@ -304,7 +304,7 @@
     {
       "term": "PTS",
       "name": "Punch-through stopper",
-      "text": "A heavily doped region under the fin or stack that blocks leakage from source to drain through the substrate below the gate.",
+      "text": "A heavily doped region under the fin or stack. It blocks leakage from source to drain through the substrate below the gate.",
       "match": [
         "PTS",
         "punch-through"
@@ -313,7 +313,7 @@
     {
       "term": "Pitch walk",
       "name": "Pitch walk",
-      "text": "Unequal spaces between lines from multiple patterning, caused when the core or spacer widths drift from their ideal values.",
+      "text": "Unequal spaces between lines from multiple patterning. It happens when the core or spacer widths drift from their ideal values.",
       "match": [
         "pitch walk"
       ]
@@ -321,7 +321,7 @@
     {
       "term": "Release",
       "name": "Channel release",
-      "text": "Selectively etching away the SiGe layers of a nanosheet stack to free the silicon sheets, so the gate can wrap all four sides.",
+      "text": "Selectively etching away the SiGe layers of a nanosheet stack to free the silicon sheets. The gate can then wrap all four sides.",
       "match": [
         "release"
       ]
@@ -329,7 +329,7 @@
     {
       "term": "RMG",
       "name": "Replacement metal gate",
-      "text": "A gate-last flow: a sacrificial dummy gate holds the place during the hot steps, then is removed and replaced by the high-κ/metal gate.",
+      "text": "A gate-last flow. A sacrificial dummy gate holds the place during the hot steps; then it is removed and replaced by the high-κ/metal gate.",
       "match": [
         "RMG",
         "dummy gate",
@@ -339,7 +339,7 @@
     {
       "term": "SADP / SAQP",
       "name": "Self-aligned double / quadruple patterning",
-      "text": "Spacers formed on printed mandrels become the pattern, halving the printed pitch (SADP) or, repeated once more, quartering it (SAQP).",
+      "text": "Spacers formed on printed mandrels become the pattern. This halves the printed pitch (SADP) or, repeated once more, quarters it (SAQP).",
       "match": [
         "SADP",
         "SAQP"
@@ -364,7 +364,7 @@
     {
       "term": "WFM",
       "name": "Work-function metal",
-      "text": "A thin metal in the gate that sets the transistor's threshold voltage: an n-type one for nFETs, typically TiN for pFETs.",
+      "text": "A thin metal in the gate that sets the transistor's threshold voltage. nFETs use an n-type one; pFETs typically use TiN.",
       "match": [
         "work-function"
       ]
@@ -372,7 +372,7 @@
     {
       "term": "W_eff",
       "name": "Effective width",
-      "text": "The total gated channel perimeter that carries current: for a fin, twice the height plus the top width; for sheets, the sum of the sheet perimeters.",
+      "text": "The total gated channel perimeter that carries current. For a fin, it is twice the height plus the top width; for sheets, the sum of the sheet perimeters.",
       "match": [
         "W_eff",
         "effective width"

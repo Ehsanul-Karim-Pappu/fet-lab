@@ -181,22 +181,27 @@ def si_device(stack, wired, key, name, tag):
 
 
 # ================================================================== the lesson ===
-SCOPE = ("Si/Si CMOS nanosheet fabrication after one example route, IBM's patent application "
-         "US 2023/0178617 A1, “Nanosheet epitaxy with full bottom isolation” [R28]: Si channels in "
-         "both the nFET and the pFET, an undoped Si growth region in the source/drain openings, and "
-         "bottom dielectric isolation under both devices, formed by replacing a Ge-rich sacrificial "
-         "layer. One disclosed example, not a production foundry flow, and a different route from "
-         "the Si/SiGe lesson's patent [R13]: its isolation and channel release are not used here. "
-         "Illustrative dimensions.")
-FIGURES = ("Figure numbers are the application's (US 2023/0178617 A1, in docs/nsfet). Each state was "
-           "compared with the drawings it names; the views are the app's reconstructions, in its own "
-           "frame and proportions. The patent's alternate embodiment (Figs. 53–55) is not used.")
-BRANCH = ("Both devices are followed together, side by side on one gate line, because their "
-          "source/drain steps differ: each is grown with the other region protected. The contacts "
-          "and the inverter wiring at the end are the lesson's educational completion of the "
-          "depicted devices; the application gives no complete routing recipe.")
-SUBS = ["Dimensions are illustrative: 7 nm Si sheets and 7 nm SiGe layers, an 8 nm Ge-rich layer "
-        "and a 2 nm seed are the model's choices, not the application's",
+SCOPE = ("Si/Si CMOS nanosheet fabrication, after one example route: IBM's patent application "
+         "US 2023/0178617 A1, “Nanosheet epitaxy with full bottom isolation” [R28]. "
+         "Both the nFET and the pFET have Si channels [R28]. "
+         "Undoped Si is grown in the source/drain openings [R28]. "
+         "Bottom dielectric isolation lies under both devices; it is made by replacing a Ge-rich "
+         "sacrificial layer [R28]. "
+         "This is one disclosed example, not a production foundry flow. "
+         "It is also a different route from the Si/SiGe lesson's patent [R13]: that patent's isolation "
+         "and channel release are not used here. "
+         "Dimensions are illustrative.")
+FIGURES = ("Figure numbers are the application's (US 2023/0178617 A1, in docs/nsfet). "
+           "Each state was compared with the drawings it names. "
+           "The views are the app's own reconstructions, in its own frame and proportions. "
+           "The application's alternate embodiment (Figs. 53–55) is not used.")
+BRANCH = ("Both devices are followed together, side by side on one gate line. "
+          "This is because their source/drain steps differ: each one is grown while the other "
+          "region is protected. "
+          "The contacts and the inverter wiring at the end complete the depicted devices for "
+          "teaching. The application gives no complete routing recipe.")
+SUBS = ["Dimensions are the model's illustrative choices, not the application's: 7 nm Si sheets, "
+        "7 nm SiGe layers, an 8 nm Ge-rich layer and a 2 nm seed",
         "Only one site of each line is drawn; the lines run on past its source/drain edges"]
 MATCH = {"source": "Source stage, adapted",
          "teach": "Teaching reconstruction; no source figure",
@@ -278,10 +283,13 @@ def flow(done=None):
         F.put(tmp(f"t_si{i+1}", f"Si · future channel sheet {i+1}", "silicon", "Channel stack",
                   [box(-XSD, XSD, a, b, ZLO, ZHI)]))
     snap("stack", "Multilayer epitaxy",
-         "One stack is grown over both regions: a Ge-rich sacrificial SiGe bottom layer, a thin Si seed "
-         "layer, then lower-Ge SiGe and Si in turn, three Si layers in all. In this route the Si layers "
-         "are the channels of both devices; the lower-Ge SiGe is removed later from the gate region, and "
-         "the Ge-rich layer, which etches selectively against it, is replaced by isolation [R28].",
+         "One crystal stack is grown over both regions (epitaxy: new layers continue the wafer's "
+         "crystal). From the bottom: a Ge-rich SiGe layer, a thin Si seed layer, then lower-Ge SiGe "
+         "and Si in turn, with three Si layers in all [R28]. "
+         "The Si layers become the channels of both devices [R28]. "
+         "The SiGe layers are sacrificial: they are removed later. The lower-Ge SiGe comes out of "
+         "the gate region. The Ge-rich layer, which etches selectively against it, is replaced by "
+         "isolation [R28].",
          view="chann", subs=SUBS, deposit=["t_bot", "t_seed"] + [f"t_sg{i+1}" for i in range(3)] +
          [f"t_si{i+1}" for i in range(3)], regions=("shared stack", "shared stack"))
     # 3
@@ -296,10 +304,11 @@ def flow(done=None):
     for k in ("n", "p"):
         F.put(tmp(f"{k}_thm", f"{WHO[k]} · Stack hard mask", "si3n4", "Patterning", [foot(k, TOP, TOP + 6)], (0, 1.3, 0)))
     snap("lines", "Stack lines etched",
-         "A hard mask defines one line per region, and a directional etch cuts through the multilayer "
-         "into the substrate, leaving two stack lines on Si sub-fins [R28]. How the lines are printed "
-         "(a direct exposure, SADP or SAQP) is a separate choice; the Lessons chips show those routes on "
-         "the Si/SiGe lesson's tile.", view="gate", subs=SUBS + ["The hard mask's material and thickness are illustrative"],
+         "A hard mask defines one line per region [R28]. "
+         "A directional etch then cuts through the multilayer into the substrate. It leaves two "
+         "stack lines, each on a Si sub-fin [R28]. "
+         "How the lines are printed (a direct exposure, SADP or SAQP) is a separate choice. The "
+         "Lessons chips show those routes on the Si/SiGe lesson's tile.", view="gate", subs=SUBS + ["The hard mask's material and thickness are illustrative"],
          regions=("stack line", "stack line"))
     # 4
     F.drop("n_thm", "p_thm")
@@ -308,8 +317,9 @@ def flow(done=None):
               [box(b[0] - b[3] / 2, b[0] + b[3] / 2, b[1] - b[4] / 2, Y0, b[2] - b[5] / 2, b[2] + b[5] / 2)
                for b in sti["boxes"] if b[1] - b[4] / 2 < -1], (0, -.8, 0)))
     snap("sti", "Shallow trench isolation",
-         "A dielectric fills the trenches, is polished, and is recessed to about the top of the seed "
-         "layer, so the Ge-rich layer's sides stay covered for now; the hard mask is removed [R28].",
+         "A dielectric fills the trenches between the lines and is polished [R28]. "
+         "It is then recessed to about the top of the seed layer, so the Ge-rich layer's sides stay "
+         "covered for now. The hard mask is removed [R28].",
          view="gate", subs=SUBS, regions=("isolated line", "isolated line"))
     # 5
     stk = [foot(k, 0, TOP) for k in ("n", "p")]
@@ -317,172 +327,192 @@ def flow(done=None):
               subtract((-XG, XG, 0, ymo, gz0, gz1), stk + F.boxes()), (0, 1.0, 0)))
     F.put(tmp("t_ghm", "Gate hard mask (SiN)", "si3n4", "Dummy gate", [box(-XG, XG, ymo, ycap, gz0, gz1)], (0, 1.4, 0)))
     snap("dummy", "Sacrificial gate and hard mask",
-         "A sacrificial gate and its hard mask are patterned across both lines. They hold the channel "
-         "regions' place, and protect them, until the replacement gate [R28].",
+         "A sacrificial gate and its hard mask are patterned across both lines [R28]. "
+         "This placeholder is not the real gate. It holds the channel regions' place and protects "
+         "them until the replacement gate goes in [R28].",
          subs=SUBS + ["A thin dummy-gate oxide is not drawn",
-                      "The application's sacrificial gate stands 50–100 nm above the stack; it is drawn short",
+                      "The application's sacrificial gate stands 50–100 nm above the stack; it is drawn shorter here",
                       "The SiN hard mask is the model's choice"], regions=("dummy gate", "dummy gate"))
     # 6
     F.add("spacer_source", "spacer_drain", "n_finsp", "p_finsp")
     snap("spacers", "Spacers",
-         "Spacer 130 (SiBCN here, one of the application's options) is deposited and etched back: on "
-         "both sides of the sacrificial gate, and along the stacks' sides between the gates, where it "
-         "will bound the source/drain [R28].", view="chann", subs=SUBS, regions=("spacers", "spacers"))
+         "Spacer 130 (130 is the application's reference number) is deposited and etched back [R28]. "
+         "It is SiBCN here, one of the application's options. "
+         "It stays on both sides of the sacrificial gate. It also stays along the stacks' sides "
+         "between the gates, where it will bound the source/drain [R28].", view="chann", subs=SUBS, regions=("spacers", "spacers"))
     # 7
     for k in ("n", "p"):
         layers(k, sg=(-XSP, XSP), si=None)
         for i in range(3): F.add(f"{k}_sheet{i+1}")
         a, b = SG[0]
-        F.put(tmp(f"{k}_trem", f"{WHO[k]} · SiGe, lower Ge · what the recess leaves of the lowest layer", "sige",
+        F.put(tmp(f"{k}_trem", f"{WHO[k]} · SiGe, lower Ge · lowest layer, what the recess leaves", "sige",
                   f"{WHO[k]} · Channel stack", [foot(k, a, (a + b) / 2, -XSD, -XSP), foot(k, a, (a + b) / 2, XSP, XSD)]))
     snap("recess", "Source/drain recess",
-         "Outside the gate and spacers the stacks are etched down, stopping inside the lowest lower-Ge "
-         "SiGe layer; the seed and the Ge-rich layer below stay intact. The sacrificial gate protects "
-         "the channel regions [R28].",
+         "Outside the gate and spacers, the stacks are etched down [R28]. "
+         "The etch stops inside the lowest lower-Ge SiGe layer. The seed and the Ge-rich layer below "
+         "stay intact [R28]. "
+         "The sacrificial gate protects the channel regions [R28].",
          view="chann", subs=SUBS, regions=("recessed to the seed", "recessed to the seed"))
     # 8
     for k in ("n", "p"):
         layers(k, sg=(-XG, XG), si=None)
     snap("indent", "SiGe indented",
-         "A selective etch pulls the lower-Ge SiGe layers back from the exposed sheet ends, under the "
-         "spacers, and clears what was left of the lowest one in the openings, exposing the seed; the "
-         "Si sheets and the seed stay [R28].", view="chann", subs=SUBS,
+         "A selective etch removes one material and leaves another. Here it pulls the lower-Ge SiGe "
+         "layers back from the exposed sheet ends, under the spacers [R28]. "
+         "It also clears what was left of the lowest SiGe layer in the openings, exposing the seed. "
+         "The Si sheets and the seed stay [R28].", view="chann", subs=SUBS,
          regions=("SiGe indented", "SiGe indented"))
     # 9
     F.add("n_inner_source", "n_inner_drain", "p_inner_source", "p_inner_drain")
     snap("inner", "Inner spacers",
-         "Dielectric is deposited into the indents and etched back, leaving inner spacers that will "
-         "separate the gate from the source and drain [R28].", view="chann", subs=SUBS,
+         "Dielectric is deposited into the indents and etched back [R28]. "
+         "What remains are the inner spacers. They will separate the gate from the source and "
+         "drain [R28].", view="chann", subs=SUBS,
          regions=("inner spacers", "inner spacers"))
     # 10
     for k in ("n", "p"):
         F.put(tmp(f"{k}_ugrow", f"{WHO[k]} · Undoped Si (as grown)", "siu", f"{WHO[k]} · Source / drain",
                   [foot(k, Y0, TOP + 3, -XSD, -XSP), foot(k, Y0, TOP + 3, XSP, XSD)], (0, -.2, 0)))
     snap("undoped", "Undoped Si growth",
-         "Undoped Si grows in the source/drain openings from the exposed Si seed and the channel ends, "
-         "up past the top of the stack, a feature of this route: each device's trench later etches it "
-         "back, and its source/drain grows on what is left [R28].", view="chann", subs=SUBS,
+         "Undoped Si grows in the source/drain openings, from the exposed Si seed and the channel "
+         "ends [R28]. It grows up past the top of the stack. "
+         "This undoped layer is a feature of this route. Later, each device's trench etches it back, "
+         "and that device's source/drain grows on what is left [R28].", view="chann", subs=SUBS,
          regions=("undoped Si grown", "undoped Si grown"))
     # 10b
     F.drop("t_sti"); F.add("sti")
     snap("sti_recess", "STI recessed",
-         "The STI is recessed below the Ge-rich layer, baring its sides beside the source/drain "
-         "openings [R28].", view="sd", subs=SUBS, regions=("Ge-rich layer bared", "Ge-rich layer bared"))
+         "The STI is recessed below the Ge-rich layer [R28]. "
+         "This bares the layer's sides beside the source/drain openings.", view="sd", subs=SUBS, regions=("Ge-rich layer bared", "Ge-rich layer bared"))
     # 11
     for k in ("n", "p"): layers(k, sg=(-XG, XG), si=None, bot=False)
     snap("cavity", "Ge-rich layer removed",
-         "With its sides bare above the recessed STI, the Ge-rich layer is removed by a selective "
-         "etch (vapour HCl) through them, leaving a cavity beneath the stacks and the undoped "
-         "Si; the structure is held by the sacrificial gate, the spacers and the growth regions [R28].",
+         "The Ge-rich layer is removed by a selective etch (vapour HCl), through its sides bared above "
+         "the recessed STI [R28]. "
+         "This leaves a cavity beneath the stacks and the undoped Si. "
+         "The sacrificial gate, the spacers and the growth regions hold the structure [R28].",
          view="sd", subs=SUBS, regions=("cavity below", "cavity below"))
     # 12
     F.add("n_bdi", "p_bdi")
     snap("bdi", "Bottom dielectric isolation",
-         "Dielectric fills the cavity and is etched back: bottom dielectric isolation under both devices, "
-         "beneath the channel stack and the undoped Si alike [R28].", view="sd", subs=SUBS,
+         "Dielectric fills the cavity and is etched back [R28]. "
+         "The result is bottom dielectric isolation (BDI): an insulator under both devices, beneath "
+         "the channel stack and the undoped Si alike [R28].", view="sd", subs=SUBS,
          regions=("bottom isolation", "bottom isolation"))
     # 13
     F.put(tmp("t_cesl", "CESL 150 (SiN, 4 nm) · blanket", "si3n4", "Region masks",
               conformal(F.boxes(), 4.0, (-XSD, XSD, 0, ycap + 4.0, ZLO, ZHI)), (0, .8, 0)))
     snap("cesl", "Contact etch-stop liner",
-         "A 4 nm etch-stop liner (a nitride here, SiN) goes over everything, both regions [R28].",
+         "A 4 nm etch-stop liner covers everything, in both regions [R28]. "
+         "It is a nitride (SiN here).",
          view="sd", subs=SUBS, regions=("lined", "lined"))
     opl("n")
-    snap("n_protect", "nFET region masked", "An organic planarisation layer (OPL) is patterned over the "
-         "nFET region, so only the pFET's openings are exposed [R28].", view="sd", of="p_sd",
+    snap("n_protect", "nFET region masked", "An organic planarisation layer (OPL) is patterned over "
+         "the nFET region [R28]. Only the pFET's openings are left exposed.", view="sd", of="p_sd",
          subs=SUBS, regions=("masked", "open"))
     F.drop("t_opl", "p_ugrow"); F.add("p_undoped_source", "p_undoped_drain", "p_epi_source", "p_epi_drain")
     keep_liner("t_cesl", "n")
     snap("p_sd", "pFET source/drain",
-         "The liner is opened over the pFET's openings and a trench etch recesses its undoped Si, "
-         "leaving it below the lowest sheet. The OPL is removed and boron-doped SiGe grows from the Si "
-         "sheet ends and the undoped Si. The pFET's channels stay Si; only its source/drain is SiGe [R28].",
+         "The liner is opened over the pFET's openings [R28]. "
+         "A trench etch recesses the pFET's undoped Si to below the lowest sheet [R28]. "
+         "The OPL is removed. Boron-doped SiGe (SiGe:B) then grows from the Si sheet ends and the "
+         "undoped Si [R28]. "
+         "The pFET's channels stay Si; only its source/drain is SiGe [R28].",
          view="sd", subs=SUBS, regions=("masked", "SiGe:B source/drain"))
     # 14
     F.put(tmp("t_cesl2", "Second liner · blanket", "si3n4", "Region masks",
               conformal(F.boxes(), 4.0, (-XSD, XSD, 0, ycap + 8.0, ZLO, ZHI)), (0, .9, 0)))
     opl("p")
-    snap("p_protect", "pFET region masked", "A second liner and a second OPL cover the pFET region; "
-         "the application describes these without drawing them [R28].", view="sd", match="teach", of="n_sd",
+    snap("p_protect", "pFET region masked", "A second liner and a second OPL cover the pFET region. "
+         "The application describes these but does not draw them [R28].", view="sd", match="teach", of="n_sd",
          subs=SUBS, regions=("open", "masked"))
     F.drop("t_opl", "n_ugrow"); F.add("n_undoped_source", "n_undoped_drain", "n_epi_source", "n_epi_drain")
     keep_liner("t_cesl", "n", drop_in="n"); keep_liner("t_cesl2", "p")
     snap("n_sd", "nFET source/drain",
-         "The same for the nFET: its liners are opened, its undoped Si is recessed, the OPL is removed, "
-         "and phosphorus-doped SiC grows from its sheet ends and undoped Si, one example the application "
-         "gives [R28].", view="sd", subs=SUBS, regions=("SiC:P source/drain", "masked"))
+         "The nFET now gets the same treatment [R28]. "
+         "Its liners are opened, its undoped Si is recessed and the OPL is removed. "
+         "Phosphorus-doped SiC (SiC:P) then grows from its sheet ends and undoped Si. SiC:P is one "
+         "example the application gives [R28].", view="sd", subs=SUBS, regions=("SiC:P source/drain", "masked"))
     # 15
     F.drop("t_cesl", "t_cesl2")
     ild(ycap)
-    snap("ild", "Interlayer dielectric", "Interlayer dielectric 170, silicon nitride in the "
-         "application, fills the structure and is polished down to the gate hard mask [R28].", view="chann",
+    snap("ild", "Interlayer dielectric", "Interlayer dielectric (ILD) 170 fills the "
+         "structure and is polished down to the gate hard mask [R28]. "
+         "In the application it is silicon nitride [R28].", view="chann",
          subs=SUBS + ["The application does not say when the liners come off; they are drawn removed here"],
          regions=("buried in ILD", "buried in ILD"))
     # 16
     F.drop("t_dummy", "t_ghm")                     # the ILD stays as it was: the trench is open
     snap("pull", "Sacrificial gate removed",
-         "The hard mask and the sacrificial gate are removed, opening the gate trench over both devices "
-         "[R28].", view="gate", subs=SUBS + ["The application removes the SiGe in the same step; the lesson "
+         "The hard mask and the sacrificial gate are removed [R28]. "
+         "This opens the gate trench over both devices.", view="gate", subs=SUBS + ["The application removes the SiGe in the same step; the lesson "
                                              "shows it next, as the channel release"], regions=("gate trench open", "gate trench open"))
     # 17
     for k in ("n", "p"): F.drop_prefix(f"{k}_t")
     F.drop("seed_n", "seed_p")
     F.add("n_seed", "p_seed")
     snap("release", "Channel release",
-         "Inside the gate opening a selective etch removes the lower-Ge SiGe layers in both devices, "
-         "releasing the Si channels. A controlled oxidation and etch then thin the channels slightly and "
-         "remove the exposed seed layer, which stays only under the inner spacers and the undoped Si; "
-         "the gate will sit on the bottom isolation. This route releases both devices the same way [R28].",
+         "Inside the gate opening, a selective etch removes the lower-Ge SiGe layers in both devices "
+         "[R28]. This frees, or releases, the Si channels. "
+         "A controlled oxidation and etch then thin the channels slightly [R28]. "
+         "The same steps remove the exposed seed layer, which stays only under the inner spacers and the "
+         "undoped Si [R28]. So the gate will sit on the bottom isolation. "
+         "This route releases both devices the same way [R28].",
          view="gate", subs=SUBS + ["The thinning (1 nm or less) is not drawn"],
          regions=("Si channels released", "Si channels released"))
     # 18
     F.add(*[f"{k}_il{i}" for k in ("n", "p") for i in ("1", "2", "3")],
           *[f"{k}_hk{i}" for k in ("n", "p") for i in ("1", "2", "3", "s")])
     snap("hk", "Gate dielectric",
-         "A high-κ dielectric, about 2 nm, is deposited all round each sheet and on the bottom "
-         "isolation below them [R28].", view="gate", subs=SUBS + [
+         "A high-κ dielectric is deposited all round each sheet and on the bottom isolation below "
+         "them [R28]. High-κ means a higher permittivity than SiO₂. The film is about 2 nm "
+         "thick [R28].", view="gate", subs=SUBS + [
              "HfO₂ is drawn for the high-κ, one of the application's options",
-             "The thin SiO₂ interfacial layer is the model's: the application etches the oxide off before the high-κ"],
+             "The thin SiO₂ interfacial layer is the model's addition; the application etches the oxide off before the high-κ"],
          regions=("high-κ", "high-κ"))
     # 19
     F.add(*[f"{k}_wf{i}" for k in ("n", "p") for i in ("1", "2", "3", "s")])
     snap("wfm", "Work-function metals",
-         "Each device gets its own work-function metal: TiAlC on the nFET, TiN on the pFET [R28].", view="gate",
-         subs=SUBS + ["How the two metals are patterned is the model's; the application does not say"], regions=("n-type work function", "p-type work function"))
+         "Each device gets its own work-function metal: TiAlC on the nFET, TiN on the pFET [R28]. "
+         "This thin metal sets the transistor's threshold voltage.", view="gate",
+         subs=SUBS + ["How the two metals are patterned is the model's choice; the application does not say"], regions=("n-type work function", "p-type work function"))
     # 20
     F.add("gate_mo")
     cap = F.final["gatecap"]
     F.put(tmp("t_cap", cap["name"], cap["material"], cap["group"],
               [box(-XG, XG, D["ymo"], D["ycap"], *span(cap)[4:])], (0, 1.4, 0)))
     snap("gate", "Gate fill",
-         "The gate stack fills the trench over both devices and is planarised, coplanar with the spacers "
-         "and the ILD: one gate line, so the two gates are one electrode, the inverter's input [R28].",
-         view="gate", subs=SUBS + ["The Mo fill, and the recess and SiN cap over it, are the model's; the "
-                                   "application names no fill and has no cap"],
+         "The gate stack fills the trench over both devices [R28]. "
+         "It is planarised, level with the spacers and the ILD [R28]. "
+         "There is one gate line, so the two gates are one electrode: the inverter's input.",
+         view="gate", subs=SUBS + ["The Mo fill, its recess and the SiN cap are the model's choices; "
+                                   "the application names no fill material and has no cap"],
          regions=("gate", "gate"))
     # 21
     F.drop("t_cap")
     F.add(*[f"{k}_{c}_{T}" for k in ("n", "p") for c in ("nisi", "ni") for T in ("source", "drain")], "gatecap", "gatew")
     ild(D["ym2"])
     snap("contacts", "Middle-of-line contacts",
-         "Contact openings are etched through the ILD; a silicide forms on each source/drain and metal "
-         "fills the openings, with one contact on the shared gate. The contacts complete the depicted "
-         "devices for teaching; the application does not give this contact scheme.", view="sd",
+         "Contact openings are etched through the ILD. "
+         "A silicide (a metal–silicon compound that lowers contact resistance) forms on each "
+         "source/drain, and metal fills the openings. One contact lands on the shared gate. "
+         "These contacts complete the depicted devices for teaching; the application does not give "
+         "this contact scheme.", view="sd",
          match="teach", subs=SUBS + ["The TiSiₓ and Co contacts are illustrative"],
          regions=("contacted", "contacted"))
     # 22
     F.drop("t_ild")
     snap("done", "The finished Si/Si pair",
-         "Si channels in both devices, bottom isolation under both, the undoped Si under each "
-         "source/drain, and one gate with separate n- and p-type work-function metals. This is the Si/Si "
-         "CMOS Device scene; the ILD is hidden for viewing only.", match="teach",
+         "Both devices have Si channels and bottom isolation. The undoped Si sits under each "
+         "source/drain. One gate carries separate n- and p-type work-function metals. "
+         "This is the Si/Si CMOS Device scene; the ILD is hidden for viewing only.", match="teach",
          subs=SUBS + ["The ILD is hidden for viewing only"], regions=("finished", "finished"))
     # 23
     F.add("m1_vss", "m1_vdd", "m1_out", "m1_in")
     snap("wiring", "Wired as an inverter",
-         "The lesson's educational completion: IN on the shared gate, the pFET source to V_DD, the nFET "
-         "source to V_SS, and both drains to OUT. This is the Si/Si CMOS Inverter scene; the application "
-         "does not give a routing recipe.", view="iso", match="teach",
+         "The lesson completes the pair as an inverter, for teaching. IN goes on the shared gate, the "
+         "pFET source to V_DD, the nFET source to V_SS, and both drains to OUT. "
+         "This is the Si/Si CMOS Inverter scene. The application does not give a routing recipe.", view="iso", match="teach",
          subs=SUBS + ["One illustrative metal level; real cells route through several"],
          regions=("V_SS · OUT", "V_DD · OUT"))
     steps = F.done()

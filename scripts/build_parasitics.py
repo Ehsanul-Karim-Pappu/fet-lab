@@ -207,7 +207,7 @@ TERMS = [
         "chan",
         "ox",
         "oxide stack → channel",
-        "Classical oxide-stack estimate from gated area and the actual SiO2/HfO2 film thicknesses in series. Not the bias-dependent terminal gate capacitance: depletion, quantum capacitance and corner fields are omitted."
+        "Classical oxide-stack estimate, from the gated area and the actual SiO2 and HfO2 film thicknesses in series. It is not the bias-dependent terminal gate capacitance: depletion, quantum capacitance and corner fields are left out."
     ],
     [
         "C_gc",
@@ -216,7 +216,7 @@ TERMS = [
         "metal",
         None,
         "gate → S/D contact",
-        "Direct facing-area coupling to source/drain contact conductors along x, summed over both ends. Materials crossed by each ray are combined in series; empty gaps have relative permittivity 1. This is not a 3D fringe-field extraction."
+        "Direct facing-area coupling to the source/drain contact conductors along x, summed over both ends. The materials each ray crosses are combined in series; empty gaps have relative permittivity 1. This is not a 3D fringe-field extraction."
     ],
     [
         "C_ge",
@@ -225,7 +225,7 @@ TERMS = [
         "epi",
         None,
         "gate → S/D epitaxy",
-        "Facing-area estimate treating source/drain epitaxy as equipotential. Uniform spacers, missing ILD and omitted fringe fields limit comparison with real devices. Semiconductor doping and bias are not modeled."
+        "Facing-area estimate that treats the source/drain epitaxy as one equipotential. Uniform spacers, missing ILD and omitted fringe fields limit comparison with real devices. Semiconductor doping and bias are not modeled."
     ],
     [
         "C_j",
@@ -234,7 +234,7 @@ TERMS = [
         "body",
         None,
         "S/D → body proxy",
-        "Junction-contribution proxy: epsilon(Si) times the drawn S/D-to-body contact area divided by an assumed 5nm depletion width. It counts only a direct S/D-to-substrate junction; channel-to-body area is excluded. Zero means no such junction is drawn (for example under full bottom dielectric isolation). That does not imply zero total parasitic capacitance: S/D-to-substrate coupling through dielectric and fringe fields remains, and is not estimated here."
+        "A proxy for the junction contribution: epsilon(Si) times the drawn S/D-to-body contact area, divided by an assumed 5nm depletion width. It counts only a direct S/D-to-substrate junction; channel-to-body area is excluded. Zero means no such junction is drawn (for example under full bottom dielectric isolation). That does not mean zero total parasitic capacitance. S/D-to-substrate coupling through dielectric and fringe fields remains, and is not estimated here."
     ]
 ]
 
@@ -258,16 +258,16 @@ def attach(dev, r):
         gate_par=round(par, 2), gate_par_pct=round(par / cox * 100, 1) if cox else 0.0,
         method="classical plates; no field solver",
         note=("Geometry-only estimates, not measured or TCAD-extracted values. "
-              "W_eff is the total gated perimeter represented in THIS scene "
-              "(both polarities in forksheet/CFET); normalization is not an equal-drive comparison. "
-              "The gate-stack span is not a cell area or necessarily the footprint in Compare. "
-              "C_ox uses planar series films; C_gc/C_ge integrate thickness/k along x. "
-              "Missing inter-layer dielectric is treated as vacuum (k=1); "
-              "3D fringe fields, quantum effects and bias-dependent semiconductor response are omitted. "
-              "C_j* uses only drawn S/D-body contact area with an assumed "
+              "W_eff is the total gated perimeter drawn in THIS scene "
+              "(both polarities in forksheet and CFET). Normalizing by it is not an equal-drive comparison. "
+              "The gate-stack span is not a cell area, and not necessarily the footprint shown in Compare. "
+              "C_ox uses flat films in series; C_gc and C_ge integrate thickness/k along x. "
+              "Missing inter-layer dielectric is treated as vacuum (k=1). "
+              "3D fringe fields, quantum effects and bias-dependent semiconductor response are left out. "
+              "C_j* uses only the drawn S/D-to-body contact area, with an assumed "
               + f"{W_DEP:g}nm" + " depletion width and silicon permittivity. "
-              "Real doping, SiGe composition and depletion widths are unspecified. "
-              "Both numerical values and architecture ratios depend on these assumptions."))
+              "Real doping, SiGe composition and depletion widths are not specified. "
+              "Both the numerical values and the architecture ratios depend on these assumptions."))
 
 
 if __name__ == "__main__":

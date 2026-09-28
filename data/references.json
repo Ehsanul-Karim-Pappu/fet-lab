@@ -7,28 +7,28 @@
       "title": "Entering the nanosheet transistor era",
       "publisher": "imec",
       "url": "https://www.imec-int.com/en/articles/entering-nanosheet-transistor-era-0",
-      "supports": "FinFET, GAA nanosheet, inner-wall forksheet and process modules."
+      "supports": "FinFET, GAA nanosheet and inner-wall forksheet devices, and their process modules."
     },
     {
       "id": "R2",
       "title": "Outer wall forksheet to bridge nanosheet and CFET device architectures in the logic technology roadmap",
       "publisher": "imec",
       "url": "https://www.imec-int.com/en/articles/outer-wall-forksheet-bridge-nanosheet-and-cfet-device-architectures-logic-technology",
-      "supports": "Inner-wall versus outer-wall forksheet; non-universal roadmap."
+      "supports": "Inner-wall versus outer-wall forksheet, and that the roadmap is not universal."
     },
     {
       "id": "R3",
       "title": "Imec puts complementary FET (CFET) on the logic technology roadmap",
       "publisher": "imec",
       "url": "https://www.imec-int.com/en/articles/imec-puts-complementary-fet-cfet-logic-technology-roadmap",
-      "supports": "Monolithic/sequential integration and post-transfer thermal constraints."
+      "supports": "Monolithic versus sequential integration, and the temperature limits after layer transfer."
     },
     {
       "id": "R4",
       "title": "Imec demonstrates functional monolithic CFET devices with stacked bottom and top contacts",
       "publisher": "imec",
       "url": "https://www.imec-int.com/en/press/imec-demonstrates-functional-monolithic-cfet-devices-stacked-bottom-and-top-contacts",
-      "supports": "Frontside contacts and advantages of backside contact formation."
+      "supports": "Front-side contacts, and the benefits of forming contacts from the back side."
     },
     {
       "id": "R5",
@@ -42,21 +42,21 @@
       "title": "Samsung Begins Chip Production Using 3nm Process Technology With GAA Architecture",
       "publisher": "Samsung Electronics, 30 June 2022",
       "url": "https://news.samsung.com/global/samsung-begins-chip-production-using-3nm-process-technology-with-gaa-architecture",
-      "supports": "Initial 3nm GAA production announcement."
+      "supports": "Announces the start of 3 nm GAA production."
     },
     {
       "id": "R7",
       "title": "Intel's Transistor Technology Breakthrough Represents Biggest Change to Computer Chips In 40 Years",
       "publisher": "Intel, 28 January 2007",
       "url": "https://www.intel.com/pressroom/archive/releases/2007/20070128comp.htm",
-      "supports": "Hafnium-based high-k/metal gates at 45nm."
+      "supports": "Hafnium-based high-k/metal gates at 45 nm."
     },
     {
       "id": "R8",
       "title": "Ab initio calculation of Effective Work Functions for a TiN/HfO2/SiO2/Si transistor stack",
       "publisher": "Research paper, arXiv:1112.2163 (2011)",
       "url": "https://arxiv.org/abs/1112.2163",
-      "supports": "Example gate stack; effective work function depends on the stack."
+      "supports": "An example gate stack; the effective work function depends on the stack."
     },
     {
       "id": "R9",
@@ -70,182 +70,182 @@
       "title": "Analysis and Design of Digital Integrated Circuits: Problem Set 1 Solutions",
       "publisher": "MIT OpenCourseWare, 6.374 (2003)",
       "url": "https://ocw.mit.edu/courses/6-374-analysis-and-design-of-digital-integrated-circuits-fall-2003/151adc5717d8b3c7e34e2761972124f8_ps1_03_sol.pdf",
-      "supports": "Electrical inverter balance is not determined by width alone."
+      "supports": "An inverter's electrical balance is not set by transistor width alone."
     },
     {
       "id": "R11",
       "title": "Work Function Engineering with Molybdenum and Molybdenum-Nitride Gate Electrodes",
       "publisher": "Rochester Institute of Technology repository",
       "url": "https://repository.rit.edu/ritamec/vol14/iss1/6/",
-      "supports": "Molybdenum as a researched gate material, not validation of this model's complete stack."
+      "supports": "Molybdenum has been studied as a gate material. This does not validate the model's full gate stack."
     },
     {
       "id": "R12",
       "title": "A view on the logic technology roadmap",
       "publisher": "imec",
       "url": "https://www.imec-int.com/en/articles/view-logic-technology-roadmap",
-      "supports": "FEOL/MOL/BEOL, routing and standard-cell track height."
+      "supports": "Front, middle and back end of line (FEOL/MOL/BEOL), routing and standard-cell track height."
     },
     {
       "id": "R13",
       "title": "Single stack dual channel gate-all-around nanosheet with strained PFET and bottom dielectric isolation NFET (US 2023/0420457 A1; granted as US 12,568,683 B2)",
       "publisher": "IBM (assignee), US patent",
       "url": "https://patents.google.com/patent/US20230420457A1/en",
-      "supports": "The nanosheet process, Figs. 1–19, and the Si/SiGe CMOS Device and Inverter scenes. One Si/SiGe stack over a SiGe base (about 50 % Ge) makes an nFET with Si channels over bottom dielectric isolation and a pFET with SiGe channels (about 25 % Ge) on an n-type punch-through stopper; SiBCN-class spacer film that also fills the BDI cavity; region-by-region spacer etch-back and source/drain epitaxy; low-κ inner spacers; separate work-function metals, W fill, gate cut and SiN SAC caps, or a shared gate (Fig. 19). The full application and all its figures are in docs/nsfet. A disclosed integration, not evidence of any foundry's flow."
+      "supports": "Source for the nanosheet process (Figs. 1–19) and the Si/SiGe CMOS Device and Inverter scenes. One Si/SiGe stack over a SiGe base (about 50 % Ge) makes both devices: an nFET with Si channels over bottom dielectric isolation (BDI), and a pFET with SiGe channels (about 25 % Ge) on an n-type punch-through stopper. Also: a SiBCN-class spacer film that also fills the BDI cavity; spacer etch-back and source/drain epitaxy region by region; low-κ inner spacers; separate work-function metals, W fill, gate cut and SiN SAC caps, or a shared gate (Fig. 19). The full application and all its figures are in docs/nsfet. A disclosed integration, not evidence of any foundry's flow."
     },
     {
       "id": "R14",
       "title": "A Novel Dry Selective Etch of SiGe for the Enablement of High Performance Logic Stacked Gate-All-Around NanoSheet Devices",
       "publisher": "IBM Research (Loubet et al.), IEDM 2019",
       "url": "https://research.ibm.com/publications/a-novel-dry-selective-etch-of-sige-for-the-enablement-of-high-performance-logic-stacked-gate-all-around-nanosheet-devices",
-      "supports": "Two distinct uses of selective SiGe etch: a partial lateral recess at the exposed ends before inner-spacer fill, and the later channel release in the gate cavity. Its selectivity and device results belong to the studied process, not to this model."
+      "supports": "Selective SiGe etch used in two ways: a partial sideways recess at the exposed ends before the inner spacers are filled, and later the channel release in the gate cavity. Its selectivity and device results belong to the studied process, not to this model."
     },
     {
       "id": "R15",
       "title": "Full Bottom Dielectric Isolation to Enable Stacked Nanosheet Transistor for Low Power and High Performance Applications",
       "publisher": "IBM Research (Zhang et al.), IEDM 2019",
       "url": "https://research.ibm.com/publications/full-bottom-dielectric-isolation-to-enable-stacked-nanosheet-transistor-for-low-power-and-high-performance-applications",
-      "supports": "Why bottom isolation matters: compares full BDI with a punch-through-stopper scheme for sub-channel leakage and effective capacitance. Not evidence that its sequence matches R13's."
+      "supports": "Why bottom isolation matters: it compares full BDI with a punch-through stopper for leakage under the channels and for effective capacitance. It does not show that its step order matches R13's."
     },
     {
       "id": "R16",
       "title": "Lithography principles",
       "publisher": "ASML",
       "url": "https://www.asml.com/en/technology/lithography-principles",
-      "supports": "A mask or reticle pattern is projected into photoresist; exposure changes the resist's solubility, development leaves protected and open regions, and a separate etch transfers the pattern into the film below."
+      "supports": "A mask (reticle) pattern is projected into photoresist. Exposure changes how easily the resist dissolves, development leaves covered and open areas, and a separate etch then copies the pattern into the film below."
     },
     {
       "id": "R17",
       "title": "Six crucial steps in semiconductor manufacturing",
       "publisher": "ASML",
       "url": "https://www.asml.com/en/company/stories/2021/semiconductor-manufacturing-process-steps",
-      "supports": "Deposition, resist coating, lithography, development, etch and ion implantation as the repeating steps that build a chip."
+      "supports": "The steps repeated to build a chip: deposition, resist coating, lithography, development, etch and ion implantation."
     },
     {
       "id": "R18",
       "title": "Nanosheet technology for the computing era of AI and 5G",
       "publisher": "IBM Research",
       "url": "https://research.ibm.com/blog/nanosheet-technology-ai-5g",
-      "supports": "Conceptual support for adjustable sheet width, growth-controlled sheet thickness, full BDI under gate and source/drain, and tight selective-etch control."
+      "supports": "General support for: adjustable sheet width, sheet thickness set during growth, full BDI under the gate and source/drain, and tight control of selective etch."
     },
     {
       "id": "R19",
       "title": "First EUV lithography high-volume manufacturing solution for N5 BEOL",
       "publisher": "imec",
       "url": "https://www.imec-int.com/en/imec-magazine/imec-magazine-march-2017/first-euv-lithography-high-volume-manufacturing-solution-for-n5-beol",
-      "supports": "A back-end metal-line example of SAQP mechanics: core lines, first spacer and etch, core removal, reuse as the second core, second spacer and core removal, transfer to a hard mask, then a separate block pattern. An illustration of SAQP, not evidence of how R13 patterns its layers."
+      "supports": "How SAQP works, shown for back-end metal lines: core lines, first spacer and etch, core removal, reuse as the second core, second spacer and core removal, transfer to a hard mask, then a separate block pattern. It illustrates SAQP; it is not evidence of how R13 patterns its layers."
     },
     {
       "id": "R20",
       "title": "Advanced in-line metrology strategy for self-aligned quadruple patterning",
       "publisher": "IBM Research",
       "url": "https://research.ibm.com/publications/advanced-in-line-metrology-strategy-for-self-aligned-quadruple-patterning",
-      "supports": "Repeated sidewall-spacer image transfers give roughly a quarter of the original pitch in a periodic array, with accumulated variation such as pitch walk and CD variation."
+      "supports": "Repeated sidewall-spacer image transfers give about a quarter of the original pitch in a regular array. Variation builds up along the way, such as pitch walk and CD variation."
     },
     {
       "id": "R21",
       "title": "Spacer defined double patterning for sub-72 nm pitch logic technology",
       "publisher": "IBM Research",
       "url": "https://research.ibm.com/publications/spacer-defined-double-patterning-for-sub-72-nm-pitch-logic-technology",
-      "supports": "Mandrels and a single spacer-defined pitch split (SADP)."
+      "supports": "Mandrels and one spacer-defined pitch split (SADP)."
     },
     {
       "id": "R22",
       "title": "N7 FinFET Self-Aligned Quadruple Patterning Modeling (Baudot, Guissi, Milenin, Ervin, Schram)",
       "publisher": "imec and Coventor, SISPAD 2018 (author paper)",
       "url": "https://in4.iue.tuwien.ac.at/pdfs/sispad2018/SISPAD_2018_344-347.pdf",
-      "supports": "Its Fig. 1 is an SAQP fin-patterning sequence: carbon cores at 96 nm pitch, an oxide first spacer, core removal, transfer of the first image into an amorphous-Si second core at 48 nm, a second spacer cycle to a 24 nm fin pitch, and transfer into silicon through a silicon nitride hard mask before STI; it studies pitch walk, core taper and fin-height variation. A research example, not the app's 108/54/27 nm values."
+      "supports": "Fig. 1 shows SAQP fin patterning: carbon cores at 96 nm pitch, a first oxide spacer, core removal, the first image transferred into an amorphous-Si second core at 48 nm, a second spacer cycle down to a 24 nm fin pitch, then transfer into silicon through a silicon nitride hard mask before STI. The paper studies pitch walk, core taper and fin-height variation. A research example; its pitches are not the app's 108/54/27 nm."
     },
     {
       "id": "R23",
       "title": "SAQP Specs for 7nm finFETs",
       "publisher": "Semiconductor Digest",
       "url": "https://www.semiconductor-digest.com/saqp-specs-for-7nm-finfets/",
-      "supports": "Secondary account of SAQP for 7 nm-class FinFET fins and the core-dimension control it needs to keep pitch walk acceptable."
+      "supports": "A secondary account of SAQP for 7 nm-class FinFET fins, and the control of core size it needs to keep pitch walk acceptable."
     },
     {
       "id": "R24",
       "title": "FinFet device and method of forming the same (US 10,505,021 B2)",
       "publisher": "US patent",
       "url": "https://patents.google.com/patent/US10505021B2/en",
-      "supports": "A gate-last FinFET route in its written description and flowchart (Fig. 23): substrate with optional p- and n-wells and a first mask (Fig. 2A), fin etch (3A), isolation fill and CMP (4A), STI recess (5A), dummy gate dielectric, silicon and mask (6A/B), patterned dummy gate with optional lightly doped extensions (7A–C), selectively deposited gate spacers (8–15), source/drain fin recess (16A–C), epitaxial source/drain (17A–C), etch-stop layer, ILD and CMP (18A–C), dummy-gate removal (19A–C), replacement gate dielectric and metal (20A–C) and contacts (21A–C); Fig. 22 is a merged-epitaxy alternative. Mapped from the text; drawings not compared."
+      "supports": "A gate-last FinFET route, from its text and flowchart (Fig. 23): substrate with optional p- and n-wells and a first mask (Fig. 2A); fin etch (3A); isolation fill and CMP (4A); STI recess (5A); dummy gate dielectric, silicon and mask (6A/B); dummy gate patterned, with optional lightly doped extensions (7A–C); gate spacers deposited selectively (8–15); source/drain fin recess (16A–C); epitaxial source/drain (17A–C); etch-stop layer, ILD and CMP (18A–C); dummy gate removed (19A–C); replacement gate dielectric and metal (20A–C); contacts (21A–C). Fig. 22 shows merged epitaxy as an alternative. Mapped from the text; the drawings were not compared."
     },
     {
       "id": "R25",
       "title": "Dummy fin structures and methods of forming same (US 10,510,580 B2)",
       "publisher": "US patent",
       "url": "https://patents.google.com/patent/US10510580B2/en",
-      "supports": "An integrated FinFET flow with gate seal and spacer films formed by deposition and anisotropic etch, nFET and pFET source/drain recess and epitaxy each with the other region masked, etch-stop layer and ILD, dummy-gate removal, replacement gate and contacts with optional silicide. Its dummy fins are deliberately fabricated structures, not the extra mask line the app cuts."
+      "supports": "An integrated FinFET flow: gate seal and spacer films made by deposition and anisotropic etch; nFET and pFET source/drain recess and epitaxy, each done with the other region masked; etch-stop layer and ILD; dummy gate removal; replacement gate; contacts with optional silicide. Its dummy fins are structures made on purpose, not the extra mask line the app cuts."
     },
     {
       "id": "R26",
       "title": "Contacts for a fin-type field-effect transistor (US 9,741,615 B1)",
       "publisher": "US patent",
       "url": "https://patents.google.com/patent/US9741615B1/en",
-      "supports": "In self-aligned contact schemes the gate conductor needs a dielectric cap and sidewall isolation so a source/drain contact cannot short to it."
+      "supports": "In self-aligned contact schemes, the gate conductor needs a dielectric cap and insulated sidewalls so a source/drain contact cannot short to it."
     },
     {
       "id": "R27",
       "title": "Bulk finFET with punchthrough stopper region and method of fabrication (US 9,082,853 B2)",
       "publisher": "US patent",
       "url": "https://patents.google.com/patent/US9082853B2/en",
-      "supports": "A punch-through stopper in the lower fin, including an option where dopant is supplied from an STI liner and diffused by anneal: why STI between fins does not by itself control leakage beneath the channel. One separately disclosed option, not a step of R24's route."
+      "supports": "A punch-through stopper in the lower fin, including an option where the dopant comes from an STI liner and is spread by an anneal. It shows why STI between fins does not, by itself, control leakage under the channel. A separately disclosed option, not a step of R24's route."
     },
     {
       "id": "R28",
       "title": "Nanosheet epitaxy with full bottom isolation (US 2023/0178617 A1)",
       "publisher": "IBM (applicant), US patent application",
       "url": "https://patents.google.com/patent/US20230178617A1/en",
-      "supports": "An example Si/Si nanosheet CMOS route in Figs. 2–52: a Ge-rich sacrificial bottom layer, a Si seed layer, then lower-Ge SiGe and Si channel layers; stack lines, STI, sacrificial gates, spacers, source/drain recess, SiGe indent and inner spacers; undoped Si grown from the seed and channel ends; the Ge-rich layer removed and replaced by bottom dielectric isolation under both devices; pFET SiGe:B and nFET SiC:P source/drain each with the other region protected; ILD, sacrificial-gate removal, SiGe removal releasing the Si channels of both devices, and separate work-function metals. One disclosed example, not a production foundry flow; the Si seed layer stays only under the inner spacers and the undoped Si; under the gate it is oxidized and etched at channel release, and the gate sits on the bottom isolation. PDF in docs/nsfet."
+      "supports": "An example Si/Si nanosheet CMOS route in Figs. 2–52. Stack: a Ge-rich sacrificial bottom layer, a Si seed layer, then lower-Ge SiGe and Si channel layers. Steps: stack lines, STI, sacrificial gates, spacers, source/drain recess, SiGe indent and inner spacers; undoped Si grown from the seed and the channel ends; the Ge-rich layer removed and replaced by bottom dielectric isolation under both devices; pFET SiGe:B and nFET SiC:P source/drain, each grown with the other region protected; ILD, sacrificial gate removal, SiGe removal that releases the Si channels of both devices, and separate work-function metals. The Si seed layer stays only under the inner spacers and the undoped Si; under the gate it is oxidized and etched away at channel release, and the gate sits on the bottom isolation. One disclosed example, not a production foundry flow. PDF in docs/nsfet."
     },
     {
       "id": "R29",
       "title": "FinFET structures and methods of forming the same (US 9,812,358 B1)",
       "publisher": "Taiwan Semiconductor Manufacturing Company (assignee), US patent",
       "url": "https://patents.google.com/patent/US9812358B1/en",
-      "supports": "The FinFET process, Figs. 2–22C, and the FinFET Device and Inverter scenes: fins, FCVD oxide STI and wells; dummy gate, gate seal spacers and LDD; dummy spacers, recess and SiP/SiGeB epitaxy by region; SiN gate spacers; dummy ILD, gate-last replacement gate (high-κ, electrodes from TiN, TaN, TaC, Co, Ru, Al), gate recess and metal-oxide hard mask; spin-on-carbon dummy contacts, tri-layer lithography, ILD and replacement contacts (liner, conductor, silicide). PDF in docs/finfet."
+      "supports": "Source for the FinFET process (Figs. 2–22C) and the FinFET Device and Inverter scenes: fins, FCVD oxide STI and wells; dummy gate, gate seal spacers and LDD; dummy spacers, recess and SiP/SiGeB epitaxy region by region; SiN gate spacers; dummy ILD; gate-last replacement gate (high-κ, electrodes from TiN, TaN, TaC, Co, Ru, Al), gate recess and metal-oxide hard mask; spin-on-carbon dummy contacts, tri-layer lithography, ILD and replacement contacts (liner, conductor, silicide). PDF in docs/finfet."
     },
     {
       "id": "R30",
       "title": "Methods for fabricating integrated circuits using self-aligned quadruple patterning (US 9,171,764 B2)",
       "publisher": "GlobalFoundries (assignee), US patent",
       "url": "https://patents.google.com/patent/US9171764B2/en",
-      "supports": "The FinFET's SAQP fin patterning, Figs. 1–11: SiN hard masks, amorphous-Si upper and lower mandrels, SiN spacers about 14 nm and 10–20 nm, the lower spacers as the fin mask, variably spaced fin pairs and SRAM fin removal. PDF in docs/finfet."
+      "supports": "Source for the FinFET's SAQP fin patterning (Figs. 1–11): SiN hard masks, upper and lower amorphous-Si mandrels, SiN spacers of about 14 nm and 10–20 nm, the lower spacers used as the fin mask, fin pairs with varied spacing, and SRAM fin removal. PDF in docs/finfet."
     },
     {
       "id": "R31",
       "title": "A method for forming a semiconductor device and a semiconductor device (EP 3 989 273 A1)",
       "publisher": "imec (applicant), European patent application",
       "url": "https://patents.google.com/patent/EP3989273A1/en",
-      "supports": "The forksheet Device scene: Si/SiGe stacks either side of a SiN (or SiCO, SiCN, SiOCN) insulating wall 8–20 nm wide, based in the substrate and rising above the top channel; SiC or SiBCN gate spacers, SiN or low-κ inner spacers; P- and N-doped Si source/drain by region; a contact partition wall 10–24 nm wide on the insulating wall; TiN and W contacts in a merged opening; HfO2, TiN or TaN and TiAl or TiAlC work-function metals, W, Al, Co or Ru fill. PDF in docs/fsfet."
+      "supports": "Source for the forksheet Device scene: Si/SiGe stacks on either side of an insulating wall 8–20 nm wide, made of SiN (or SiCO, SiCN, SiOCN), rooted in the substrate and rising above the top channel; SiC or SiBCN gate spacers; SiN or low-κ inner spacers; P- and N-doped Si source/drain region by region; a contact partition wall 10–24 nm wide on top of the insulating wall; TiN and W contacts in a merged opening; HfO2, TiN or TaN, and TiAl or TiAlC work-function metals; W, Al, Co or Ru fill. PDF in docs/fsfet."
     },
     {
       "id": "R32",
       "title": "Semiconductor device structure including forksheet transistors and methods of forming the same (US 11,862,700 B2)",
       "publisher": "Taiwan Semiconductor Manufacturing Company (assignee), US patent",
       "url": "https://patents.google.com/patent/US11862700B2/en",
-      "supports": "A second forksheet route: a two-layer dielectric wall (high-κ then low-κ), a SiGe cladding, reduced end-cap spacing with air gaps between the channels, n-type and p-type gate electrode layers (TiAlC and TiN among others), a metal layer, SAC layer and silicided S/D contacts. PDF in docs/fsfet."
+      "supports": "A second forksheet route: a two-layer dielectric wall (high-κ then low-κ), a SiGe cladding, reduced end-cap spacing with air gaps between the channels, n-type and p-type gate electrode layers (TiAlC and TiN among others), a metal layer, a SAC layer and silicided source/drain (S/D) contacts. PDF in docs/fsfet."
     },
     {
       "id": "R33",
       "title": "Stacked complementary field effect transistors (US 11,869,812 B2)",
       "publisher": "IBM (assignee), US patent",
       "url": "https://patents.google.com/patent/US11869812B2/en",
-      "supports": "The monolithic CFET Device and Inverter scenes: one Si/SiGe stack on an insulating layer, the high-Ge SiGe between the tiers replaced by spacer material (SiBCN and others); a lower SiGe:B source/drain notched and isolated by an oxide layer, an upper Si:P source/drain above it; one HKMG (HfO2, TiN, TiAlC, W) with a gate dielectric cap; front-side contacts only, including a common via to both source/drains and a lower contact through the space a TiOx sacrificial spacer left. PDF in docs/cfet."
+      "supports": "Source for the monolithic CFET Device and Inverter scenes: one Si/SiGe stack on an insulating layer; the high-Ge SiGe between the two tiers replaced by spacer material (SiBCN and others); a lower SiGe:B source/drain, notched and isolated by an oxide layer, with an upper Si:P source/drain above it; one HKMG (HfO2, TiN, TiAlC, W) with a gate dielectric cap; front-side contacts only, including a shared via to both source/drains and a lower contact made through the space left by a sacrificial TiOx spacer. PDF in docs/cfet."
     },
     {
       "id": "R34",
       "title": "CFETs and the methods of forming the same (US 2024/0413156 A1)",
       "publisher": "Taiwan Semiconductor Manufacturing Company (applicant), US patent application",
       "url": "https://patents.google.com/patent/US20240413156A1/en",
-      "supports": "The sequential CFET Device scene: a lower transistor made in one wafer, an etch stop, a dielectric with an inter-metal line (Cu) and SiO2 bond layers, a second wafer fusion-bonded and the upper transistor made in it; deep contact plugs from the front and the back to the inter-metal line; front- and backside interconnect; SiOCN inner spacers, TiAl and TiN work-function metals. PDF in docs/cfet. Its Chinese family member, CN 118712136 A (same applicant, inventors, figures and text), is in docs/cfet and is text-searchable."
+      "supports": "Source for the sequential CFET Device scene: the lower transistor made in one wafer; an etch stop; a dielectric with an inter-metal line (Cu), and SiO2 bond layers; a second wafer fusion-bonded on top, with the upper transistor made in it; deep contact plugs from the front and the back to the inter-metal line; front- and backside interconnect; SiOCN inner spacers; TiAl and TiN work-function metals. PDF in docs/cfet. Its Chinese family member, CN 118712136 A (same applicant, inventors, figures and text), is also in docs/cfet and is text-searchable."
     },
     {
       "id": "R35",
       "title": "Semiconductor device structure including forksheet transistors and methods of forming the same (US 2024/0178128 A1)",
       "publisher": "Taiwan Semiconductor Manufacturing Company (applicant), US patent application",
       "url": "https://patents.google.com/patent/US20240178128A1/en",
-      "supports": "Another way to join a forksheet's gates, described in the forksheet story but not drawn: n and p gate electrodes separated by the dielectric wall and planarised level with it (gate height 15 nm or less above the top channel); a gate bridge contact (barrier TiN, fill W and others), wider than the wall, on the wall and in contact with both gates; the gate via contact landing on it; SiN etch stops, CESL and silicided S/D contacts with a TiN barrier. PDF in docs/fsfet."
+      "supports": "Another way to join a forksheet's two gates, described in the forksheet story but not drawn: n and p gate electrodes split by the dielectric wall and planarised level with it (gate height 15 nm or less above the top channel); a gate bridge contact (TiN barrier, W fill and others), wider than the wall, sitting on the wall and touching both gates; the gate via contact lands on it; SiN etch stops, CESL and silicided source/drain (S/D) contacts with a TiN barrier. PDF in docs/fsfet."
     }
   ],
   "unverified_legacy_credit": "Earlier versions cited S. Rathore et al., Semiconductor Science and Technology (2021), without a title, DOI or figure number. The exact source has not been established. Retained here for provenance, not presented as a verified reference or silently replaced with a different paper."

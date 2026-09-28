@@ -24,8 +24,8 @@ object AppInfo {
     const val PRIVACY = "$REPO/blob/main/PRIVACY.md"
 
     val ATTRIBUTIONS = listOf(
-        "Original illustrative geometry informed by the technical references below",
-        "Device concepts are sourced; exact dimensions, complete material stacks and capacitances are not foundry data",
+        "Original illustrative geometry, based on the technical references below",
+        "Device concepts come from the sources; exact dimensions, full material stacks and capacitances are not foundry data",
         "IBM Plex Sans and IBM Plex Mono — SIL Open Font License 1.1",
         "Models are representative teaching geometry, not any foundry's process data"
     )

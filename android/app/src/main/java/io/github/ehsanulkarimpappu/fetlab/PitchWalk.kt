@@ -100,7 +100,7 @@ fun PitchWalkPanel(lib: Library, pw: PitchWalk) {
     Surface(color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f), shape = RoundedCornerShape(12.dp),
         modifier = Modifier.fillMaxWidth().padding(bottom = 10.dp)) {
         Column(Modifier.padding(10.dp)) {
-            Text("TRY IT · THE SAME ROUTE, DIMENSIONS LET GO", fontFamily = Mono, fontSize = 10.sp, color = onV)
+            Text("TRY IT · SAME ROUTE, CHANGE THE SIZES", fontFamily = Mono, fontSize = 10.sp, color = onV)
             // Before (first cores and first spacers), between (second cores and spacers) and
             // after (the lines), stacked as cross-sections on one scale; then the lines from above.
             val lo = img.core1.first().first - s1 - s2 - 6f

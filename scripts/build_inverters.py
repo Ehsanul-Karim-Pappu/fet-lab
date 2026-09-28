@@ -17,22 +17,23 @@ ROOT = Path(__file__).resolve().parent.parent
 DATA = ROOT / "data/devices.json"
 T_M1 = 8.0                                   # metal-1 thickness, nm
 
-NOTE_FIN = ("<b>The Device's FinFET, twice.</b> The nFET is the Device scene; the pFET beside it is the "
-            "Process lesson's pFET, SiGeB source/drain and TiN work-function metal, after US 9,812,358 B1 "
-            "[R29]. One Co gate fill under the AlOₓ hard mask runs across both, the model's choice: the "
-            "shared-gate ending of the both-sites lesson. Both transistors use two fins, a geometric width ratio of 1; that does "
-            "not guarantee electrical balance. The metal level over the contacts is this drawing's.")
+NOTE_FIN = ("<b>The Device's FinFET, twice.</b> The nFET is the Device scene. The pFET beside it is the "
+            "Process lesson's pFET, with SiGeB source/drain and a TiN work-function metal, after US 9,812,358 B1 "
+            "[R29]. One Co gate fill under the AlOₓ hard mask runs across both. That is the model's choice, "
+            "and the shared-gate ending of the both-sites lesson. Both transistors use two fins, a geometric "
+            "width ratio of 1. That does not guarantee electrical balance [R10]. The metal level over the "
+            "contacts is this drawing's own.")
 NOTE_FS = ("<b>The Device's forksheet, wired.</b> After imec's EP 3 989 273 A1: one W gate fill runs over "
-           "the wall and serves both devices, and the contact partition wall keeps their source/drain "
+           "the wall and serves both devices. The contact partition wall keeps their source/drain "
            "contacts apart [R31]. TSMC's US 2024/0178128 A1 joins the gates differently, with a gate "
-           "bridge contact on a wall that splits them [R35]; that variant is not drawn. The metal level "
-           "over the contacts is this drawing's. Sheets are drawn 21 nm apart (centre to centre) so every "
-           "film shows; real stacks space them roughly 7-12 nm apart.")
-NOTE_CFET = ("<b>The Device's monolithic CFET, wired.</b> After US 11,869,812 B2: the pFET below the nFET, "
-             "one gate for both, one contact landing on both drains (the output), the nFET source reached "
-             "from above and the pFET source through the space a sacrificial TiOₓ spacer left [R33]. All "
-             "four nets are on the front; the metal level over the contacts is this drawing's. Sheets are "
-             "drawn 20 nm apart (centre to centre) so every film shows.")
+           "bridge contact on a wall that splits them [R35]. That variant is not drawn. The metal level "
+           "over the contacts is this drawing's own. Sheets are drawn 21 nm apart (centre to centre) so "
+           "every film shows; real stacks space them roughly 7-12 nm apart (a typical range, not from the cited sources).")
+NOTE_CFET = ("<b>The Device's monolithic CFET, wired.</b> After US 11,869,812 B2: the pFET sits below the "
+             "nFET, and one gate serves both. One contact lands on both drains (the output). The nFET source "
+             "is reached from above, and the pFET source through the space a sacrificial TiOₓ spacer left "
+             "[R33]. All four nets are on the front. The metal level over the contacts is this drawing's own. "
+             "Sheets are drawn 20 nm apart (centre to centre) so every film shows.")
 
 COND = ("cobalt", "tungsten", "tisi", "tin", "wfill", "cofill", "mo", "nwf", "copper")
 
@@ -131,8 +132,8 @@ def inv_fin():
                (nd[0], nd[1]), (pd[4], nd[5]), (gw[0], gw[1]), (gw[4], gw[5]))
     zc = (span(P["n_fin2"])[4] + span(P["n_fin2"])[5]) / 2
     return build("inv_fin", "FinFET inverter", "tri-gate · 2 fins per device",
-                 "The Device's FinFET nFET beside the Process lesson's pFET on one shared gate, wired as a CMOS "
-                 "inverter: the pFET source to V_DD, the nFET source to GND, both drains to OUT, the gate to IN.",
+                 "The Device's FinFET nFET beside the Process lesson's pFET, on one shared gate. They are wired as a "
+                 "CMOS inverter: pFET source to V_DD, nFET source to GND, both drains to OUT, and the gate to IN.",
                  parts, net, m1, NOTE_FIN,
                  dims_of("fin", [["Devices", "nFET and pFET, one gate", "2 × 2 fins"],
                                  ["Cell z", "Rail-to-rail span (z)", f"{zhi - zlo:g} nm"]]), zc)
@@ -158,7 +159,7 @@ def inv_fs():
     m1 = rails((ns[0], ns[1]), (ns[4], ns[5]), (ps[4], ps[5]), y, zlo, zhi,
                (nd[0], nd[1]), (pd[4], nd[5]), (gw[0], gw[1]), (gw[4], gw[5]))
     return build("inv_fs", "Forksheet inverter", "n and p astride the wall",
-                 "The Device's forksheet wired as a CMOS inverter: the common gate over the wall is IN, the "
+                 "The Device's forksheet, wired as a CMOS inverter. The common gate over the wall is IN. The "
                  "pFET source goes to V_DD, the nFET source to GND, and both drains to OUT [R31].",
                  parts, net, m1, NOTE_FS,
                  dims_of("fs", [["Cell z", "Rail-to-rail span (z)", f"{zhi - zlo:g} nm"]]),
@@ -195,8 +196,8 @@ def inv_cfet():
         ("m1_in", "IN (M1) · on the gate contact", "in", [box(gw[0], gw[1], y, y + t, gw[4], gw[5])]),
     ]
     return build("inv_cfet", "CFET inverter", "one stack, one gate",
-                 "The Device's monolithic CFET wired as an inverter: pFET below, nFET above, one gate as IN, "
-                 "one contact on both drains as OUT, and both sources contacted from the front [R33].",
+                 "The Device's monolithic CFET, wired as an inverter. The pFET is below and the nFET above. One "
+                 "gate is IN, one contact on both drains is OUT, and both sources are contacted from the front [R33].",
                  parts, net, m1, NOTE_CFET,
                  dims_of("cfet_mono", [["Cell z", "Rail-to-rail span (z)", f"{zhi - zlo:g} nm"]]), 0.0)
 
@@ -204,8 +205,8 @@ def inv_cfet():
 # ----------------------------------------------------------------- compare
 def inv_cmp(cells_in):
     d = Dev("inv_cmp", "Inverter compare", "four cells, one scale",
-            "The four Inverter scenes at a common geometric scale. The z spans include the drawn rails. "
-            "They are not iso-performance or foundry-library comparisons.")
+            "The four Inverter scenes at one common scale. The z spans include the drawn rails. "
+            "They are not comparisons at equal performance (iso-performance) or of foundry cell libraries.")
     cells, cur, GAP = [], -300.0, 45.0
     for src, nm in cells_in:
         B = src["bounds"]
@@ -229,11 +230,11 @@ def inv_cmp(cells_in):
     d.dims.append(["—", "What is being measured", "one inverter, both rails"])
     d.dims.append(["—", "Sheets or fins per device", "2 fins / 3 / 3 / 2 per tier"])
     d.logic = True
-    d.note = ("<b>Rail-to-rail span.</b> These are the four Inverter scenes side by side; the values describe "
-              "the model's lateral z dimension, commonly called cell height in standard-cell layout practice. "
-              "A smaller drawn span alone does not demonstrate higher achievable density or speed. For scale, "
+    d.note = ("<b>Rail-to-rail span.</b> These are the four Inverter scenes side by side. The values describe "
+              "the model's lateral z dimension, which standard-cell layout commonly calls cell height. "
+              "A smaller drawn span does not, on its own, show higher achievable density or speed. For scale, "
               "imec's roadmap puts standard-cell height at roughly 115 nm for A14 nanosheets, 98 nm for A10 "
-              "forksheets and under 80 nm for A7 CFETs; the spans drawn here are the model's own.")
+              "forksheets and under 80 nm for A7 CFETs [R12]. The spans drawn here are the model's own.")
     d.finish()
     B = d.bounds
     ctr = [(B["x"][0] + B["x"][1]) / 2, (B["y"][0] + B["y"][1]) / 2, (B["z"][0] + B["z"][1]) / 2]
