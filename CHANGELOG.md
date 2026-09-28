@@ -13,6 +13,9 @@ All notable changes to FET Lab. Dates are the release date; versions follow
   together and the levels follow in turn, so a stack rises layer by layer. A gate or contact goes on
   film by film, inside out: interfacial oxide, high-κ, work-function metal, then fill, and silicide,
   liner, then fill.
+- **Cut faces follow the animation.** With a section on, a film's cut face now grows with the film
+  instead of appearing at full height first, and what an etch removes keeps its cut face until the
+  plane sweeps through it, instead of losing it at once.
 - **Etching and polishing.** What a step removes is no longer a fading ghost. A flat plane sweeps
   down through it from the top until only the new surface is left. A recess, a pull or a strip
   etches away, and a CMP polishes down to the new level.

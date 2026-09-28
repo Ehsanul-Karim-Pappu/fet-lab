@@ -143,6 +143,12 @@ class Renderer(private val lib: Library) : GLSurfaceView.Renderer {
     private var textVerts = 0
     private var capVerts = 0
     private var capLineVerts = 0
+    /** Each cut face's part and its slice of the cap buffers (first triangle vertex, count,
+     *  first line vertex, count), so a face is clamped with its own part while it grows or is
+     *  etched; the parts from [fadeCapFrom] on are the ones a step is etching away. */
+    private val capPart = ArrayList<Part>()
+    private val capSpan = ArrayList<IntArray>()
+    private var fadeCapFrom = 0
     private var ready = false
 
     private val proj = FloatArray(16)
@@ -341,9 +347,17 @@ class Renderer(private val lib: Library) : GLSurfaceView.Renderer {
         unclamped()
 
         if (capVerts > 0) {
+            // Each cut face with its own part's clamp, so a film growing (or a region
+            // spreading) is cut open only as far as it has got.
             G.glUniform1f(uClip, 0f); G.glUniform1f(uA, 1f); G.glUniform1f(uTint, 1.02f)
             G.glUniform3f(uTex, if (texture) 0.05f else 0f, 0.34f, 0f)
-            bindCaps(); G.glDrawArrays(G.GL_TRIANGLES, 0, capVerts)
+            bindCaps()
+            for (i in 0 until fadeCapFrom) {
+                val sp = capSpan[i]
+                if (sp[1] == 0 || !clampPart(capPart[i], gb, dep)) continue
+                G.glDrawArrays(G.GL_TRIANGLES, sp[0], sp[1])
+            }
+            unclamped()
             bindMain(); G.glBindBuffer(G.GL_ELEMENT_ARRAY_BUFFER, vbo[4]); G.glUniform1f(uClip, 1f)
         }
         // What the step takes away is etched (or polished) off from the top: the old solid,
@@ -358,6 +372,15 @@ class Renderer(private val lib: Library) : GLSurfaceView.Renderer {
             val hy = etchTop + (etchBottom - etchTop) * et
             G.glUniform3f(uGLo, -1e7f, -1e7f, -1e7f); G.glUniform3f(uGHi, 1e7f, hy, 1e7f)
             for (p in fp) G.glDrawElements(G.GL_TRIANGLES, p.count, G.GL_UNSIGNED_SHORT, p.start * 2)
+            if (capVerts > 0 && fadeCapFrom < capPart.size) {       // and its cut faces, under the same plane
+                G.glUniform1f(uClip, 0f); G.glUniform1f(uTint, 1.02f)
+                bindCaps()
+                for (i in fadeCapFrom until capPart.size) {
+                    val sp = capSpan[i]
+                    if (sp[1] > 0) G.glDrawArrays(G.GL_TRIANGLES, sp[0], sp[1])
+                }
+                G.glUniform1f(uClip, 1f)
+            }
             unclamped()
             if (edges) G.glPolygonOffset(1.2f, 1.2f) else G.glDisable(G.GL_POLYGON_OFFSET_FILL)
             mainBase = sc.vbase * 12; bindMain(); G.glBindBuffer(G.GL_ELEMENT_ARRAY_BUFFER, vbo[4])
@@ -391,7 +414,21 @@ class Renderer(private val lib: Library) : GLSurfaceView.Renderer {
             if (capLineVerts > 0) {   // and round every cut face, so a section reads as a drawing
                 attach(clbo[0], aPos); attach(clbo[1], aExp)
                 G.glUniform1f(uClip, 0f)
-                G.glDrawArrays(G.GL_LINES, 0, capLineVerts)
+                for (i in 0 until fadeCapFrom) {
+                    val sp = capSpan[i]
+                    if (sp[3] == 0 || !clampPart(capPart[i], gb, dep)) continue
+                    G.glDrawArrays(G.GL_LINES, sp[2], sp[3])
+                }
+                val et = etch
+                if (fadeScene != null && et < 1f && fadeCapFrom < capPart.size) {
+                    G.glUniform3f(uGLo, -1e7f, -1e7f, -1e7f)
+                    G.glUniform3f(uGHi, 1e7f, etchTop + (etchBottom - etchTop) * et, 1e7f)
+                    for (i in fadeCapFrom until capPart.size) {
+                        val sp = capSpan[i]
+                        if (sp[3] > 0) G.glDrawArrays(G.GL_LINES, sp[2], sp[3])
+                    }
+                }
+                unclamped()
                 G.glUniform1f(uClip, 1f)
             }
             G.glEnableVertexAttribArray(aNrm); G.glEnableVertexAttribArray(aCol)
@@ -549,13 +586,13 @@ class Renderer(private val lib: Library) : GLSurfaceView.Renderer {
         val sc = scene
         capPos.clear(); capNrm.clear(); capCol.clear(); capExp.clear()
         capLinePos.clear(); capLineExp.clear()
+        capPart.clear(); capSpan.clear(); fadeCapFrom = 0
         var n = 0
         var ln = 0
         val on = booleanArrayOf(clip[0] < sc.hi[0] - 0.01f, clip[1] < sc.hi[1] - 0.01f, clip[2] < sc.hi[2] - 0.01f)
-        if (on[0] || on[1] || on[2]) {
-            for (p in sc.parts) {
-                if (!p.visible) continue
-                val st = style(sc, p)
+        fun faces(s: Scene, p: Part) {
+                val n0 = n; val l0 = ln
+                val st = style(s, p)
                 val c0 = lib.materials[p.material]?.color ?: floatArrayOf(1f, 0f, 1f)
                 val col = floatArrayOf(
                     minOf(1.4f, c0[0] * st[0] + st[1]),
@@ -598,7 +635,14 @@ class Renderer(private val lib: Library) : GLSurfaceView.Renderer {
                         }
                     }
                 }
-            }
+                if (n > n0 || ln > l0) { capPart.add(p); capSpan.add(intArrayOf(n0, n - n0, l0, ln - l0)) }
+        }
+        if (on[0] || on[1] || on[2]) {
+            for (p in sc.parts) if (p.visible) faces(sc, p)
+            fadeCapFrom = capPart.size
+            // What the step is etching away is cut open too, so its faces sink with it.
+            val fs = fadeScene
+            if (fs != null && etch < 1f) for (p in fadeParts) faces(fs, p)
         }
         capVerts = n
         capLineVerts = ln
