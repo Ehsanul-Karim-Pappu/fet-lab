@@ -12,6 +12,8 @@ All notable changes to FET Lab. Dates are the release date; versions follow
   name (wrapped, never cut) and its source badge top-right, and the back and forward arrows at its
   left and right edges. Tapping the name still opens the step's source in Steps.
 - Other layouts keep the step bar as it was.
+- The step pill, the title box and the arrows are compact: smaller play and arrow buttons, tighter
+  padding, smaller type, and a title box at most 170 dp wide.
 - The 3D view no longer jumps in this layout. It was re-framed after every step, snapping the zoom
   once the step's camera move had ended and undoing any pinch zoom. Now it is re-framed only when
   the strip itself changes (the layout switched on, another plane, the sheet moved), and it glides

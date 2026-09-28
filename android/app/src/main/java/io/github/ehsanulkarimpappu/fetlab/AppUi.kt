@@ -1977,44 +1977,46 @@ private fun BoxScope.StepOverlay(label: String, cores: Int, title: String, isOp:
     val soft = glass.copy(alpha = glass.alpha * 0.8f)
     val core = label.substringBefore('.')
     val op = if (isOp && '.' in label) label.substringAfter('.') else null
-    Row(Modifier.align(Alignment.TopStart).padding(8.dp).clip(RoundedCornerShape(20.dp)).background(soft)
-        .border(1.dp, line, RoundedCornerShape(20.dp)).padding(end = 10.dp),
+    // Kept small: the strip under the section is short, and these sit over the model.
+    Row(Modifier.align(Alignment.TopStart).padding(6.dp).clip(RoundedCornerShape(14.dp)).background(soft)
+        .border(1.dp, line, RoundedCornerShape(14.dp)).padding(end = 8.dp),
         verticalAlignment = Alignment.CenterVertically) {
         BarIcon(if (playing) BarGlyph.Pause else BarGlyph.Play, true, ink, dim,
-            if (playing) "Pause" else "Play the steps", onPlay)
+            if (playing) "Pause" else "Play the steps", onPlay, box = 28.dp, mark = 12.dp)
         Text("STEP $core/$cores" + (op?.let { " · OP $it" } ?: ""),
             modifier = Modifier.semantics {
                 contentDescription = "Step $core of $cores" + (op?.let { ", operation $it" } ?: "")
             },
-            color = dim, fontFamily = Mono, fontSize = 10.sp, maxLines = 1)
+            color = dim, fontFamily = Mono, fontSize = 9.sp, maxLines = 1)
     }
-    Column(Modifier.align(Alignment.TopEnd).padding(8.dp).fillMaxWidth(0.48f)
-        .clip(RoundedCornerShape(14.dp)).background(soft).border(1.dp, line, RoundedCornerShape(14.dp))
+    Column(Modifier.align(Alignment.TopEnd).padding(6.dp).widthIn(max = 170.dp).fillMaxWidth(0.44f)
+        .clip(RoundedCornerShape(10.dp)).background(soft).border(1.dp, line, RoundedCornerShape(10.dp))
         .semantics(mergeDescendants = true) { liveRegion = LiveRegionMode.Polite }
         .clickable(onClickLabel = "open this step's source", onClick = onTitle)
         .tourTarget("procbar")
-        .padding(horizontal = 9.dp, vertical = 6.dp),
-        horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(3.dp)) {
+        .padding(horizontal = 7.dp, vertical = 4.dp),
+        horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(2.dp)) {
         AnimatedContent(targetState = title, label = "stepTitleOver",
             transitionSpec = { fadeIn(tween(220)) togetherWith fadeOut(tween(160)) }) { t ->
-            Text(t, color = ink, fontFamily = PlexSans, fontSize = 13.sp, lineHeight = 16.sp,
+            Text(t, color = ink, fontFamily = PlexSans, fontSize = 11.5f.sp, lineHeight = 13.5f.sp,
                 fontWeight = FontWeight.SemiBold, textAlign = TextAlign.End)
         }
         if (badge.isNotEmpty()) {
             val tone = if (sourced) MaterialTheme.colorScheme.primary else dim
-            Text(badge.uppercase(), color = tone, fontFamily = Mono, fontSize = 10.sp,
+            Text(badge.uppercase(), color = tone, fontFamily = Mono, fontSize = 8.5f.sp,
                 maxLines = 1, modifier = Modifier
-                    .border(1.dp, tone.copy(alpha = 0.6f), RoundedCornerShape(6.dp))
-                    .padding(horizontal = 5.dp, vertical = 1.dp))
+                    .border(1.dp, tone.copy(alpha = 0.6f), RoundedCornerShape(4.dp))
+                    .padding(horizontal = 4.dp))
         }
     }
-    val arrow = Modifier.padding(horizontal = 6.dp).clip(CircleShape).background(soft)
+    val arrow = Modifier.padding(horizontal = 4.dp).clip(CircleShape).background(soft)
         .border(1.dp, line, CircleShape)
     Box(Modifier.align(Alignment.CenterStart).then(arrow)) {
-        BarIcon(BarGlyph.Back, hasPrev, ink, dim, "Previous step", onPrev)
+        BarIcon(BarGlyph.Back, hasPrev, ink, dim, "Previous step", onPrev, box = 32.dp, mark = 14.dp)
     }
     Box(Modifier.align(Alignment.CenterEnd).then(arrow)) {
-        BarIcon(BarGlyph.Next, hasNext, ink, dim, "Next step", onNext, Modifier.tourTarget("procbar:next"))
+        BarIcon(BarGlyph.Next, hasNext, ink, dim, "Next step", onNext, Modifier.tourTarget("procbar:next"),
+            box = 32.dp, mark = 14.dp)
     }
 }
 
@@ -2023,13 +2025,13 @@ private enum class BarGlyph { Back, Next, Play, Pause }
 /** Drawn rather than typed: the text arrows and play symbols can come out as emoji. */
 @Composable
 private fun BarIcon(glyph: BarGlyph, enabled: Boolean, ink: Color, dim: Color, label: String,
-                    onClick: () -> Unit, modifier: Modifier = Modifier) {
+                    onClick: () -> Unit, modifier: Modifier = Modifier, box: Dp = 40.dp, mark: Dp = 18.dp) {
     val col = if (enabled) ink else dim.copy(alpha = 0.45f)
-    Box(modifier.size(40.dp).clip(CircleShape)
+    Box(modifier.size(box).clip(CircleShape)
         .clickable(enabled = enabled, role = Role.Button, onClickLabel = label, onClick = onClick)
         .semantics { contentDescription = label },
         contentAlignment = Alignment.Center) {
-        Canvas(Modifier.size(18.dp)) {
+        Canvas(Modifier.size(mark)) {
             val w = size.width; val h = size.height; val sw = w * 0.14f
             when (glyph) {
                 BarGlyph.Back -> {
