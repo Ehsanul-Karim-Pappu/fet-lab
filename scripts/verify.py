@@ -110,7 +110,9 @@ for d in G["devices"]:
     gate = find(d, "po") or find(d, "gate") or find(d, "mo")
     lg = num(dimval(d, "L_G")) or num(dimval(d, "LG"))
     if gate and lg:
-        got = span(gate["boxes"], 0)
+        # the films lining the trench walls (floor_*) count: L_G is the gate trench's length
+        got = span(gate["boxes"] + [b for q in d["parts"] if q["id"].startswith("floor_")
+                                    and q["material"] != "sio2" for b in q["boxes"]], 0)
         if abs(got - lg) > 0.51:
             bad(k, f"L_G says {lg} nm but the gate body is {got:g} nm along the channel")
     # sheet / fin count

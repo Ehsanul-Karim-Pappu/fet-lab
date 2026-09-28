@@ -81,10 +81,12 @@ are implanted one region at a time, through a mask. [R29]</p>
 <p>Thin seal spacers go on the dummy gate first, for the light source/drain implants. Dummy
 spacers are then added in one region at a time, to set where that region's fins are recessed and
 regrown as SiP. They are removed afterwards, and the lasting SiN gate spacers take their place.
-[R29]</p>
+The seal spacers go when the dummy gate is pulled, so the gate films lie directly on the SiN
+spacers. [R29]</p>
 <h4>Gate last, under a hard mask</h4>
 <p>A dummy ILD is polished down to the dummy gates, and the dummy gates are pulled out. The
-high-κ and the gate metal (an Al-containing layer and a Co fill) go into the trench. The gate is
+high-κ and the gate metal (an Al-containing layer and a Co fill) go into the trench, lining its
+floor and walls as well as the fins. The gate is
 then recessed and capped with a hard mask, AlOₓ here, which protects it through the contact
 steps. [R29]</p>
 <h4>Contacts where a dummy stood</h4>
@@ -99,9 +101,10 @@ was, beside gates protected by their hard masks. [R29]</p>
 geometry is the nFET's; its materials and doping differ. [R29]</p>
 <h4>What changes for the pFET</h4>
 <p>The nFET region is masked while the pFET's fins are recessed and SiGeB is grown in the
-recesses. On the silicon fin, the larger SiGe lattice squeezes the channel along its length:
-compressive strain, which helps holes. The gate gets TiN as its work-function metal, formed with
-the nFET masked. No strain is calculated here. [R29]</p>
+recesses [R29]. On the silicon fin, the larger SiGe lattice squeezes the channel along its length:
+compressive strain, which helps holes; that is general background, not the patent's, and no strain
+is calculated here. The gate gets TiN as its work-function metal, formed with the nFET masked
+[R29].</p>
 <h4>What stays the same</h4>
 <p>The wafer, the fins, the dummy gate, the gate-last sequence, the hard mask and the
 spin-on-carbon replacement contacts are shared with the nFET: most steps are made on both
@@ -110,12 +113,14 @@ regions at once. [R29]</p>
 "fin_pair": """
 <h4>Two regions, masked in turn</h4>
 <p>The patent names two wafer regions, 50B for n-type devices and 50C for p-type ones. The fins,
-the dummy gate and the seal spacers are made on both at once. The dummy spacers, the recess and
-the epitaxy are done one region at a time: a mask covers the p-type region while the nFET gets
+the dummy gate and the seal spacers are made on both at once. The wells are implanted one region
+at a time, the N well first as in the patent's example. The dummy spacers, the recess and the
+epitaxy are done one region at a time too: a mask covers the p-type region while the nFET gets
 SiP, then the n-type region while the pFET gets SiGeB. [R29]</p>
 <h4>One trench, two gates</h4>
 <p>The dummy gate is removed along its whole length. Each region then gets its own gate materials
-while the other is masked, and one Co fill runs across both. [R29]</p>
+while the other is masked [R29]. One Co fill runs across both here: the model's choice, since the
+patent lets the two regions' electrodes be the same or different.</p>
 <h4>The gate cut here is teaching</h4>
 <p>The FinFET patent does not describe a gate cut. The cut route is a teaching reconstruction,
 placed before the hard mask so that the same deposition fills the cut. The shared-gate route is

@@ -19,8 +19,8 @@ T_M1 = 8.0                                   # metal-1 thickness, nm
 
 NOTE_FIN = ("<b>The Device's FinFET, twice.</b> The nFET is the Device scene; the pFET beside it is the "
             "Process lesson's pFET, SiGeB source/drain and TiN work-function metal, after US 9,812,358 B1 "
-            "[R29]. One Co gate fill under the AlOₓ hard mask runs across both: the shared-gate ending of "
-            "the both-sites lesson. Both transistors use two fins, a geometric width ratio of 1; that does "
+            "[R29]. One Co gate fill under the AlOₓ hard mask runs across both, the model's choice: the "
+            "shared-gate ending of the both-sites lesson. Both transistors use two fins, a geometric width ratio of 1; that does "
             "not guarantee electrical balance. The metal level over the contacts is this drawing's.")
 NOTE_FS = ("<b>The Device's forksheet, wired.</b> After imec's EP 3 989 273 A1: one W gate fill runs over "
            "the wall and serves both devices, and the contact partition wall keeps their source/drain "

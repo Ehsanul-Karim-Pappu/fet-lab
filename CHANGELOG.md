@@ -5,6 +5,26 @@ All notable changes to FET Lab. Dates are the release date; versions follow
 
 ## Unreleased
 
+### FinFET, checked figure by figure against US 9,812,358 B1 and US 9,171,764 B2
+
+- **Seal spacers:** they now go with the dummy gate (Fig. 12B), so the gate films sit directly on the
+  SiN gate spacers. The dummy gate is 16 nm with 1 nm seal spacers; the gate trench stays 18 nm.
+- **Gate films:** the high-κ and the work-function metal line the STI floor and the spacer walls as
+  well as the fins (Figs. 13A/B), and are recessed with the gate (Fig. 14). The same holds on the
+  gate line between the nFET and pFET, where their work-function metals meet.
+- **pFET lesson:** the dummy-spacer step masks the n-type region, and the wells step names the N
+  well. The strain sentence no longer cites the patent, which does not discuss strain.
+- **Both sites:** the N well is implanted first, as in the patent's example. The single Co fill is
+  marked as the model's choice.
+- **SAQP:** hard mask 22 between the mandrel layers is drawn and removed at Fig. 6. The spacer
+  names give the patent's ranges, the films are marked as drawn thinner, and the cut-before-etch
+  order is marked as the model's.
+- **Labels:** the fin hard mask is credited to the SAQP patent, and the gate-mask etch to Fig. 7.
+  The interfacial oxide, TiSiₓ, the W gate contact, box-shaped epitaxy and flat contacts are marked
+  as the model's. More steps name their figures.
+- **Docs:** the FinFET and SAQP sections of PATENT_ALIGNMENT.md are corrected, including the
+  reversed B/C views in Figs. 14–22.
+
 ### Nanosheet, both designs, checked figure by figure against their patents
 
 - **Si/SiGe (US 2023/0420457 A1):**

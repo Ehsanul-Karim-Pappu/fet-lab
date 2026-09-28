@@ -35,7 +35,8 @@ Outside this set:
 The patent's figure views:
 - Figs. 2–6: section A–A, across the channel, several fins.
 - Figs. 7A–13B: A is A–A, B is B–B (along the fin).
-- Figs. 14A–22C: A is 3D, B is B–B, C is C–C.
+- Figs. 14A–22C: A is 3D, B is along the gate (across the fins, like 13A), C is along a fin: the
+  reverse of the 7–13 convention.
 
 Its order:
 1. **Fig. 2.** Substrate 50: region 50B for n-type, 50C for p-type.
@@ -43,8 +44,8 @@ Its order:
 3. **Fig. 4.** Insulation material 54: silicon oxide by FCVD, then anneal and CMP.
 4. **Fig. 5.**
    - STI 54 recessed: CERTAS, SICONI or dHF.
-   - Wells: P well in 50B (boron or BF₂), N well in 50C (P or As), each ≤ 10¹⁸ cm⁻³, each
-     implanted through a photoresist mask. Then an anneal.
+   - Wells: the example implants the N well in 50C first (P or As), then the P well in 50B (boron
+     or BF₂), each ≤ 10¹⁸ cm⁻³ and through its own photoresist mask. Then an anneal.
 5. **Fig. 6.**
    - Dummy dielectric 58: silicon oxide or nitride.
    - Dummy gate layer 60: polysilicon, from amorphous Si deposited and recrystallised; CMP.
@@ -62,14 +63,16 @@ Its order:
    gate seal spacers. S/D implant to 10¹⁹–10²¹ cm⁻³ is an option; the epi may be doped in situ.
 9. **Figs. 10A/B.** Dummy ILD 88: PSG, BSG, BPSG or USG.
 10. **Figs. 11A/B.** CMP to the dummy gate tops; masks 72 removed.
-11. **Figs. 12A/B.** Dummy gates removed (anisotropic dry etch), opening recesses 94. The dummy
-    dielectric (and the seal spacers) may then be removed.
+11. **Figs. 12A/B.** The dummy gates, the gate seal spacers 80 and the dummy dielectric under the
+    gates are removed (anisotropic dry etch; col. 7:43–58), opening recesses 94. Figs. 12B–22C draw
+    no seal spacers; dielectric 58 stays under the gate spacers 86.
 12. **Figs. 13A/B.**
     - Gate dielectric 98/102, conformal on the fin tops and sidewalls, the spacer sidewalls and the
       dummy ILD top. Silicon oxide or nitride, or high-κ (a metal oxide or silicate of Hf, Al, Zr,
       La, Mg, Ba, Ti or Pb).
     - Gate electrodes 100/104: TiN, TaN, TaC, Co, Ru, Al, combinations or multilayers. Then CMP.
-    - The n and p regions may use distinct processes and materials.
+    - The n and p regions may use distinct processes and materials. Fig. 13A puts 102/104 in 50B and
+      98/100 in 50C; the two electrodes meet over the STI.
 13. **Figs. 14A–C.** Gate dielectric and electrodes recessed (dry etch), forming recesses 110.
 14. **Figs. 15A–C.** Hard mask 112 in the recesses: a metal, metal oxide, metal nitride or pure Si
     (TiO, HfO, AlO, ZrO, ZrN). CMP level with the spacers and dummy ILD. It protects the spacers
@@ -93,13 +96,24 @@ Its order:
     - a gate contact is then formed through hard mask 112.
 
 **Drawn:**
-- Gate dielectric: SiO₂ interfacial layer and HfO₂.
+- Seal spacers 80 (1 nm oxide) on a 16 nm dummy gate, removed with it at Fig. 12, so the gate
+  trench is 18 nm and the gate films lie directly on the 7 nm SiN gate spacers 86.
+- Gate dielectric: HfO₂ (the patent's Hf-oxide option), conformal on the fins, the STI floor and
+  the spacer walls (Figs. 13A/B), recessed with the gate (Fig. 14). The SiO₂ interfacial layer on
+  the silicon is the model's; the patent names none.
 - Gate electrodes, from the patent's list: pFET TiN; nFET an Al-containing layer (Al is on the
-  list); Co fill.
+  list); both line the trench like the dielectric; Co fill. One Co fill across both devices in the
+  pair and inverter is the model's choice (the patent allows the same or different electrodes).
 - Hard mask 112: AlOₓ.
-- Contacts: Ti-based silicide, TiN liner, Co.
-- No contact etch-stop layer: the patent has none.
-- Fin patterning follows R30 (SAQP).
+- Contacts: TiN liner and Co, from the lists; TiSiₓ for the unnamed silicide; the W gate contact
+  is the model's (no metal is named).
+- No contact etch-stop layer. The patent's optional CMP stop layer before the SOC (col. 11:19–26)
+  is not drawn.
+- Fin patterning follows R30 (SAQP). The fin hard mask is R30's hard mask 16 (R29's Fig. 3 draws
+  no mask), and the STI polish stopping on it is the model's.
+- Simplified, and labelled in the steps: box-shaped epitaxy with a flat contact floor (the
+  patent's epitaxy is faceted and its contacts wrap the facets), straight fins (the patent's
+  taper), and no dielectric 58 left under the gate spacers.
 
 ## SAQP: US 9,171,764 B2 (Figs. 1–11)
 
@@ -113,11 +127,12 @@ Its order:
    patent's point is that mandrel widths 42 and 44 and spacing 40 may differ, giving variably spaced
    fins. Uniform mandrels are also allowed.
 3. **Fig. 3.** Spacer-forming layer 50: SiN or SiO₂, conformal (ALD, PECVD, LPCVD).
-4. **Fig. 4.** Etch to upper spacers 52, about 14 nm (14–30 nm): RIE, CHF₃/O₂ for SiN, CHF₃ or CF₄
-   for SiON or SiO₂. Then planarisation.
+4. **Fig. 4.** Etch to upper spacers 52, critical dimension about 14 to about 30 nm (col. 5:24–26):
+   RIE, CHF₃/O₂ for SiN, CHF₃ or CF₄ for SiON or SiO₂. An optional planarisation follows.
 5. **Fig. 5.** Upper mandrels removed (RIE). Hard mask 22 and the lower mandrel layer are etched
    under spacers 52, forming lower mandrels 55.
-6. **Fig. 6.** Spacer-forming layer 69 over the lower mandrels.
+6. **Fig. 6.** Spacers 52 and hard mask 22 removed (col. 5:60–63); spacer-forming layer 69 over the
+   lower mandrels.
 7. **Fig. 7.** Lower spacers 70, about 10–20 nm, then planarisation.
 8. **Fig. 8.** Lower mandrels removed. Spacers 70 on hard mask 16 are mask 73.
 9. **Fig. 9.** Hard mask 16 and the substrate are etched: fins 74 in pairs 76, 78, 80, 82. The
@@ -125,8 +140,12 @@ Its order:
 10. **Figs. 10–11.** SRAM areas 93 and 94: mask 95, trenches 96, and one fin removed from pairs 78
     and 80 for the PMOS transistor.
 
-**Drawn:** these films and materials, with uniform mandrels. The patent's variable spacing and SRAM
-fin removal are named in the text, and the pitch-walk lesson varies the spacing.
+**Drawn:** these films and materials, hard mask 22 included, with uniform mandrels. All films are
+drawn thinner than the patent's (not to scale); the lower spacers are 6 nm, the fin width, below
+the patent's 10–20 nm. The block cut is made in the hard mask before the fin etch, where the patent
+etches the fins with spacers 70 on (Fig. 9) and removes unwanted fins afterwards (Figs. 10–11); the
+steps say so. The patent's variable spacing and SRAM fin removal are named in the text, and the
+pitch-walk lesson varies the spacing.
 
 ## Nanosheet (Si/SiGe CMOS): US 2023/0420457 A1 (Figs. 1–19)
 

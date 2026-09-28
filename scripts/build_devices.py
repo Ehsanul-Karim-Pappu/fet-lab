@@ -296,16 +296,16 @@ def build_ns(stack=None):
 
 # ================================================================= FINFET ===
 def build_fin():
-    """The FinFET nFET after TSMC's US 9,812,358 B1 [R29]: Si fins in a P well, gate seal
-    spacers and SiN gate spacers, SiP source/drain grown in recesses, a replacement gate
-    (high-κ, work-function layer, Co fill) recessed under an AlOₓ hard mask, and replacement
+    """The FinFET nFET after TSMC's US 9,812,358 B1 [R29]: Si fins in a P well, SiN gate
+    spacers (the seal spacers are removed with the dummy gate, Fig. 12B), SiP source/drain grown
+    in recesses, a replacement gate (high-κ and work-function layer lining the fins, the STI
+    floor and the spacer walls, Co fill) recessed under an AlOₓ hard mask, and replacement
     contacts (TiN liner, Co) formed where a spin-on-carbon dummy contact stood."""
     d=Dev("fin","FinFET","tri-gate · 2 fins",
       "A tri-gate FinFET nFET after TSMC's US 9,812,358 B1: Si fins in a P well, SiP source/drain, a replacement high-κ/metal gate under an AlOₓ hard mask, and Co contacts in a TiN liner, made in place of a spin-on-carbon dummy contact [R29].")
     WFIN, HFIN, FPITCH, NFIN = 6.0, 45.0, 27.0, 2
     LGf=18.0; XGf=LGf/2; XSPf=XGf+LSP; XSDf=XSPf+LSD      # 9 / 16 / 38
-    TSEAL, TLIN = 1.0, 1.0                                 # gate seal spacer; contact liner
-    XSLf=XGf+TSEAL                                         # 10: seal spacer | gate spacer
+    TLIN = 1.0                                             # contact liner
     STI=12.0; wh=WFIN/2
     ytop=STI+HFIN                                          # 57  exposed fin top
     zf=[(i-(NFIN-1)/2)*FPITCH for i in range(NFIN)]        # -13.5  +13.5
@@ -332,25 +332,32 @@ def build_fin():
     for i,z in enumerate(zf):
         d.add(f"hk{i+1}",f"HfO₂ high-κ · fin {i+1}","highk",finwrap(z,w1,STI,y1,THK,XGf),"Tri-gate films",["radial",(STI+ytop)/2,2.1,z])
     for i,z in enumerate(zf):
-        d.add(f"tin{i+1}",f"n-type work-function metal (Al-containing) · fin {i+1}","nwf",finwrap(z,w2,STI,y2,TTIN,XGf),"Tri-gate films",["radial",(STI+ytop)/2,3.3,z])
-    mo=[box(-XGf,XGf,STI,ymo,hzenv,hzmo), box(-XGf,XGf,STI,ymo,-hzmo,-hzenv)]
-    for i in range(NFIN-1):
-        mo.append(box(-XGf,XGf,STI,ymo,zf[i]+w3,zf[i+1]-w3))
-    for z in zf:
-        mo.append(box(-XGf,XGf,y3,ymo,z-w3,z+w3))
-    d.add("mo","Co gate fill (recessed)","cofill",mo,"Gate electrode",[0,1.0,0])
+        # over the STI it starts on the high-κ floor, and along x it stops at the high-κ on the walls
+        d.add(f"tin{i+1}",f"n-type work-function metal (Al-containing) · fin {i+1}","nwf",
+              finwrap(z,w2,STI+THK,y2,TTIN,XGf-THK),"Tri-gate films",["radial",(STI+ytop)/2,3.3,z])
+    # The gate dielectric is conformal in the trench: on the fins, on the STI floor between
+    # them and on the gate spacers' walls (Figs. 13A/B), recessed with the gate (Fig. 14).
+    # The work-function layer follows it; the Co fill takes the rest.
+    trench=(-XGf,XGf,STI,ymo,-hzmo,hzmo)
+    solid=lambda ids: [b for q in d.parts if q["id"] in ids for b in q["boxes"]]
+    films=[f"{k}{i+1}" for k in ("fin","il","hk") for i in range(NFIN)]
+    d.add("floor_hk","HfO₂ high-κ · on the STI floor and the spacer walls","highk",
+          carve(trench,solid(films)+[box(-XGf+THK,XGf-THK,STI+THK,ymo,-hzmo,hzmo)]),"Tri-gate films",[0,.6,0])
+    films+=["floor_hk"]+[f"tin{i+1}" for i in range(NFIN)]
+    TW=THK+TTIN
+    d.add("floor_wf","n-type work-function metal (Al-containing) · on the floor and the spacer walls","nwf",
+          carve(trench,solid(films)+[box(-XGf+TW,XGf-TW,STI+TW,ymo,-hzmo,hzmo)]),"Tri-gate films",[0,.8,0])
+    d.add("mo","Co gate fill (recessed)","cofill",carve(trench,solid(films+["floor_wf"])),"Gate electrode",[0,1.0,0])
     gw=box(-XGf,XGf,ymo,ycap,-20,20)
     d.add("gatecap","AlOₓ hard mask (protects the gate at the contact etch)","alox",
           carve((-XGf,XGf,ymo,ycap,-hzmo,hzmo),[gw]),"Gate electrode",[0,1.4,0])
     d.add("gatew","W gate contact (through the hard mask)","tungsten",[gw],"Gate electrode",[0,1.8,0])
     for sx,t in ((-1,"source"),(1,"drain")):
-        for pid,nm,mat,xs_ in ((f"seal_{t}",f"Gate seal spacer (oxide) · {t} side","sio2",(XGf,XSLf)),
-                               (f"spacer_{t}",f"SiN gate spacer · {t} side","si3n4",(XSLf,XSPf))):
-            xa,xb=sorted((sx*xs_[0],sx*xs_[1])); sp=[box(xa,xb,ytop,ycap,-hzmo,hzmo)]
-            eg=[-hzmo]+[v for z in zf for v in (z-wh,z+wh)]+[hzmo]
-            for i in range(0,len(eg),2):
-                if eg[i+1]>eg[i]: sp.append(box(xa,xb,STI,ytop,eg[i],eg[i+1]))
-            d.add(pid,nm,mat,sp,"Spacers",[sx*1.3,0,0])
+        xa,xb=sorted((sx*XGf,sx*XSPf)); sp=[box(xa,xb,ytop,ycap,-hzmo,hzmo)]
+        eg=[-hzmo]+[v for z in zf for v in (z-wh,z+wh)]+[hzmo]
+        for i in range(0,len(eg),2):
+            if eg[i+1]>eg[i]: sp.append(box(xa,xb,STI,ytop,eg[i],eg[i+1]))
+        d.add(f"spacer_{t}",f"SiN gate spacer · {t} side","si3n4",sp,"Spacers",[sx*1.3,0,0])
     for sx,T in ((-1,"Source"),(1,"Drain")):
         xa,xb=sorted((sx*XSPf,sx*XSDf))
         ep=[];ns=[]
@@ -372,9 +379,9 @@ def build_fin():
     d.cal("LG","L<sub>G</sub>",f"{LGf:g} nm","Physical gate length",[-XGf,ymo+2,hzmo],[XGf,ymo+2,hzmo],[0,ymo+22,hzmo+34],["iso","b"])
     d.cal("eot","t_ox",f"{TIL+THK:g} nm",f"{TIL:g} SiO₂ + {THK:g} HfO₂ · EOT {EOT:g} nm",[0,ytop,zf[1]],[0,y2,zf[1]],[0,ytop+34,hzmo+28],["c","tri"])
     d.cal("tin","t<sub>WFM</sub>",f"{TTIN:g} nm","n-type WFM, three faces only",[0,(STI+ytop)/2,zf[0]-w2],[0,(STI+ytop)/2,zf[0]-w3],[0,STI+10,-hzmo-30],["c","tri"])
-    d.dims=[["L_G","Physical gate length",f"{LGf:g} nm"],["W_fin","Fin width",f"{WFIN:g} nm"],
+    d.dims=[["L_G","Physical gate length: the gate trench, its lining films included",f"{LGf:g} nm"],["W_fin","Fin width",f"{WFIN:g} nm"],
             ["H_fin","Exposed fin height",f"{HFIN:g} nm"],["Fin pitch","Fin-to-fin pitch",f"{FPITCH:g} nm"],
-            ["N_fin","Fins in this device",f"{NFIN}"],["L_SP","Seal spacer + gate spacer",f"{TSEAL:g} + {LSP-TSEAL:g} nm"],
+            ["N_fin","Fins in this device",f"{NFIN}"],["L_SP","Gate spacer (the seal spacers go with the dummy gate)",f"{LSP:g} nm"],
             ["EOT","Equivalent oxide thickness of the drawn films (production stacks: below about 1 nm)",f"{EOT:g} nm"],
             ["W_eff","Effective width, (2H+W) x 2 fins",f"{Weff:g} nm"],
             ["Gate","Work-function layer, fill, cap","Al-containing WFM · Co · AlOₓ hard mask"],
@@ -385,8 +392,8 @@ def build_fin():
              "b":dict(n="Along channel",s="through one fin",az=0,el=0,r=250,tgt=[0,40,0],clip=[None,None,zf[1]]),
              "c":dict(n="Across channel",s="through the gate",az=1.5708,el=0,r=250,tgt=[0,42,0],clip=[0,None,None]),
              "tri":dict(n="Tri-gate",s="source side lifted off",az=-1.15,el=.28,r=215,tgt=[0,40,0],clip=[3,None,None],
-                        off=["epi_source","nisi_source","liner_source","ni_source","spacer_source","seal_source"])}
-    d.note=("<b>After US 9,812,358 B1.</b> The gate electrodes come from the patent's list (TiN, TaN, TaC, Co, Ru, Al): an Al-containing work-function layer and a Co fill here, recessed and capped by a metal-oxide hard mask (AlOₓ) that protects the gate when the self-aligned contacts are etched. The contacts are formed where a baked spin-on-carbon dummy contact stood: a TiN liner and Co, with a silicide at the epitaxy formed by an anneal [R29]. Each drawn fin has 96nm of gated perimeter (2 x 45nm height + 6nm top width); dimensions are the model's choices.")
+                        off=["epi_source","nisi_source","liner_source","ni_source","spacer_source"])}
+    d.note=("<b>After US 9,812,358 B1.</b> The gate seal spacers are removed with the dummy gate, so the gate dielectric lies directly on the SiN gate spacers; it lines the fins, the STI floor between them and the spacer walls, and is recessed with the gate. The gate electrodes come from the patent's list (TiN, TaN, TaC, Co, Ru, Al): an Al-containing work-function layer and a Co fill here, recessed and capped by a metal-oxide hard mask (AlOₓ) that protects the gate when the self-aligned contacts are etched. The contacts are formed where a baked spin-on-carbon dummy contact stood: a TiN liner and Co, with a silicide at the epitaxy formed by an anneal [R29]. The model's choices: the SiO₂ interfacial layer (the patent names none), HfO₂ from its Hf-oxide option, TiSiₓ for its unnamed silicide, the W gate contact (no metal named), and the box-shaped epitaxy and flat contact floor (the patent's epitaxy is faceted and its contacts wrap the facets). Each drawn fin has 96nm of gated perimeter (2 x 45nm height + 6nm top width); dimensions are the model's choices.")
     return d.finish()
 
 # ============================================================== FORKSHEET ===
