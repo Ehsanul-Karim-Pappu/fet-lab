@@ -70,7 +70,7 @@ def p_device(design, stack, exploded):
         elif i.startswith("tin"):
             p.update(material=bd.WFM["p"], name=p["name"].replace("n-type work-function metal", bd.WFL["p"]))
         elif i.startswith("epi_"):
-            p.update(material="sige", name=p["name"].replace("(Si:P)", "(SiGe:B)"))
+            p.update(material="sige", name=p["name"].replace("(Si:P; the dopant is the model's)", "(SiGe:B)"))
         elif i == "pts":
             p.update(name="Si sub-fin (under the bottom isolation)", material="silicon")
     return d
@@ -249,8 +249,10 @@ def compose(design, exploded, wired):
                  f"{stack['twf']:g} nm so each can be seen and tapped; materials, sheet order and connections "
                  "are the compact view's.")
     else:
-        body += (" In this compact geometry the drawn films meet in the gaps between one device's sheets; "
-                 "turn on Exploded gate view to see each film.")
+        body += " In this compact geometry the drawn films meet in the gaps between one device's sheets."
+    if design == "sige":
+        body += (" The shared gate carries one gate contact, as an inverter's input needs; the patent's Fig. 19 "
+                 "draws two on the one gate [R13].")
     if wired:
         body += (" The inverter: both gates take IN through the shared gate, the pFET source connects to V_DD, "
                  "the nFET source to V_SS (GND), and the two drains join at OUT.")

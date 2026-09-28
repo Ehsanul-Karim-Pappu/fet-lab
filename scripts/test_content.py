@@ -611,14 +611,17 @@ class ContentTests(unittest.TestCase):
             self.assertEqual({'n_bdi', 'p_bdi'} <= h, n >= at['bdi'], s['id'])
             low = {i for i in h if 'lower Ge' in ((final.get(i) or next(p for p in s['parts'] if not isinstance(p, str) and p['id'] == i))['name'])}
             self.assertEqual(bool(low), at['stack'] <= n < at['release'], s['id'])
-            if n >= at['undoped']: self.assertTrue({'n_undoped_source', 'p_undoped_drain'} <= h)
+            if n >= at['undoped']:     # grown tall first, then etched back in each device's trench
+                self.assertTrue(('n_undoped_source' in h or 'n_ugrow' in h) and
+                                ('p_undoped_drain' in h or 'p_ugrow' in h), s['id'])
             if n < at['undoped']: self.assertFalse(any('undoped' in i for i in h))
             # channels never turn into SiGe
             for i in h:
                 if 'sheet' in i: self.assertEqual(m[i], 'silicon', (s['id'], i))
-        mask = lambda s: next((p['name'] for p in s['parts'] if isinstance(p, dict) and p['id'] == 't_liner'), '')
-        self.assertIn('nFET region', mask(steps[at['p_sd']]))
-        self.assertIn('pFET region', mask(steps[at['n_sd']]))
+        # Each device's epitaxy grows with the other region still under its liner [R28, 0090-0105].
+        zs = lambda s, pid: [b[2] for p in s['parts'] if isinstance(p, dict) and p['id'] == pid for b in p['boxes']]
+        self.assertTrue(zs(steps[at['p_sd']], 't_cesl') and min(zs(steps[at['p_sd']], 't_cesl')) > -42)
+        self.assertTrue(zs(steps[at['n_sd']], 't_cesl2') and max(zs(steps[at['n_sd']], 't_cesl2')) < -42)
         self.assertIn('p_epi_source', here(steps[at['p_sd']])); self.assertNotIn('n_epi_source', here(steps[at['p_sd']]))
         # the other route's steps are not borrowed
         for sid in ('p_release', 'p_chopen', 'bottom', 'pts_nmask'): self.assertNotIn(sid, ids)

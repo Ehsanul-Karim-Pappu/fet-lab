@@ -5,6 +5,26 @@ All notable changes to FET Lab. Dates are the release date; versions follow
 
 ## Unreleased
 
+### Nanosheet, both designs, checked figure by figure against their patents
+
+- **Si/SiGe (US 2023/0420457 A1):**
+  - Both source/drain tops are higher: the pFET's just above the stack, the nFET's H higher (Figs.
+    11A and 13A–19A); the gate is taller to stay clear of them.
+  - The dummy gate fills the full gate height, and the ILD's CMP removes its hard mask ([0054]).
+  - The AlOₓ liner comes off once the nFET source/drain has grown (Fig. 13).
+  - The pFET metal note now gives the patent's p-type list ([0058]); it had the n-type one.
+  - Si:P, the interfacial layer and the dummy-gate oxide are marked as the model's.
+  - The Device note says Fig. 19 draws two gate contacts where the model draws one.
+- **Si/Si (US 2023/0178617 A1):**
+  - The STI stays at the seed's top until the undoped Si has grown, then a new step recesses it.
+  - The undoped Si grows past the stack and is etched back in each device's trench.
+  - A blanket 4 nm CESL and an OPL mask per region replace the old region liner.
+  - Spacer 130 now also lines the stacks' sides; it stays in the finished device.
+  - The recess stops inside the lowest SiGe, and the indent clears the rest.
+  - The high-κ is 2 nm, the ILD is silicon nitride, and every step names its own figures.
+  - The Mo fill and SiN cap are marked as the model's, since the application has no cap.
+- **Removed:** a leftover "Exploded gate view" hint from the nanosheet notes.
+
 ### Forksheet, checked figure by figure against EP 3 989 273 A1
 
 - **Top SiGe layer 116a** is now thicker than the others, as the patent requires ([0060]–[0064]).

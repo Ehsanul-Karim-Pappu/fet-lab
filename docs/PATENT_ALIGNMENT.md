@@ -183,7 +183,24 @@ fin removal are named in the text, and the pitch-walk lesson varies the spacing.
 - WFMs: TiN (p) and an Al-containing n-type metal (Ti and Al and their alloys are on the list).
 - Fill W; SAC cap SiN.
 - Contacts: TiSiₓ and Co, with a W gate contact; the patent names no metals here.
-- Liners: SiO₂ (702) and AlOₓ (1202). Masks: OPL.
+- Liners: SiO₂ (702) and AlOₓ (1202), the AlOₓ etched back once the nFET S/D has grown (Fig. 13).
+  Masks: OPL.
+- Source/drain heights: the pFET's top slightly above the stack, the nFET's H (= the BDI's
+  thickness) higher (Figs. 11A, 13A–19A); the gate stands clear of both.
+- The dummy gate fills the full gate height; the ILD's CMP removes its hard mask 604 ([0054]).
+- One gate contact on the shared gate; Fig. 19B draws two, 1812 and 1814.
+
+**The model's choices, not the patent's:**
+- The nFET S/D dopant (Si:P): [0053] names no nFET S/D material.
+- The SiO₂ interfacial layer and the thin dummy-gate oxide: the patent shows neither.
+- The Si:B first layer drawn only in the sub-fin recess; [0049] says only that it can be grown
+  first.
+- Thin films round each sheet with W beside the stacks; Figs. 17 and 19 fill the gate with the
+  stacks up to a level and metal 1706 above.
+
+**Errors in the patent itself:** [0053] cites Figs. 11A/B for the nFET S/D (13A/B); Figs. 14B–19B
+label the nFET S/D "1302" (the inner spacers); Fig. 19B's 1822/1824 are 1802/1804; [0056] "404,
+408, 410" means 412; [0051] and [0062] have numbering slips.
 
 ## Forksheet: EP 3 989 273 A1 (imec, Figs. 1–6), US 11,862,700 B2 and US 2024/0178128 A1 (TSMC)
 
@@ -380,16 +397,37 @@ The face-to-back process of Figs. 1A–1N is followed.
 
 ## Si/Si nanosheet: US 2023/0178617 A1 (IBM)
 
-- **Stack:** sacrificial layer 112, SiGe with 45–70 % Ge, 5–15 nm; seed layer 113, the channel
-  material (Si), 2–5 nm; then SiGe 114 (15–35 % Ge) and Si 116 in turn, 5–12 nm each.
-- **Seed layer:** undoped Si 140 grows from it and from the channel ends in the S/D trenches
-  [0079–0080]. At channel release a controlled oxidation and etch thin the channels and remove
-  the exposed seed [0117–0119]; it remains only below the inner spacers and the undoped Si, above
-  the bottom isolation 146. The gate stack sits on the bottom isolation [0121–0123].
-- **Spacers:** gate spacer 130 SiON, SiOCN, SiOC or SiBCN; inner spacers 138 SiN; BDI 146 SiN.
-- **S/D:** pFET SiGe, boron-doped; nFET SiC doped with phosphorus.
-- **Gate:** high-κ about 2 nm; pFET TiN (or TaN, TiC, TiAlC), nFET TiAlC. No fill metal, gate cap
-  or contact metal is named; the Mo fill, SiN cap and Co contacts are the model's.
-- **ILD 170:** silicon nitride.
-- **Drawn:** the seed only under the inner spacers and the undoped Si; SiBCN outer spacers; SiN
-  inner spacers and BDI; the gate's high-κ and work-function metal on the BDI below the sheets.
+Checked figure by figure (Figs. 1–55) and against [0001]–[0133].
+
+- **Stack:** sacrificial layer 112, SiGe with 45–70 % Ge, 5–15 nm [0048]; seed 113, the channel
+  material (Si), 2–5 nm [0051], [0056]; then SiGe 114 (15–35 % Ge) and Si 116 in turn, 5–12 nm
+  each [0049]. Three channels; 116 on top.
+- **STI:** its top at or above the seed's top [0061], so 112 stays covered until the STI is
+  recessed after the undoped Si grows ([0082]–[0083], Figs. 20–22). Under the gate it keeps that
+  height.
+- **Spacer 130** (SiON, SiOCN, SiOC, SiBCN [0067]) on the gate's sides and on the stacks' sides
+  between the gates [0066]. It bounds the S/D and stays in the finished device (Fig. 52).
+- **Recess:** it stops inside the lowest 114, leaving the seed and 112 intact ([0069]–[0071]). The
+  indent clears the rest and exposes the seed [0074]. Inner spacers 138 are SiN [0076].
+- **Undoped Si 140** grows from the seed and the channel ends [0079]–[0080], up past the stack
+  [0081]. Each device's trench etch recesses it back below the lowest channel ([0095]–[0096],
+  [0105], claim 4).
+- **BDI 146** (SiN [0088]) replaces 112 under the channels and the S/D [0087].
+- **Masking:** CESL 150, a nitride, SiN or oxide, 4 nm [0090]. OPL 152 over the nFET, then the pFET
+  trench and S/D 160 (SiGe:B) [0091]–[0104]. A second liner and OPL over the pFET, then the nFET's,
+  S/D 164 (SiC:P) [0105]–[0109]; these are described but not drawn in the application.
+- **ILD 170:** silicon nitride [0114].
+- **Release:** 124, 122 and 114 are removed [0113], [0116]. A controlled oxidation and etch thin the
+  channels and remove the exposed seed [0117]–[0119]. The seed remains only under the inner
+  spacers and the undoped Si, and the gate sits on the BDI [0121]–[0123].
+- **Gate:** high-κ about 2 nm [0124]; pFET TiN (or TaN, TiC, TiAlC), nFET TiAlC [0125]. It is
+  planarised coplanar with the spacers and ILD, with no cap [0126].
+
+**The model's choices:**
+- The Mo fill, its recess and the SiN cap.
+- The SiO₂ interfacial layer (the application etches the oxide off first).
+- The TiSiₓ and Co contacts, and the wiring.
+- A short sacrificial gate (50–100 nm in [0063]) with a SiN hard mask.
+- Uniform channels; claims 6 and 11 thin them at the centre.
+
+**Not used:** the alternate embodiment, Figs. 53–55.

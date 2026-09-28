@@ -216,8 +216,11 @@ def build_ns(stack=None):
     ys=[y0+i*PITCH for i in range(NSH)]                 # 24.5 45.5 66.5 (Device mode)
     top=ys[-1]+HYS
     hz1,hz2,hz3 = hz+TIL, hz+TIL+THK, hz+TIL+THK+TTIN   # 16 18 21
-    hzmo=hz3+5.0; ymo=ys[-1]+HY3+9.0; ycap=ymo+6.0
-    ysd=ys[-1]+HYS+3.0; ynisi=ysd+5.0
+    # The source/drain epitaxy rises above the stack: the pFET's (H lower, see build_ns_p)
+    # slightly above its top, the nFET's about one layer higher (Figs. 11A, 13A-19A) [R13]. The
+    # gate stands clear of both.
+    hzmo=hz3+5.0; ymo=ys[-1]+HY3+19.0; ycap=ymo+6.0
+    ysd=ys[-1]+HYS+13.0; ynisi=ysd+5.0
     # The contacts stop level with the top of the SAC cap, as the FinFET's do with its hard mask.
     yplug=ycap; ym2=ycap
     zsub=42.0; SUBFIN=8.0
@@ -266,7 +269,7 @@ def build_ns(stack=None):
               "Spacers",[s*1.1,0,0])
     for s,T in ((-1,"Source"),(1,"Drain")):
         xa,xb=sorted((s*XSP,s*XSD)); xc=(xa+xb)/2
-        d.add(f"epi_{T.lower()}",f"{T} epi (Si:P)","silicon",[box(xa,xb,STI,ysd,-hz,hz)],"Source / drain",[s*1.6,0,0])
+        d.add(f"epi_{T.lower()}",f"{T} epi (Si:P; the dopant is the model's)","silicon",[box(xa,xb,STI,ysd,-hz,hz)],"Source / drain",[s*1.6,0,0])
         d.add(f"nisi_{T.lower()}",f"{T} TiSiₓ silicide (the patent: the contact may include a silicide)","tisi",[box(xa,xb,ysd,ynisi,-hz,hz)],"Source / drain",[s*1.9,.3,0])
         d.add(f"ni_{T.lower()}",f"{T} Co contact plug (model's choice)","cobalt",[box(xc-8,xc+8,ynisi,yplug,-12,12)],"Source / drain",[s*2.1,.8,0])
 
