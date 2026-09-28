@@ -353,7 +353,8 @@ def build_fin():
         for z in zf:
             # grown from the recessed fin: narrow at the seed, faceted out above the STI
             ep += [box(xa,xb,STI,STI+6,z-wh-2,z+wh+2), box(xa,xb,STI+6,yepi,z-10,z+10)]
-            ns.append(box(xa,xb,yepi,ynisi,z-10,z+10))
+            # The silicide forms only where the contact opening meets the epi: its footprint.
+            ns.append(box(xa,xb,yepi,ynisi,max(z-10,-hzenv),min(z+10,hzenv)))
         d.add(f"epi_{T.lower()}",f"{T} epi (SiP) · grown in the recess","silicon",ep,"Source / drain",[sx*1.6,.2,0])
         d.add(f"nisi_{T.lower()}",f"{T} silicide (TiSiₓ) · formed by the contact anneal","tisi",ns,"Source / drain",[sx*1.9,.5,0])
         ln,core=lined(xa,xb,ynisi,ycap,-hzenv,hzenv,TLIN)
@@ -577,7 +578,7 @@ def build_cfet_mono():
     # The riser is set 3 nm off the upper source so the two nets cannot touch; in the patent
     # that space is ILD 1310 (SiO₂, SiN or SiOC). Drawn here, since the scenes hide the ILD.
     d.add("vdd_gap","ILD (SiO₂) · keeps the V_DD contact off the upper nFET source","sio2",
-          [box(xa,xb,ylo,ym2,hz,hz+3)],"Contacts",[-1.6,.4,.3])
+          [box(xa,xb,ylo,ym2,hz,hz+3), box(xa,xb,ynisi,ym2,8,hz)],"Contacts",[-1.6,.4,.3])
 
     d.cal("mdi","Tier gap",f"{MDI:g} nm","SiBCN between the tiers",[XG+1,ymdi0,-hz],[XG+1,ymdi1,-hz],[XSP+30,(ymdi0+ymdi1)/2,-hzmo-28],["iso","b","c","tier"])
     d.cal("tch","t<sub>ch</sub>",f"{TCH:g} nm","Sheet thickness",[-XSP,yb[0]-HYS,hz],[-XSP,yb[0]+HYS,hz],[-XSP-34,yb[0]-6,hz+34],["iso","b","c","tier"])
@@ -616,7 +617,7 @@ def build_cfet_seq():
     yb=[STI+HY3+6.0, STI+HY3+6.0+PITCH]          # 22.5 42.5  lower tier (p)
     ylg=yb[-1]+HY3+4.0; ylc=ylg+3.0              # lower gate top · its cap top (55, 58)
     yes=ylc; yd0=yes+2.0; yl0=yd0+2.0; yl1=yl0+6.0; yd1=yd0+10.0      # etch stop · dielectric · Cu line
-    yb1=yd1+3.0; yb2=yb1+3.0; yu0=yb2+4.0        # bond 68L · bond 68U · upper wafer's isolation
+    yb1=yd1+3.0; yb2=yb1+3.0; yu0=yb2            # bond 68L · bond 68U; the upper stack sits on 68U
     yt=[yu0+HY3+6.0, yu0+HY3+6.0+PITCH]          # upper tier (n)
     ymo=yt[-1]+HY3+6.0; ycap=ymo+6.0
     ybsd=yb[-1]+HYS+3.0                          # lower S/D top
@@ -626,7 +627,7 @@ def build_cfet_seq():
     xd0,xd1=XSP,XSD; xdc=(xd0+xd1)/2; xs0,xs1=-XSD,-XSP; xsc=(xs0+xs1)/2
     P70=box(xdc-4,xdc+4,yl1,ym2,-4,4)            # deep plug 70: front, through the upper drain
     P90=box(xdc-4,xdc+4,BL1,yl0,-4,4)            # deep plug 90: back, through the lower drain
-    P91=box(xsc-4,xsc+4,BL1,STI+4,-4,4)          # plug 91: back, onto the lower source
+    P91=box(xsc-4,xsc+4,BL1,STI,-4,4)            # plug 91: back, landing on the lower source
 
     # ---- backside: the substrate is gone; dielectric and lines under the lower tier ----
     # The lower gate is reached from the back too: the patent draws no gate contact, so this via
@@ -663,7 +664,8 @@ def build_cfet_seq():
     d.add("diel64","Dielectric (SiO₂) around the line","sio2",carve((-XSD,XSD,yd0,yd1,-zsub,zsub),[line,P90,P70]),"Between the tiers",[0,1.1,0])
     d.add("bond_l","Bond layer 68L (SiO₂)","bond",carve((-XSD,XSD,yd1,yb1,-zsub,zsub),[P70]),"Between the tiers",[0,1.2,0])
     d.add("bond_u","Bond layer 68U (SiO₂) · fusion-bonded","bond",carve((-XSD,XSD,yb1,yb2,-zsub,zsub),[P70]),"Between the tiers",[0,1.25,0])
-    d.add("upbase","Upper wafer · isolation under the stack (SiO₂)","sio2",carve((-XSD,XSD,yb2,yu0,-zsub,zsub),[P70]),"Upper tier (n)",[0,1.3,0])
+    # No oxide under the upper stack: the upper wafer is thinned to its stack, which sits on bond
+    # layer 68U [R34].
     # ---- upper tier (n), in the bonded wafer ----
     cfet_tier(d,"n",yt,"Upper tier (n)",hz)
     mo=[box(-XG,XG,yu0,ymo,hz3,hzmo), box(-XG,XG,yu0,ymo,-hzmo,-hz3)]

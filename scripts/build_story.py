@@ -111,11 +111,12 @@ and then processes the upper tier; post-transfer processing must protect the low
 sequential Device follows a TSMC patent: each tier has its own gate, an inter-metal line joins
 the drains, and deep plugs reach lines on the back of the wafer. [R3, R34]</p>
 <h4>Contacting the lower device</h4>
-<p>The monolithic Device, the Inverter and the Layout contact both tiers from the front: the lower
-source is reached through a space left beside the upper one, as in the IBM patent. imec has
-demonstrated stacked contacts patterned from the frontside. The sequential Device uses the back of
-the wafer instead; backside contacting can reduce congestion, but is not a physical requirement
-defining CFET. [R4, R33, R34]</p>
+<p>The monolithic Device and the Inverter contact both tiers from the front: the lower source is
+reached through a space left beside the upper one, as in the IBM patent. imec has demonstrated
+stacked contacts patterned from the frontside. The sequential Device reaches its lower tier from
+the back of the wafer, and the Layout puts both power rails there, imec's direction for CFET;
+backside contacting can reduce congestion, but is not a physical requirement defining CFET.
+[R4, R12, R33, R34]</p>
 <p>Two sheets per tier and the contact metals are model choices. The rendering does not predict
 fabrication yield, self-heating or switching delay.</p>
 """

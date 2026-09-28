@@ -2485,8 +2485,20 @@ def pair_builder(G, nflow, nfinal, pflow, pfinal):
         parts = carve(parts, [x for q in b for x in q["boxes"]] + (voids(br) if br else [])) + b
         S.now = {q["id"]: q for q in parts}
         if film:        # the spacer film over the gate line between the stacks
+            # Grown from what it lands on there, the dummy gate and the floor, not from the sites'
+            # own film, which already coats the stacks' facing sides.
+            base = [x for q in S.now.values() if q["id"].startswith(("b_", "g_")) or
+                    q["group"] == "Substrate & isolation" for x in q["boxes"]]
+            win = (-XSDg, XSDg, y0, ycap + film, zb[0], zb[1])
+            fb = []
+            for c in base:
+                x0, x1, ya, yb, za, zb_ = lim(c)
+                e = (max(x0 - film, win[0]), min(x1 + film, win[1]), max(ya - film, win[2]),
+                     min(yb + film, win[3]), max(za - film, win[4]), min(zb_ + film, win[5]))
+                if e[0] < e[1] and e[2] < e[3] and e[4] < e[5]:
+                    fb += subtract(e, S.boxes() + fb)
             S.put(tmp("b_film", G.get("filmname", "Spacer dielectric (as deposited)") + " · between the stacks", SPM, "Spacers",
-                      conformal(S.boxes(), film, (-XSDg, XSDg, y0, ycap + film, zb[0], zb[1])), (0, .5, 0)))
+                      fb, (0, .5, 0)))
         if liner:       # a protective liner over one region
             z0, z1 = ZR[liner]
             S.put(tmp("m_liner", f"{liner_name} over the {who[liner]} region", liner_mat, "Region masks",

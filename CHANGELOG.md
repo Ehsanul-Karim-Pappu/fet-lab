@@ -5,6 +5,32 @@ All notable changes to FET Lab. Dates are the release date; versions follow
 
 ## Unreleased
 
+### Section view, CFET Layout, spacer film
+
+- **Both (3D and section):**
+  - The 3D strip now ends at the step bar, not behind it and the tabs sheet.
+  - Once the strip has its size, the model is framed to fill it.
+  - The selected-layer card is hidden while a section shows; the 2D view names the layer.
+- **CFET Layout: backside power, imec's direction for CFET.**
+  - V_DD and GND rails run on the back of the wafer. A backside via reaches the lower pFET's
+    source, and a deep via takes the upper nFET's source down past the lower tier.
+  - Only IN and OUT are on the front Metal 0.
+  - The pFET stays below the nFET, as in the Device and Inverter.
+- **Sequential CFET:**
+  - No oxide under the upper stack: the upper wafer is thinned to its stack, which sits on bond
+    layer 68U, as in the patent.
+  - Backside plug 91 now lands on the lower source instead of entering it.
+- **No more empty slivers.** A scan of every scene and lesson step for thin empty gaps between
+  solids found three, now filled:
+  - FinFET: the silicide is now as wide as the contact opening, so the TiN liner meets the ILD
+    with no 1 nm ring.
+  - Monolithic CFET: the dielectric beside the V_DD contact also fills the 2 nm next to the upper
+    source's contact.
+  - CFET Layout: the deep GND via has a 2 nm liner where it passes the pFET source.
+- **Nanosheet both sites, "Spacer film over both":** the film between the stacks no longer stands
+  as two stray walls in the source/drain region. It is grown only from the dummy gate and the floor
+  there.
+
 ### Models that agree with each other
 
 - **Inverters are the Device models, wired.**

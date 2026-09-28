@@ -1199,8 +1199,25 @@ fun FetLabApp(lib: Library, renderer: Renderer) {
 
             val split = scene.flow?.plane(secPlane) != null && secMode == 2 &&
                 scene.flow?.plane(secPlane)?.views?.containsKey(scene.step?.scale ?: "site") == true
+            // The step bar's (or the IN/OUT bar's) height, measured below.
+            var logicBarH by remember { mutableStateOf(0.dp) }
+            // With the section on top (Both), the 3D view gets exactly the strip left between the
+            // section and the step bar, not the part hidden behind the bar and the sheet.
             AndroidView(factory = { glView }, modifier = Modifier.fillMaxSize()
-                .padding(top = if (split) (with(density) { stageH.toDp() } - stageInset) * 0.46f else 0.dp))
+                .padding(top = if (split) (with(density) { stageH.toDp() } - stageInset) * 0.46f else 0.dp,
+                    bottom = if (split) stageInset + logicBarH else 0.dp))
+            // ...and once the strip has its size, the model is framed to fill it.
+            LaunchedEffect(split, sceneKey, secPlane, stageH, stageInset, logicBarH) {
+                if (!split) return@LaunchedEffect
+                delay(80)
+                flight?.join()
+                delay(60)
+                val sc = lib.scene(sceneKey)
+                val a = renderer.viewW.toFloat() / maxOf(renderer.viewH, 1)
+                renderer.target = sc.centre
+                renderer.dist = renderer.fitDist(sc, renderer.az, renderer.el, a) * 1.06f
+                draw()
+            }
 
             // A screen reader cannot orbit the model; it hears what is on screen and where the
             // controls are that change it.
@@ -1318,7 +1335,6 @@ fun FetLabApp(lib: Library, renderer: Renderer) {
 
             // On Inverter and Layout scenes the IN 0/1 bar owns the bottom edge, so the
             // selected-layer card sits just above it instead of on top of it.
-            var logicBarH by remember { mutableStateOf(0.dp) }
             val cardLift by animateDpAsState(if (scene.logic || scene.flow != null) logicBarH else 0.dp,
                 tween(220), label = "cardLift")
 
@@ -1339,7 +1355,9 @@ fun FetLabApp(lib: Library, renderer: Renderer) {
                     })
                 }
             }
-            AnimatedVisibility(visible = selected != null,
+            // With a section on screen the 2D view names the tapped layer itself, so the card
+            // would only cover the 3D strip.
+            AnimatedVisibility(visible = selected != null && !sectionUp,
                 enter = fadeIn(tween(180)) + slideInVertically(tween(220)) { it / 3 },
                 exit = fadeOut(tween(140)) + slideOutVertically(tween(180)) { it / 3 },
                 modifier = Modifier.align(Alignment.BottomStart).padding(bottom = stageInset + cardLift)) {

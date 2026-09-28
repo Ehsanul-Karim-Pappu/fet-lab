@@ -348,15 +348,15 @@ def plate(x0, x1, y0, y1, z0, z1, holes=()):
     return out
 
 def show_cfet():
-    d = Dev("show_cfet", "CFET inverter · layout", "one stack, contacts from the front",
-            "A schematic stacked inverter with the pFET below the nFET, as in the Device and Inverter scenes: a riser joins the drains, another brings the lower pFET's source up past the upper tier, and every net is reached from the front.")
+    d = Dev("show_cfet", "CFET inverter · layout", "one stack, power from the back",
+            "A schematic stacked inverter with the pFET below the nFET, as in the Device and Inverter scenes, and backside power: V_DD and GND rails run on the back of the wafer, only IN and OUT on the front. A riser joins the drains; a deep via takes the upper nFET's source down past the lower tier.")
     P = plan("cfet")
     XW, XMD0, XMD1, XPO = P["xw"], P["xmd0"], P["xmd1"], P["xpo"]
     ZB, hw = P["zbar"], P["mw"] / 2.0
     ZCH = 20.0 / 2.0                             # sheet width, from the device scene
     ZC = P["half"] + hw                          # wells and oxide run under the far rail edge
     ZPL, GZ = ZC + 2.0, ZC
-    YPW = (-34.0, -4.0); YOX = (-4.0, 6.0)
+    YBM = (-56.0, -46.0); YBI = (-46.0, -34.0); YPW = (-34.0, -4.0); YOX = (-4.0, 6.0)
     WN = [(12.0, 17.0), (22.0, 27.0)]          # bottom tier, pMOS
     WP = [(42.0, 47.0), (52.0, 57.0)]          # top tier, nMOS
     YMDI = (30.0, 38.0)
@@ -364,13 +364,24 @@ def show_cfet():
     YPO = (6.0, 64.0); YVD = (60.0, 70.0); YVG = (64.0, 70.0); YM = (70.0, 78.0)
     vx = (XMD0 + XMD1) / 2.0
     RIS = (vx - 5, vx + 5, ZCH + 2, ZCH + 12)  # output riser footprint
-    RSV = (-vx - 5, -vx + 5, ZCH + 2, ZCH + 12)  # V_DD riser footprint: the lower source, brought up
+    VV = (-vx - 4, -vx + 4, ZC - 14, ZC - 6)   # V_DD via: back to the lower pMOS source
+    VG = (-vx - 4, -vx + 4, -ZC + 6, -ZC + 14) # GND deep via: back to the upper nMOS source
 
-    # --- base: an N well under the lower (pMOS) tier, and the oxide ---------
+    # --- backside power: both rails on the back of the wafer ----------------
+    A(d, "bm_vdd", "Backside Metal · V_DD rail", "m0",
+      [box(-XW - 8, XW + 8, YBM[0], YBM[1], ZC - 18, ZPL)], "Backside power", [0, -2.0, .6], "vdd")
+    A(d, "bm_gnd", "Backside Metal · GND rail", "m0",
+      [box(-XW - 8, XW + 8, YBM[0], YBM[1], -ZPL, -ZC + 18)], "Backside power", [0, -2.0, -.6], "gnd")
+    A(d, "bild", "Backside ILD", "fox",
+      plate(-XW, XW, YBI[0], YBI[1], -ZC, ZC, [VV, VG]), "Backside power", [0, -1.7, 0])
+    A(d, "via_vdd", "Backside via · V_DD, to the lower pMOS source", "vd",
+      [box(VV[0], VV[1], YBI[0], MDB[0], VV[2], VV[3])], "Backside power", [-1.0, -1.3, .6], "vdd")
+    A(d, "via_gnd", "Deep backside via · GND, past the lower tier to the upper nMOS source", "vd",
+      [box(VG[0], VG[1], YBI[0], MDT[0], VG[2], VG[3])], "Backside power", [-1.0, -1.3, -.6], "gnd")
     A(d, "nwell", "N Well", "nwell",
-      [box(-XW, XW, YPW[0], YPW[1], -ZC, ZC)], "Wells & oxide", [0, -1.2, 0])
+      plate(-XW, XW, YPW[0], YPW[1], -ZC, ZC, [VV, VG]), "Wells & oxide", [0, -1.2, 0])
     A(d, "fox", "SiO₂ field oxide", "fox",
-      [box(-XW, XW, YOX[0], YOX[1], -ZC, ZC)], "Wells & oxide", [0, -.8, 0])
+      plate(-XW, XW, YOX[0], YOX[1], -ZC, ZC, [VV, VG]), "Wells & oxide", [0, -.8, 0])
 
     # --- channels ----------------------------------------------------------
     for bands, pol, net in ((WN, "p", "chan_p"), (WP, "n", "chan_n")):
@@ -383,23 +394,23 @@ def show_cfet():
             A(d, f"{pol}_wsr{i+1}", f"{pol}MOS nanosheet {i+1} · source stub", "nanowire",
               [box(-XW, -XMD1, y0, y1, -ZCH, ZCH)], g, [-1.5, 0, 0], "body")
 
-    # --- tier isolation, punched for the gate and the riser ----------------
+    # --- tier isolation, punched for the gate, the riser and the GND via ---
     A(d, "mdi", "Tier isolation", "mdi",
-      plate(-XW, XW, YMDI[0], YMDI[1], -ZC, ZC, [(-XPO, XPO, -ZC, ZC), RIS, RSV]),
+      plate(-XW, XW, YMDI[0], YMDI[1], -ZC, ZC, [(-XPO, XPO, -ZC, ZC), RIS, VG]),
       "Tier isolation", [0, 1.0, 0])
 
     # --- contacts -----------------------------------------------------------
+    # The lower source's MD stops short of the GND via, which passes beside it.
     A(d, "md_vdd", "MD · pMOS source (bottom)", "md",
-      [box(-XMD1, -XMD0, MDB[0], MDB[1], -ZC, ZC)], "Contacts", [-1.3, -.3, 0], "vdd")
+      [box(-XMD1, -XMD0, MDB[0], MDB[1], VG[3] + 2, ZC)], "Contacts", [-1.3, -.3, 0], "vdd")
+    A(d, "via_liner", "Via liner · isolates the GND via from the pMOS source", "fox",
+      [box(VG[0], VG[1], MDB[0], MDB[1], VG[3], VG[3] + 2)], "Contacts", [-1.3, -.3, 0])
     A(d, "md_outb", "MD · pMOS drain (bottom)", "md",
       [box(XMD0, XMD1, MDB[0], MDB[1], -ZC, ZC)], "Contacts", [1.3, -.3, 0], "out")
     A(d, "md_gnd", "MD · nMOS source (top)", "md",
-      [box(-XMD1, -XMD0, MDT[0], MDT[1], -ZC, ZCH + 1)], "Contacts", [-1.3, .5, 0], "gnd")
+      [box(-XMD1, -XMD0, MDT[0], MDT[1], -ZC, ZC)], "Contacts", [-1.3, .5, 0], "gnd")
     A(d, "md_outt", "MD · nMOS drain (top)", "md",
       [box(XMD0, XMD1, MDT[0], MDT[1], -ZC, ZC)], "Contacts", [1.3, .5, 0], "out")
-    A(d, "riser_vdd", "V_DD riser · the lower source, past the upper tier", "vd",
-      [box(RSV[0], RSV[1], MDB[1], MDT[0], RSV[2], RSV[3]),
-       box(RSV[0], RSV[1], MDT[0], MDT[1], RSV[2], ZB["vdd"] + 3)], "Contacts", [-1.4, .1, .8], "vdd")
     A(d, "riser", "Output riser · past the isolation", "vd",
       [box(RIS[0], RIS[1], YMDI[0], YMDI[1], RIS[2], RIS[3])], "Contacts", [1.4, .1, .8], "out")
 
@@ -411,48 +422,46 @@ def show_cfet():
         po.append(box(-XPO, XPO, y0, y1, -ZCH, ZCH))
     A(d, "po", "Po · gate through both tiers", "po", po, "Gate", [0, .9, 0], "in")
 
-    # --- vias and Metal 0 ---------------------------------------------------
-    A(d, "vd_vdd", "VD · V_DD", "vd",
-      [box(-vx - 4, -vx + 4, YVD[0], YVD[1], ZB["vdd"] - 3, ZB["vdd"] + 3)], "Vias", [0, 1.2, 0], "vdd")
-    A(d, "vd_gnd", "VD · GND", "vd",
-      [box(-vx - 4, -vx + 4, YVD[0], YVD[1], ZB["gnd"] - 3, ZB["gnd"] + 3)], "Vias", [0, 1.2, 0], "gnd")
+    # --- front: vias and Metal 0, signals only ------------------------------
     A(d, "vd_out", "VD · OUT", "vd",
       [box(vx - 4, vx + 4, YVD[0], YVD[1], ZB["out"] - 3, ZB["out"] + 3)], "Vias", [0, 1.2, 0], "out")
     A(d, "vg", "VG · gate via", "vg",
       [box(-5, 5, YPO[1], YVG[1], ZB["in"] - 2, ZB["in"] + 2)], "Vias", [0, 1.3, 0], "in")
-    for net, label in (("gnd", "GND"), ("in", "IN"), ("out", "OUT"), ("vdd", "V_DD")):
+    for net, label in (("in", "IN"), ("out", "OUT")):
         A(d, f"m0_{net}", f"Metal 0 · {label}", "m0",
           [box(-XW, XW, YM[0], YM[1], ZB[net] - hw, ZB[net] + hw)], "Metal 0", [0, 1.7, 0], net)
 
     # --- labels --------------------------------------------------------------
     mid = lambda a, b: (a + b) / 2.0
     # right-hand column, read bottom to top
+    L(d, "Backside M0", [XW + 8, mid(*YBM), ZC * .6], "m", "dark", LAYER_VIEWS, sd=1, pid="bm_vdd")
     L(d, "N Well", [XW, mid(*YPW), ZC * .6], "m", "dark", LAYER_VIEWS, sd=1, pid="nwell")
     L(d, "SiO₂", [XW, mid(*YOX), ZC * .6], "m", "dark", LAYER_VIEWS, sd=1, pid="fox")
     L(d, "Nanosheet", [XW, 24.5, ZCH - 3], "s", "dark", LAYER_VIEWS, pid=["n_ws2", "n_wsr2", "p_ws2", "p_wsr2"])
     L(d, "Tier isolation", [XW, mid(*YMDI), ZC * .6], "m", "dark", LAYER_VIEWS, sd=1, pid="mdi")
-    L(d, "MD", [XMD1, mid(*MDT), ZCH + OVH], "m", "dark", LAYER_VIEWS, sd=1, pid=["md_outt", "md_vdd"])
+    L(d, "MD", [XMD1, mid(*MDT), ZCH + OVH], "m", "dark", LAYER_VIEWS, sd=1, pid=["md_outt", "md_gnd"])
     L(d, "VD", [vx, mid(*YVD), ZB["out"]], "s", "dark", LAYER_VIEWS, sd=1, pid="vd_out")
     # left-hand column
-    L(d, "MD", [-XMD1, mid(*MDB), -ZCH - OVH], "m", "dark", LAYER_VIEWS, sd=-1, pid="md_vdd")
+    L(d, "V_DD · GND", [-XW - 8, mid(*YBM), -ZC * .6], "m", "dark", LAYER_VIEWS, sd=-1, pid=["bm_vdd", "bm_gnd"])
+    L(d, "MD", [-XMD1, mid(*MDB), ZCH + OVH], "m", "dark", LAYER_VIEWS, sd=-1, pid="md_vdd")
     L(d, "Po", [-XPO, 52, -ZC * .7], "m", "dark", LAYER_VIEWS, pid="po")
     L(d, "VG", [-5, mid(*YVG), ZB["in"]], "s", "dark", LAYER_VIEWS, pid="vg")
-    for net, label in (("gnd", "GND"), ("in", "IN"), ("out", "OUT"), ("vdd", "V_DD")):
+    for net, label in (("in", "IN"), ("out", "OUT")):
         L(d, label, [-XW, mid(*YM), ZB[net]], "m", sd=-1, pid=f"m0_{net}")
 
-    d.note = ("<b>One lateral pair footprint.</b> Stacking changes the placement of the complementary devices, but isolation, contacts and routing still take space. As in the Device and Inverter scenes, after the monolithic CFET patent, the pFET is the lower tier and every net is reached from the front; backside contacts, as in the sequential CFET Device, are another option.")
+    d.note = ("<b>One lateral pair footprint, powered from the back.</b> Stacking changes the placement of the complementary devices, but isolation, contacts and routing still take space. The tier order is the Device and Inverter scenes' (pFET below, after the monolithic CFET patent); the power delivery is imec's direction for CFET: both rails move to the back of the wafer, which frees the front for signals, and backside contacts can ease access to the lower device [R4, R12]. The Device and Inverter scenes contact everything from the front instead; both are possible. Schematic, not to scale vertically.")
     return finish(d, [
         ["L_G", "Physical gate length, as drawn", f'{P["LG"]:g} nm'],
         ["Cell z", "Rail-to-rail span (z), rail centre to rail centre", f'{P["cell"]:g} nm'],
         ["M0 bars", "Drawn Metal 0 bar spacing (schematic; real M0 pitch is about 20–24 nm)", f'{P["step"]:.1f} nm'],
         ["Tiers", "nMOS above pMOS", "2"], ["Sheets", "Per tier", "2"],
         ["Gate", "Po, continuous through both", "1"], ["Contacts", "MD, split top and bottom", "4"],
-        ["Metal 0", "GND · IN · OUT · V_DD", "4 bars"], ["Lower source", "Reached from", "the front, by a riser"]])
+        ["Metal 0", "IN · OUT (front)", "2 bars"], ["Power", "V_DD and GND", "backside metal"]])
 
 # --------------------------------------------------------------- LAYOUT COMPARE
 def show_cmp():
     d = Dev("show_cmp", "Layout compare", "four cells, one scale",
-            "Four schematic inverter layouts at a common scale. The z spans are the Layout mode's own schematic numbers, measured between rail centres, not the Inverter scenes' spans; layer detail and vertical geometry are simplified.")
+            "Four schematic inverter layouts at a common scale. The CFET cell takes its power from the back. The z spans are the Layout mode's own schematic numbers, measured between rail centres, not the Inverter scenes' spans; layer detail and vertical geometry are simplified.")
     builders = [(show_fin, "FinFET", "2 fins per device", "fin"),
                 (show_ns, "Nanosheet", "2 representative sheets per device", "ns"),
                 (show_fs, "Forksheet", "wall between n and p", "fs"),
@@ -481,7 +490,7 @@ def show_cmp():
     w0 = cells[0][3]
     d.dims = [[nm, sub, f"{w:g} nm  ({w / w0 * 100:.0f}%)"] for nm, sub, zc, w, yt in cells]
     d.dims.insert(0, ["—", "Rail-to-rail span (z)", "the Inverter scenes' numbers, between rail centres"])
-    d.dims.append(["—", "Metal 0 bars on top", "4 / 4 / 4 / 4"])
+    d.dims.append(["—", "Metal 0 bars on top", "4 / 4 / 4 / 2 (CFET power is on the back)"])
     d.dims.append(["—", "What grows", "sideways, then upwards"])
     d.logic = True
     d.style = "schematic"
