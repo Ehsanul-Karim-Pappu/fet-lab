@@ -1210,19 +1210,34 @@ fun FetLabApp(lib: Library, renderer: Renderer) {
             AndroidView(factory = { glView }, modifier = Modifier.fillMaxSize()
                 .padding(top = if (split) splitTop else 0.dp,
                     bottom = if (split) stageInset + barH else 0.dp))
-            // ...and once the strip has its size, the model is framed to fill it.
-            LaunchedEffect(split, sceneKey, secPlane, stageH, stageInset, barH) {
+            // ...and once the strip has its size, the model is framed to fill it: only when the
+            // strip itself changes (Both switched on, another plane, the sheet moved), never on a
+            // step change, which would undo the reader's zoom and snap after every step's flight.
+            // The reframing glides rather than jumps.
+            LaunchedEffect(split, secPlane, stageH, stageInset, barH) {
                 if (!split) return@LaunchedEffect
                 delay(80)
                 flight?.join()
                 delay(60)
                 val sc = lib.scene(sceneKey)
                 val a = renderer.viewW.toFloat() / maxOf(renderer.viewH, 1)
-                renderer.target = sc.centre
-                renderer.dist = renderer.fitDist(sc, renderer.az, renderer.el, a) * 1.06f
-                draw()
+                val d0 = renderer.dist; val t0 = renderer.target.copyOf()
+                val d1 = renderer.fitDist(sc, renderer.az, renderer.el, a) * 1.06f; val t1 = sc.centre
+                var s0 = 0L
+                while (true) {
+                    val now = withFrameNanos { it }
+                    if (s0 == 0L) s0 = now
+                    val raw = ((now - s0) / 260_000_000f).coerceIn(0f, 1f)
+                    val e = raw * raw * (3f - 2f * raw)
+                    renderer.dist = d0 + (d1 - d0) * e
+                    renderer.target = FloatArray(3) { t0[it] + (t1[it] - t0[it]) * e }
+                    draw()
+                    if (raw >= 1f) break
+                }
             }
 
+            // Taps arrive in stage coordinates; in Both the 3D view starts below the section.
+            val pickTop by rememberUpdatedState(if (split) with(density) { splitTop.toPx() } else 0f)
             // A screen reader cannot orbit the model; it hears what is on screen and where the
             // controls are that change it.
             val viewName = scene.views.firstOrNull { it.key == viewKey }?.label ?: ""
@@ -1282,7 +1297,7 @@ fun FetLabApp(lib: Library, renderer: Renderer) {
                     // Tap slop in physical pixels, so it is the same distance on any screen.
                     val slop = maxOf(renderer.viewW, renderer.viewH) * 0.012f
                     if (maxPointers == 1 && moved < slop) {
-                        val hit = renderer.pick(down.position.x, down.position.y)
+                        val hit = renderer.pick(down.position.x, down.position.y - pickTop)
                         selected = hit; renderer.highlight = hit
                         if (hit != null) haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                         draw()
