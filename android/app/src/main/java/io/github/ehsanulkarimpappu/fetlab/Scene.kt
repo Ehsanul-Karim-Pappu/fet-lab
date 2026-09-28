@@ -100,6 +100,8 @@ class ProcessStep(val id: String, val title: String, val body: String, val view:
                   val src: List<String> = emptyList(),
                   /** Films the viewer shows depositing on entering this step, in order. */
                   val deposit: List<String> = emptyList(),
+                  /** The same films in the groups that grow together, one group after another. */
+                  val depositGroups: List<List<String>> = emptyList(),
                   /** This step against its source, one entry per section plane. */
                   val compare: List<StepCompare> = emptyList(),
                   /** What the nFET and pFET regions are doing at this step ("n", "p"). */
@@ -320,7 +322,10 @@ class Library(val materials: Map<String, Material>, val order: List<String>, val
                         sj.optString("view", "iso"), list("figs"), sj.optString("match", ""),
                         list("subs"), list("omitted"), sj.optString("level", "core"), sj.optString("of", ""),
                         sj.optString("label", "${i + 1}"), scale,
-                        sj.optString("route", "").ifEmpty { null }, labels, list("src"), list("deposit"), parseCompare(sj.optJSONArray("compare")),
+                        sj.optString("route", "").ifEmpty { null }, labels, list("src"), list("deposit"),
+                        (sj.optJSONArray("deposit_groups") ?: JSONArray()).let { ga ->
+                            (0 until ga.length()).map { ga.getJSONArray(it).toStringList() } },
+                        parseCompare(sj.optJSONArray("compare")),
                         HashMap<String, String>().also { m -> sj.optJSONObject("regions")?.let { r -> for (k in r.keys()) m[k] = r.getString(k) } }))
                     val parts = ArrayList<Part>()
                     val pa = sj.getJSONArray("parts")

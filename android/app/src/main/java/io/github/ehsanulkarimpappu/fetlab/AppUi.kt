@@ -478,9 +478,12 @@ fun FetLabApp(lib: Library, renderer: Renderer) {
     // A step's entrance: the area growing out when the view zooms out, then its films
     // depositing one after another.
     var growJob by remember { mutableStateOf<Job?>(null) }
+    // True while a finger is on the model: a step's growing and etching wait until it lifts,
+    // so nothing animates while the reader turns the model.
+    var animHold by remember { mutableStateOf(false) }
     fun stopGrowth() {
         growJob?.cancel(); growJob = null
-        renderer.growBox = null; renderer.deposit = emptyMap()
+        renderer.growBox = null; renderer.deposit = emptyMap(); renderer.etch = 1f
     }
     fun switchScene(key0: String, keepView: Boolean = false) {
         val key = designKey(key0, design)
@@ -585,24 +588,51 @@ fun FetLabApp(lib: Library, renderer: Renderer) {
         renderer.fadeScene = old
         renderer.fadeParts = if (rescale) emptyList()
             else old.parts.filter { q -> q.visible && after[q.id]?.let { same(q, it) } != true }
+        // What the step takes away is etched off by a plane sweeping down: from the top of
+        // everything it removes to the lowest point it reaches, which for a reshaped part (a
+        // polished ILD, a recessed gate) is its new top.
+        fun yr(p: Part) = floatArrayOf(p.boxes.minOf { it[1] - it[4] / 2f }, p.boxes.maxOf { it[1] + it[4] / 2f })
+        val removing = renderer.fadeParts.isNotEmpty()
+        if (removing) {
+            var top = -1e7f; var bot = 1e7f
+            for (q in renderer.fadeParts) {
+                val r = yr(q); top = maxOf(top, r[1])
+                val nt = after[q.id]?.let { yr(it)[1] }
+                bot = minOf(bot, if (nt != null && nt < r[1] - 0.01f) nt else r[0])
+            }
+            renderer.etchTop = top + 0.01f; renderer.etchBottom = bot - 0.01f
+        }
+        renderer.etch = if (removing) 0f else 1f
+        renderer.freshGlow = 0f
         // Zooming out (site to tile, tile to line field), the area grows from the last scene's
-        // size to this one's while the camera pulls back; then the films this step deposits
-        // rise one after another. Zooming back in simply flies.
+        // size to this one's while the camera pulls back. Then, once the camera has settled,
+        // what the step removes is etched off and what it adds grows, group by group, in the
+        // order the step's title gives them (a fill and CMP grows first, then polishes).
+        // Zooming back in simply flies.
         val size = { s: Scene -> (0..2).fold(1f) { a, k -> a * (s.hi[k] - s.lo[k]) } }
         val grows = rescale && size(sc) > size(old) * 1.05f
-        val films = sc.step?.deposit.orEmpty().mapNotNull { id -> sc.parts.firstOrNull { it.id == id } }
-        if (grows || films.isNotEmpty()) {
+        val groups = (sc.step?.depositGroups?.takeIf { it.isNotEmpty() }
+            ?: sc.step?.deposit.orEmpty().map { listOf(it) })
+            .map { g -> g.mapNotNull { id -> after[id] } }.filter { it.isNotEmpty() }
+        val films = groups.flatten()
+        val title = sc.step?.title.orEmpty()
+        val addAt = STEP_ADDS.find(title)?.range?.first ?: Int.MAX_VALUE
+        val takeAt = STEP_TAKES.find(title)?.range?.first ?: Int.MAX_VALUE
+        val growFirst = addAt < takeAt
+        if (grows || films.isNotEmpty() || removing) {
             val from = FloatArray(6) { k -> if (k < 3) maxOf(old.lo[k], sc.lo[k]) else minOf(old.hi[k - 3], sc.hi[k - 3]) }
             val to = FloatArray(6) { k -> if (k < 3) sc.lo[k] else sc.hi[k - 3] }
             renderer.deposit = films.associateWith { 0f }
             if (grows) renderer.growBox = from
             growJob = scope.launch {
+                // Time stands still while a finger is on the model.
                 suspend fun run(ns: Float, frame: (Float) -> Unit) {
-                    var t0 = 0L
+                    var t = 0f; var last = 0L
                     while (true) {
                         val now = withFrameNanos { it }
-                        if (t0 == 0L) t0 = now
-                        val raw = ((now - t0) / ns).coerceIn(0f, 1f)
+                        if (last != 0L && !animHold) t += (now - last).toFloat()
+                        last = now
+                        val raw = (t / ns).coerceIn(0f, 1f)
                         frame(raw * raw * (3f - 2f * raw)); draw()
                         if (raw >= 1f) break
                     }
@@ -611,19 +641,29 @@ fun FetLabApp(lib: Library, renderer: Renderer) {
                     renderer.growBox = FloatArray(6) { k -> from[k] + (to[k] - from[k]) * e }
                 }
                 renderer.growBox = null
-                for (p in films) run(650_000_000f) { e -> renderer.deposit = renderer.deposit + (p to e) }
-                renderer.deposit = emptyMap(); draw()
+                flight?.join()                                  // the camera settles first
+                while (animHold) withFrameNanos { }
+                suspend fun etchOff() {
+                    if (removing) run(STEP_ANIM_NS) { e -> renderer.etch = e }
+                    renderer.etch = 1f
+                }
+                suspend fun growOn() {
+                    for (g in groups) run(STEP_ANIM_NS) { e -> renderer.deposit = renderer.deposit + g.associateWith { e } }
+                    renderer.deposit = emptyMap()
+                }
+                if (growFirst) { growOn(); etchOff() } else { etchOff(); growOn() }
+                draw()
             }
         }
         glowJob?.cancel()
         glowJob = scope.launch {
+            growJob?.join()                                     // what changed glows once it is there
             var t0 = 0L
             while (true) {
                 val now = withFrameNanos { it }
                 if (t0 == 0L) t0 = now
                 val t = ((now - t0) / 1_400_000_000f).coerceIn(0f, 1f)
                 renderer.freshGlow = (1f - t) * (1f - t)
-                renderer.fadeAlpha = (1f - t) * (1f - t)
                 draw()
                 if (t >= 1f) break
             }
@@ -673,7 +713,9 @@ fun FetLabApp(lib: Library, renderer: Renderer) {
         val f = sc.flow
         val nxt = f?.next(sc.stepIndex, 1, showOps, routeIn(f))
         if (nxt == null) { playing = false; return@LaunchedEffect }
-        delay(4200)
+        // The step's own growing and etching play out first, then it stays up to be read.
+        growJob?.join()
+        delay(3000)
         goStep(nxt)
     }
     // Hiding the operations while on one jumps to the core step it leads into.
@@ -1249,12 +1291,13 @@ fun FetLabApp(lib: Library, renderer: Renderer) {
                 awaitEachGesture {
                     val down = awaitFirstDown(requireUnconsumed = false)
                     flight?.cancel()
+                    animHold = true
                     var maxPointers = 1
                     var moved = 0f
                     var prevCentroid = down.position
                     var prevSpread = 0f
                     var prevCount = 1
-                    while (true) {
+                    try { while (true) {
                         val ev = awaitPointerEvent()
                         val pressed = ev.changes.filter { it.pressed }
                         if (pressed.isEmpty()) break
@@ -1294,6 +1337,7 @@ fun FetLabApp(lib: Library, renderer: Renderer) {
                         for (c in ev.changes) c.consume()
                         draw()
                     }
+                    } finally { animHold = false }
                     // Tap slop in physical pixels, so it is the same distance on any screen.
                     val slop = maxOf(renderer.viewW, renderer.viewH) * 0.012f
                     if (maxPointers == 1 && moved < slop) {
@@ -2022,6 +2066,15 @@ private fun BoxScope.StepOverlay(label: String, cores: Int, title: String, isOp:
 
 private enum class BarGlyph { Back, Next, Play, Pause }
 
+/** A step's growing and etching: each group of films, and each etch, takes this long. */
+private const val STEP_ANIM_NS = 450_000_000f
+/** Words in a step's title that say it adds material, and ones that say it takes some away;
+ *  whichever comes first in the title is animated first. Kept in step with build_process.py. */
+private val STEP_ADDS = Regex("deposit|fill|growth|grow|epitax|coat|liner|film|oxid|dispens|multilayer|" +
+    "masked|protected|covered|seal|resist|\\bcaps?\\b", RegexOption.IGNORE_CASE)
+private val STEP_TAKES = Regex("etch|recess|remov|strip|pull|release|open|clean|trim|cmp|polish|planari|" +
+    "pattern|develop|expos|implant|\\bcut\\b", RegexOption.IGNORE_CASE)
+
 /** Drawn rather than typed: the text arrows and play symbols can come out as emoji. */
 @Composable
 private fun BarIcon(glyph: BarGlyph, enabled: Boolean, ink: Color, dim: Color, label: String,
@@ -2704,7 +2757,7 @@ private fun BoxScope.CalloutOverlay(renderer: Renderer, scene: Scene, viewKey: S
     LaunchedEffect(Unit) { while (true) { withFrameNanos { }; frame++ } }
     val density = LocalDensity.current
 
-    val placed = remember(frame, viewKey, scene) {
+    val layout = remember(frame, viewKey, scene) {
         val shown = scene.callouts.filter {
             (it.views == null || it.views.contains(viewKey)) &&
                 !(it.lead && it.pids.isNotEmpty())   // those are painted onto the layers now
@@ -2713,6 +2766,10 @@ private fun BoxScope.CalloutOverlay(renderer: Renderer, scene: Scene, viewKey: S
         val sil = renderer.silhouette()
         val w = renderer.viewW.toFloat(); val h = renderer.viewH.toFloat()
         val cx = if (sil != null) (sil[0] + sil[2]) / 2f else w / 2f
+        // The labels follow the model's size on screen: smaller as it is zoomed out, so they do
+        // not bury it, a little larger zoomed in, and never outside 60-120 % of their own size.
+        val k = if (sil == null || w < 1f || h < 1f) 1f
+            else (maxOf((sil[2] - sil[0]) / w, (sil[3] - sil[1]) / h) / 0.85f).coerceIn(0.6f, 1.2f)
         val out = ArrayList<Placed>()
         for (c in shown) {
             // Measure what actually gets drawn. A dimension chip is two lines of mono
@@ -2720,14 +2777,14 @@ private fun BoxScope.CalloutOverlay(renderer: Renderer, scene: Scene, viewKey: S
             // the latter is why they used to pile up on top of each other.
             val tw: Float; val th: Float
             if (c.flat) {
-                val fs = with(density) { (when (c.size) { "l" -> 16f; "s" -> 10f; else -> 13f }).sp.toPx() }
+                val fs = with(density) { (when (c.size) { "l" -> 16f; "s" -> 10f; else -> 13f }).sp.toPx() } * k
                 tw = strip(c.label).length * fs * 0.6f
                 th = fs * 1.35f
             } else {
-                val f1 = with(density) { 10.5f.sp.toPx() }
-                val f2 = with(density) { 8.5f.sp.toPx() }
-                val padX = with(density) { 7.dp.toPx() } * 2f
-                val padY = with(density) { 3.dp.toPx() } * 2f
+                val f1 = with(density) { 10.5f.sp.toPx() } * k
+                val f2 = with(density) { 8.5f.sp.toPx() } * k
+                val padX = with(density) { 7.dp.toPx() } * 2f * k
+                val padY = with(density) { 3.dp.toPx() } * 2f * k
                 val head = if (c.value.isEmpty()) strip(c.label) else "${strip(c.label)} = ${c.value}"
                 tw = maxOf(head.length * f1 * 0.6f, c.desc.length * f2 * 0.6f) + padX
                 th = f1 * 1.3f + (if (c.desc.isNotEmpty()) f2 * 1.3f else 0f) + padY
@@ -2766,8 +2823,18 @@ private fun BoxScope.CalloutOverlay(renderer: Renderer, scene: Scene, viewKey: S
         val bot = with(density) { bottomInset.toPx() } + if (scene.logic) 64f else pad
         val gap = 20f
         for (sd in intArrayOf(-1, 1)) {
-            val col = out.filter { it.c.lead && it.side == sd }.sortedBy { it.ay }
+            var col = out.filter { it.c.lead && it.side == sd }.sortedBy { it.ay }
             if (col.isEmpty()) continue
+            // A column taller than the stage keeps what fits, spread evenly over its length,
+            // rather than stacking labels on top of each other.
+            val room = h - bot - top
+            val need = col.sumOf { (it.h + 6f).toDouble() }.toFloat()
+            if (need > room && col.size > 1) {
+                val keep = (col.size * room / need).toInt().coerceAtLeast(1)
+                val pick = (0 until keep).map { (it * (col.size - 1).toFloat() / maxOf(keep - 1, 1)).roundToInt() }.toSet()
+                val drop = col.filterIndexed { i, _ -> i !in pick }
+                out.removeAll(drop.toSet()); col = col.filterIndexed { i, _ -> i in pick }
+            }
             val wmax = col.maxOf { it.w }
             var x = if (sd < 0) (sil?.get(0) ?: 0f) - gap else (sil?.get(2) ?: w) + gap
             x = if (sd < 0) maxOf(x, wmax + pad) else minOf(x, w - wmax - pad)
@@ -2806,8 +2873,16 @@ private fun BoxScope.CalloutOverlay(renderer: Renderer, scene: Scene, viewKey: S
             }
         }
         for (p in rest) p.ty = p.ty.coerceIn(p.h / 2f + top, maxOf(p.h / 2f + top, h - p.h / 2f - bot))
-        out
+        // Chips that still overlap one already kept (no room left to nudge them) are dropped.
+        val kept = ArrayList<Placed>()
+        for (p in rest.sortedBy { it.ty }) {
+            if (!p.c.flat && kept.any { q -> !q.c.flat && kotlin.math.abs(p.tx - q.tx) < (p.w + q.w) / 2f &&
+                    kotlin.math.abs(p.ty - q.ty) < (p.h + q.h) / 2f }) out.remove(p) else kept.add(p)
+        }
+        Pair(out, k)
     }
+    val placed = layout.first
+    val k = layout.second
 
     val leadCol = if (light) Color(0xFF59636F) else Color(0xFF8A97A8)
     val dotCol = if (light) Color(0xFF454F5C) else Color(0xFFAEB9C8)
@@ -2842,7 +2917,7 @@ private fun BoxScope.CalloutOverlay(renderer: Renderer, scene: Scene, viewKey: S
             if (c.flat) {
                 Text(strip(c.label), modifier = place, fontFamily = Mono,
                     fontWeight = FontWeight.SemiBold, maxLines = 1,
-                    fontSize = when (c.size) { "l" -> 16.sp; "s" -> 10.sp; else -> 13.sp },
+                    fontSize = ((when (c.size) { "l" -> 16f; "s" -> 10f; else -> 13f }) * k).sp,
                     color = when {
                         c.lead -> if (light) Color(0xFF232B36) else Color(0xFFE9EEF5)
                         c.tone == "light" || !light -> Color.White
@@ -2853,15 +2928,15 @@ private fun BoxScope.CalloutOverlay(renderer: Renderer, scene: Scene, viewKey: S
                 shape = RoundedCornerShape(7.dp),
                 border = BorderStroke(1.dp, if (light) Stage.lineOnLight else Stage.lineOnDark),
                 modifier = place) {
-                Column(Modifier.padding(horizontal = 7.dp, vertical = 3.dp),
+                Column(Modifier.padding(horizontal = (7 * k).dp, vertical = (3 * k).dp),
                     horizontalAlignment = Alignment.CenterHorizontally) {
                     Text(if (c.value.isEmpty()) strip(c.label) else "${strip(c.label)} = ${c.value}",
                         color = if (light) Color(0xFF121820) else Color.White,
-                        fontFamily = Mono, fontSize = 10.5f.sp,
+                        fontFamily = Mono, fontSize = (10.5f * k).sp, lineHeight = (13f * k).sp,
                         fontWeight = FontWeight.SemiBold, maxLines = 1)
                     if (c.desc.isNotEmpty())
                         Text(c.desc, color = if (light) Stage.dimOnLight else Stage.dimOnDark,
-                            fontFamily = Mono, fontSize = 8.5f.sp, maxLines = 1)
+                            fontFamily = Mono, fontSize = (8.5f * k).sp, lineHeight = (11f * k).sp, maxLines = 1)
                 }
             }
         }

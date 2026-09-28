@@ -100,10 +100,14 @@ class Renderer(private val lib: Library) : GLSurfaceView.Renderer {
     /** Parts a process step has just added or reshaped, and how strongly they still glow. */
     @Volatile var fresh: Set<Part> = emptySet()
     @Volatile var freshGlow = 0f
-    /** Parts a step removed or reshaped, drawn as a fading ghost of [fadeScene]'s geometry. */
+    /** Parts a step removed or reshaped, in [fadeScene]'s geometry: drawn solid under a flat
+     *  plane that sweeps down from [etchTop] to [etchBottom] as [etch] runs 0..1, so what the
+     *  step takes away is etched or polished off from the top; gone at 1. */
     @Volatile var fadeScene: Scene? = null
     @Volatile var fadeParts: List<Part> = emptyList()
-    @Volatile var fadeAlpha = 0f
+    @Volatile var etch = 1f
+    @Volatile var etchTop = 0f
+    @Volatile var etchBottom = 0f
     /** While a step zooms out, the scene shows only inside this box (lo x y z, hi x y z),
      *  which grows from the last scene's size to its own: every film is clamped to it, so
      *  the wafer and its layers spread out rather than appear. Null when not growing. */
@@ -342,16 +346,20 @@ class Renderer(private val lib: Library) : GLSurfaceView.Renderer {
             bindCaps(); G.glDrawArrays(G.GL_TRIANGLES, 0, capVerts)
             bindMain(); G.glBindBuffer(G.GL_ELEMENT_ARRAY_BUFFER, vbo[4]); G.glUniform1f(uClip, 1f)
         }
-        // What the step just removed fades out where it was, instead of simply vanishing.
-        val fs = fadeScene; val fp = fadeParts; val fa = fadeAlpha
-        if (fs != null && fa > 0.01f && fp.isNotEmpty()) {
+        // What the step takes away is etched (or polished) off from the top: the old solid,
+        // cut by a plane that sweeps down. Pushed back in depth, so where the new geometry
+        // shares its faces the new one is seen.
+        val fs = fadeScene; val fp = fadeParts; val et = etch
+        if (fs != null && et < 1f && fp.isNotEmpty()) {
             mainBase = fs.vbase * 12; bindMain(); G.glBindBuffer(G.GL_ELEMENT_ARRAY_BUFFER, vbo[4])
-            G.glDepthMask(false); G.glUniform3f(uTex, 0f, 1f, 0f); G.glUniform3f(uAdd, 0f, 0f, 0f)
-            for (p in fp) {
-                G.glUniform1f(uA, 0.5f * fa); G.glUniform1f(uTint, 1.15f)
-                G.glDrawElements(G.GL_TRIANGLES, p.count, G.GL_UNSIGNED_SHORT, p.start * 2)
-            }
-            G.glDepthMask(true)
+            G.glEnable(G.GL_POLYGON_OFFSET_FILL); G.glPolygonOffset(3f, 3f)
+            G.glUniform3f(uTex, 0f, 1f, 0f); G.glUniform3f(uAdd, 0f, 0f, 0f)
+            G.glUniform1f(uA, 1f); G.glUniform1f(uTint, 1f)
+            val hy = etchTop + (etchBottom - etchTop) * et
+            G.glUniform3f(uGLo, -1e7f, -1e7f, -1e7f); G.glUniform3f(uGHi, 1e7f, hy, 1e7f)
+            for (p in fp) G.glDrawElements(G.GL_TRIANGLES, p.count, G.GL_UNSIGNED_SHORT, p.start * 2)
+            unclamped()
+            if (edges) G.glPolygonOffset(1.2f, 1.2f) else G.glDisable(G.GL_POLYGON_OFFSET_FILL)
             mainBase = sc.vbase * 12; bindMain(); G.glBindBuffer(G.GL_ELEMENT_ARRAY_BUFFER, vbo[4])
         }
         if (ghost) {

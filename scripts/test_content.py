@@ -70,6 +70,9 @@ class ContentTests(unittest.TestCase):
                 # Films a step shows depositing are its own parts.
                 ids_here = {p if isinstance(p, str) else p['id'] for p in step['parts']}
                 self.assertLessEqual(set(step.get('deposit', [])), ids_here, step['id'])
+                # Its growth groups are those films, each once, in the deposit order.
+                if step.get('deposit_groups'):
+                    self.assertEqual([i for g in step['deposit_groups'] for i in g], step['deposit'], step['id'])
                 for part in step['parts']:
                     if isinstance(part, str):
                         self.assertIn(part, final)

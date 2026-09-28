@@ -5,6 +5,29 @@ All notable changes to FET Lab. Dates are the release date; versions follow
 
 ## Unreleased
 
+### Process: growing, etching and polishing between steps
+
+- **Growth on every step that adds material.** It no longer runs on blanket films only: 92 steps now
+  grow what they add. That includes the conformal spacer films, source/drain epitaxy, STI and ILD
+  fills, inner spacers, gate stacks, caps, contacts and masks. Parts that start at one level grow
+  together and the levels follow in turn, so a stack rises layer by layer. A gate or contact goes on
+  film by film, inside out: interfacial oxide, high-κ, work-function metal, then fill, and silicide,
+  liner, then fill.
+- **Etching and polishing.** What a step removes is no longer a fading ghost. A flat plane sweeps
+  down through it from the top until only the new surface is left. A recess, a pull or a strip
+  etches away, and a CMP polishes down to the new level.
+- **Order and timing.**
+  - Each growth group and each etch takes 0.45 s (was 0.65 s).
+  - They start only once the camera has finished turning or zooming, and pause while a finger is
+    on the model.
+  - A step whose title adds first (a fill and CMP, a deposition and etch-back) grows first; others
+    etch first.
+  - Auto-play lets each step's animation finish, then holds it 3 s.
+- **Callouts scale with the model.** Their text and chips follow the model's size on screen, from
+  60 % to 120 % of their own size, so a zoomed-out model is not buried under labels. A label column
+  too tall for the stage keeps an even selection instead of stacking labels on top of each other,
+  and chips that still overlap are dropped.
+
 ### Process: the stepper on the 3D view when the cross section is on top
 
 - With the cross section and the 3D view shown together, the step bar under the model is gone and

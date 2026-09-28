@@ -10,7 +10,7 @@ finished device part for part.
 The flows are representative teaching sequences, not any foundry's process recipe:
 real flows add many cleans, implants, anneals and lithography steps left out here.
 """
-import json, os, sys
+import json, os, re, sys
 import numpy as np
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -3566,6 +3566,64 @@ def attach_sections(key, flow, dev):
 from process_why import WHY
 
 
+# ------------------------------------------------------ STEP ANIMATIONS ---
+# Which parts the viewer grows on entering a step. A step that lists its films ("deposit")
+# grows them one after another. Every other step that adds material grows its new parts
+# from the bottom up, those starting at one level together and the levels in turn, so a
+# stack rises layer by layer and a gate's films in the order they were laid. Parts that
+# stand where solid material stood before are what an etch or a polish left behind, not
+# something added, so they do not grow; nor does anything a step only patterns, exposes,
+# implants or removes.
+ADDS = re.compile(r"deposit|fill|growth|grow|epitax|coat|liner|film|oxid|dispens|multilayer|masked|"
+                  r"protected|covered|seal|resist|\bcaps?\b", re.I)
+TAKES = re.compile(r"etch|recess|remov|strip|pull|release|open|clean|trim|cmp|polish|planari|pattern|"
+                   r"develop|expos|implant|\bcut\b|printed|thinner|thicker|wider|ideal", re.I)
+NO_GROW = {"resist_exp", "chrome"}
+STACK_ORDER = {"sio2": 0, "tisi": 0, "highk": 1, "nwf": 2, "tin": 2, "cofill": 3, "wfill": 3, "mo": 3,
+               "cobalt": 3, "tungsten": 3, "copper": 3, "alox": 4, "si3n4": 4}
+
+
+def step_growth(key, steps, final):
+    if key == "pitchwalk": return                 # a comparison of line sets, not a process
+    def boxes(q):
+        p = final.get(q) if isinstance(q, str) else q
+        return p, [lim(b) for b in p["boxes"]] if p else []
+    def vol(b): return max(0.0, b[1] - b[0]) * max(0.0, b[3] - b[2]) * max(0.0, b[5] - b[4])
+    def inter(a, b):
+        return vol((max(a[0], b[0]), min(a[1], b[1]), max(a[2], b[2]), min(a[3], b[3]),
+                    max(a[4], b[4]), min(a[5], b[5])))
+    prev = None
+    for st in steps:
+        here = {}
+        for q in st["parts"]:
+            p, bx = boxes(q)
+            if p: here[p["id"]] = (p, bx)
+        if st.get("deposit"):
+            st["deposit_groups"] = [[i] for i in st["deposit"]]
+        elif prev is not None and prev[0] == st["scale"] and (ADDS.search(st["title"]) or not TAKES.search(st["title"])):
+            grow = []
+            for pid, (p, bx) in here.items():
+                if pid in prev[1] or p["material"] in NO_GROW: continue
+                v = sum(vol(b) for b in bx)
+                if v <= 0: continue
+                # Left behind: where the same material stood before (a spacer out of its film,
+                # a fin out of the wafer), not added in a space an etch opened.
+                same = [c for q, cb in prev[1].values() if q["material"] == p["material"] for c in cb]
+                if sum(inter(b, c) for b in bx for c in same) > 0.9 * v: continue
+                grow.append((p["material"], round(min(b[2] for b in bx) * 2) / 2, pid))
+            if grow:
+                # A gate or contact stack goes on film by film, inside out; anything else
+                # rises level by level.
+                if any(m in ("highk", "tisi") for m, _, _ in grow):
+                    key = lambda g: STACK_ORDER.get(g[0], 2.5)
+                else:
+                    key = lambda g: g[1]
+                levels = sorted({key(g) for g in grow})
+                st["deposit_groups"] = [[g[2] for g in sorted(grow, key=lambda g: g[2]) if key(g) == lv] for lv in levels]
+                st["deposit"] = [pid for g in st["deposit_groups"] for pid in g]
+        prev = (st["scale"], here)
+
+
 def main():
     out = {}
     refs = {r["id"]: r for r in json.load(open(os.path.join(ROOT, "data/references.json")))["sources"]}
@@ -3581,6 +3639,8 @@ def main():
             extra["lesson_label"] = "Si/SiGe CMOS · Patent example: US 2023/0420457 A1 (US 12,568,683 B2)"
         if key == "ns~si":
             extra["lesson_label"] = "Si/Si CMOS · Patent-application example: US 2023/0178617 A1"
+        step_growth(key, steps, dict({p["id"]: p for p in getattr(dev, "parts", [])},
+                                     **{p["id"]: p for p in extra.get("final", []) or []}))
         out[key] = dict(extra, steps=steps, badge={k: BADGE[k] for k in extra["match"]},
                         badge_note={BADGE[k]: BADGE_NOTE[BADGE[k]] for k in extra["match"]},
                         why=WHY[key])
