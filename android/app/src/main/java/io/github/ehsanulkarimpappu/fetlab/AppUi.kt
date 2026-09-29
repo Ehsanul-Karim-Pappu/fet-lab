@@ -586,7 +586,10 @@ fun FetLabApp(lib: Library, renderer: Renderer) {
         renderer.fresh = if (rescale) emptySet()
             else sc.parts.filter { p -> before[p.id]?.let { same(it, p) } != true }.toSet()
         renderer.fadeScene = old
-        renderer.fadeParts = if (rescale) emptyList()
+        // The pitch-walk lesson's steps are one route with a size changed, not process steps:
+        // nothing there is etched or grown between them, it simply changes (and glows).
+        val process = f.pitchWalk == null
+        renderer.fadeParts = if (rescale || !process) emptyList()
             else old.parts.filter { q -> q.visible && after[q.id]?.let { same(q, it) } != true }
         // What the step takes away is etched off by a plane sweeping down: from the top of
         // everything it removes to the lowest point it reaches, which for a reshaped part (a
@@ -611,7 +614,7 @@ fun FetLabApp(lib: Library, renderer: Renderer) {
         // Zooming back in simply flies.
         val size = { s: Scene -> (0..2).fold(1f) { a, k -> a * (s.hi[k] - s.lo[k]) } }
         val grows = rescale && size(sc) > size(old) * 1.05f
-        val groups = (sc.step?.depositGroups?.takeIf { it.isNotEmpty() }
+        val groups = (if (!process) emptyList() else sc.step?.depositGroups?.takeIf { it.isNotEmpty() }
             ?: sc.step?.deposit.orEmpty().map { listOf(it) })
             .map { g -> g.mapNotNull { id -> after[id] } }.filter { it.isNotEmpty() }
         val films = groups.flatten()

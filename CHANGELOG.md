@@ -21,6 +21,9 @@ All notable changes to FET Lab. Dates are the release date; versions follow
   The TRY IT panel has a one-line prompt, sliders named for what they set, the same colours and a
   large pitch-walk number. All sizes, citations and build-time checks are unchanged: every gap is
   still measured off the built lines, and the ideal case is still the FinFET route's own.
+- **No grow or etch animations in the pitch-walk lesson.** Its steps are one route with one size
+  changed, not process steps. The lines now simply change between steps (with the glow), instead
+  of appearing to be etched away and regrown.
 - **Forksheet:** the space under the lowest sheet is now the sheet gap (16 nm), like the spaces
   between the sheets. The lowest sheet sits on an ordinary SiGe layer of the stack [R31]. Before,
   it was 12 nm, so the sheet's work-function film and the one on the sub-fin touched with no W
