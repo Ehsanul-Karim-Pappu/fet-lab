@@ -276,11 +276,11 @@ INDENT = dict(n="Channel cutaway", s="along the channel, at an angle",
 # gate at x = -73, the pFET line at z = -84. A view belongs to one scale.
 TILE_VIEWS = dict(
     tile=dict(n="Tile overview", s="four sites; the selected nFET is followed", az=-0.70, el=0.42, r=660,
-              tgt=[-36.5, 55, -42], clip=None, scale="tile"),
+              tgt=[-36.5, 55, -34], clip=None, scale="tile"),
     tileplan=dict(n="Tile from above", s="plan view", az=0.0, el=1.45, r=560,
-                  tgt=[-36.5, 0, -42], clip=None, scale="tile"),
+                  tgt=[-36.5, 0, -34], clip=None, scale="tile"),
     tilecut=dict(n="Across the lines", s="section through the selected gate", az=1.5708, el=0.14,
-                 r=470, tgt=[0, 40, -42], clip=[0, None, None], scale="tile"),
+                 r=470, tgt=[0, 40, -34], clip=[0, None, None], scale="tile"),
     tilechan=dict(n="Along the nFET line", s="section through the selected site", az=-0.62, el=0.30,
                   r=380, tgt=[-36.5, 45, 0], clip=[None, None, 0], scale="tile"),
     tilelow=dict(n="nFET line, low", s="under the stack, between the gates", az=0.32, el=0.07,
@@ -856,11 +856,11 @@ FIELD_SUB = ("The field around the tile is illustrative: its lines stand for nei
 FIELD_VIEWS = {}
 for _mod, _r in (("sadp", 1.0), ("saqp", 1.6)):
     FIELD_VIEWS[_mod + "field"] = dict(n="Line field", s="the tile and the lines around it", az=-0.95,
-                                       el=0.55, r=1050 * _r, tgt=[-36.5, 60, -42], clip=None, scale="field")
+                                       el=0.55, r=1050 * _r, tgt=[-36.5, 60, -34], clip=None, scale="field")
     FIELD_VIEWS[_mod + "cut"] = dict(n="Across the lines", s="section, mid-field", az=1.5708, el=0.08,
-                                     r=800 * _r, tgt=[-36.5, 70, -42], clip=[-36.5, None, None], scale="field")
+                                     r=800 * _r, tgt=[-36.5, 70, -34], clip=[-36.5, None, None], scale="field")
     FIELD_VIEWS[_mod + "plan"] = dict(n="From above", s="count the lines", az=1.5708, el=1.45,
-                                      r=950 * _r, tgt=[-36.5, 60, -42], clip=None, scale="field")
+                                      r=950 * _r, tgt=[-36.5, 60, -34], clip=None, scale="field")
 
 
 def pitch_routes(F, T, g):

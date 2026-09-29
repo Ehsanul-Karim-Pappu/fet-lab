@@ -80,6 +80,10 @@ def build(key, name, tag, blurb, parts, net, m1, note, dims, zcut):
     return d
 
 
+def device_json_from(G, key):
+    return next(d for d in G["devices"] if d["key"] == key)
+
+
 def device_json(key):
     return next(d for d in json.load(open(DATA))["devices"] if d["key"] == key)
 
@@ -246,6 +250,61 @@ def inv_cmp(cells_in):
     return d
 
 
+# ------------------------------------------------------- Device compare
+def dev_cmp(cells_in):
+    """The Device mode's Compare: the four architectures' n/p pairs, each exactly its own
+    Device model (the FinFET as the Process lesson's pair, as the Inverter uses it, without its
+    wiring), side by side at one scale and cut open at the gate."""
+    d = Dev("cmp", "Footprint compare", "four n/p pairs, one scale",
+            "The four Device models side by side at one scale, each as an nFET and pFET pair and cut open "
+            "at the gate: how much width each architecture fits into how much lateral span.")
+    cells, cur, GAP = [], 300.0, 45.0
+    for src, nm, count, weff in cells_in:
+        parts = [p for p in src["parts"] if p["group"] != "Metal 1"]
+        z0 = min(b[2] - b[5] / 2 for p in parts for b in p["boxes"])
+        z1 = max(b[2] + b[5] / 2 for p in parts for b in p["boxes"])
+        w = z1 - z0
+        zoff = cur - z1                        # laid out from +z down: first on the left, seen head on
+        for p in parts:
+            boxes = [[b[0], b[1], b[2] + zoff, b[3], b[4], b[5]] for b in p["boxes"]]
+            e = p["explode"]
+            if isinstance(e, list) and len(e) and e[0] == "radial":
+                e = ["radial", e[1], e[2], (e[3] if len(e) > 3 else 0.0) + zoff]
+            d.add(f"{src['key'].split('~')[0]}_{p['id']}", p["name"], p["material"], boxes, f"{nm} pair", e)
+        ytop = max(b[1] + b[4] / 2 for p in parts for b in p["boxes"])
+        cells.append((nm, cur - w / 2.0, w, ytop, count, weff))
+        cur -= w + GAP
+    w0 = cells[0][2]
+    for nm, zc, w, ytop, count, weff in cells:
+        d.cal(f"w_{nm}", nm, f"{w:g} nm", f"n/p pair span · {w / w0 * 100:.0f}% of FinFET",
+              [0, -30, zc - w / 2], [0, -30, zc + w / 2], [0, -56, zc], None)
+        d.cal(f"h_{nm}", nm, "", count, [0, ytop, zc], [0, ytop + 1, zc], [0, ytop + 28, zc], None)
+    d.dims = [["Span", "Of one n/p pair, across the gate (the CFET pair is stacked)", "nm (% of FinFET)"]]
+    d.dims += [[nm, f"{count} · W_eff {weff:g} nm per transistor", f"{w:g} nm  ({w / w0 * 100:.0f}%)"]
+               for nm, zc, w, ytop, count, weff in cells]
+    d.dims.append(["W_eff/span", "One transistor's W_eff over its pair's span",
+                   " · ".join(f"{nm} {weff / w:.2f}" for nm, zc, w, ytop, count, weff in cells)])
+    d.dims.append(["—", "What is compared", "each Device model as drawn: its own fin or sheet sizes"])
+    d.note = ("<b>This compares the models' geometry, not which process is better.</b> Each pair is the "
+              "Device model itself: the FinFET's n/p pair from its Process lesson, the Si/SiGe nanosheet pair, "
+              "the forksheet and the monolithic CFET. The span is the drawn lateral extent of the pair across the "
+              "gate, not a cell area. W_eff (effective width) is per transistor, so W_eff/span shows how much "
+              "channel width each architecture fits into its span. The models keep their own sizes (fin 6 × 45 nm; "
+              "sheets 30, 22 and 20 nm wide) and counts (two fins, three sheets, three sheets on the wall, two sheets "
+              "per tier), and every ratio depends on them. Contacts, routing, electrical performance and design "
+              "rules all matter before any density gain can be predicted.")
+    d.finish()
+    B = d.bounds
+    ctr = [0.0, (B["y"][0] + B["y"][1]) / 2, (B["z"][0] + B["z"][1]) / 2]
+    zs = B["z"][1] - B["z"][0]
+    d.views = {
+        "b": dict(n="Through the gate", s="the four pairs cut open", az=1.5708, el=0.0, r=zs * 1.45, tgt=ctr,
+                  clip=[0, None, None]),
+        "iso": dict(n="All four", s="same scale", az=1.30, el=0.26, r=zs * 1.5, tgt=ctr, clip=None),
+        "c": dict(n="From above", s="how the area is used", az=1.5708, el=1.05, r=zs * 1.45, tgt=ctr, clip=None)}
+    return d
+
+
 def entry(d):
     return dict(key=d.key, name=d.name, tag=d.tag, blurb=d.blurb, parts=d.parts, callouts=d.callouts,
                 dims=d.dims, views=d.views, note=d.note, bounds=d.bounds, logic=True,
@@ -268,6 +327,21 @@ if __name__ == "__main__":
                     (made["inv_cfet"], "CFET")])
     mx, n = check(cmp_)
     print(f"{cmp_.key:10s} parts={len(cmp_.parts):3d} boxes={n:4d} max/voxel={mx}")
-    G["devices"] += list(made.values()) + [entry(cmp_)]
+    # The Device mode's compare, from the Device models themselves.
+    num = lambda key, sym: float(next(r[2] for r in device_json_from(G, key)["dims"] if r[0] == sym).split()[0])
+    wns, tns = num("ns~sige", "W_sh"), num("ns~sige", "t_ch")
+    wfs, tfs = num("fs", "W_sh"), num("fs", "t_ch")
+    wcf, tcf = num("cfet_mono", "W_sh"), num("cfet_mono", "t_ch")
+    dc = dev_cmp([
+        (made["inv_fin"], "FinFET", "2 fins per device", 192.0),
+        (device_json_from(G, "ns~sige"), "Nanosheet", "3 sheets per device", 3 * (2 * wns + 2 * tns)),
+        (device_json_from(G, "fs"), "Forksheet", "3 sheets per device, three faces", 3 * (2 * wfs + tfs)),
+        (device_json_from(G, "cfet_mono"), "CFET", "2 sheets per tier, pFET below", 2 * (2 * wcf + 2 * tcf))])
+    mx, n = check(dc)
+    print(f"{dc.key:10s} parts={len(dc.parts):3d} boxes={n:4d} max/voxel={mx}")
+    if mx != 1: sys.exit("cmp: overlapping solids")
+    G["devices"] = [x for x in G["devices"] if x["key"] != "cmp"]
+    ce = entry(dc); ce["logic"] = False
+    G["devices"] += list(made.values()) + [entry(cmp_), ce]
     json.dump(G, open(DATA, "w"), separators=(",", ":"))
     print("devices.json", os.path.getsize(DATA) // 1024, "KB", len(G["devices"]), "scenes")

@@ -223,7 +223,7 @@ def build_ns(stack=None):
     ysd=ys[-1]+HYS+13.0; ynisi=ysd+5.0
     # The contacts stop level with the top of the SAC cap, as the FinFET's do with its hard mask.
     yplug=ycap; ym2=ycap
-    zsub=42.0; SUBFIN=8.0
+    zsub=34.0; SUBFIN=8.0      # 68 nm n-to-p pitch: gates 16 nm apart, room for the 12 nm cut
 
     # The stack sits on a short Si sub-fin. The STI beside it (low-κ in the patent) stops
     # level with the bottom of the BDI: in the flow it is recessed that far so the base
@@ -766,122 +766,9 @@ def build_cfet_seq():
     return d.finish()
 
 # ================================================================ COMPARE ===
-def build_cmp():
-    d=Dev("cmp","Footprint compare","same scale, gate section only",
-      "Gate cross-sections at one common scale. The sheet-based examples use a 22nm channel width. The fins are 6nm wide, with 45nm of exposed height. The lateral spans describe these examples only; they are not equal-performance technology benchmarks.")
-    Wc, P3, P2, MDI, STI = 22.0, 21.0, 20.0, 12.0, 8.0
-    WFIN, HFIN, FPITCH = 6.0, 45.0, 27.0
-    hz=Wc/2; hzt=hz+TIL+THK+TTIN                        # 11 -> 17
-    wh=WFIN/2; w3=wh+TIL+THK+TTIN                       # 3 -> 9
-    def stack4(pre,grp,zc,ys):
-        for i,yc in enumerate(ys):
-            d.add(f"{pre}_s{i+1}",f"Si sheet {i+1}","silicon",[box(-XG,XG,yc-HYS,yc+HYS,zc-hz,zc+hz)],grp,[0,0,0])
-            for nm,mat,hy,h,t,mg in (("il","sio2",HYS,hz,TIL,1.0),("hk","highk",HY1,hz+TIL,THK,2.1),
-                                     ("tin",WFM[pre[-1]],HY2,hz+TIL+THK,TTIN,3.3)):
-                bs=ring4(yc,hy,h,t,XG)
-                for b in bs: b[2]+=zc
-                d.add(f"{pre}_{nm}{i+1}",{"il":"SiO₂ interfacial layer","hk":"HfO₂ high-κ",
-                      "tin":WFL[pre[-1]]}[nm]+f" · sheet {i+1}",mat,bs,grp,["radial",yc,mg,zc])
-    def forkstack(pre,grp,s_,ys):
-        zi,zo=4.0,4.0+Wc
-        for i,yc in enumerate(ys):
-            zz=sorted((s_*zi,s_*zo))
-            d.add(f"{pre}_s{i+1}",f"Si sheet {i+1}","silicon",[box(-XG,XG,yc-HYS,yc+HYS,zz[0],zz[1])],grp,[0,0,0])
-            d.add(f"{pre}_il{i+1}",f"SiO₂ interfacial layer · sheet {i+1}","sio2",fork3(yc,HYS,zi,zo,TIL,XG,s_),grp,["radial",yc,1.0])
-            d.add(f"{pre}_hk{i+1}",f"HfO₂ high-κ · sheet {i+1}","highk",fork3(yc,HY1,zi,zo+TIL,THK,XG,s_),grp,["radial",yc,2.1])
-            d.add(f"{pre}_tin{i+1}",WFL[pre[-1]]+f" · sheet {i+1}",WFM[pre[-1]],fork3(yc,HY2,zi,zo+TIL+THK,TTIN,XG,s_),grp,["radial",yc,3.3])
-    def finstack(pre,grp,zc,ytop):
-        for i,z in enumerate((zc-FPITCH/2, zc+FPITCH/2)):
-            d.add(f"{pre}_f{i+1}",f"Si fin {i+1}","silicon",[box(-XG,XG,0,ytop,z-wh,z+wh)],grp,[0,0,0])
-            for nm,mat,ww,yy,t,mg in (("il","sio2",wh,ytop,TIL,1.0),("hk","highk",wh+TIL,ytop+TIL,THK,2.1),
-                                      ("tin",WFM[pre[-1]],wh+TIL+THK,ytop+TIL+THK,TTIN,3.3)):
-                d.add(f"{pre}_{nm}{i+1}",{"il":"SiO₂ interfacial layer","hk":"HfO₂ high-κ",
-                      "tin":WFL[pre[-1]]}[nm]+f" · fin {i+1}",mat,
-                      finwrap(z,ww,STI,yy,t,XG),grp,["radial",(STI+ytop)/2,mg,z])
-
-    CELLS=[]
-    # --- FinFET pair ------------------------------------------------------
-    zF=-330.0; hzF=(FPITCH/2+w3); sepF=hzF+12.0          # device half 22.5, n-p gap 24
-    ytopF=STI+HFIN; ymoF=ytopF+TIL+THK+TTIN+12.0
-    for s_,tag in ((1,"n"),(-1,"p")): finstack(f"F_{tag}","FinFET cell",zF+s_*sepF,ytopF)
-    moF=[box(-XG,XG,STI,ymoF,zF+sepF+hzF,zF+sepF+hzF+5), box(-XG,XG,STI,ymoF,zF-sepF-hzF-5,zF-sepF-hzF),
-         box(-XG,XG,STI,ymoF,zF-sepF+hzF,zF+sepF-hzF)]
-    for s_ in (1,-1):
-        c=zF+s_*sepF
-        moF.append(box(-XG,XG,STI,ymoF,c-FPITCH/2+w3,c+FPITCH/2-w3))
-        for z in (c-FPITCH/2,c+FPITCH/2):
-            moF.append(box(-XG,XG,ytopF+TIL+THK+TTIN,ymoF,z-w3,z+w3))
-    d.add("F_mo","Co gate fill","cofill",moF,"FinFET cell",[0,1.0,0])
-    stiF=[]; eg=[zF-sepF-hzF-5]
-    for s_ in (-1,1):
-        c=zF+s_*sepF
-        for z in (c-FPITCH/2,c+FPITCH/2): eg += [z-wh,z+wh]
-    eg.append(zF+sepF+hzF+5)
-    for i in range(0,len(eg),2):
-        if eg[i+1]>eg[i]: stiF.append(box(-XG,XG,0,STI,eg[i],eg[i+1]))
-    d.add("F_sti","STI (fin reveal)","sio2",stiF,"FinFET cell",[0,-.8,0])
-    d.add("F_sub","Si substrate","silicon",[box(-XG,XG,-14,0,zF-sepF-hzF-5,zF+sepF+hzF+5)],"FinFET cell",[0,-1.2,0])
-    CELLS.append((zF,2*(sepF+hzF),"FinFET","2 fins per device",ymoF,2*(2*HFIN+WFIN)))
-
-    # --- Nanosheet pair ---------------------------------------------------
-    zA=-170.0; sep=(hzt*2+24)/2
-    ysA=[STI+HY3+6.0+i*P3 for i in range(3)]; ymoA=ysA[-1]+HY3+8.0
-    stack4("A_n","Nanosheet cell",zA+sep,ysA); stack4("A_p","Nanosheet cell",zA-sep,ysA)
-    moA=[box(-XG,XG,STI,ymoA,zA+sep+hzt,zA+sep+hzt+5), box(-XG,XG,STI,ymoA,zA-sep-hzt-5,zA-sep-hzt)]
-    for a,b in gaps(STI,ymoA,[(y-HY3,y+HY3) for y in ysA]):
-        moA += [box(-XG,XG,a,b,zA+sep-hzt,zA+sep+hzt), box(-XG,XG,a,b,zA-sep-hzt,zA-sep+hzt)]
-    moA.append(box(-XG,XG,STI,ymoA,zA-sep+hzt,zA+sep-hzt))
-    d.add("A_mo","W gate fill","wfill",moA,"Nanosheet cell",[0,1.0,0])
-    d.add("A_sti","STI","sio2",[box(-XG,XG,0,STI,zA-sep-hzt-5,zA+sep+hzt+5)],"Nanosheet cell",[0,-.8,0])
-    d.add("A_sub","Si substrate","silicon",[box(-XG,XG,-14,0,zA-sep-hzt-5,zA+sep+hzt+5)],"Nanosheet cell",[0,-1.2,0])
-    CELLS.append((zA,2*(sep+hzt),"Nanosheet","3 sheets per device",ymoA,3*(2*Wc+2*TCH)))
-
-    # --- Forksheet pair ---------------------------------------------------
-    zBo=4.0+Wc+TIL+THK+TTIN
-    forkstack("B_n","Forksheet cell",1,ysA); forkstack("B_p","Forksheet cell",-1,ysA)
-    d.add("B_wall","SiN dielectric wall","wall",[box(-XG,XG,STI,ymoA,-4,4)],"Forksheet cell",[0,1.6,0])
-    moB=[box(-XG,XG,STI,ymoA,zBo,zBo+5), box(-XG,XG,STI,ymoA,-zBo-5,-zBo)]
-    for a,b in gaps(STI,ymoA,[(y-HY3,y+HY3) for y in ysA]):
-        moB += [box(-XG,XG,a,b,4,zBo), box(-XG,XG,a,b,-zBo,-4)]
-    d.add("B_mo","W gate fill","wfill",moB,"Forksheet cell",[0,1.0,0])
-    d.add("B_sti","STI","sio2",[box(-XG,XG,0,STI,-zBo-5,zBo+5)],"Forksheet cell",[0,-.8,0])
-    d.add("B_sub","Si substrate","silicon",[box(-XG,XG,-14,0,-zBo-5,zBo+5)],"Forksheet cell",[0,-1.2,0])
-    CELLS.append((0.0,2*zBo,"Forksheet","3 sheets per device",ymoA,3*(2*Wc+TCH)))
-
-    # --- CFET -------------------------------------------------------------
-    zC=90.0
-    ybC=[STI+HY3+6.0, STI+HY3+6.0+P2]; m0=ybC[-1]+HY3; m1=m0+MDI
-    ytC=[m1+HY3, m1+HY3+P2]; ymoC=ytC[-1]+HY3+8.0
-    stack4("C_p","CFET cell",zC,ybC); stack4("C_n","CFET cell",zC,ytC)
-    moC=[box(-XG,XG,STI,ymoC,zC+hzt,zC+hzt+5), box(-XG,XG,STI,ymoC,zC-hzt-5,zC-hzt),
-         box(-XG,XG,m0,m1,zC+hz,zC+hzt), box(-XG,XG,m0,m1,zC-hzt,zC-hz)]
-    for a,b in gaps(STI,ymoC,[(y-HY3,y+HY3) for y in ybC+ytC]+[(m0,m1)]):
-        moC.append(box(-XG,XG,a,b,zC-hzt,zC+hzt))
-    d.add("C_mdi","SiBCN between the tiers","sibcn",[box(-XG,XG,m0,m1,zC-hz,zC+hz)],"CFET cell",[0,1.1,0])
-    d.add("C_mo","W gate fill","wfill",moC,"CFET cell",[0,1.0,0])
-    d.add("C_sti","STI","sio2",[box(-XG,XG,0,STI,zC-hzt-5,zC+hzt+5)],"CFET cell",[0,-.8,0])
-    d.add("C_sub","Si substrate","silicon",[box(-XG,XG,-14,0,zC-hzt-5,zC+hzt+5)],"CFET cell",[0,-1.2,0])
-    CELLS.append((zC,2*hzt,"CFET","2 sheets per tier, pFET below",ymoC,2*(2*Wc+2*TCH)))
-
-    w0=CELLS[0][1]
-    for zc,w,nm,sub_,yy,we in CELLS:
-        d.cal(f"w_{nm}",nm,f"{w:g} nm",f"active footprint · {w/w0*100:.0f}% of FinFET",[0,-16,zc-w/2],[0,-16,zc+w/2],[0,-42,zc],None)
-        d.cal(f"h_{nm}",nm,"",sub_,[0,yy,zc],[0,yy+1,zc],[0,yy+28,zc],None)
-    d.dims=[["Span","Of one n/p pair, across the gate (the CFET pair is stacked)","nm (% of FinFET)"]]
-    d.dims+=[[nm,f"{sub_} · W_eff {we:g} nm per transistor",f"{w:g} nm  ({w/w0*100:.0f}%)"] for zc,w,nm,sub_,yy,we in CELLS]
-    d.dims.append(["—","Channel width used for all four",f"{Wc:g} nm (fin: {WFIN:g}×{HFIN:g} nm)"])
-    d.dims.append(["W_eff/span","One transistor's W_eff over the pair's span",
-                   " · ".join(f"{nm} {we/w:.2f}" for zc,w,nm,sub_,yy,we in CELLS)])
-    zmid=(CELLS[0][0]-CELLS[0][1]/2 + CELLS[-1][0]+CELLS[-1][1]/2)/2
-    d.views={"b":dict(n="Head on",s="footprint widths",az=-1.5708,el=0,r=780,tgt=[0,38,zmid],clip=None),
-             "iso":dict(n="All four",s="same scale",az=-1.30,el=.24,r=840,tgt=[0,40,zmid],clip=None),
-             "c":dict(n="From above",s="how the area is used",az=-1.5708,el=1.05,r=780,tgt=[0,38,zmid],clip=None)}
-    d.note=("<b>This compares geometry, not which process is better.</b> The footprint is the drawn lateral span of one n/p pair, not a cell area. W_eff (effective width) is per transistor; W_eff/span divides it by the pair's span. The counts differ: two fins, three nanosheets, three forksheet sheets, or two sheets per CFET tier. These choices affect every ratio. Contacts, routing, electrical performance and design rules must all be considered before predicting any gain in cell density.")
-    return d.finish()
-
-# =================================================================== MAIN ===
 if __name__ == "__main__":
-    devs=[build_fin(), build_ns(), build_fs(), build_cfet(False), build_cfet(True), build_cmp()]
+    # The Device mode's Compare is made from these models later, in build_inverters.py.
+    devs=[build_fin(), build_ns(), build_fs(), build_cfet(False), build_cfet(True)]
     out=dict(materials=MAT, order=ORDER, devices=[])
     for d in devs:
         m,n = check(d)

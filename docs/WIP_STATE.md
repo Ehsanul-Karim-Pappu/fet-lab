@@ -76,8 +76,6 @@ supporting reference. The patents are R13 and R29–R35 in `data/references.json
 
 1. Build on the phone; fix anything the Kotlin compiler reports. It has not been compiled here.
 2. Open questions for the user:
-   - The nanosheet pair is wider in z than the FinFET pair: 168 against 152 nm. The cause is the
-     84 nm stack pitch the SAQP lesson sets.
    - The Layout spans are schematic numbers, not the Inverter spans.
 
 ## Rules that hold throughout

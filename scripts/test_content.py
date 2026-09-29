@@ -622,8 +622,8 @@ class ContentTests(unittest.TestCase):
                 if 'sheet' in i: self.assertEqual(m[i], 'silicon', (s['id'], i))
         # Each device's epitaxy grows with the other region still under its liner [R28, 0090-0105].
         zs = lambda s, pid: [b[2] for p in s['parts'] if isinstance(p, dict) and p['id'] == pid for b in p['boxes']]
-        self.assertTrue(zs(steps[at['p_sd']], 't_cesl') and min(zs(steps[at['p_sd']], 't_cesl')) > -42)
-        self.assertTrue(zs(steps[at['n_sd']], 't_cesl2') and max(zs(steps[at['n_sd']], 't_cesl2')) < -42)
+        self.assertTrue(zs(steps[at['p_sd']], 't_cesl') and min(zs(steps[at['p_sd']], 't_cesl')) > -34)   # the n/p midline
+        self.assertTrue(zs(steps[at['n_sd']], 't_cesl2') and max(zs(steps[at['n_sd']], 't_cesl2')) < -34)
         self.assertIn('p_epi_source', here(steps[at['p_sd']])); self.assertNotIn('n_epi_source', here(steps[at['p_sd']]))
         # the other route's steps are not borrowed
         for sid in ('p_release', 'p_chopen', 'bottom', 'pts_nmask'): self.assertNotIn(sid, ids)

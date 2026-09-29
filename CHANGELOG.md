@@ -5,6 +5,25 @@ All notable changes to FET Lab. Dates are the release date; versions follow
 
 ## Unreleased
 
+### Nanosheet pair tightened; Device Compare shows the Device models
+
+- **Nanosheet n-to-p pitch: 68 nm, was 84 nm.** Each site is now 34 nm either side of its stack's
+  centre instead of 42 nm. The two gates stay 16 nm apart, room for the 12 nm gate cut. The
+  nanosheet inverter spans 136 nm instead of 168 nm, so it is no longer wider than the FinFET's
+  152 nm (89 %). The Si/SiGe and Si/Si Device pairs, both inverters, the nanosheet Process lessons
+  and the SADP and SAQP lessons all follow, since those lessons print the stack pitch the model uses
+  (68 nm lines from 136 nm and 272 nm cores).
+- **Device Compare is built from the Device models.** It used simplified cells with one 22 nm
+  channel width for all four. Now it shows the four n/p pairs as they are:
+  - FinFET: the lesson's pair, as the Inverter uses it, without its wiring.
+  - Nanosheet: the Si/SiGe pair.
+  - Forksheet: the forksheet model.
+  - CFET: the monolithic CFET model.
+
+  They sit side by side at one scale, cut open at the gate. The table gives each pair's span
+  (152 · 136 · 84 · 54 nm) and W_eff per transistor from each model's own sizes
+  (192 · 222 · 147 · 100 nm), so W_eff/span is 1.26 · 1.63 · 1.75 · 1.85.
+
 ### Specs tables checked against the models
 
 - **Si/Si nanosheet EOT corrected:** 0.85 nm, not 0.77 nm. The table used the shared stack's 1.5 nm

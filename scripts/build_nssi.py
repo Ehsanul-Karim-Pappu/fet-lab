@@ -28,7 +28,7 @@ from build_devices import box, ring4, carve
 from build_process import tmp, subtract, conformal, lim, span
 
 XG, XSP, XSD = bd.XG, bd.XSP, bd.XSD          # gate, spacer and site half-lengths: 7.5 / 14.5 / 36.5
-HZ, DZ, ZSUB = 15.0, 84.0, 42.0               # sheet half-width; pFET line 84 nm behind; cell half-width
+HZ, DZ, ZSUB = 15.0, 68.0, 34.0               # sheet half-width; pFET line 68 nm behind; cell half-width
 ZC = dict(n=0.0, p=-DZ)
 TB, TS = 8.0, 2.0                             # Ge-rich bottom layer and Si seed thicknesses (illustrative)
 WHO = dict(n="nFET", p="pFET")
@@ -222,7 +222,7 @@ def flow(done=None):
             "p_sd": "35–40", "n_sd": "41–43", "ild": "44–46", "pull": "44–46", "release": "47–49",
             "hk": "50–52", "wfm": "50–52", "gate": "50–52"}
     views = dict(dev_views(dev), sd=dict(n="Through the drains", s="both devices, across the source/drain",
-                                          az=1.5708, el=0.0, r=390, tgt=[25.5, 45, -42], clip=[25.5, None, None]))
+                                          az=1.5708, el=0.0, r=390, tgt=[25.5, 45, -ZSUB], clip=[25.5, None, None]))
 
     def snap(sid, title, body, view="iso", match="source", regions=None, **kw):
         figs = [FIGS[sid]] if match == "source" else ()
