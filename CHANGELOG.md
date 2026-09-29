@@ -5,6 +5,12 @@ All notable changes to FET Lab. Dates are the release date; versions follow
 
 ## Unreleased
 
+### Steps list lands on the step without bouncing
+
+- On a step change, the list scrolled to the new step while the old card collapsed and the new one
+  expanded. The target moved during the scroll, so the list overshot and settled back. Cards now
+  open and close at once, with only the new step's text fading in, so the scroll lands directly.
+
 ### Pitch walk lesson rebuilt; forksheet's lowest sheet fixed
 
 - **The pitch-walk lesson is now six steps built around one picture:** the lines from above, with

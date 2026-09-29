@@ -9,6 +9,7 @@ import android.opengl.GLSurfaceView
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.Crossfade
+import androidx.compose.animation.ExitTransition
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.Spring
@@ -2327,7 +2328,10 @@ private fun StepsTab(lib: Library, flow: ProcessFlow, index: Int, list: LazyList
                             fontWeight = if (on) FontWeight.SemiBold else FontWeight.Normal,
                             color = MaterialTheme.colorScheme.onSurface)
                     }
-                    AnimatedVisibility(visible = on) {
+                    // The card opens and closes at once (only its text fades in): a height that
+                    // animated while the list scrolled to it moved the target mid-scroll, so the list
+                    // overshot and then settled.
+                    AnimatedVisibility(visible = on, enter = fadeIn(tween(220)), exit = ExitTransition.None) {
                         Column(Modifier.padding(start = 34.dp, top = 5.dp)) {
                             Text(st.body, fontFamily = PlexSans, fontSize = 12.5f.sp, lineHeight = 18.sp,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant)
