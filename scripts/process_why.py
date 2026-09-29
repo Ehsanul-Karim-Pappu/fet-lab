@@ -178,20 +178,24 @@ up as uneven spacing. The pitch-walk lesson follows that further [R20][R22].</p>
 comes before the stack etch that follows [R16][R19].</p>
 """,
 "pitchwalk": """
-<h4>Why the spaces can differ</h4>
-<p>In SAQP, each space between neighbouring lines has one of three origins: inside a second core,
-where a first core was, or between the spacer pairs of neighbouring first cores. Each depends on
-different dimensions. When all of them are on target, the spaces match [R22].</p>
-<h4>One dimension off at a time</h4>
-<p>The lesson changes one input at a time: the first-core width, the first-spacer thickness or
-the second-spacer thickness. It then measures the spaces off the resulting lines.</p>
-<p>Pitch walk is the difference between the largest and the smallest space [R22][R20].</p>
-<p>In practice, SAQP for 7 nm-class FinFET fins needs tight control of the core size to keep
-pitch walk acceptable [R23].</p>
+<h4>What goes wrong</h4>
+<p>SAQP should give evenly spaced lines, like the teeth of a comb. Pitch walk is when it does
+not: the gaps alternate wide and narrow. It is measured as the largest gap minus the smallest
+[R22][R20].</p>
+<h4>Why it happens</h4>
+<p>SAQP coats printed cores twice, and the gaps between the lines come from three different
+places. Blue gaps are the first coating itself. Orange gaps are where a printed core stood.
+Green gaps lie between neighbouring cores [R22].</p>
+<p>Each kind depends on different films. So when one film comes out a few nanometres off, only
+its own kinds of gap change, and the gaps no longer match.</p>
+<h4>Why it matters</h4>
+<p>A wide gap etches differently from a narrow one, so uneven gaps can leave fins of different
+height [R22]. In practice, SAQP for 7 nm-class FinFET fins needs tight control of the core
+size to keep pitch walk acceptable [R23].</p>
 <h4>What it leaves out</h4>
-<p>Here the walls are vertical, and every etch copies its mask exactly. Real cores can taper, so
-the spacers lean and the transferred widths depend on the etch. That is why in-line metrology
-tracks these dimensions [R20].</p>
+<p>The walls here are vertical, and every etch copies its mask exactly. Real cores can taper,
+so the coatings lean and the transferred widths depend on the etch. That is why in-line
+metrology tracks these sizes [R20].</p>
 """,
 "ns~si": """
 <h4>What this lesson follows</h4>

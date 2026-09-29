@@ -50,6 +50,9 @@ MAT = {
  "mandrel": dict(label="Mandrel (first core)", color="#5E86C1", note="Temporary core line whose sidewalls carry the spacers; removed after they form. The SAQP patent's mandrels are amorphous or polycrystalline Si [R30]"),
  "mandrel2": dict(label="Second core", color="#9A7ED3", note="SAQP's second-generation core, cut from the first spacer image; removed after its own spacers form [R30]"),
  "patspacer": dict(label="Patterning spacer (temporary mask)", color="#EDEFF2", note="Spacer film used only as an etch mask for pitch splitting; not a transistor spacer. SiN in the SAQP patent's example [R30]"),
+ "gap_a": dict(label="Gap marker · blue: inside a coated core", color="#2E8BC0", note="Marks one kind of gap in the pitch-walk lesson: where the first coating (first spacer) stood. A marker, not a material"),
+ "gap_b": dict(label="Gap marker · orange: where a printed core was", color="#E08A1E", note="Marks one kind of gap in the pitch-walk lesson: where a printed first core stood. A marker, not a material"),
+ "gap_c": dict(label="Gap marker · green: between neighbouring cores", color="#3FA66B", note="Marks one kind of gap in the pitch-walk lesson: the space between neighbouring printed cores. A marker, not a material"),
  # --- schematic-layout palette, used by the showcase inverters ---
  "pwell":   dict(label="P Well",             color="#7FC9EA", note="p-type well / substrate"),
  "nwell":   dict(label="N Well",             color="#EFE53A", note="n-type well under the pMOS"),
@@ -62,7 +65,7 @@ MAT = {
  "m0":      dict(label="Metal 0",            color="#F2C1A2", note="First routing level"),
 }
 ORDER = ["silicon","siu","sic","sige","sio2","highk","si3n4","sibcn","lowk","alox","wall","cellmark","mdi","bond",
-         "nwf","tin","wfill","cofill","mo","tisi","cobalt","tungsten","copper","soc","barc","sihm","tiox","poly","ild","pts","pts_n","resist","resist_exp","chrome","liner","mandrel","mandrel2","patspacer",
+         "nwf","tin","wfill","cofill","mo","tisi","cobalt","tungsten","copper","soc","barc","sihm","tiox","poly","ild","pts","pts_n","resist","resist_exp","chrome","liner","mandrel","mandrel2","patspacer","gap_a","gap_b","gap_c",
          "pwell","nwell","fox","nanowire","md","po","vd","vg","m0"]
 # Gate-fill metals: the renderer's ghost view treats these as the gate.
 GATE_FILLS = ("wfill", "cofill", "mo")
@@ -427,7 +430,10 @@ def build_fs():
     zo=zi+W                                              # 26 sheet outer face
     z1,z2,z3 = zo+TIL, zo+TIL+THK, zo+TIL+THK+TTIN       # 27 29 32
     zmo=z3+5.0; STI=10.0; ZP=6.0                         # partition wall half-width: 12 nm, wider than the wall
-    ys=[STI+HY3+6.0+i*PITCH for i in range(NSH)]
+    # The lowest sheet sits on an ordinary SiGe layer of the stack [R31], so the space under it
+    # is the sheet gap (PITCH - TCH), like the spaces between sheets: the films on the sub-fin and
+    # under the sheet each take theirs, and the W fill the rest, as it does between the sheets.
+    ys=[STI+(PITCH-TCH)+HYS+i*PITCH for i in range(NSH)]
     top=ys[-1]+HYS
     # The top sacrificial layer 116a is thicker than the others (the gaps are 16 nm), so the wall,
     # level with its top, rises well above the top channel [R31, 0060-0064].

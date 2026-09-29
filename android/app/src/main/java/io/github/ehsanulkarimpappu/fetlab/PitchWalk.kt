@@ -93,14 +93,18 @@ fun PitchWalkPanel(lib: Library, pw: PitchWalk) {
     val widths = img.gaps.map { it.second }
     val gmax = widths.maxOrNull() ?: 0f
     val gmin = widths.minOrNull() ?: 0f
-    val tcol = mapOf("a" to Color(0xFF2E8BC0), "b" to Color(0xFFE08A1E), "c" to Color(0xFF8E5CC7))
+    // The lesson's own gap colours: blue inside a coated core, orange where a printed core was,
+    // green between neighbouring cores (the gap markers in the 3D view).
+    val tcol = mapOf("a" to Color(0xFF2E8BC0), "b" to Color(0xFFE08A1E), "c" to Color(0xFF3FA66B))
     fun mat(k: String) = lib.materials[k]?.color?.let { Color(it[0], it[1], it[2]) } ?: Color.Gray
     val onV = MaterialTheme.colorScheme.onSurfaceVariant
 
     Surface(color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f), shape = RoundedCornerShape(12.dp),
         modifier = Modifier.fillMaxWidth().padding(bottom = 10.dp)) {
         Column(Modifier.padding(10.dp)) {
-            Text("TRY IT · SAME ROUTE, CHANGE THE SIZES", fontFamily = Mono, fontSize = 10.sp, color = onV)
+            Text("TRY IT · CHANGE ONE SIZE", fontFamily = Mono, fontSize = 10.sp, color = onV)
+            Text("Drag a slider and watch which colour of gap changes.", fontFamily = PlexSans,
+                fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurface, modifier = Modifier.padding(top = 2.dp))
             // Before (first cores and first spacers), between (second cores and spacers) and
             // after (the lines), stacked as cross-sections on one scale; then the lines from above.
             val lo = img.core1.first().first - s1 - s2 - 6f
@@ -131,11 +135,11 @@ fun PitchWalkPanel(lib: Library, pw: PitchWalk) {
                 bar(img.lines, 3, row * 0.8f, mat("silicon"))
             }
             Row(Modifier.fillMaxWidth()) {
-                for (label in listOf("First cores + first spacers", "Second cores + second spacers", "Lines · from above"))
+                for (label in listOf("Printed cores, first coating", "Second coating: the lines", "Lines from above"))
                     Text(label, fontFamily = PlexSans, fontSize = 10.5f.sp, color = onV, modifier = Modifier.weight(1f))
             }
-            for ((k, name) in listOf("w1" to "First-core width", "s1" to "First-spacer thickness",
-                                     "s2" to "Second-spacer thickness")) {
+            for ((k, name) in listOf("w1" to "Printed core width", "s1" to "First coating (first spacer)",
+                                     "s2" to "Second coating (sets the line width)")) {
                 val v = when (k) { "w1" -> w1; "s1" -> s1; else -> s2 }
                 val (a, b) = pwLimits(pw, k, w1, s1, s2)
                 Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(top = 4.dp)) {
@@ -153,13 +157,15 @@ fun PitchWalkPanel(lib: Library, pw: PitchWalk) {
                 val ws = img.gaps.filter { it.first == t }.map { it.second }.distinct()
                 Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(top = 2.dp)) {
                     Canvas(Modifier.width(10.dp).height(10.dp)) { drawRect(tcol[t] ?: Color.Gray) }
-                    Text("  Space ${pw.types[t]?.first ?: t}: ${ws.joinToString(" / ") { nm(it) }} nm",
+                    Text("  ${pw.types[t]?.first ?: t}: ${ws.joinToString(" / ") { nm(it) }} nm",
                         fontFamily = PlexSans, fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurface)
                 }
             }
-            Text("Largest ${nm(gmax)} nm · smallest ${nm(gmin)} nm · pitch walk = ${nm(gmax)} − ${nm(gmin)} = ${nm(gmax - gmin)} nm" +
-                 " · line width ${nm(s2)} nm", fontFamily = Mono, fontSize = 11.sp, fontWeight = FontWeight.SemiBold,
-                color = MaterialTheme.colorScheme.primary, modifier = Modifier.padding(top = 6.dp))
+            Text("Pitch walk ${nm(gmax - gmin)} nm", fontFamily = PlexSans, fontSize = 18.sp,
+                fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.padding(top = 6.dp))
+            Text("largest gap ${nm(gmax)} − smallest ${nm(gmin)} · line width ${nm(s2)} nm",
+                fontFamily = Mono, fontSize = 11.sp, color = onV)
             Text(pw.note, fontFamily = PlexSans, fontSize = 11.sp, lineHeight = 15.sp, color = onV,
                 modifier = Modifier.padding(top = 4.dp))
             TextButton(onClick = { w1 = pw.base["w1"] ?: w1; s1 = pw.base["s1"] ?: s1; s2 = pw.base["s2"] ?: s2 }) {

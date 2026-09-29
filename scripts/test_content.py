@@ -242,7 +242,7 @@ class ContentTests(unittest.TestCase):
         route = spans(part(next(s for s in fin['steps'] if s['id'] == 'saqp_pull2'), 'f_sp2')['boxes'])
         cfg = pw['pitchwalk']
         measured = [s for s in pw['steps'] if 'measure' in s]
-        self.assertEqual([s['measure']['case'] for s in measured], ['ideal', 'core', 'sp1', 'sp2'])
+        self.assertEqual([s['measure']['case'] for s in measured], ['core', 'sp1', 'sp2', 'ideal'])
         for st in measured:
             m = st['measure']
             lines = spans(part(st, 'pw_fins')['boxes'])

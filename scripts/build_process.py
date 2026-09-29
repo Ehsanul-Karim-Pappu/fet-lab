@@ -1816,9 +1816,11 @@ PW_BASE = dict(w1=33.0, s1=21.0, s2=6.0)     # the FinFET route's own: 27 nm pit
 PW_RANGE = dict(w1=(21.0, 45.0), s1=(15.0, 27.0), s2=(4.0, 9.0))
 PW_GMIN = 2.0                    # no space may close below this (the controls stop there)
 PW_TYPES = dict(
-    a=("inside a second core", "the second core's width, which is the first spacer's thickness"),
-    b=("where a first core was", "the first core's width less two second spacers"),
-    c=("between first-core spacer pairs", "the printed space less two first and two second spacers"))
+    a=("Blue · inside a coated core", "the first coating's thickness"),
+    b=("Orange · where a printed core was", "the core's width less two second coatings"),
+    c=("Green · between neighbouring cores", "the printed space less both coatings on each side"))
+# The gap markers' materials, one colour per kind of gap (see MAT in build_devices.py).
+PW_GAP_MAT = dict(a="gap_a", b="gap_b", c="gap_c")
 PW_CASES = [
     ("ideal", "Ideal", dict(PW_BASE)),
     ("core", "First cores printed wider", dict(PW_BASE, w1=39.0)),
@@ -1880,31 +1882,6 @@ def flow_pitchwalk(done):
 
     def fmt(x): return f"{x:g}"
 
-    def films(g, stage):
-        """Substrate and hard mask, then the cores and spacers of one stage."""
-        S.now = {}
-        S.put(tmp("pw_sub", "Si substrate (fins to be)", "silicon", GS, [box(X0, X1, YS, 0, Z0, Z1)], (0, -1.2, 0)))
-        S.put(tmp("pw_hm", "Fin hard mask (blanket)", "si3n4", GP, [box(X0, X1, 0, HM, Z0, Z1)], (0, 1.0, 0)))
-        if stage == 1:
-            S.put(tmp("pw_c2f", "Second-core film (a-Si in Baudot et al.)", "mandrel2", GP, [box(X0, X1, HM, Y2, Z0, Z1)], (0, 1.4, 0)))
-            S.put(tmp("pw_c1", "First cores (carbon in Baudot et al.)", "mandrel", GP,
-                      [box(X0, X1, Y2, Y1, a, b) for a, b in g["core1"]], (0, 1.8, 0)))
-            S.put(tmp("pw_sp1", "First spacers (oxide in Baudot et al.)", "patspacer", GP,
-                      [box(X0, X1, Y2, Y1, a, b) for a, b in g["core2"]], (0, 2.2, 0)))
-        else:
-            S.put(tmp("pw_c2", "Second cores (the first image, transferred)", "mandrel2", GP,
-                      [box(X0, X1, HM, Y2, a, b) for a, b in g["core2"]], (0, 1.4, 0)))
-            S.put(tmp("pw_sp2", "Second spacers (the final image)", "patspacer", GP,
-                      [box(X0, X1, HM, Y2, a, b) for a, b in g["lines"]], (0, 1.8, 0)))
-
-    def fins(g):
-        S.now = {}
-        S.put(tmp("pw_sub", "Si substrate", "silicon", GS, [box(X0, X1, YS, YF, Z0, Z1)], (0, -1.2, 0)))
-        S.put(tmp("pw_fins", "Si fins (etched through the hard mask)", "silicon", "Fins",
-                  [box(X0, X1, YF, 0, a, b) for a, b in g["lines"]], (0, 0, 0)))
-        S.put(tmp("pw_hm", "Fin hard mask (patterned)", "si3n4", GP,
-                  [box(X0, X1, 0, HM, a, b) for a, b in g["lines"]], (0, 1.0, 0)))
-
     def measured(case, p):
         """The spaces as built: measured off the fin boxes just snapped, typed by origin."""
         g = pw_geometry(**p)
@@ -1927,75 +1904,123 @@ def flow_pitchwalk(done):
 
     SUBS = ["Dimensions are illustrative: Baudot et al.'s example runs 96 → 48 → 24 nm, this lesson 108 → 54 → "
             "27 nm [R22]", "Etch bias, core taper and fin-height effects are described, not simulated"]
-    steps = []
+
+    def markers(g, y0, y1, x0=X0, x1=X1, tag=""):
+        """A coloured strip in every gap between two lines, one colour per kind of gap."""
+        spans = g["lines"]
+        by = {}
+        for (t, _), l, r in zip(g["gaps"], spans, spans[1:]):
+            by.setdefault(t, []).append(box(x0, x1, y0, y1, l[1], r[0]))
+        for t in "abc":
+            if by.get(t):
+                S.put(tmp(f"pw_gap_{t}{tag}", "Gap marker · " + PW_TYPES[t][0].split(" · ")[1] +
+                          f" ({PW_TYPES[t][0].split(' · ')[0].lower()})", PW_GAP_MAT[t], "Gap markers",
+                          by[t], (0, 0.4, 0)))
+
+    def fins_row(g, x0, x1, tag, name):
+        S.put(tmp(f"pw_fins{tag}", name, "silicon", "Fins", [box(x0, x1, YF, 0, a, b) for a, b in g["lines"]], (0, 0, 0)))
+        S.put(tmp(f"pw_hm{tag}", "Fin hard mask (patterned)", "si3n4", GP,
+                  [box(x0, x1, 0, HM, a, b) for a, b in g["lines"]], (0, 1.0, 0)))
+        markers(g, YF, YF + 3.0, x0, x1, tag)
+
+    def plan(g, name="Si fins (etched through the hard mask)"):
+        S.now = {}
+        S.put(tmp("pw_sub", "Si substrate", "silicon", GS, [box(X0, X1, YS, YF, Z0, Z1)], (0, -1.2, 0)))
+        fins_row(g, X0, X1, "", name)
+
+    def say(m):
+        return (f"Largest {fmt(m['max'])} nm, smallest {fmt(m['min'])} nm, so pitch walk = "
+                f"{fmt(m['max'])} − {fmt(m['min'])} = {fmt(m['walk'])} nm.")
+
     for case, name, p in PW_CASES:
         if not pw_check(**p): sys.exit(f"pitch walk {case}: outside the allowed limits")
-        g = pw_geometry(**p)
-        ch = {k: p[k] - PW_BASE[k] for k in p if p[k] != PW_BASE[k]}
-        what = {"w1": "first-core width", "s1": "first-spacer thickness", "s2": "second-spacer thickness"}
-        if case == "ideal":
-            films(g, 1)
-            S.snap("ideal_1", "Ideal: first cores and first spacers",
-                "This is the FinFET flow's SAQP route, taken on its own. Four first cores are printed at "
-                f"P = {fmt(PW_P1)} nm, {fmt(p['w1'])} nm wide. A first spacer {fmt(p['s1'])} nm "
-                "thick forms on each side. The two numbers are chosen so the first spacers sit at an "
-                f"even {fmt(PW_P1 / 2)} nm pitch: core width plus spacer thickness is half the printed "
-                "pitch. In Baudot et al.'s example the cores are carbon and the first spacer is oxide [R22].",
-                view="pwcut", match="source", figs=["1"], src=["R22"], subs=SUBS)
-            films(g, 2)
-            S.snap("ideal_2", "Ideal: second cores and second spacers",
-                "The first cores are removed. The first spacer image is etched into the second-core film "
-                "(amorphous Si in Baudot et al.), and the first spacers are removed. A second spacer "
-                f"{fmt(p['s2'])} nm thick forms on each second core. First spacer plus second spacer is "
-                f"a quarter of the printed pitch, {fmt(PW_P1 / 4)} nm, so sixteen lines come out evenly "
-                "spaced [R22].", view="pwcut", match="source", figs=["1"], src=["R22"], subs=SUBS)
-            fins(g)
-            m = measured(case, p)
-            S.snap("ideal_fins", "Ideal: sixteen lines, three kinds of space",
-                "The second cores are removed. The second spacers are etched into the silicon nitride hard "
-                "mask, and the fins are etched into silicon through it [R22]. Every space between "
-                "neighbouring fins has one of three origins: " + "; ".join(
-                    f"{PW_TYPES[k][0]} ({PW_TYPES[k][1]})" for k in "abc") + ". Here all three are equal. "
-                + say(m), view="pwplan", match="source", figs=["1"], src=["R22"], subs=SUBS)
-            F.steps[-1]["measure"] = m
-            continue
+    P0 = PW_BASE
+    g_ideal, g_wide = pw_geometry(**P0), pw_geometry(**dict(P0, w1=39.0))
+    wide = {t: sorted({w for tt, w in g_wide["gaps"] if tt == t}) for t in "abc"}
+    ww = [w for _, w in g_wide["gaps"]]
+
+    # 1. What it is: the even comb, and the same route with the cores printed too wide.
+    S.now = {}
+    S.put(tmp("pw_sub", "Si substrate", "silicon", GS, [box(X0, X1, YS, YF, Z0, Z1)], (0, -1.2, 0)))
+    fins_row(g_ideal, X0, -3.0, "", "Si fins · on target (top row)")
+    fins_row(g_wide, 3.0, X1, "_w", "Si fins · cores printed 6 nm too wide (bottom row)")
+    S.snap("what", "What pitch walk is",
+        f"SAQP makes lines four times as dense as one exposure can print [R20]. They should come out evenly "
+        f"spaced, like the teeth of a comb. The top row is on target: {len(g_ideal['lines'])} lines, every gap "
+        f"{fmt(g_ideal['gaps'][0][1])} nm. The bottom row is the same route with the printed cores 6 nm too wide. "
+        f"Its gaps alternate between {fmt(max(ww))} nm and {fmt(min(ww))} nm. That unevenness is pitch walk, "
+        f"measured as the largest gap minus the smallest: {fmt(max(ww))} − {fmt(min(ww))} = "
+        f"{fmt(max(ww) - min(ww))} nm here [R22][R20]. It matters because a wide gap etches differently from a "
+        "narrow one, so uneven gaps can leave fins of different height [R22]. The coloured strips mark three "
+        "kinds of gap; the next step shows where each comes from.",
+        view="pwplan", match="teach", subs=SUBS)
+
+    # 2. Where the gaps come from: the route's second stage, cut open, with the gaps marked.
+    S.now = {}
+    S.put(tmp("pw_sub", "Si substrate (fins to be)", "silicon", GS, [box(X0, X1, YS, 0, Z0, Z1)], (0, -1.2, 0)))
+    S.put(tmp("pw_hm", "Fin hard mask (blanket)", "si3n4", GP, [box(X0, X1, 0, HM, Z0, Z1)], (0, 1.0, 0)))
+    S.put(tmp("pw_c2", "First coating, kept as the second cores", "mandrel2", GP,
+              [box(X0, X1, HM, Y2, a, b) for a, b in g_ideal["core2"]], (0, 1.4, 0)))
+    S.put(tmp("pw_sp2", "Second coating: the lines", "patspacer", GP,
+              [box(X0, X1, HM, Y2, a, b) for a, b in g_ideal["lines"]], (0, 1.8, 0)))
+    markers(g_ideal, Y2 + 3.0, Y2 + 6.0)
+    ia, ib, ic = (P0["s1"], P0["w1"] - 2 * P0["s2"], PW_P1 - P0["w1"] - 2 * P0["s1"] - 2 * P0["s2"])
+    S.snap("how", "Where the gaps come from",
+        f"SAQP starts from printed cores, {fmt(PW_P1)} nm apart and {fmt(P0['w1'])} nm wide, and coats them twice "
+        f"[R22]. The first coating ({fmt(P0['s1'])} nm, the first spacer) is kept as a new set of cores: the "
+        f"blocks drawn between the lines. The second coating ({fmt(P0['s2'])} nm, the second spacer) on those "
+        "becomes the lines. So every gap between two lines is one of three kinds. "
+        f"Blue, inside a coated core: it is the first coating itself, {fmt(ia)} nm. "
+        f"Orange, where a printed core was: the core's width less two second coatings, "
+        f"{fmt(P0['w1'])} − 2 × {fmt(P0['s2'])} = {fmt(ib)} nm. "
+        f"Green, between neighbouring cores: the printed space less the coatings on both sides, "
+        f"{fmt(PW_P1)} − {fmt(P0['w1'])} − 2 × {fmt(P0['s1'])} − 2 × {fmt(P0['s2'])} = {fmt(ic)} nm. "
+        f"On target, all three are {fmt(ia)} nm.",
+        view="pwcut", match="source", figs=["1"], src=["R22"], subs=SUBS)
+
+    # 3–5. One size off at a time; the gaps measured off the built fins.
+    TEXT = {
+        "w1": ("Cores printed too wide",
+               lambda p, d, t: f"The printed cores come out {fmt(abs(d))} nm wider: {fmt(p['w1'])} nm instead of "
+               f"{fmt(P0['w1'])} nm. Orange gaps widen to {t['b']} nm and green gaps shrink to {t['c']} nm. Blue "
+               f"gaps stay {t['a']} nm, because the first coating did not change, and the lines keep their width. ",
+               "This is an error in the printing itself. Keeping pitch walk acceptable needs tight control of "
+               "the printed core size [R23]."),
+        "s1": ("First coating too thin",
+               lambda p, d, t: f"The first coating comes out {fmt(abs(d))} nm thinner: {fmt(p['s1'])} nm instead of "
+               f"{fmt(P0['s1'])} nm. Blue gaps shrink to {t['a']} nm, since they are the first coating. Green gaps "
+               f"widen to {t['c']} nm, and orange gaps stay {t['b']} nm. ",
+               "The first coating makes the second cores, so its error moves the gaps inside and around them."),
+        "s2": ("Second coating too thick",
+               lambda p, d, t: f"The second coating comes out {fmt(abs(d))} nm thicker: {fmt(p['s2'])} nm instead of "
+               f"{fmt(P0['s2'])} nm. The lines grow to {fmt(p['s2'])} nm. Orange gaps shrink to {t['b']} nm and "
+               f"green gaps to {t['c']} nm, while blue gaps stay {t['a']} nm. ",
+               "The second coating sets the line width, so this error changes the fins as well as the gaps."),
+    }
+    for case, name, p in PW_CASES[1:]:
+        ch = {k: p[k] - P0[k] for k in p if p[k] != P0[k]}
         (k, d), = ch.items()
-        films(g, 1 if k != "s2" else 2)
-        S.snap(f"{case}_before", name,
-            f"The same route with one dimension off. The {what[k]} is {fmt(p[k])} nm instead of "
-            f"{fmt(PW_BASE[k])} nm ({'+' if d > 0 else '−'}{fmt(abs(d))} nm); everything else is as in the "
-            "ideal case. " + {
-                "w1": "A wider core pushes its two spacers apart. The space between neighbouring "
-                      "cores' spacers narrows by the same amount.",
-                "s1": "A thinner first spacer makes narrower second cores. It also widens the space "
-                      "between first-core spacer pairs.",
-                "s2": "A thicker second spacer makes wider lines. The spaces between second cores "
-                      "each shrink by twice the change. The space inside each second core is set by the "
-                      "first spacer, so it does not change."}[k],
-            view="pwcut", match="teach", subs=SUBS)
-        fins(g)
+        g = pw_geometry(**p)
+        plan(g)
         m = measured(case, p)
-        S.snap(f"{case}_after", f"{name}: the lines",
-            "The result after the rest of the route and the fin etch. " + say(m) + " " + {
-                "w1": "The error is in the first-core lithography. It shows up as two space types "
-                      "trading width, while the lines keep their width. Keeping pitch walk acceptable "
-                      "needs this kind of core-dimension control [R23].",
-                "s1": "The first spacer sets the second cores, so its error moves the spaces inside "
-                      "and around them.",
-                "s2": "The second spacer sets the line width, so its error changes the fin width as "
-                      "well as the spaces."}[k],
-            view="pwcut", match="teach", subs=SUBS)
+        t = {kk: fmt(v[0]) if len(v) == 1 else "/".join(map(fmt, v)) for kk, v in m["types"].items()}
+        title, lead, tail = TEXT[k]
+        S.snap(case, title, lead(p, d, t) + say(m) + " " + tail, view="pwplan", match="teach", subs=SUBS)
         F.steps[-1]["measure"] = m
-    fins(pw_geometry(**PW_BASE))
-    S.snap("transfer", "What this lesson does not simulate",
-        "The lines here have vertical walls, and every etch copies its mask exactly. In practice "
-        "three effects matter. A core with sloped sides (taper) gives spacers that lean, so the "
-        "spacer's footprint and the transferred line width depend on where the etch stops. Etch "
-        "bias grows or shrinks every line. And a wide space etches differently from a narrow one, "
-        "so spaces of different width can leave fins of different height. Baudot et al. model pitch "
-        "walk, core taper and fin-height variation together [R22]. This lesson describes these "
-        "effects but does not calculate them.",
-        view="pwcut", match="teach", subs=SUBS)
+
+    # 6. Back on target; the rule; what is left out.
+    plan(g_ideal)
+    m = measured("ideal", dict(P0))
+    S.snap("rule", "The rule, and what is not simulated",
+        f"Back on target, every gap is {fmt(m['max'])} nm. " + say(m) + " The rule: each kind of gap depends on "
+        "different films. Blue follows the first coating only. Orange follows the core width and the second "
+        "coating. Green follows all three. So an error in one film moves only its own kinds of gap, and the "
+        "gaps start to alternate [R22][R20]. What this lesson leaves out: its walls are vertical and every etch "
+        "copies its mask exactly. Real cores can taper, so the coatings lean, and etch bias grows or shrinks "
+        "every line. Wide and narrow gaps also etch differently, leaving fins of different height [R22]. That "
+        "is why in-line metrology tracks these sizes [R20].",
+        view="pwplan", match="teach", subs=SUBS)
+    F.steps[-1]["measure"] = m
     for k, st in enumerate(F.steps, 1):
         st["level"], st["label"] = "core", str(k)
     views = dict(
@@ -2007,12 +2032,12 @@ def flow_pitchwalk(done):
                   tgt=[0, -10, (Z0 + Z1) / 2], clip=None, scale="field"))
     return dev, F.steps, dict(
         lesson=True, name=dev.name, bounds=B,
-        scope="The FinFET flow's SAQP fin patterning with its dimensions set free. A small error in "
-              "the first-core width or either spacer's thickness turns an even array of lines into "
-              "one whose spaces alternate: pitch walk [R20][R23]. The ideal case is the FinFET route's "
-              "own lines, checked when the data is built; the flow itself always uses the ideal case. "
-              "Dimensions are illustrative (Baudot et al.'s example is 96 → 48 → 24 nm [R22]). Every space "
-              "shown is measured off the built lines; nothing is simulated.",
+        scope="Why SAQP lines can come out unevenly spaced. The lesson shows the even result, where each "
+              "kind of gap comes from, and what one film coming out a few nanometres off does to each kind: "
+              "pitch walk [R20][R23]. The ideal case is the FinFET route's own lines, checked when the data is "
+              "built; the FinFET flow itself always uses the ideal case. Sizes are illustrative (Baudot et al.'s "
+              "example is 96 → 48 → 24 nm [R22]). Every gap shown is measured off the built lines; nothing is "
+              "simulated.",
         figures="The ideal states are adapted from Baudot et al.'s Fig. 1, as its text describes it [R22]. The "
                 "drawings were not available for visual comparison. The varied cases are teaching "
                 "reconstructions: Baudot et al. study pitch walk, but these particular variations are the "

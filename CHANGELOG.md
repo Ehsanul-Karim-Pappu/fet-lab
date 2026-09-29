@@ -5,6 +5,27 @@ All notable changes to FET Lab. Dates are the release date; versions follow
 
 ## Unreleased
 
+### Pitch walk lesson rebuilt; forksheet's lowest sheet fixed
+
+- **The pitch-walk lesson is now six steps built around one picture:** the lines from above, with
+  every gap coloured by where it comes from. The colours are blue inside a coated core, orange
+  where a printed core was, and green between neighbouring cores.
+  1. What pitch walk is: the even comb beside the same route with cores printed 6 nm too wide.
+  2. Where the gaps come from: the route in section, with each kind's width worked out.
+  3. Cores printed too wide.
+  4. First coating too thin.
+  5. Second coating too thick.
+  6. The rule (each kind of gap depends on different films) and what is not simulated.
+
+  Plain words replace "first cores / first-spacer image", with the technical names given once.
+  The TRY IT panel has a one-line prompt, sliders named for what they set, the same colours and a
+  large pitch-walk number. All sizes, citations and build-time checks are unchanged: every gap is
+  still measured off the built lines, and the ideal case is still the FinFET route's own.
+- **Forksheet:** the space under the lowest sheet is now the sheet gap (16 nm), like the spaces
+  between the sheets. The lowest sheet sits on an ordinary SiGe layer of the stack [R31]. Before,
+  it was 12 nm, so the sheet's work-function film and the one on the sub-fin touched with no W
+  between them, and it looked like one doubled layer. The sheets and everything above rise 4 nm.
+
 ### Nanosheet pair tightened; Device Compare shows the Device models
 
 - **Nanosheet n-to-p pitch: 68 nm, was 84 nm.** Each site is now 34 nm either side of its stack's
