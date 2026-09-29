@@ -10,6 +10,9 @@ All notable changes to FET Lab. Dates are the release date; versions follow
 - On a step change, the list scrolled to the new step while the old card collapsed and the new one
   expanded. The target moved during the scroll, so the list overshot and settled back. Cards now
   open and close at once, with only the new step's text fading in, so the scroll lands directly.
+- It still bounced on some steps: scrolling "to an item, 24 px above it" aimed at an estimate first
+  and corrected at the end. After one frame, the list now reads the new card's measured position
+  and glides exactly that distance.
 
 ### Pitch walk lesson rebuilt; forksheet's lowest sheet fixed
 

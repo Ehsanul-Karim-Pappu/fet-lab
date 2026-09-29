@@ -37,6 +37,7 @@ import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.gestures.Orientation
+import androidx.compose.foundation.gestures.animateScrollBy
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.draggable
@@ -2275,8 +2276,19 @@ private fun StepsTab(lib: Library, flow: ProcessFlow, index: Int, list: LazyList
                      onPick: (Int) -> Unit, onRef: (String) -> Unit, onCompare: (SectionPlane) -> Unit,
                      onSite: (String) -> Unit, glossary: GuideCatalog, onDevice: (() -> Unit)?) {
     val here = flow.routeOr(route)
-    // Keep the current step in view as the stepper or play moves it.
-    LaunchedEffect(index) { list.animateScrollToItem(index + 1, scrollOffset = -24) }
+    // Keep the current step in view as the stepper or play moves it. After one frame, so the
+    // new card is measured, the list glides the exact distance to its title. Scrolling "to an item"
+    // with an offset first aimed at an estimate and then corrected, which read as overshooting
+    // and settling; that is kept only for a card not on screen at all.
+    val density = LocalDensity.current
+    LaunchedEffect(index) {
+        withFrameNanos { }
+        val target = index + 1
+        val margin = with(density) { 8.dp.toPx() }
+        val item = list.layoutInfo.visibleItemsInfo.firstOrNull { it.index == target }
+        if (item != null) list.animateScrollBy(item.offset - margin, tween(320, easing = FastOutSlowInEasing))
+        else list.scrollToItem(target)
+    }
     LazyColumn(state = list, contentPadding = PaddingValues(bottom = 16.dp),
         modifier = Modifier.tourTarget("list:steps")) {
         item {
