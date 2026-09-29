@@ -2722,15 +2722,30 @@ private fun SpecsTab(scene: Scene, picked: String?, list: LazyListState, onPick:
                 modifier = Modifier.padding(top = 2.dp, bottom = 14.dp))
         }
         items(scene.dims) { (sym, name, value) ->
+            // A short value (a number, a node) sits at the right of its row; a long one (a
+            // material list, a sentence) gets its own line under the description, so neither
+            // column is ever squeezed to a letter's width.
+            val wide = value.length > 16 || name.isEmpty()
             Row(Modifier.fillMaxWidth().padding(vertical = 5.dp)) {
                 Text(sym, fontFamily = Mono, fontSize = 12.sp,
                     color = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.width(82.dp))
-                Text(name, fontFamily = PlexSans, fontSize = 13.sp,
-                    modifier = Modifier.weight(1f),
-                    color = MaterialTheme.colorScheme.onSurfaceVariant)
-                Text(value, fontFamily = Mono, fontSize = 12.sp,
-                    color = MaterialTheme.colorScheme.onSurface)
+                if (wide) Column(Modifier.weight(1f)) {
+                    if (name.isNotEmpty())
+                        Text(name, fontFamily = PlexSans, fontSize = 13.sp, lineHeight = 18.sp,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(value, fontFamily = Mono, fontSize = 12.sp, lineHeight = 17.sp,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        modifier = Modifier.padding(top = if (name.isNotEmpty()) 2.dp else 0.dp))
+                } else {
+                    Text(name, fontFamily = PlexSans, fontSize = 13.sp, lineHeight = 18.sp,
+                        modifier = Modifier.weight(1f),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Spacer(Modifier.width(8.dp))
+                    Text(value, fontFamily = Mono, fontSize = 12.sp, textAlign = TextAlign.End,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        modifier = Modifier.widthIn(max = 130.dp))
+                }
             }
         }
         parasiticSection(scene, picked, onPick)

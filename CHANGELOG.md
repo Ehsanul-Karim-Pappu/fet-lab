@@ -5,6 +5,13 @@ All notable changes to FET Lab. Dates are the release date; versions follow
 
 ## Unreleased
 
+### Specs table: long values no longer crush the description
+
+- A long value (a material list, a sentence) used to take the whole row. The description column
+  shrank to one letter per line and left large gaps between rows. Short values (numbers, nodes)
+  now sit at the right, at most 130 dp wide. Longer ones, and rows without a description, get
+  their own line under it.
+
 ### Every text rewritten for easy reading, and every reference cited
 
 - **Plain language throughout.** The Device, Inverter and Layout stories and notes, every Process
