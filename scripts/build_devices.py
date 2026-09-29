@@ -283,7 +283,7 @@ def build_ns(stack=None):
     d.dims=[["L_G","Physical gate length",f"{LG:g} nm"],["t_ch","Sheet thickness",f"{TCH:g} nm"],
             ["W_sh","Sheet width",f"{W:g} nm"],["Pitch","Sheet-to-sheet pitch",f"{PITCH:g} nm"],
             ["N_sh","Sheets in the stack","3"],["L_SP","Spacer length",f"{LSP:g} nm"],
-            ["EOT","Equivalent oxide thickness of the drawn films (production stacks: below about 1 nm)",f"{EOT:g} nm"],
+            ["EOT","Equivalent oxide thickness of the drawn films (production stacks: typically below about 1 nm)",f"{EOT:g} nm"],
             ["—","Fill between work-function shells (spacing enlarged)",f"{PITCH-2*HY3:g} nm"],
             ["—","Active footprint (z)",f"{2*hz3:g} nm"]]
     d.views={"iso":dict(n="3D overview",s="the whole device",az=-.76,el=.36,r=300,tgt=[0,40,0],clip=None),
@@ -382,7 +382,7 @@ def build_fin():
     d.dims=[["L_G","Physical gate length (the gate trench, lining films included)",f"{LGf:g} nm"],["W_fin","Fin width",f"{WFIN:g} nm"],
             ["H_fin","Exposed fin height",f"{HFIN:g} nm"],["Fin pitch","Fin-to-fin pitch",f"{FPITCH:g} nm"],
             ["N_fin","Fins in this device",f"{NFIN}"],["L_SP","Gate spacer (the seal spacers are removed with the dummy gate)",f"{LSP:g} nm"],
-            ["EOT","Equivalent oxide thickness of the drawn films (production stacks: below about 1 nm)",f"{EOT:g} nm"],
+            ["EOT","Equivalent oxide thickness of the drawn films (production stacks: typically below about 1 nm)",f"{EOT:g} nm"],
             ["W_eff","Effective width, (2H+W) x 2 fins",f"{Weff:g} nm"],
             ["Gate","Work-function layer, fill, cap","Al-containing WFM · Co · AlOₓ hard mask"],
             ["Contacts","Replacement contacts","TiN liner · Co · silicide"],
@@ -515,7 +515,7 @@ def build_fs():
             ["Wall top","Above the top channel",f"{ywall-top:g} nm"],
             ["Partition","Contact partition wall width (patent range: 10–24 nm)",f"{2*ZP:g} nm"],
             ["n–p","Gap between the n and p work-function metals, across the wall",f"{WALL:g} nm"],
-            ["N_sh","Sheets per polarity","3"],["EOT","Equivalent oxide thickness of the drawn films (production stacks: below about 1 nm)",f"{EOT:g} nm"],
+            ["N_sh","Sheets per polarity","3"],["EOT","Equivalent oxide thickness of the drawn films (production stacks: typically below about 1 nm)",f"{EOT:g} nm"],
             ["WFM","Work-function metal, p · n","TiN · TiAlC"],["S/D","Source/drain epitaxy, p · n","Si:B · Si:P"],
             ["—","Gate faces per sheet","3 (forked)"],
             ["—","Active footprint (z)",f"{2*z3:g} nm"]]
@@ -642,7 +642,7 @@ def build_cfet_mono():
             ["W_sh","Sheet width",f"{W:g} nm"],["Pitch","Sheet pitch within a tier",f"{PITCH:g} nm"],
             ["Tiers","Lower · upper","pFET (SiGe:B) · nFET (Si:P)"],
             ["t_MDI","SiBCN between the tiers",f"{MDI:g} nm"],
-            ["N_sh","Sheets per tier","2"],["EOT","Equivalent oxide thickness of the drawn films (production stacks: below about 1 nm)",f"{EOT:g} nm"],
+            ["N_sh","Sheets per tier","2"],["EOT","Equivalent oxide thickness of the drawn films (production stacks: typically below about 1 nm)",f"{EOT:g} nm"],
             ["—","Contacts","front side only: one via on both drains; the lower source reached beside the upper one"],
             ["—","Gate","one high-κ/metal gate (HKMG) for both tiers, as in the patent; TiN lower, TiAlC upper, W fill and SiN cap are the model's choices"],
             ["—","Active footprint (z)",f"{2*hz3:g} nm"]]
@@ -753,7 +753,7 @@ def build_cfet_seq():
             ["W_sh","Sheet width",f"{W:g} nm"],["Pitch","Sheet pitch within a tier",f"{PITCH:g} nm"],
             ["Tiers","Lower · upper","pFET (SiGe:B) · nFET (Si:P)"],
             ["Between","Etch stop · dielectric and line · bond layers","AlOₓ · SiO₂ with Cu · SiO₂ + SiO₂"],
-            ["N_sh","Sheets per tier","2"],["EOT","Equivalent oxide thickness of the drawn films (production stacks: below about 1 nm)",f"{EOT:g} nm"],
+            ["N_sh","Sheets per tier","2"],["EOT","Equivalent oxide thickness of the drawn films (production stacks: typically below about 1 nm)",f"{EOT:g} nm"],
             ["—","Drains","joined by line 66: plug 70 from the front, plug 90 from the back"],
             ["—","Gates","separate; their contacts (upper from the front, lower from the back) are the model's additions"],
             ["—","Active footprint (z)",f"{2*hz3:g} nm"]]
@@ -867,10 +867,11 @@ def build_cmp():
     for zc,w,nm,sub_,yy,we in CELLS:
         d.cal(f"w_{nm}",nm,f"{w:g} nm",f"active footprint · {w/w0*100:.0f}% of FinFET",[0,-16,zc-w/2],[0,-16,zc+w/2],[0,-42,zc],None)
         d.cal(f"h_{nm}",nm,"",sub_,[0,yy,zc],[0,yy+1,zc],[0,yy+28,zc],None)
-    d.dims=[[nm,f"{sub_} · W_eff {we:g} nm",f"{w:g} nm  ({w/w0*100:.0f}%)"] for zc,w,nm,sub_,yy,we in CELLS]
+    d.dims=[["Span","Of one n/p pair, across the gate (the CFET pair is stacked)","nm (% of FinFET)"]]
+    d.dims+=[[nm,f"{sub_} · W_eff {we:g} nm per transistor",f"{w:g} nm  ({w/w0*100:.0f}%)"] for zc,w,nm,sub_,yy,we in CELLS]
     d.dims.append(["—","Channel width used for all four",f"{Wc:g} nm (fin: {WFIN:g}×{HFIN:g} nm)"])
-    d.dims.append(["W_eff/nm","Effective width per nm of footprint",
-                   " · ".join(f"{nm[:4]} {we/w:.2f}" for zc,w,nm,sub_,yy,we in CELLS)])
+    d.dims.append(["W_eff/span","One transistor's W_eff over the pair's span",
+                   " · ".join(f"{nm} {we/w:.2f}" for zc,w,nm,sub_,yy,we in CELLS)])
     zmid=(CELLS[0][0]-CELLS[0][1]/2 + CELLS[-1][0]+CELLS[-1][1]/2)/2
     d.views={"b":dict(n="Head on",s="footprint widths",az=-1.5708,el=0,r=780,tgt=[0,38,zmid],clip=None),
              "iso":dict(n="All four",s="same scale",az=-1.30,el=.24,r=840,tgt=[0,40,zmid],clip=None),

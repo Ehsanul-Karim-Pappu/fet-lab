@@ -255,7 +255,7 @@ def show_ns():
         ["L_G", "Physical gate length, as drawn", f'{P["LG"]:g} nm'],
         ["Cell z", "Rail-to-rail span (z), rail centre to rail centre", f'{P["cell"]:g} nm'],
         ["M0 bars", "Drawn Metal 0 bar spacing (schematic; real M0 pitch is about 20–24 nm, a typical value)", f'{P["step"]:.1f} nm'],
-        ["Sheets", "Per device", "2"], ["Devices", "pMOS over N Well, nMOS over P Well", "2"],
+        ["Sheets", "Per device, drawn (the Device model has 3)", "2"], ["Devices", "pMOS over N Well, nMOS over P Well", "2"],
         ["Gate", "Po, crossing both", "1"], ["Contacts", "MD columns", "3"],
         ["Metal 0", "V_DD · IN · OUT · GND", "4 bars"],
         ["Vias", "VD to MD, VG to gate", "4"]])
@@ -293,7 +293,7 @@ def show_fs():
         ["L_G", "Physical gate length, as drawn", f'{P["LG"]:g} nm'],
         ["Cell z", "Rail-to-rail span (z), rail centre to rail centre", f'{P["cell"]:g} nm'],
         ["M0 bars", "Drawn Metal 0 bar spacing (schematic; real M0 pitch is about 20–24 nm, a typical value)", f'{P["step"]:.1f} nm'],
-        ["Sheets", "Per device", "2"], ["Separation", "Dielectric wall", "no metal gap"],
+        ["Sheets", "Per device, drawn (the Device model has 3)", "2"], ["Separation", "Dielectric wall", "no metal gap"],
         ["Gate", "Po, bridged over the wall", "1"], ["Contacts", "MD columns", "3"],
         ["Metal 0", "V_DD · IN · OUT · GND", "4 bars + drain jog"], ["Gate faces", "Per sheet", "3"]])
 
@@ -510,8 +510,10 @@ def show_cmp():
 # point. Change a value here and it updates every scene for that architecture.
 # imec-style roadmap names: nanosheets from 2 nm to A14, the (outer-wall) forksheet at A10,
 # CFET from A7 on. They say where each architecture sits, not what this model measures.
-NODE = {"fin": "3 nm-class", "ns": "2 nm to A14", "fs": "A10 (imec's is outer-wall)", "cfet": "A7 and beyond"}
+NODE = {"fin": "3 nm-class", "ns": "2 nm to A14", "fs": "A10", "cfet": "A7 and beyond"}
 NODE_ROW = ["Example node", "Where the architecture sits on imec's roadmap; not a process specification"]
+# imec's A10 forksheet is the outer-wall kind; this model's is inner-wall, so say so on the row.
+NODE_NOTE = {"fs": "; imec's A10 forksheet has an outer wall, this model an inner one"}
 CMP_ROW = ["Example node", "FinFET · nanosheet · forksheet · CFET", "3 nm · 2 nm–A14 · A10 · A7+"]
 
 def tag_nodes(devices):
@@ -524,7 +526,7 @@ def tag_nodes(devices):
         else:
             arch = "cfet" if k.startswith("cfet") else k
             if arch in NODE:
-                dv["dims"] = [NODE_ROW + [NODE[arch]]] + rows
+                dv["dims"] = [[NODE_ROW[0], NODE_ROW[1] + NODE_NOTE.get(arch, ""), NODE[arch]]] + rows
             else:
                 dv["dims"] = rows
     return devices

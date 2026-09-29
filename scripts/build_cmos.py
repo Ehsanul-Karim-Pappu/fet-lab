@@ -194,7 +194,13 @@ def compose(design, exploded, wired):
     t, gap = stack["tch"], stack["tsg"]
     pitch = t + gap
     enl = " (enlarged)" if exploded else ""
-    eot = round(stack["til"] + stack["thk"] * 3.9 / 22.0, 2)
+    # From the films as drawn: the Si/Si design has its patent's 2 nm high-κ, thicker than the
+    # shared stack's.
+    film = lambda m, key: min((b[4] for q in d.parts if q["material"] == m and key in q["name"].lower()
+                               for b in q["boxes"]), default=None)
+    til_ = film("sio2", "interfacial") or stack["til"]
+    thk_ = film("highk", "") or stack["thk"]
+    eot = round(til_ + thk_ * 3.9 / 22.0, 2)
     n_sheets = sorted(lim(q["boxes"][0])[1] for q in d.parts if q["id"].startswith("n_sheet"))
     p_sheets = sorted(lim(q["boxes"][0])[1] for q in d.parts if q["id"].startswith(("p_sheet", "p_psheet")))
     off = n_sheets[0] - p_sheets[0]

@@ -5,6 +5,22 @@ All notable changes to FET Lab. Dates are the release date; versions follow
 
 ## Unreleased
 
+### Specs tables checked against the models
+
+- **Si/Si nanosheet EOT corrected:** 0.85 nm, not 0.77 nm. The table used the shared stack's 1.5 nm
+  high-κ, but the Si/Si model draws its patent's 2 nm. The EOT is now worked out from the films as
+  drawn.
+- **Footprint compare:** a first row says what the span is, one n/p pair across the gate, with the
+  CFET pair stacked. W_eff is marked per transistor, and the last row is "W_eff/span" with the full
+  names instead of "FinF · Nano · Fork".
+- **Layout nanosheet and forksheet:** the sheet row says the 2 sheets are drawn for the layout,
+  while the Device model has 3.
+- **Forksheet node:** the value is now just "A10". The row's description notes that imec's A10
+  forksheet has an outer wall and this model an inner one.
+- The EOT rows say production stacks are "typically" below about 1 nm, as the glossary does.
+- Every other row was checked against the model's own geometry and matches: gate lengths, fin
+  and sheet sizes, pitches, spacers, EOTs, W_eff, footprints and spans.
+
 ### Capacitance estimates removed
 
 - The Specs tab's "Capacitance estimates" table is gone, from the app and the web page. Its values
