@@ -2,7 +2,7 @@
 
 Generated from data/references.json. Reviewed 2026-09-27.
 
-References support device concepts, not this model's exact dimensions, complete material recipe or calculated capacitances. Geometry and colors are illustrative; no foundry PDK or measured device dataset is reproduced.
+References support device concepts, not this model's exact dimensions, or complete material recipe. Geometry and colors are illustrative; no foundry PDK or measured device dataset is reproduced.
 
 - **R1** [Entering the nanosheet transistor era](https://www.imec-int.com/en/articles/entering-nanosheet-transistor-era-0) — imec. FinFET, GAA nanosheet and inner-wall forksheet devices, and their process modules.
 

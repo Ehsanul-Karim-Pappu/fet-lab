@@ -56,7 +56,7 @@
       "id": "specs",
       "category": "Tools",
       "title": "Specs",
-      "body": "Read the model's dimensions and design notes. On individual Device scenes, tap a capacitance row to highlight the modeled coupling. The values are geometry-only estimates, not measurements or a field-solver extraction.",
+      "body": "Read the model's dimensions and its design notes: what follows the patent, and what is the model's own choice.",
       "tab": 3,
       "gesture": "tap"
     },

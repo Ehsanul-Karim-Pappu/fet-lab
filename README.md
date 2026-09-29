@@ -134,8 +134,7 @@ Do not hand-edit `data/devices.json`; it is generated.
 
 ```bash
 python3 -m pip install numpy
-python3 scripts/build.py             # all scenes, background, capacitances and viewer assets
-python3 scripts/test_parasitics.py   # analytic cases, selection and grid convergence
+python3 scripts/build.py             # all scenes, background and viewer assets
 python3 scripts/test_content.py      # synchronized bundles and reference coverage
 python3 scripts/verify.py            # structural/geometry checks
 ```

@@ -445,7 +445,6 @@ class ContentTests(unittest.TestCase):
 
     def test_scene_names_and_capacitance_scope(self):
         self.assertEqual(len(self.data['devices']), 18)       # the nanosheet pair: 2 designs × 2 modes
-        count = 0
         for scene in self.data['devices']:
             if 'cmp' not in scene['key']:
                 self.assertEqual(next(iter(scene['views'].values()))['n'], '3D overview')
@@ -453,16 +452,8 @@ class ContentTests(unittest.TestCase):
                 self.assertNotRegex(view['n'], r'^\([a-z]\)')
             for row in scene['dims']:
                 self.assertNotEqual(row[0], 'Node')
-            if 'parasitics' in scene:
-                count += 1
-                cap = scene['parasitics']
-                self.assertIn('not measured or TCAD', cap['note'])
-                self.assertIn('not an equal-drive', cap['note'])
-                self.assertEqual(cap['method'], 'classical plates; no field solver')
-                ids = {part['id'] for part in scene['parts']}
-                for term in cap['terms']:
-                    self.assertTrue(set(term['a'] + term['b'] + term['via']) <= ids)
-        self.assertEqual(count, 6)          # fin, fs, both CFETs, and the two compact nanosheet CMOS pairs
+            # The geometry-only capacitance estimates were removed: no scene carries them.
+            self.assertNotIn('parasitics', scene)
 
     def test_nanosheet_process_stack(self):
         """One Si/SiGe stack makes both nanosheet devices, so every channel it leaves is

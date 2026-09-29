@@ -5,6 +5,16 @@ All notable changes to FET Lab. Dates are the release date; versions follow
 
 ## Unreleased
 
+### Capacitance estimates removed
+
+- The Specs tab's "Capacitance estimates" table is gone, from the app and the web page. Its values
+  came from the model's own box geometry with a plate approximation. They were not measured, not
+  from a field solver and not backed by any of the cited sources, and they sat oddly beside a model
+  that otherwise follows its patents.
+- Removed with it: the script that computed them (build_parasitics.py), its tests, the tour's tap
+  on a capacitance row and the tour text about it. Specs now holds the dimensions and the design
+  notes only.
+
 ### Specs table: long values no longer crush the description
 
 - A long value (a material list, a sentence) used to take the whole row. The description column

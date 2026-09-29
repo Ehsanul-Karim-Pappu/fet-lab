@@ -1,6 +1,6 @@
 {
   "reviewed": "2026-09-27",
-  "scope": "References support device concepts, not this model's exact dimensions, complete material recipe or calculated capacitances. Geometry and colors are illustrative; no foundry PDK or measured device dataset is reproduced.",
+  "scope": "References support device concepts, not this model's exact dimensions, or complete material recipe. Geometry and colors are illustrative; no foundry PDK or measured device dataset is reproduced.",
   "sources": [
     {
       "id": "R1",

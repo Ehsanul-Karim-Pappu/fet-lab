@@ -64,7 +64,7 @@ MAT = {
 ORDER = ["silicon","siu","sic","sige","sio2","highk","si3n4","sibcn","lowk","alox","wall","cellmark","mdi","bond",
          "nwf","tin","wfill","cofill","mo","tisi","cobalt","tungsten","copper","soc","barc","sihm","tiox","poly","ild","pts","pts_n","resist","resist_exp","chrome","liner","mandrel","mandrel2","patspacer",
          "pwell","nwell","fox","nanowire","md","po","vd","vg","m0"]
-# Gate-fill metals: the renderer's ghost view and the capacitance estimates treat these as the gate.
+# Gate-fill metals: the renderer's ghost view treats these as the gate.
 GATE_FILLS = ("wfill", "cofill", "mo")
 
 # Work-function metal by polarity: an Al-containing n-type metal for nFETs, TiN for pFETs.

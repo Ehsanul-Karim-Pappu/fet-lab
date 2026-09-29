@@ -1003,23 +1003,7 @@ fun FetLabApp(lib: Library, renderer: Renderer) {
                 "specs" -> {
                     spot("sheet")
                     tap("tab:3") { selectTab(3) }
-                    val sc = lib.scene(sceneKey)
-                    val terms = sc.par?.terms
-                    if (!terms.isNullOrEmpty()) {
-                        // Half open, so the coupling the row highlights shows in the model above.
-                        sheetLevel = 1
-                        specsList.scrollToItem(0)
-                        delay(400)
-                        spotSheetAndModel()
-                        // Down past the blurb and the dimensions until the table's heading
-                        // sits at the top, its rows in view below.
-                        val head = 1 + sc.dims.size
-                        swipe(specsList, "list:specs") { info ->
-                            info.visibleItemsInfo.firstOrNull { it.index == head }?.let { it.offset.toFloat() }
-                        }
-                        val i = terms.indexOfFirst { it.id != parPick }.coerceAtLeast(0)
-                        tap("par:$i") { pickPar(terms[i]) }
-                    }
+                    delay(1400)
                     hideHand()
                 }
                 "story" -> {
@@ -2656,62 +2640,6 @@ private fun StoryTab(scene: Scene) {
     }
 }
 
-/** A compact parasitics table, tacked onto Specs rather than earning a sixth tab. */
-private fun LazyListScope.parasiticSection(
-    scene: Scene, picked: String?, onPick: (Parasitic?) -> Unit
-) {
-    val P = scene.par ?: return
-    item {
-        Spacer(Modifier.height(18.dp))
-        Text("Capacitance estimates", fontFamily = PlexSans, fontWeight = FontWeight.SemiBold,
-            fontSize = 14.sp, color = MaterialTheme.colorScheme.onSurface)
-        Text("Worked out from this model's own geometry: L_G ${P.lg.toInt()} nm, W_eff " +
-             "${P.weff.toInt()} nm (total shown), gate-stack span ${P.foot.toInt()} nm. " +
-             "In this approximation, C_gc + C_ge = ${P.gateParPct}% of C_ox. Tap a row to highlight it, and read the limits below.",
-            fontFamily = PlexSans, fontSize = 12.sp, lineHeight = 17.sp,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(top = 4.dp, bottom = 8.dp))
-    }
-    itemsIndexed(P.terms, key = { _, t -> t.id }) { i, t ->
-        val on = picked == t.id
-        Surface(
-            color = if (on) MaterialTheme.colorScheme.secondaryContainer else Color.Transparent,
-            shape = RoundedCornerShape(8.dp),
-            modifier = Modifier.fillMaxWidth().padding(vertical = 1.dp).tourTarget("par:$i")
-                .clickable { onPick(if (on) null else t) }) {
-            Column(Modifier.padding(horizontal = 8.dp, vertical = 7.dp)) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(t.sym, fontFamily = Mono, fontSize = 12.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        color = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.width(52.dp))
-                    Text(t.pair, fontFamily = PlexSans, fontSize = 12.5f.sp,
-                        modifier = Modifier.weight(1f),
-                        color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    Text("${t.aF} aF", fontFamily = Mono, fontSize = 11.5f.sp,
-                        color = MaterialTheme.colorScheme.onSurface)
-                    Text("${t.pct}%", fontFamily = Mono, fontSize = 11.sp,
-                        textAlign = TextAlign.End,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.width(52.dp))
-                }
-                if (on) Text(t.desc, fontFamily = PlexSans, fontSize = 11.5f.sp,
-                    lineHeight = 16.sp, color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(top = 6.dp))
-            }
-        }
-    }
-    item {
-        Surface(color = MaterialTheme.colorScheme.surfaceVariant,
-            shape = RoundedCornerShape(10.dp),
-            modifier = Modifier.fillMaxWidth().padding(top = 10.dp)) {
-            Text(P.note, fontFamily = PlexSans, fontSize = 10.5f.sp, lineHeight = 15.sp,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(10.dp))
-        }
-    }
-}
-
 @Composable
 private fun SpecsTab(scene: Scene, picked: String?, list: LazyListState, onPick: (Parasitic?) -> Unit) {
     LazyColumn(state = list, contentPadding = PaddingValues(bottom = 16.dp),
@@ -2748,7 +2676,6 @@ private fun SpecsTab(scene: Scene, picked: String?, list: LazyListState, onPick:
                 }
             }
         }
-        parasiticSection(scene, picked, onPick)
         if (scene.note.isNotEmpty()) item {
             Surface(color = MaterialTheme.colorScheme.surfaceVariant,
                 shape = RoundedCornerShape(14.dp),
