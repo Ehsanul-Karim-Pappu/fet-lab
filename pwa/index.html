@@ -24,7 +24,10 @@ body{padding-bottom:env(safe-area-inset-bottom)}</style>
   --ground:#E7EAEF;--surface:#FFFFFF;--surface-2:#F1F3F7;--line:#CDD3DC;--line-soft:#DFE4EB;
   --ink:#141821;--ink-2:#4B5462;--ink-3:#78818F;
   --accent:#0E7C8C;--accent-soft:#D6EDF1;--accent-ink:#08525E;--on-accent:#FFFFFF;
-  --stage-1:#0D1015;--stage-ink:#C7CEDA;--stage-ink-2:#7D8798;--stage-line:#2C3441;--glass:rgba(13,16,21,.86);
+  /* the stage follows the system theme, as in the app: light grey with dark ink, or near-black */
+  --stage-1:#DADBDD;--stage-ink:#2A323E;--stage-ink-2:#5E6875;--stage-line:#B7BEC8;--glass:rgba(255,255,255,.92);
+  --stage-name:#121820;--stage-hover:rgba(0,0,0,.06);--stage-shadow:none;--lb-on:#2B3442;
+  --lb-hi:#9A5A05;--lb-lo:#0B7A8A;
   --shadow:0 1px 2px rgba(20,24,33,.06),0 8px 24px -12px rgba(20,24,33,.18);--r:12px;
   --sheet-h:62px;
 }
@@ -32,12 +35,18 @@ body{padding-bottom:env(safe-area-inset-bottom)}</style>
   --ground:#0F1217;--surface:#171B22;--surface-2:#1E232C;--line:#2C333E;--line-soft:#242A34;
   --ink:#E7EBF1;--ink-2:#A3ACBA;--ink-3:#767F8D;
   --accent:#4FC7D8;--accent-soft:#16323A;--accent-ink:#8FE0EC;--on-accent:#06262C;
-  --shadow:0 1px 2px rgba(0,0,0,.4),0 10px 28px -14px rgba(0,0,0,.7);}}
+  --shadow:0 1px 2px rgba(0,0,0,.4),0 10px 28px -14px rgba(0,0,0,.7);
+  --stage-1:#0D1015;--stage-ink:#C7CEDA;--stage-ink-2:#7D8798;--stage-line:#2C3441;--glass:rgba(13,16,21,.88);
+  --stage-name:#FFFFFF;--stage-hover:rgba(255,255,255,.07);--stage-shadow:0 1px 3px rgba(0,0,0,.6);--lb-on:#2B3442;
+  --lb-hi:#FFC073;--lb-lo:#6FD8E6;}}
 :root[data-theme="dark"]{
   --ground:#0F1217;--surface:#171B22;--surface-2:#1E232C;--line:#2C333E;--line-soft:#242A34;
   --ink:#E7EBF1;--ink-2:#A3ACBA;--ink-3:#767F8D;
   --accent:#4FC7D8;--accent-soft:#16323A;--accent-ink:#8FE0EC;--on-accent:#06262C;
-  --shadow:0 1px 2px rgba(0,0,0,.4),0 10px 28px -14px rgba(0,0,0,.7);}
+  --shadow:0 1px 2px rgba(0,0,0,.4),0 10px 28px -14px rgba(0,0,0,.7);
+  --stage-1:#0D1015;--stage-ink:#C7CEDA;--stage-ink-2:#7D8798;--stage-line:#2C3441;--glass:rgba(13,16,21,.88);
+  --stage-name:#FFFFFF;--stage-hover:rgba(255,255,255,.07);--stage-shadow:0 1px 3px rgba(0,0,0,.6);--lb-on:#2B3442;
+  --lb-hi:#FFC073;--lb-lo:#6FD8E6;}
 *{box-sizing:border-box}
 html,body{height:100%}
 body{margin:0;padding:0!important;background:var(--ground);color:var(--ink);overflow:hidden auto;
@@ -101,8 +110,8 @@ button{font:inherit;color:inherit}
 .stagewrap .cal.flat.sz-l{font-size:19px}
 .stagetop{position:absolute;top:10px;left:12px;right:12px;display:flex;justify-content:space-between;
   align-items:flex-start;gap:10px;pointer-events:none}
-.ttl{min-width:0;color:var(--stage-ink);text-shadow:0 1px 3px rgba(0,0,0,.6)}
-.ttl h1{margin:0;font-size:17px;font-weight:600;line-height:1.25;color:#fff;letter-spacing:-.01em;
+.ttl{min-width:0;color:var(--stage-ink);text-shadow:var(--stage-shadow)}
+.ttl h1{margin:0;font-size:17px;font-weight:600;line-height:1.25;color:var(--stage-name);letter-spacing:-.01em;
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .ttl .tag{font-family:"IBM Plex Mono",monospace;font-size:10.5px;letter-spacing:.04em;color:var(--stage-ink-2);
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:1px}
@@ -110,7 +119,7 @@ button{font:inherit;color:inherit}
   border:1px solid var(--stage-line);border-radius:7px;padding:4px 9px;color:var(--stage-ink);font-size:12px;
   text-shadow:none}
 #inspector .sw{width:10px;height:10px;border-radius:2px;flex:0 0 auto;box-shadow:0 0 0 1px rgba(255,255,255,.25)}
-#inspector b{color:#fff;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#inspector b{color:var(--stage-name);font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 #inspector span.dt{font-family:"IBM Plex Mono",monospace;font-size:10.5px;color:var(--stage-ink-2);white-space:nowrap;
   overflow:hidden;text-overflow:ellipsis}
 .pills{display:flex;flex-direction:column;align-items:flex-end;gap:6px;flex:0 0 auto}
@@ -118,7 +127,7 @@ button{font:inherit;color:inherit}
   pointer-events:auto}
 .pill button{background:none;border:0;border-radius:14px;padding:4px 10px;font-size:11.5px;font-weight:600;
   color:var(--stage-ink);cursor:pointer;white-space:nowrap}
-.pill button:hover{color:#fff}
+.pill button:hover{color:var(--stage-name)}
 .pill button[aria-pressed="true"]{background:var(--accent);color:var(--on-accent)}
 .hint{position:absolute;right:13px;bottom:12px;font-family:"IBM Plex Mono",monospace;font-size:10px;
   color:var(--stage-ink-2);pointer-events:none;opacity:.8}
@@ -132,23 +141,23 @@ button{font:inherit;color:inherit}
 .lb-seg{display:inline-flex;border:1px solid var(--stage-line);border-radius:999px;overflow:hidden}
 .lb-seg button{font-size:12px;font-weight:600;background:transparent;border:0;color:var(--stage-ink-2);
   padding:3px 13px;cursor:pointer;line-height:1.4}
-.lb-seg button[aria-pressed="true"]{background:#2B3442;color:#fff}
+.lb-seg button[aria-pressed="true"]{background:var(--lb-on);color:#fff}
 .lb-txt{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:11.5px}
 .lb-txt b{font-weight:600}
-.lb-hi{color:#FFC073}.lb-lo{color:#6FD8E6}
+.lb-hi{color:var(--lb-hi)}.lb-lo{color:var(--lb-lo)}
 #procbar{display:flex;align-items:center;gap:2px;border-radius:24px;padding:2px;width:min(540px,calc(100% - 20px))}
 .bi{flex:0 0 auto;width:40px;height:40px;border-radius:50%;border:0;background:none;color:var(--stage-ink);
   cursor:pointer;display:grid;place-items:center;padding:0}
-.bi:hover:not(:disabled){background:rgba(255,255,255,.07);color:#fff}
+.bi:hover:not(:disabled){background:var(--stage-hover);color:var(--stage-name)}
 .bi:disabled{opacity:.3;cursor:default}
 .pb-mid{flex:1 1 auto;min-width:0;text-align:left;background:none;border:0;border-radius:14px;padding:3px 6px;cursor:pointer}
-.pb-mid:hover{background:rgba(255,255,255,.05)}
+.pb-mid:hover{background:var(--stage-hover)}
 .pb-top{display:flex;flex-wrap:wrap;align-items:center;gap:2px 8px}
 .pb-n{font-family:"IBM Plex Mono",monospace;font-size:10px;color:var(--stage-ink-2);white-space:nowrap}
 .badge{font-family:"IBM Plex Mono",monospace;font-size:9.5px;letter-spacing:.04em;text-transform:uppercase;
-  color:var(--stage-ink-2);border:1px solid rgba(125,135,152,.6);border-radius:6px;padding:0 5px;white-space:nowrap}
-.badge.src{color:#4FC7D8;border-color:rgba(79,199,216,.6)}
-.pb-title{font-size:13px;line-height:1.25;font-weight:600;color:#fff;display:-webkit-box;-webkit-line-clamp:2;
+  color:var(--stage-ink-2);border:1px solid color-mix(in srgb,var(--stage-ink-2) 60%,transparent);border-radius:6px;padding:0 5px;white-space:nowrap}
+.badge.src{color:var(--accent);border-color:color-mix(in srgb,var(--accent) 60%,transparent)}
+.pb-title{font-size:13px;line-height:1.25;font-weight:600;color:var(--stage-name);display:-webkit-box;-webkit-line-clamp:2;
   -webkit-box-orient:vertical;overflow:hidden;margin-top:1px}
 .pb-title.fade{animation:fadein .22s ease}
 @keyframes fadein{from{opacity:0}to{opacity:1}}
@@ -156,8 +165,62 @@ button{font:inherit;color:inherit}
 .stagewrap.light .cal{background:rgba(255,255,255,.88);border-color:#B7BEC8;color:#2A323E}
 .stagewrap.light .cal b{color:#121820}.stagewrap.light .cal i{color:#5E6875}
 .stagewrap.light #leaders polyline,.stagewrap.light #leaders line{stroke:#8B94A1}
-.stagewrap.light .ttl{color:#2A323E;text-shadow:none}.stagewrap.light .ttl h1{color:#121820}
-.stagewrap.light .ttl .tag,.stagewrap.light .hint{color:#5E6875}
+
+/* ---- section planes: the 2D section over the stage, and the step overlay in Both ---- */
+.secpanel{position:absolute;left:0;right:0;top:0;display:flex;flex-direction:column;background:var(--surface);
+  border-bottom:1px solid var(--line);z-index:1}
+.sechd{flex:0 0 auto;display:flex;align-items:center;gap:8px;padding:6px 8px 0 12px}
+.secname{flex:1 1 auto;min-width:0;font-family:"IBM Plex Mono",monospace;font-size:10px;letter-spacing:.04em;color:var(--ink-3);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.locmini{flex:0 0 auto;width:96px;height:56px;border-radius:8px;background:var(--surface-2)}
+.secbody{flex:1 1 auto;min-height:0;position:relative;overflow:hidden}
+#seccv{position:absolute;inset:0;width:100%;height:100%;touch-action:none;cursor:crosshair}
+.secpick{position:absolute;left:8px;top:8px;display:flex;align-items:center;gap:6px;padding:4px 8px;border-radius:8px;
+  background:color-mix(in srgb,var(--surface) 92%,transparent);border:1px solid color-mix(in srgb,var(--accent) 60%,transparent);
+  font-size:11.5px;font-weight:600;pointer-events:none;max-width:calc(100% - 16px)}
+.secpick i{width:9px;height:9px;border-radius:2px;flex:0 0 auto}
+.secpick b{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.secempty{position:absolute;inset:0;display:grid;place-items:center;font-size:12px;color:var(--ink-3);pointer-events:none}
+.secreset{position:absolute;right:8px;bottom:8px;font-size:11.5px;font-weight:600;color:var(--accent);border:0;border-radius:8px;
+  padding:4px 9px;background:color-mix(in srgb,var(--surface) 92%,transparent);cursor:pointer}
+.stepov{position:absolute;left:0;right:0;pointer-events:none}
+.stepov>*{pointer-events:auto}
+.so-tl{position:absolute;left:6px;top:6px;display:flex;align-items:center;gap:2px;padding-right:9px;border-radius:14px;
+  background:var(--glass);border:1px solid var(--stage-line)}
+.so-tl .bi{width:28px;height:28px}
+.so-tr{position:absolute;right:6px;top:6px;max-width:min(190px,44%);display:flex;flex-direction:column;align-items:flex-end;gap:2px;
+  text-align:right;padding:4px 8px;border-radius:10px;background:var(--glass);border:1px solid var(--stage-line);
+  color:var(--stage-name);cursor:pointer}
+.so-t{font-size:11.5px;line-height:1.2;font-weight:600}
+.so-tr .badge{font-size:8.5px}
+.so-arrow{position:absolute;top:50%;margin-top:-16px;width:32px;height:32px;background:var(--glass);
+  border:1px solid var(--stage-line)}
+.so-arrow.l{left:4px}.so-arrow.r{right:4px}
+.planes{display:flex;flex-wrap:wrap;gap:5px}
+.secmodes{display:grid;grid-auto-flow:column;grid-auto-columns:1fr;gap:5px;margin-top:6px}
+.secmodes .chip{text-align:center}
+.secmodes .chip:disabled{opacity:.45;cursor:default}
+.locbox{display:flex;gap:9px;align-items:flex-start;margin-top:6px;padding:8px;border-radius:12px;background:var(--surface-2)}
+.locbox canvas{flex:0 0 auto;width:104px;height:68px}
+.locbox p{margin:0 0 3px;font-size:11px;line-height:1.45;color:var(--ink-3)}
+.showsec{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.showsec button{font-size:12px;font-weight:600;color:var(--accent);background:none;border:1px solid color-mix(in srgb,var(--accent) 60%,transparent);
+  border-radius:8px;padding:5px 10px;cursor:pointer}
+.showsec button:hover{background:var(--surface)}
+/* ---- the pitch-walk lesson's TRY IT panel ---- */
+.pw{padding:10px 11px;border-radius:12px;background:var(--surface-2);margin-bottom:10px}
+.pw .lbl{margin:0 0 2px}
+.pw>p{margin:0;font-size:12px}
+#pwcv{display:block;width:100%;height:150px;margin-top:6px}
+.pwcap{display:grid;grid-template-columns:repeat(3,1fr);gap:4px;font-size:10.5px;color:var(--ink-3);margin-top:2px}
+.pwctl{margin-top:6px}
+.pwctl label{display:flex;justify-content:space-between;gap:8px;font-size:12px}
+.pwctl label b{font-family:"IBM Plex Mono",monospace;font-weight:500;color:var(--accent-ink)}
+.pwgap{display:flex;align-items:center;gap:7px;font-size:12px;margin-top:3px}
+.pwgap i{width:10px;height:10px;flex:0 0 auto}
+.pwbig{font-size:18px;font-weight:600;color:var(--accent-ink);margin-top:6px}
+.pwsub{font-family:"IBM Plex Mono",monospace;font-size:11px;color:var(--ink-3)}
+.pwnote{font-size:11px;line-height:1.45;color:var(--ink-3);margin:4px 0 0}
 
 /* ---- side panel / bottom sheet ---- */
 .side{display:flex;flex-direction:column;min-height:0;background:var(--surface);border:1px solid var(--line);
@@ -384,7 +447,7 @@ dialog::backdrop{background:rgba(8,10,14,.55)}
     <canvas id="stage"></canvas>
     <div id="overlay"><svg id="leaders"></svg></div>
     <div class="scrim" id="scrim"></div>
-    <div class="stagetop">
+    <div class="stagetop" id="stagetop">
       <div class="ttl" aria-live="polite"><h1 id="sname">FinFET</h1><div class="tag" id="stag"></div>
         <div id="inspector" hidden><span class="sw"></span><b id="inm"></b><span class="dt" id="idt"></span></div></div>
       <div class="pills">
@@ -394,6 +457,19 @@ dialog::backdrop{background:rgba(8,10,14,.55)}
           <button type="button" data-k="cfet_seq">Sequential</button><button type="button" data-k="cfet_mono">Monolithic</button></div>
         <div class="pill" id="sitepill" role="group" aria-label="Device site" hidden></div>
       </div>
+    </div>
+    <div class="secpanel" id="secpanel" hidden>
+      <div class="sechd"><span class="secname" id="secname"></span><canvas class="locmini" id="locmini" aria-hidden="true"></canvas></div>
+      <div class="secbody"><canvas id="seccv" role="img"></canvas>
+        <div class="secpick" id="secpick" hidden><i></i><b></b></div>
+        <div class="secempty" id="secempty" hidden>This plane cuts nothing in this step.</div>
+        <button type="button" class="secreset" id="secreset" hidden>Reset zoom</button></div>
+    </div>
+    <div class="stepov" id="stepov" hidden>
+      <div class="so-tl"><button type="button" class="bi" id="soplay" aria-label="Play the steps"></button><span class="pb-n" id="son"></span></div>
+      <button type="button" class="so-tr" id="sotitle" aria-label="Open this step in the Steps tab"><span class="so-t" id="sott"></span><span class="badge" id="sobadge"></span></button>
+      <button type="button" class="bi so-arrow l" id="soprev" aria-label="Previous step"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.4 2.6 4.8 8l5.6 5.4"/></svg></button>
+      <button type="button" class="bi so-arrow r" id="sonext" aria-label="Next step"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5.6 2.6 11.2 8l-5.6 5.4"/></svg></button>
     </div>
     <div class="hint" id="hint">drag orbit · wheel zoom · shift+drag pan · click identify</div>
     <div class="bar" id="logicbar" hidden>
@@ -538,7 +614,8 @@ function flow(dk){
   const steps=fj.steps.map((s,i)=>({id:s.id,title:s.title,body:s.body||"",view:s.view||"iso",figs:s.figs||[],
     match:s.match||"",subs:s.subs||[],omitted:s.omitted||[],level:s.level||"core",isOp:s.level==="op",of:s.of||"",
     label:s.label||String(i+1),scale:s.scale||"site",route:s.route||null,labels:s.labels||{},src:s.src||[],
-    deposit:s.deposit||[],groups:s.deposit_groups||[],regions:s.regions||{}}));
+    deposit:s.deposit||[],groups:s.deposit_groups||[],regions:s.regions||{},
+    compare:[...new Set((s.compare||[]).map(c=>c.plane))]}));
   const routes=(fj.routes||[]).map(r=>({id:r.id,name:r.name,note:r.note||"",def:!!r.default}));
   const f={device:dk,fj,own,steps,routes,keys:steps.map((_,i)=>stepKey(dk,i)),
     defaultRoute:((routes.find(r=>r.def)||routes[0])||{}).id||"",
@@ -546,6 +623,8 @@ function flow(dk){
     routeKind:fj.route_kind||"",badge:fj.badge||{},badgeNote:fj.badge_note||{},match:fj.match||{},
     refs:fj.refs||[],sites:fj.sites||[],site:fj.site||"",lessonLabel:fj.lesson_label||"",
     scope:fj.scope||"",branch:fj.branch||"",figures:fj.figures||"",pitchwalk:fj.pitchwalk||null,
+    sections:(fj.sections||[]).map(o=>({id:o.id,name:o.name,short:o.short||o.name,axis:o.axis,pos:o.pos,
+      text:o.text||"",views:o.views||{},at:o.at||{}})),
     coreCount:steps.filter(s=>!s.isOp).length};
   f.routeOr=r=>routes.some(x=>x.id===r)?r:f.defaultRoute;
   f.onRoute=(i,r)=>{const sr=steps[i].route;return sr==null||sr===f.routeOr(r);};
@@ -716,7 +795,9 @@ function style(sc,p){
     default:return[1,NIL];}}
 
 /* ---- state ---- */
-const S={inp:0,tex:true,edges:true,lightBg:false,az:-.76,el:.36,r:300,tgt:[0,40,0],ex:0,ghost:false,dims:true,
+// The stage follows the system theme, as the app does.
+const DARK=matchMedia("(prefers-color-scheme:dark)");
+const S={inp:0,tex:true,edges:true,lightBg:!DARK.matches,az:-.76,el:.36,r:300,tgt:[0,40,0],ex:0,ghost:false,dims:true,
   spin:false,cf:[1,1,1],clip:[1e9,1e9,1e9],view:null,lset:null};
 let SC=null,HOT=null,CAPS_DIRTY=true;
 // A step's transition: what changed glows; what it removed is etched off from the top by a
@@ -859,7 +940,7 @@ function draw(){
     gl.enableVertexAttribArray(A.nrm);gl.enableVertexAttribArray(A.col);
     gl.uniform3f(U.add,0,0,0);}
   surfaceText();
-  gl.disable(gl.BLEND);labels();}
+  gl.disable(gl.BLEND);labels();secDraw();}
 let raf=0;
 const render=()=>{if(gl&&!raf)raf=requestAnimationFrame(()=>{raf=0;draw();});};
 
@@ -1130,7 +1211,9 @@ function stopGrowth(){GROWTOK.dead=true;GROW=null;AN.growBox=null;AN.deposit=nul
 /* ---- Process: flows, steps, routes ---- */
 const ADDS=/deposit|fill|growth|grow|epitax|coat|liner|film|oxid|dispens|multilayer|masked|protected|covered|seal|resist|\bcaps?\b/i;
 const TAKES=/etch|recess|remov|strip|pull|release|open|clean|trim|cmp|polish|planari|pattern|develop|expos|implant|\bcut\b/i;
-const P={at:{},route:{},ops:true,playing:false,tok:0};
+// plane: the section plane on, by id; mode: how it is shown, 0 the 3D view only, 1 the 2D
+// section, 2 both (the section over the top of the stage, the 3D view in the strip below)
+const P={at:{},route:{},ops:true,playing:false,tok:0,plane:null,mode:0,pw:null};
 const routeIn=f=>f?(P.route[f.device]||f.defaultRoute):"";
 const sameBoxes=(a,b)=>a.boxes.length===b.boxes.length&&a.boxes.every((x,i)=>x.every((v,k)=>v===b.boxes[i][k]));
 /** Moves to step i of the flow on screen, keeping the camera, the cuts and any layers the
@@ -1143,8 +1226,9 @@ function goStep(i){
   const hidden=new Set(old.parts.filter(p=>!p.on).map(p=>p.id)),before={},after={};
   old.parts.forEach(p=>before[p.id]=p);sc.parts.forEach(p=>after[p.id]=p);
   const rescale=old.step.scale!==sc.step.scale;
-  SC=sc;P.at[f.device]=n;HOT=null;
-  const v=sc.views.find(x=>x.k===sc.step.view);
+  SC=sc;P.at[f.device]=n;HOT=null;stageLayout(true);
+  // with a section plane on, every step is seen in that plane where it has one
+  const v=(P.plane&&planeView(sc))||sc.views.find(x=>x.k===sc.step.view);
   if(v&&(rescale||v.k!==S.view))goToView(sc,v,true,rescale);
   else{sc.parts.forEach(p=>p.on=!hidden.has(p.id));syncClip();}
   AN.fresh=rescale?new Set():new Set(sc.parts.filter(p=>!(before[p.id]&&sameBoxes(before[p.id],p))));
@@ -1210,6 +1294,222 @@ function openSite(dk){
   while(i>=0&&to<0){to=ids.indexOf(f.steps[i].id);i--;}
   setPlaying(false);switchScene(stepKey(dk,Math.max(0,to)));}
 
+/* ---- section planes ----
+ * A named cut through the model: across x (seen from +x, so +z lies to the viewer's left)
+ * or across z (seen from +z, so x runs source to drain, left to right). The 2D section is cut
+ * from the scene on screen, the same boxes the 3D view draws. */
+const planeOf=(sc,id)=>sc&&sc.flow&&id?sc.flow.sections.find(x=>x.id===id)||null:null;
+const posAt=(pl,sc)=>pl.at[sc.step.scale]!=null?pl.at[sc.step.scale]:pl.pos;
+/** The plane on, if it exists at the scale on screen. */
+function activePlane(){const pl=planeOf(SC,P.plane);return pl&&pl.views[SC.step.scale]?pl:null;}
+const sectionUp=()=>!!activePlane()&&P.mode!==0;
+const isSplit=()=>!!activePlane()&&P.mode===2;
+/** The plane's view at sc's scale. */
+function planeView(sc){const pl=planeOf(sc,P.plane),k=pl&&pl.views[sc.step.scale];return k?sc.views.find(v=>v.k===k)||null:null;}
+const acrossWord=sc=>sc.parts.some(p=>p.group==="Fins")?"fins":"stacks";
+function planeUI(){stageLayout();hud();procbar();refreshTab(["section"]);}
+/** Look at the scene in plane pl, shown as mode (0 3D, 1 section, 2 both). */
+function showPlane(pl,mode){
+  if(P.plane!==pl.id)SEC.zoom=1,SEC.pan=[0,0];
+  P.plane=pl.id;P.mode=mode;planeUI();
+  const v=planeView(SC);if(v)goToView(SC,v,true);}
+/** Leave the plane and go back to the step's own view. */
+function clearPlane(){
+  P.plane=null;P.mode=0;planeUI();HOT=null;
+  const v=SC.views.find(x=>x.k===SC.step.view)||SC.views[0];if(v)goToView(SC,v,true);}
+function setSecMode(m){P.mode=m;planeUI();}
+let stripSig="",FITTOK={dead:true};
+/** Lays the stage out for the plane mode: in Both the section takes the top 46 % of what the
+ *  sheet leaves, and the 3D view the strip below it; in Section the 2D view covers the stage
+ *  down to the stepper. */
+function stageLayout(now){
+  if(!SC)return;
+  const pl=activePlane(),up=!!pl&&P.mode!==0,split=up&&P.mode===2,only=up&&P.mode===1;
+  const sh=wrap.clientHeight,bot=PHONE.matches?SHEETVIS:0,vis=sh-bot,top=split?Math.round(vis*0.46):0;
+  // a canvas does not stretch between its insets, so the strip gets an explicit height
+  const ib=split?bot:0;
+  [cv,$("overlay")].forEach(el=>{el.style.top=top+"px";el.style.bottom=ib+"px";el.style.height=top||ib?`calc(100% - ${top+ib}px)`:"";});
+  const so=$("stepov");so.style.top=top+"px";so.style.bottom=bot+"px";
+  const sp=$("secpanel");sp.hidden=!up;
+  if(up){const pb=$("procbar"),pbH=pb.hidden?48:pb.offsetHeight;
+    sp.style.height=(only?Math.max(120,vis-pbH-24):top)+"px";
+    $("secname").textContent=pl.short.toUpperCase()+"  ·  "+(pl.axis==="x"?"← +z · y up · from +x":"x: S → D · y up · from +z");
+    $("seccv").setAttribute("aria-label","2D section, "+pl.name+". Tap a layer to name it; pinch or scroll to zoom.");}
+  $("stagetop").hidden=up;
+  measure();
+  setOcc(split?0:bot+(PHONE.matches&&(SC.flow||SC.logic)?56:0),now);
+  // In Both, the model is framed to fill the strip, once the strip itself changes; never on a
+  // step change, which would undo the reader's zoom.
+  const sig=split?[pl.id,cv.clientWidth,cv.clientHeight].join():"";
+  if(split&&sig!==stripSig)fitStrip();
+  stripSig=sig;SEC.sig="";render();}
+async function fitStrip(){
+  FITTOK.dead=true;const tok={dead:false};FITTOK=tok;
+  await sleep(80);if(FLIGHT)await FLIGHT.done;await sleep(60);
+  if(tok.dead||!isSplit())return;
+  measure();
+  const d0=S.r,t0=S.tgt.slice(),d1=fitDist(SC,S.az,S.el,W,H,0)*1.06,
+    t1=[0,1,2].map(k=>(SC.lo[k]+SC.hi[k])/2);
+  S.view=null;hud();refreshTab(["views"]);
+  if(RM){S.r=d1;S.tgt=t1;render();return;}
+  await anim(260,e=>{S.r=d0+(d1-d0)*e;S.tgt=t0.map((v,k)=>v+(t1[k]-v)*e);},tok);}
+/** Every box of a visible part cut by the plane, in the plane's own coordinates: u across
+ *  the drawing as seen, v up. */
+function sectionOf(sc,pl){
+  const out=[],pos=posAt(pl,sc);
+  sc.parts.forEach(p=>{if(!p.on)return;p.boxes.forEach(b=>{const[cx,cy,cz,dx,dy,dz]=b,hx=dx/2,hy=dy/2,hz=dz/2;
+    if(pl.axis==="x"){if(cx-hx<pos&&cx+hx>pos)out.push({p,u0:-(cz+hz),u1:-(cz-hz),v0:cy-hy,v1:cy+hy});}
+    else if(cz-hz<pos&&cz+hz>pos)out.push({p,u0:cx-hx,u1:cx+hx,v0:cy-hy,v1:cy+hy});});});
+  return out;}
+/** Places section coordinates on a w x h canvas with a margin, y up. */
+function secFit(rects,w,h,m){
+  const u0=Math.min(...rects.map(r=>r.u0)),u1=Math.max(...rects.map(r=>r.u1)),
+        v0=Math.min(...rects.map(r=>r.v0)),v1=Math.max(...rects.map(r=>r.v1));
+  const s=Math.min((w-2*m)/Math.max(u1-u0,1e-3),(h-2*m)/Math.max(v1-v0,1e-3)),
+        ox=(w-(u1-u0)*s)/2,oy=(h-(v1-v0)*s)/2;
+  return{s,x:u=>ox+(u-u0)*s,y:v=>oy+(v1-v)*s,u:x=>u0+(x-ox)/s,v:y=>v1-(y-oy)/s};}
+const SEC={zoom:1,pan:[0,0],sig:"",rects:[],fit:null};
+const cssv=n=>getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+function secDraw(){
+  const pl=activePlane();if(!pl||P.mode===0)return;
+  const c=$("seccv"),w=c.clientWidth,h=c.clientHeight;if(!w||!h)return;
+  const sig=[SC.key,pl.id,w,h,SEC.zoom,SEC.pan,HOT&&HOT.id,SC.parts.map(p=>p.on?1:0).join("")].join("|");
+  if(sig===SEC.sig)return;SEC.sig=sig;
+  const dpr=Math.min(devicePixelRatio||1,2);
+  if(c.width!==Math.round(w*dpr)||c.height!==Math.round(h*dpr)){c.width=Math.round(w*dpr);c.height=Math.round(h*dpr);}
+  const g=c.getContext("2d");g.setTransform(dpr,0,0,dpr,0,0);g.clearRect(0,0,w,h);
+  const rects=sectionOf(SC,pl);SEC.rects=rects;
+  $("secempty").hidden=rects.length>0;$("secreset").hidden=SEC.zoom<=1.001;
+  const sel=HOT&&rects.some(r=>r.p===HOT)?HOT:null,pk=$("secpick");pk.hidden=!sel;
+  if(sel){pk.querySelector("i").style.background=(MAT[sel.material]||{color:"#888"}).color;pk.querySelector("b").textContent=sel.name;}
+  drawLocator($("locmini"),SC,pl);
+  if(!rects.length){SEC.fit=null;return;}
+  const f=secFit(rects,w,h,18);SEC.fit=f;
+  g.save();g.translate(SEC.pan[0],SEC.pan[1]);g.scale(SEC.zoom,SEC.zoom);
+  const edge=cssv("--line")||"#888";
+  g.lineWidth=1/SEC.zoom;g.strokeStyle=edge;
+  for(const r of rects){const x=f.x(r.u0),y=f.y(r.v1),rw=(r.u1-r.u0)*f.s,rh=(r.v1-r.v0)*f.s;
+    g.fillStyle=(MAT[r.p.material]||{color:"#999"}).color;g.fillRect(x,y,rw,rh);
+    g.globalAlpha=0.55;g.strokeRect(x,y,rw,rh);g.globalAlpha=1;}
+  if(sel){g.strokeStyle=cssv("--accent")||"#0E7C8C";g.lineWidth=3.5/SEC.zoom;
+    for(const r of rects)if(r.p===sel)g.strokeRect(f.x(r.u0),f.y(r.v1),(r.u1-r.u0)*f.s,(r.v1-r.v0)*f.s);}
+  g.restore();}
+/** Top-down locator: the footprint (x across, z up the page), the lines and gates, the plane
+ *  dashed, and an arrow for the side it is seen from. */
+function drawLocator(c,sc,pl){
+  if(!c)return;const w=c.clientWidth,h=c.clientHeight;if(!w||!h)return;
+  const dpr=Math.min(devicePixelRatio||1,2);c.width=Math.round(w*dpr);c.height=Math.round(h*dpr);
+  const g=c.getContext("2d");g.setTransform(dpr,0,0,dpr,0,0);g.clearRect(0,0,w,h);
+  const x0=sc.lo[0],x1=sc.hi[0],z0=sc.lo[2],z1=sc.hi[2],m=6,s=Math.min((w-2*m)/(x1-x0),(h-2*m)/(z1-z0)),
+    ox=(w-(x1-x0)*s)/2,oy=(h-(z1-z0)*s)/2,px=x=>ox+(x-x0)*s,pz=z=>oy+(z1-z)*s;
+  const ink=cssv("--ink-3")||"#888",acc=cssv("--accent")||"#0E7C8C";
+  g.globalAlpha=0.5;g.strokeStyle=ink;g.lineWidth=1;g.strokeRect(px(x0),pz(z1),(x1-x0)*s,(z1-z0)*s);g.globalAlpha=1;
+  const KEEP=new Set(["Fins","Superlattice","Channel","Dummy gate","Gate electrode"]),KM=new Set(["poly","mo","wfill","cofill"]);
+  g.globalAlpha=0.55;
+  sc.parts.forEach(p=>{if(!p.on||!(KEEP.has(p.group)||KM.has(p.material))||!MAT[p.material])return;
+    g.fillStyle=MAT[p.material].color;
+    p.boxes.forEach(b=>g.fillRect(px(b[0]-b[3]/2),pz(b[2]+b[5]/2),b[3]*s,b[5]*s));});
+  g.globalAlpha=1;
+  if(!pl)return;
+  g.strokeStyle=acc;g.lineWidth=2;g.setLineDash([6,4]);g.beginPath();
+  const at=posAt(pl,sc),A=(ax,ay,bx,by)=>{g.moveTo(ax,ay);g.lineTo(bx,by);};
+  if(pl.axis==="x"){const x=px(at);A(x,pz(z1),x,pz(z0));g.stroke();g.setLineDash([]);g.beginPath();
+    const y=pz((z0+z1)/2);A(x+20,y,x+4,y);A(x+4,y,x+10,y-5);A(x+4,y,x+10,y+5);}
+  else{const y=pz(at);A(px(x0),y,px(x1),y);g.stroke();g.setLineDash([]);g.beginPath();
+    const x=px((x0+x1)/2);A(x,y-20,x,y-4);A(x,y-4,x-5,y-10);A(x,y-4,x+5,y-10);}
+  g.stroke();}
+(function secGestures(){
+  const c=$("seccv"),pts=new Map();let st=null;
+  const zoomAt=(cx,cy,f)=>{const z=clamp(SEC.zoom*f,1,8);
+    SEC.pan=z<=1.001?[0,0]:[cx-(cx-SEC.pan[0])*(z/SEC.zoom),cy-(cy-SEC.pan[1])*(z/SEC.zoom)];SEC.zoom=z;secDraw();};
+  const rel=e=>{const r=c.getBoundingClientRect();return[e.clientX-r.left,e.clientY-r.top];};
+  c.addEventListener("pointerdown",e=>{try{c.setPointerCapture(e.pointerId);}catch(_){}pts.set(e.pointerId,rel(e));
+    if(pts.size===1)st={moved:0,last:rel(e)};else{const[a,b]=[...pts.values()];st={moved:99,d:Math.hypot(a[0]-b[0],a[1]-b[1]),m:[(a[0]+b[0])/2,(a[1]+b[1])/2]};}});
+  c.addEventListener("pointermove",e=>{if(!pts.has(e.pointerId)||!st)return;const q=rel(e);pts.set(e.pointerId,q);
+    if(pts.size>=2){const[a,b]=[...pts.values()],d=Math.hypot(a[0]-b[0],a[1]-b[1]),m=[(a[0]+b[0])/2,(a[1]+b[1])/2];
+      if(st.d)zoomAt(m[0],m[1],d/st.d);
+      if(SEC.zoom>1.001){SEC.pan=[SEC.pan[0]+m[0]-st.m[0],SEC.pan[1]+m[1]-st.m[1]];secDraw();}
+      st.d=d;st.m=m;return;}
+    const dx=q[0]-st.last[0],dy=q[1]-st.last[1];st.last=q;st.moved+=Math.abs(dx)+Math.abs(dy);
+    if(SEC.zoom>1.001&&st.moved>4){SEC.pan=[SEC.pan[0]+dx,SEC.pan[1]+dy];secDraw();}});
+  const up=e=>{if(!pts.has(e.pointerId))return;pts.delete(e.pointerId);
+    if(!pts.size&&st&&st.moved<5&&e.type==="pointerup"&&SEC.fit){
+      // the smallest box under the pointer, so a thin film beats the block behind it
+      const q=rel(e),u=SEC.fit.u((q[0]-SEC.pan[0])/SEC.zoom),v=SEC.fit.v((q[1]-SEC.pan[1])/SEC.zoom);
+      let best=null,ba=1e18;
+      for(const r of SEC.rects)if(u>=r.u0&&u<=r.u1&&v>=r.v0&&v<=r.v1){const a=(r.u1-r.u0)*(r.v1-r.v0);if(a<ba){ba=a;best=r.p;}}
+      HOT=best;hud();render();}
+    if(!pts.size)st=null;};
+  c.addEventListener("pointerup",up);c.addEventListener("pointercancel",up);
+  c.addEventListener("wheel",e=>{e.preventDefault();const q=rel(e);zoomAt(q[0],q[1],Math.exp(-clamp(e.deltaY,-240,240)*0.0015));},{passive:false});
+  c.addEventListener("dblclick",()=>{SEC.zoom=1;SEC.pan=[0,0];secDraw();});
+  $("secreset").onclick=()=>{SEC.zoom=1;SEC.pan=[0,0];secDraw();};})();
+
+/* ---- the pitch-walk lesson's TRY IT panel ----
+ * First cores at the printed pitch, a first spacer on each side (the second cores), a second
+ * spacer on each side of those (the final lines); every space measured off the constructed
+ * lines and typed by where it came from (pw_geometry in scripts/build_process.py). */
+const PWCOL={a:"#2E8BC0",b:"#E08A1E",c:"#3FA66B"};
+function pwImage(pw,w1,s1,s2){
+  const cc=Array.from({length:pw.cores},(_,i)=>pw.P1*(i-(pw.cores-1)/2));
+  const core1=cc.map(c=>[c-w1/2,c+w1/2]),core2=[];
+  core1.forEach(([a,b],i)=>{core2.push([[a-s1,a],i]);core2.push([[b,b+s1],i]);});
+  const lines=[];
+  core2.forEach(([sp,i],j)=>{lines.push([[sp[0]-s2,sp[0]],j,i]);lines.push([[sp[1],sp[1]+s2],j,i]);});
+  lines.sort((x,y)=>x[0][0]-y[0][0]);
+  const gaps=[];
+  for(let k=1;k<lines.length;k++){const l=lines[k-1],r=lines[k];
+    gaps.push([l[1]===r[1]?"a":l[2]===r[2]?"b":"c",r[0][0]-l[0][1]]);}
+  return{core1,core2:core2.map(x=>x[0]),lines:lines.map(x=>x[0]),gaps};}
+/** The range a control may take with the other two where they are: every width stays
+ *  positive and no two spacers meet, with at least gmin between them. */
+function pwLimits(pw,k,w1,s1,s2){
+  const g=pw.gmin||2,[lo0,hi0]=(pw.range||{})[k]||[0,1];
+  const[lo,hi]=k==="w1"?[2*s2+g,pw.P1-2*s1-2*s2-g]:k==="s1"?[g,(pw.P1-w1-2*s2-g)/2]:
+    [g,Math.min((w1-g)/2,(pw.P1-w1-2*s1-g)/2)];
+  const a=Math.max(lo0,lo),b=Math.min(hi0,hi);return[a,Math.max(a,b)];}
+const nm1=x=>{const r=Math.round(x*10)/10;return String(r===Math.round(r)?Math.round(r):r);};
+const PWK=[["w1","Printed core width"],["s1","First coating (first spacer)"],["s2","Second coating (sets the line width)"]];
+function pwState(pw){if(!P.pw)P.pw={w1:pw.base.w1,s1:pw.base.s1,s2:pw.base.s2};return P.pw;}
+function pwHTML(pw){const v=pwState(pw);
+  return`<div class="pw" id="pw"><div class="lbl">Try it · change one size</div>
+    <p>Drag a slider and watch which colour of gap changes.</p>
+    <canvas id="pwcv" role="img"></canvas>
+    <div class="pwcap"><span>Printed cores, first coating</span><span>Second coating: the lines</span><span>Lines from above</span></div>
+    ${PWK.map(([k,n])=>`<div class="pwctl"><label for="pw-${k}"><span>${n}</span><b id="pwv-${k}">${nm1(v[k])} nm</b></label>
+      <input type="range" id="pw-${k}" step="0.5" value="${v[k]}" aria-label="${n}"></div>`).join("")}
+    <div id="pwgaps"></div><div class="pwbig" id="pwbig"></div><div class="pwsub" id="pwsub"></div>
+    <p class="pwnote">${esc(pw.note||"")}</p>
+    <button type="button" class="link" id="pwreset">Back to the ideal case</button></div>`;}
+function pwBind(pw){
+  if(!$("pw"))return;
+  PWK.forEach(([k])=>{$("pw-"+k).oninput=e=>{pwState(pw)[k]=Math.round(+e.target.value*2)/2;pwUpdate(pw);};});
+  $("pwreset").onclick=()=>{P.pw=null;pwUpdate(pw);};
+  pwUpdate(pw);}
+function pwUpdate(pw){
+  const v=pwState(pw),img=pwImage(pw,v.w1,v.s1,v.s2),ws=img.gaps.map(g=>g[1]),gmax=Math.max(...ws),gmin=Math.min(...ws);
+  PWK.forEach(([k])=>{const r=$("pw-"+k),[a,b]=pwLimits(pw,k,v.w1,v.s1,v.s2);r.min=a;r.max=b;
+    v[k]=clamp(v[k],a,b);r.value=v[k];$("pwv-"+k).textContent=nm1(v[k])+" nm";});
+  $("pwgaps").innerHTML=["a","b","c"].map(t=>{const vs=[...new Set(img.gaps.filter(g=>g[0]===t).map(g=>nm1(g[1])))];
+    return`<div class="pwgap"><i style="background:${PWCOL[t]}"></i>${esc((pw.types[t]||{}).name||t)}: ${vs.join(" / ")} nm</div>`;}).join("");
+  $("pwbig").textContent="Pitch walk "+nm1(gmax-gmin)+" nm";
+  $("pwsub").textContent="largest gap "+nm1(gmax)+" − smallest "+nm1(gmin)+" · line width "+nm1(v.s2)+" nm";
+  const c=$("pwcv"),w=c.clientWidth,h=c.clientHeight;
+  c.setAttribute("aria-label",`Cross-sections of the ${img.lines.length} lines; spaces range from ${nm1(gmin)} to ${nm1(gmax)} nm.`);
+  if(!w||!h)return;
+  const dpr=Math.min(devicePixelRatio||1,2);c.width=Math.round(w*dpr);c.height=Math.round(h*dpr);
+  const g=c.getContext("2d");g.setTransform(dpr,0,0,dpr,0,0);g.clearRect(0,0,w,h);
+  const col=k=>(MAT[k]||{color:"#999"}).color;
+  const lo=img.core1[0][0]-v.s1-v.s2-6,hi=img.core1[img.core1.length-1][1]+v.s1+v.s2+6,sx=w/(hi-lo),X=u=>(u-lo)*sx,row=h/4,base=row*0.18;
+  const bar=(spans,r,bh,c2)=>{g.fillStyle=c2;spans.forEach(([a,b])=>g.fillRect(X(a),r*row+row-bh,(b-a)*sx,bh));};
+  g.globalAlpha=0.5;for(let r=0;r<3;r++){g.fillStyle=col("si3n4");g.fillRect(0,r*row+row-base,w,base);}g.globalAlpha=1;
+  bar(img.core1,0,row*0.7,col("mandrel"));bar(img.core2,0,row*0.7,col("patspacer"));
+  bar(img.core2,1,row*0.55,col("mandrel2"));bar(img.lines,1,row*0.55,col("patspacer"));
+  bar(img.lines,2,row*0.75,col("silicon"));
+  for(let i=1;i<img.lines.length;i++){const l=img.lines[i-1],r=img.lines[i];
+    g.fillStyle=PWCOL[img.gaps[i-1][0]];g.fillRect(X(l[1]),3*row-base,(r[0]-l[1])*sx,base);}
+  bar(img.lines,3,row*0.8,col("silicon"));}
+
 /* ---- scenes, modes and chips ---- */
 const MODES={
   dev:[["fin","FinFET"],["ns","Nanosheet"],["fs","Forksheet"],["cfet","CFET"],["cmp","Compare"]],
@@ -1236,10 +1536,11 @@ function memo(){if(!SC||SC.flow)return;
 function openScene(key){
   const sc=scene(key);SC=sc;
   if(sc.flow)P.at[sc.flow.device]=sc.stepIndex;
+  stageLayout(true);
   const m=MEMO[key];
   AN.fade=null;AN.fadeParts=[];AN.fresh=new Set();AN.glow=0;
   if(!m){HOT=null;S.ex=0;
-    goToView(sc,(sc.step&&sc.views.find(v=>v.k===sc.step.view))||sc.views[0],false);}
+    goToView(sc,(sc.step&&((P.plane&&planeView(sc))||sc.views.find(v=>v.k===sc.step.view)))||sc.views[0],false);}
   else{cancelFlight();S.view=m.view;S.lset=m.lset;sc.parts.forEach((p,i)=>p.on=m.vis[i]);S.ex=m.ex;
     HOT=m.hot?sc.parts.find(p=>p.id===m.hot)||null:null;applyCam(m.cam);}
   fillCallouts();CAPS_DIRTY=true;render();sceneChanged(false);}
@@ -1301,6 +1602,7 @@ function hud(){
   const v=SC.views.find(x=>x.k===S.view);
   const tag=SC.step?tagOf(SC.step,routeIn(SC.flow)):SC.tag;
   $("stag").textContent=[tag,v?v.n:"Free orbit"].filter(Boolean).join(" · ");
+  $("stagetop").hidden=sectionUp();
   const ins=$("inspector");ins.hidden=!HOT;
   if(HOT){const m=MAT[HOT.material]||{color:"#888",label:HOT.material};
     ins.querySelector(".sw").style.background=m.color;$("inm").textContent=HOT.name;
@@ -1326,7 +1628,8 @@ const PLAY='<svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor">
       PAUSE='<svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor"><rect x="3.4" y="2.4" width="3.2" height="11.2" rx=".6"/><rect x="9.4" y="2.4" width="3.2" height="11.2" rx=".6"/></svg>';
 let lastTitle="";
 function procbar(){
-  const pb=$("procbar"),f=SC&&SC.flow;pb.hidden=!f;lbar.hidden=!(SC&&SC.logic);
+  const pb=$("procbar"),f=SC&&SC.flow,split=isSplit();pb.hidden=!f||split;$("stepov").hidden=!f||!split;
+  lbar.hidden=!(SC&&SC.logic);
   $("hint").hidden=PHONE.matches||!!f||!!(SC&&SC.logic);
   if(SC&&SC.logic)logicText();
   if(!f)return;
@@ -1339,7 +1642,13 @@ function procbar(){
   $("pbprev").disabled=f.next(SC.stepIndex,-1,P.ops,r)==null;
   $("pbnext").disabled=f.next(SC.stepIndex,1,P.ops,r)==null;
   $("pbplay").innerHTML=P.playing?PAUSE:PLAY;
-  $("pbplay").setAttribute("aria-label",P.playing?"Pause":"Play the steps");}
+  $("pbplay").setAttribute("aria-label",P.playing?"Pause":"Play the steps");
+  // the same controls drawn over the 3D strip when the section takes the top (Both)
+  $("son").textContent=$("pbn").textContent;$("son").setAttribute("aria-label",$("pbn").getAttribute("aria-label"));
+  $("sott").textContent=st.title;
+  const sb=$("sobadge");sb.hidden=!bd;sb.textContent=bd;sb.classList.toggle("src",bd==="Source stage");
+  $("soprev").disabled=$("pbprev").disabled;$("sonext").disabled=$("pbnext").disabled;
+  $("soplay").innerHTML=P.playing?PAUSE:PLAY;$("soplay").setAttribute("aria-label",$("pbplay").getAttribute("aria-label"));}
 const stepBy=d=>{const f=SC.flow;if(!f)return;setPlaying(false);const n=f.next(SC.stepIndex,d,P.ops,routeIn(f));if(n!=null)goStep(n);};
 $("pbprev").onclick=()=>stepBy(-1);
 $("pbnext").onclick=()=>stepBy(1);
@@ -1348,6 +1657,9 @@ $("pbplay").onclick=()=>{const f=SC.flow;if(!f)return;
   if(!P.playing&&f.next(SC.stepIndex,1,P.ops,routeIn(f))==null)goStep(0);
   setPlaying(!P.playing);};
 $("pbmid").onclick=()=>{selectTab("steps");sheetOpen();};
+$("soprev").onclick=()=>stepBy(-1);$("sonext").onclick=()=>stepBy(1);
+$("soplay").onclick=()=>$("pbplay").click();
+$("sotitle").onclick=()=>{selectTab("steps");sheetOpen();};
 
 /* ---- the panel's tabs ---- */
 const TABS=[["views","Views"],["section","Section"],["layers","Layers"],["specs","Specs"],["story","Story"]];
@@ -1381,25 +1693,36 @@ function tabViews(){
 const AXN=[["Cut along the channel","X"],["Cut vertically","Y"],["Cut across the channel","Z"]];
 function tabSection(){
   const tg=(id,label,on)=>`<label class="tg"><input type="checkbox" id="${id}" ${on?"checked":""}>${label}</label>`;
-  body.innerHTML=`<div class="lbl">Section planes</div>`+
+  const planes=SC.flow?SC.flow.sections.filter(pl=>pl.views[SC.step.scale]):[],pl=activePlane();
+  let head="";
+  if(planes.length)head=`<div class="lbl">Section planes</div><div class="planes">${planes.map(x=>
+      `<button type="button" class="chip" data-pl="${esc(x.id)}" aria-pressed="${!!pl&&x.id===pl.id}">${esc(x.short)}</button>`).join("")}</div>
+    <div class="secmodes">${["3D","Section","Both"].map((n,i)=>`<button type="button" class="chip" data-sm="${i}" ${pl?"":"disabled"} aria-pressed="${!!pl&&P.mode===i}">${n}</button>`).join("")}</div>
+    <div class="locbox"><canvas id="loctab" aria-label="Locator, seen from above" role="img"></canvas><div>
+      <p>From above: x runs source → drain, z across the ${acrossWord(SC)}. Dashed: the plane. Arrow: the viewing side.</p>
+      ${pl?`<p>${cites(pl.text)}</p>`:""}</div></div>`;
+  body.innerHTML=head+`<div class="lbl">${planes.length?"Cut the model":"Section planes"}</div>`+
     AXN.map(([n,a],ax)=>`<div class="ctl"><label for="cut${ax}"><span>${n} <span class="mono">(${a})</span></span><span class="val" id="vcut${ax}"></span></label>
       <input type="range" id="cut${ax}" min="0" max="100" value="${Math.round(S.cf[ax]*100)}"></div>`).join("")+
     `<div class="ctl"><label for="exr"><span>Separate layers</span><span class="val" id="vex">${S.ex.toFixed(1)} nm</span></label>
       <input type="range" id="exr" min="0" max="100" value="${Math.round(S.ex/16*100)}"></div>
     <div class="lbl">Display</div><div class="toggles">`+
-    tg("t-light","Light background",S.lightBg)+tg("t-edges","Edge outlines",S.edges)+tg("t-tex","Surface texture",S.tex)+
+    tg("t-edges","Edge outlines",S.edges)+tg("t-tex","Surface texture",S.tex)+
     tg("t-ghost","See-through gate fill",S.ghost)+tg("t-dims","Labels",S.dims)+tg("t-spin","Slow rotate",S.spin)+
     `</div><button type="button" class="btn wide" id="resetbtn">Reset this scene</button>`;
   for(let ax=0;ax<3;ax++){const r=$("cut"+ax);
     r.oninput=()=>{cancelFlight();S.cf[ax]=+r.value/100;syncClip();S.view=null;hud();cutLabel(ax);render();};cutLabel(ax);}
   $("exr").oninput=e=>{S.ex=+e.target.value/100*16;$("vex").textContent=S.ex.toFixed(1)+" nm";CAPS_DIRTY=true;render();};
-  $("t-light").onchange=e=>{S.lightBg=e.target.checked;wrap.classList.toggle("light",S.lightBg);render();};
   $("t-edges").onchange=e=>{S.edges=e.target.checked;render();};
   $("t-tex").onchange=e=>{S.tex=e.target.checked;render();};
   $("t-ghost").onchange=e=>{S.ghost=e.target.checked;render();};
   $("t-dims").onchange=e=>{S.dims=e.target.checked;render();};
   $("t-spin").onchange=e=>{S.spin=e.target.checked;if(S.spin)spin();};
-  $("resetbtn").onclick=resetScene;}
+  $("resetbtn").onclick=resetScene;
+  body.querySelectorAll("[data-pl]").forEach(b=>b.onclick=()=>{const x=planes.find(q=>q.id===b.dataset.pl);
+    if(pl&&x.id===pl.id)clearPlane();else showPlane(x,Math.max(P.mode,2));});
+  body.querySelectorAll("[data-sm]").forEach(b=>b.onclick=()=>{if(activePlane())setSecMode(+b.dataset.sm);});
+  if(planes.length)drawLocator($("loctab"),SC,pl);}
 function cutLabel(ax){const el=$("vcut"+ax);if(!el)return;
   el.textContent=S.cf[ax]>=0.999?"off":S.clip[ax].toFixed(1)+" nm";}
 function syncSliders(){if(TAB!=="section")return;
@@ -1455,6 +1778,7 @@ function tabSteps(){
   const top=body.scrollTop;
   let h="";
   if(f.lessonLabel)h+=`<div class="lesson">${esc(f.lessonLabel)}</div>`;
+  if(f.pitchwalk)h+=pwHTML(f.pitchwalk);
   if(f.sites.length){
     h+=`<div class="lbl">Device site</div><div class="sites">${f.sites.map(s=>`<button type="button" class="chip" data-f="${esc(s.flow)}" aria-pressed="${s.id===f.site}">${esc(s.name)}</button>`).join("")}</div>
     <p class="sitenote">${f.site==="p"?"Following the pFET. It shares the nFET's early stages, then has its own masked steps.":
@@ -1494,6 +1818,9 @@ function tabSteps(){
   body.querySelectorAll(".sthd").forEach(b=>b.onclick=()=>{const i=+b.dataset.i;if(i!==SC.stepIndex){setPlaying(false);goStep(i);}});
   body.querySelectorAll(".terms button").forEach(b=>b.onclick=()=>{openTerm=openTerm===b.dataset.t?null:b.dataset.t;renderTab(true);});
   const dv=$("todev");if(dv)dv.onclick=()=>selectMode("dev");
+  body.querySelectorAll("[data-show]").forEach(b=>b.onclick=()=>{const x=f.sections.find(q=>q.id===b.dataset.show);
+    if(x){showPlane(x,2);if(PHONE.matches)setSheet(1);}});
+  if(f.pitchwalk)pwBind(f.pitchwalk);
   // keep the current step in view: glide the exact distance to its title
   const el=body.querySelector(".step.on");
   if(el&&moved){
@@ -1514,6 +1841,8 @@ function stepBody(f,st){
   const bn=f.badgeNote[f.badge[st.match]];if(bn)h+=`<div class="bnote">${esc(bn)}</div>`;
   [["Model choices",st.subs],["Not shown here",st.omitted]].forEach(([hd,items])=>{
     if(items.length)h+=`<div class="notes"><div class="lbl">${hd}</div>${items.map(t=>`<p>·  ${cites(t)}</p>`).join("")}</div>`;});
+  const sp=st.compare.map(id=>f.sections.find(x=>x.id===id)).filter(Boolean);
+  if(sp.length)h+=`<div class="showsec">${sp.map(x=>`<button type="button" data-show="${esc(x.id)}" aria-label="Show the cross section ${esc(x.name)}">Show cross section · ${esc(x.short)}</button>`).join("")}</div>`;
   if(/done$/.test(st.id)&&sceneFor("dev",techOf(SC.key)))h+=`<button type="button" class="btn" id="todev">Open in Device mode</button>`;
   return h+`</div>`;}
 body.addEventListener("click",e=>{const a=e.target.closest("a.ref");if(!a)return;e.preventDefault();openRef(a.dataset.ref);});
@@ -1522,7 +1851,7 @@ body.addEventListener("click",e=>{const a=e.target.closest("a.ref");if(!a)return
 function sceneChanged(isStep){
   MODE=modeOf(SC.key);
   chips();pills();hud();procbar();tabsRender();
-  if(PHONE.matches)setSheet(sheetLevel);
+  setSheet(PHONE.matches?sheetLevel:0);
   if(isStep)refreshTab(["steps","layers","views","section","why"]);else renderTab(false);
   wrap.classList.toggle("light",S.lightBg);}
 
@@ -1541,12 +1870,13 @@ function setOcc(v,now){occTo=v;if(now||RM){OCC=v;refit();return;}
     OCC+=d*0.22;refit();requestAnimationFrame(step);};
   requestAnimationFrame(step);}
 function refit(){if(SC&&S.view&&!FLIGHT){const v=SC.views.find(x=>x.k===S.view);if(v)S.r=viewR(SC,v);}draw();}
+let SHEETVIS=0;      // how much of a phone stage the sheet covers
 function setSheet(l,px,now){
-  if(!PHONE.matches){side.style.height="";wrap.style.setProperty("--bar-b","0px");setOcc(0,true);return;}
+  if(!PHONE.matches){side.style.height="";wrap.style.setProperty("--bar-b","0px");SHEETVIS=0;stageLayout(true);return;}
   sheetLevel=l;const hs=sheetHeights(),h=px!=null?px:hs[l],vis=Math.min(h,hs[1]);
   side.style.height=h+"px";
   wrap.style.setProperty("--bar-b",vis+"px");
-  setOcc(vis+(SC&&(SC.flow||SC.logic)?56:0),now||px!=null);}
+  SHEETVIS=vis;stageLayout(now||px!=null);}
 function sheetOpen(){if(PHONE.matches&&sheetLevel===0)setSheet(1);}
 (function sheetDrag(){
   let d=null;
@@ -1624,6 +1954,9 @@ function layout(){
   measure();procbar();
   setSheet(PHONE.matches?sheetLevel:0,null,true);}
 addEventListener("resize",layout);
+const theme=()=>{S.lightBg=!DARK.matches;wrap.classList.toggle("light",S.lightBg);SEC.sig="";CAPS_DIRTY=true;
+  render();if(TAB==="section")renderTab(true);};
+if(DARK.addEventListener)DARK.addEventListener("change",theme);else if(DARK.addListener)DARK.addListener(theme);
 if(PHONE.addEventListener)PHONE.addEventListener("change",layout);
 
 /* ---- dialogs ---- */

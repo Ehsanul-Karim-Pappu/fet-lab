@@ -7,8 +7,6 @@ choices.
 
 ## Open for a later release
 
-- Web Process mode, phase 2: section planes with the 2D section beside the 3D view, and the Pitch
-  walk lesson's TRY IT controls. Phase 1 (layout, steps, routes, sites, animations) is done.
 - A flow with alternative endings counts both in its step total, so the gate-cut route of a
   both-sites flow ends on "STEP 20/21" (app and web alike).
 - Process lessons for the forksheet and the CFET.

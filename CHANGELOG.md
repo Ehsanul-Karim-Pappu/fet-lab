@@ -5,6 +5,20 @@ All notable changes to FET Lab. Dates are the release date; versions follow
 
 ## Unreleased
 
+### Web: section planes, Pitch walk controls, and a stage that follows the system theme
+
+- Section planes on the web, as in the app: pick a plane in the Section tab and show it as 3D,
+  Section or Both. Both puts the 2D section over the top of the stage and the 3D view in the
+  strip below it, framed to fill the strip, with the step controls drawn on the strip. A locator
+  shows from above where the plane runs and which side it is seen from. Tap a layer in the
+  section to name it and select it in 3D; pinch or scroll to zoom, double-click to reset. Steps
+  carry "Show cross section" buttons for the planes they are best seen in, and with a plane on,
+  every step opens in that plane.
+- The Pitch walk lesson's TRY IT panel: the printed core width and the two coatings as sliders,
+  the cross-sections they make, every gap by its colour, and the pitch walk in nanometres.
+- The stage follows the system theme, as the app does: light grey in a light theme, near-black in
+  a dark one, switching live. The Light background switch is gone.
+
 ### Web page laid out like the app, with Process mode
 
 - The web page is now laid out like the app: the stage fills the window and the controls sit in
