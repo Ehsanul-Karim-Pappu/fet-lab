@@ -180,14 +180,14 @@
     {
       "id": "R26",
       "title": "Contacts for a fin-type field-effect transistor (US 9,741,615 B1)",
-      "publisher": "US patent",
+      "publisher": "GlobalFoundries (assignee), US patent",
       "url": "https://patents.google.com/patent/US9741615B1/en",
       "supports": "In self-aligned contact schemes, the gate conductor needs a dielectric cap and insulated sidewalls so a source/drain contact cannot short to it."
     },
     {
       "id": "R27",
       "title": "Bulk finFET with punchthrough stopper region and method of fabrication (US 9,082,853 B2)",
-      "publisher": "US patent",
+      "publisher": "IBM (original assignee; now GlobalFoundries), US patent",
       "url": "https://patents.google.com/patent/US9082853B2/en",
       "supports": "A punch-through stopper in the lower fin, including an option where the dopant comes from an STI liner and is spread by an anneal. It shows why STI between fins does not, by itself, control leakage under the channel. A separately disclosed option, not a step of R24's route."
     },

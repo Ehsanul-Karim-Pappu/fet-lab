@@ -5,6 +5,13 @@ All notable changes to FET Lab. Dates are the release date; versions follow
 
 ## Unreleased
 
+### Fixes
+
+- The stepper's total counts the core steps on the route shown. On a both-sites lesson, the
+  gate-cut ending read "STEP 20/21" on its last step, because the shared-gate ending was counted
+  too; each ending now finishes on its own total (app and web).
+- R26 and R27 name their assignees: GlobalFoundries, and IBM (now GlobalFoundries).
+
 ### Web: section planes, Pitch walk controls, and a stage that follows the system theme
 
 - Section planes on the web, as in the app: pick a plane in the Section tab and show it as 3D,

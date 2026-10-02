@@ -7,14 +7,14 @@ choices.
 
 ## Open for a later release
 
-- A flow with alternative endings counts both in its step total, so the gate-cut route of a
-  both-sites flow ends on "STEP 20/21" (app and web alike).
 - Process lessons for the forksheet and the CFET.
 - A sequential-CFET inverter; the CFET Inverter and Layout scenes are built on the monolithic
   CFET.
 - The Layout scenes' spans are schematic, not the Inverter scenes' numbers.
-- R24–R27 name only "US patent" as their publisher; their assignees could be added. R7's Intel
-  link is an old press-release archive and may have moved.
+- R24 and R25 name only "US patent" as their publisher; their assignees need the patents
+  themselves (Google Patents, the USPTO and Justia could not be reached from the build session).
+  R7's Intel link is an old press-release archive; search still indexes it at the same address,
+  but it could not be opened to confirm.
 
 ## Rules that hold throughout
 

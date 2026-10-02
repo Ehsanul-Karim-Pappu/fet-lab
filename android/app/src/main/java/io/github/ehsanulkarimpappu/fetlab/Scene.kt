@@ -164,7 +164,9 @@ class ProcessFlow(val device: String, val scope: String, val figures: String, va
                    *  ("Patent-based example: US 12,568,683 B2"). */
                   val lessonLabel: String = "") {
     fun plane(id: String?) = sections.firstOrNull { it.id == id }
-    val coreCount get() = steps.count { !it.isOp }
+    /** The core steps along [route]: alternative endings (a gate cut or a shared gate) are
+     *  counted only on their own route, so each ending's last step reads as the last. */
+    fun coreCount(route: String) = steps.indices.count { !steps[it].isOp && onRoute(it, route) }
     /** The route shown until the user picks one: the one marked default, else the first. */
     val defaultRoute get() = (routes.firstOrNull { it.isDefault } ?: routes.firstOrNull())?.id ?: ""
     /** [route] if this flow has it, else its default. */

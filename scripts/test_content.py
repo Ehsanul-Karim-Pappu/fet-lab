@@ -29,6 +29,20 @@ class ContentTests(unittest.TestCase):
         self.assertNotIn('(a) Isometric', legacy)
         self.assertIn('GEO.order.map', legacy)
 
+    def test_step_totals_follow_the_route(self):
+        """The stepper's total (STEP n/N) counts the core steps on the route shown, so on every
+        route, alternative endings included, the last core step's number is the total and no
+        number is skipped."""
+        proc = json.loads((ROOT / 'data/process.json').read_text())
+        for key, flow in proc['flows'].items():
+            routes = [r['id'] for r in flow.get('routes', [])] or ['']
+            default = next((r['id'] for r in flow.get('routes', []) if r.get('default')), routes[0])
+            for route in routes:
+                on = [s for s in flow['steps'] if s.get('route') in (None, route or default)]
+                cores = [s for s in on if s.get('level', 'core') != 'op']
+                nums = [int((s.get('labels', {}).get(route) or s['label']).split('.')[0]) for s in cores]
+                self.assertEqual(nums, list(range(1, len(cores) + 1)), (key, route))
+
     def test_process_flows(self):
         """Every flow step resolves: its parts, its view and every reference it cites; the
         last step is the finished device. (Tiling is checked when the flows are built.)"""

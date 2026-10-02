@@ -606,9 +606,11 @@ function flow(dk){
     scope:fj.scope||"",branch:fj.branch||"",figures:fj.figures||"",pitchwalk:fj.pitchwalk||null,
     sections:(fj.sections||[]).map(o=>({id:o.id,name:o.name,short:o.short||o.name,axis:o.axis,pos:o.pos,
       text:o.text||"",views:o.views||{},at:o.at||{}})),
-    coreCount:steps.filter(s=>!s.isOp).length};
+};
   f.routeOr=r=>routes.some(x=>x.id===r)?r:f.defaultRoute;
   f.onRoute=(i,r)=>{const sr=steps[i].route;return sr==null||sr===f.routeOr(r);};
+  // the core steps along route r: alternative endings count only on their own route
+  f.coreCount=r=>steps.filter((s,i)=>!s.isOp&&f.onRoute(i,r)).length;
   f.next=(from,dir,ops,r)=>{for(let i=from+dir;i>=0&&i<steps.length;i+=dir)
     if((ops||!steps[i].isOp)&&f.onRoute(i,r))return i;return null;};
   return FLOWS[dk]=f;}
@@ -1615,8 +1617,9 @@ function procbar(){
   if(SC&&SC.logic)logicText();
   if(!f)return;
   const st=SC.step,r=routeIn(f),lab=labelIn(st,r),core=lab.split(".")[0],op=st.isOp&&lab.indexOf(".")>=0?lab.split(".").slice(1).join("."):null;
-  $("pbn").textContent="STEP "+core+"/"+f.coreCount+(op?" · OP "+op:"");
-  $("pbn").setAttribute("aria-label","Step "+core+" of "+f.coreCount+(op?", operation "+op:""));
+  const cores=f.coreCount(r);
+  $("pbn").textContent="STEP "+core+"/"+cores+(op?" · OP "+op:"");
+  $("pbn").setAttribute("aria-label","Step "+core+" of "+cores+(op?", operation "+op:""));
   const bd=f.badge[st.match]||"",be=$("pbbadge");be.hidden=!bd;be.textContent=bd;be.classList.toggle("src",bd==="Source stage");
   const t=$("pbtitle");
   if(lastTitle!==st.title){t.textContent=st.title;t.classList.remove("fade");void t.offsetWidth;t.classList.add("fade");lastTitle=st.title;}

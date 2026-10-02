@@ -1457,7 +1457,7 @@ fun FetLabApp(lib: Library, renderer: Renderer) {
                 val f = sc.flow
                 val prev = f?.next(sc.stepIndex, -1, showOps, routeIn(f))
                 val next = f?.next(sc.stepIndex, 1, showOps, routeIn(f))
-                if (f != null) ProcessBar(sc.step?.labelIn(routeIn(f)) ?: "", f.coreCount, sc.step?.title ?: "",
+                if (f != null) ProcessBar(sc.step?.labelIn(routeIn(f)) ?: "", f.coreCount(routeIn(f)), sc.step?.title ?: "",
                     sc.step?.isOp == true, sc.step?.let { f.badge[it.match] } ?: "",
                     sc.step?.let { f.badge[it.match] == "Source stage" } == true, prev != null, next != null, playing,
                     glass, line, ink, dim,
@@ -1475,7 +1475,7 @@ fun FetLabApp(lib: Library, renderer: Renderer) {
                 val prev = flow.next(scene.stepIndex, -1, showOps, routeIn(flow))
                 val next = flow.next(scene.stepIndex, 1, showOps, routeIn(flow))
                 Box(Modifier.fillMaxSize().padding(top = splitTop, bottom = stageInset)) {
-                    StepOverlay(scene.step?.labelIn(routeIn(flow)) ?: "", flow.coreCount, scene.step?.title ?: "",
+                    StepOverlay(scene.step?.labelIn(routeIn(flow)) ?: "", flow.coreCount(routeIn(flow)), scene.step?.title ?: "",
                         scene.step?.isOp == true, scene.step?.let { flow.badge[it.match] } ?: "",
                         scene.step?.let { flow.badge[it.match] == "Source stage" } == true,
                         prev != null, next != null, playing, glass, line, ink, dim,
