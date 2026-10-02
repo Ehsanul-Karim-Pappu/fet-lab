@@ -3,6 +3,25 @@
 All notable changes to FET Lab. Dates are the release date; versions follow
 [semantic versioning](https://semver.org).
 
+## Unreleased
+
+### Web page laid out like the app, with Process mode
+
+- The web page is now laid out like the app: the stage fills the window and the controls sit in
+  tabs (Views, Section, Layers, Specs, Story) beside it on a wide screen, or in a sheet over it on
+  a phone. References and credits moved to an About dialog; help, the learning path and a
+  searchable glossary to a Help dialog. The 3D view is taller than before on both.
+- Process mode on the web: every FinFET and nanosheet lesson (both designs) and the SADP, SAQP and
+  Pitch walk lessons, with the stepper and play, the Steps and Why tabs, nFET, pFET and both
+  sites, the patterning routes, "Show every operation", and steps that grow, etch and polish in
+  turn as in the app. Step text links its citations to the references, and its glossary terms open
+  their definitions.
+- One nanosheet chip with a Si/SiGe · Si/Si pill on the stage, and a Sequential · Monolithic pill
+  for CFET, as in the app.
+- Pinch to zoom and two-finger pan on touch screens; smoother wheel zoom.
+- Fixed: every model was held in one buffer whose 16-bit indices could not reach past the first
+  65,535 vertices, so later scenes could draw wrongly. Each scene now has its own buffers.
+
 ## 1.4.0 — 2026-10-02
 
 Every model now follows a patent, figure by figure: the FinFET, both nanosheet designs (Si/SiGe

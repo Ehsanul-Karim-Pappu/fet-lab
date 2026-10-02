@@ -4,344 +4,473 @@
 :root{
   --ground:#E7EAEF;--surface:#FFFFFF;--surface-2:#F1F3F7;--line:#CDD3DC;--line-soft:#DFE4EB;
   --ink:#141821;--ink-2:#4B5462;--ink-3:#78818F;
-  --accent:#0E7C8C;--accent-soft:#D6EDF1;--accent-ink:#08525E;
-  --stage-1:#0D1015;--stage-ink:#C7CEDA;--stage-ink-2:#7D8798;--stage-line:#2C3441;
-  --shadow:0 1px 2px rgba(20,24,33,.06),0 8px 24px -12px rgba(20,24,33,.18);--r:10px;
+  --accent:#0E7C8C;--accent-soft:#D6EDF1;--accent-ink:#08525E;--on-accent:#FFFFFF;
+  --stage-1:#0D1015;--stage-ink:#C7CEDA;--stage-ink-2:#7D8798;--stage-line:#2C3441;--glass:rgba(13,16,21,.86);
+  --shadow:0 1px 2px rgba(20,24,33,.06),0 8px 24px -12px rgba(20,24,33,.18);--r:12px;
+  --sheet-h:62px;
 }
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
   --ground:#0F1217;--surface:#171B22;--surface-2:#1E232C;--line:#2C333E;--line-soft:#242A34;
   --ink:#E7EBF1;--ink-2:#A3ACBA;--ink-3:#767F8D;
-  --accent:#4FC7D8;--accent-soft:#16323A;--accent-ink:#8FE0EC;
+  --accent:#4FC7D8;--accent-soft:#16323A;--accent-ink:#8FE0EC;--on-accent:#06262C;
   --shadow:0 1px 2px rgba(0,0,0,.4),0 10px 28px -14px rgba(0,0,0,.7);}}
 :root[data-theme="dark"]{
   --ground:#0F1217;--surface:#171B22;--surface-2:#1E232C;--line:#2C333E;--line-soft:#242A34;
   --ink:#E7EBF1;--ink-2:#A3ACBA;--ink-3:#767F8D;
-  --accent:#4FC7D8;--accent-soft:#16323A;--accent-ink:#8FE0EC;
+  --accent:#4FC7D8;--accent-soft:#16323A;--accent-ink:#8FE0EC;--on-accent:#06262C;
   --shadow:0 1px 2px rgba(0,0,0,.4),0 10px 28px -14px rgba(0,0,0,.7);}
-#partable tr{cursor:pointer}
-#partable tr:hover td{color:var(--accent-ink)}
-#partable tr[aria-pressed="true"]{background:var(--accent-soft)}
-#partable tr[aria-pressed="true"] td{color:var(--accent-ink)}
-#partable .sym{font-family:"IBM Plex Mono",monospace;font-weight:600}
-#partable .n{text-align:right;font-family:"IBM Plex Mono",monospace}
-#partable .pct{text-align:right;font-family:"IBM Plex Mono",monospace;color:var(--ink-3)}
-#parpanel th{text-transform:none;letter-spacing:0}
-.parsel{margin:10px 0 0;font-size:12px;color:var(--ink-2);line-height:1.55;min-height:2.6em}
-.parhow{margin-top:8px}
-.parhow summary{font-size:11px;color:var(--ink-3);cursor:pointer}
-.parhow p{margin:6px 0 0;font-size:10.5px;color:var(--ink-3);line-height:1.55}
 *{box-sizing:border-box}
-body{margin:0;background:var(--ground);color:var(--ink);
-  font-family:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;font-size:15px;line-height:1.55;
+html,body{height:100%}
+body{margin:0;padding:0!important;background:var(--ground);color:var(--ink);overflow:hidden auto;
+  font-family:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;font-size:14px;line-height:1.5;
   -webkit-font-smoothing:antialiased}
-.wrap{max-width:1240px;margin:0 auto;padding-inline:20px;padding-block:28px 56px}
+button{font:inherit;color:inherit}
 .mono{font-family:"IBM Plex Mono",ui-monospace,Menlo,monospace}
-h1,h2{text-wrap:balance;margin:0}
-header{display:flex;flex-wrap:wrap;gap:18px;align-items:flex-end;justify-content:space-between;
-  border-bottom:1px solid var(--line);padding-bottom:18px;margin-bottom:22px}
-.eyebrow{font-family:"IBM Plex Mono",monospace;font-size:11px;font-weight:500;letter-spacing:.18em;
-  text-transform:uppercase;color:var(--accent);margin-bottom:8px}
-h1{font-family:"IBM Plex Mono",monospace;font-weight:500;font-size:clamp(23px,3.4vw,34px);letter-spacing:-.01em;line-height:1.1}
-header p{margin:8px 0 0;color:var(--ink-2);max-width:62ch;font-size:14.5px}
-.cite{font-size:12px;color:var(--ink-3);text-align:right;line-height:1.5;flex:0 0 auto}
-.cite b{color:var(--ink-2);font-weight:500}
-.app{display:grid;grid-template-columns:272px minmax(0,1fr);gap:16px;align-items:start}
-@media(max-width:880px){.app{grid-template-columns:1fr}.rail{order:2}.stagewrap{order:1}}
-.stagewrap{position:relative;border-radius:var(--r);overflow:hidden;border:1px solid var(--line);
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+[hidden]{display:none!important}
+
+/* ---- frame: header, chip row, then the stage and its panel fill the window ---- */
+#app{display:flex;flex-direction:column;height:100vh;height:100dvh;min-height:560px}
+.top{flex:0 0 auto;display:flex;align-items:center;gap:12px;padding:8px 14px;background:var(--surface);
+  border-bottom:1px solid var(--line)}
+.brand{display:flex;align-items:center;gap:9px;min-width:0;flex:1 1 auto}
+.brand svg{flex:0 0 auto}
+.brand b{font-family:"IBM Plex Mono",monospace;font-weight:600;font-size:15px;letter-spacing:-.01em;white-space:nowrap}
+.brand span{font-size:12px;color:var(--ink-3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.modeseg{display:inline-flex;background:var(--surface-2);border:1px solid var(--line);border-radius:999px;padding:2px;flex:0 0 auto}
+.modeseg button{background:none;border:0;border-radius:999px;padding:5px 14px;font-size:13px;font-weight:500;
+  color:var(--ink-2);cursor:pointer;white-space:nowrap}
+.modeseg button:hover{color:var(--accent-ink)}
+.modeseg button[aria-pressed="true"]{background:var(--accent);color:var(--on-accent);font-weight:600}
+.tools{display:flex;gap:6px;flex:0 0 auto}
+.iconbtn{width:34px;height:34px;border-radius:50%;border:1px solid var(--line);background:var(--surface-2);
+  color:var(--ink-2);cursor:pointer;display:grid;place-items:center;padding:0}
+.iconbtn:hover{border-color:var(--accent);color:var(--accent-ink)}
+.chiprow{flex:0 0 auto;display:flex;align-items:center;gap:6px;overflow-x:auto;padding:8px 14px;
+  scrollbar-width:none;-webkit-overflow-scrolling:touch}
+.chiprow::-webkit-scrollbar{display:none}
+.chip{flex:0 0 auto;font-size:13px;background:var(--surface);border:1px solid var(--line);color:var(--ink-2);
+  border-radius:999px;padding:5px 13px;cursor:pointer;white-space:nowrap;transition:background .12s,border-color .12s}
+.chip:hover{border-color:var(--accent);color:var(--accent-ink)}
+.chip[aria-pressed="true"]{background:var(--accent-soft);border-color:var(--accent);color:var(--accent-ink);font-weight:600}
+.chip.soon{opacity:.55;border-style:dashed}
+.chipsep{flex:0 0 auto;font-family:"IBM Plex Mono",monospace;font-size:10px;letter-spacing:.14em;
+  text-transform:uppercase;color:var(--ink-3);padding:0 2px 0 8px;border-left:1px solid var(--line);margin-left:4px}
+.main{flex:1 1 auto;min-height:0;display:grid;grid-template-columns:minmax(0,1fr) 400px;gap:12px;padding:0 12px 12px}
+@media (max-width:1099px){.main{grid-template-columns:minmax(0,1fr) 340px}}
+
+/* ---- stage ---- */
+.stagewrap{position:relative;min-height:400px;border-radius:var(--r);overflow:hidden;border:1px solid var(--line);
   background:var(--stage-1);box-shadow:var(--shadow)}
-#stage{display:block;width:100%;height:clamp(400px,72vh,740px);touch-action:none;cursor:grab}
+#stage{position:absolute;inset:0;display:block;width:100%;height:100%;touch-action:none;cursor:grab}
 #stage.drag{cursor:grabbing}
 #overlay{position:absolute;inset:0;pointer-events:none}
 #leaders{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+.scrim{position:absolute;inset:0;background:var(--stage-1);opacity:0;pointer-events:none;transition:opacity .14s}
+.scrim.on{opacity:1}
 .cal{position:absolute;transform:translate(-50%,-50%);pointer-events:none;white-space:nowrap;
   font-family:"IBM Plex Mono",monospace;font-size:10px;line-height:1.3;color:var(--stage-ink);
   background:rgba(13,16,21,.74);border:1px solid var(--stage-line);border-radius:5px;padding:2px 6px;text-align:center}
 .cal b{display:block;font-weight:600;color:#fff;font-size:11px}
 .cal i{font-style:normal;color:var(--stage-ink-2);font-size:9px}
-.hud{position:absolute;pointer-events:none;font-family:"IBM Plex Mono",monospace;font-size:10.5px;
-  letter-spacing:.06em;color:var(--stage-ink-2);text-transform:uppercase}
-.hud.tl{top:11px;left:13px}.hud.br{top:11px;right:13px;text-transform:none;text-align:right}
-/* schematic scenes render on a light ground, so the stage chrome flips */
-.stagewrap.light .hud{color:#5E6875}
-.stagewrap.light #inspector{background:rgba(255,255,255,.9);border-color:#B7BEC8}
-.stagewrap.light #inspector .nm{color:#121820}
-.stagewrap.light #inspector .dt{color:#5E6875}
-.stagewrap.light #logicbar{background:rgba(255,255,255,.93);border-color:#B7BEC8;box-shadow:0 6px 22px -12px rgba(0,0,0,.45)}
-.stagewrap.light .lb-lbl,.stagewrap.light .lb-txt{color:#5E6875}
-.stagewrap.light .lb-seg{border-color:#B7BEC8}
-.stagewrap.light .lb-seg button{color:#5E6875}
-.stagewrap.light .lb-seg button[aria-pressed="true"]{background:#2B3442;color:#fff}
-.stagewrap.light .lb-hi{color:#9A5A05}.stagewrap.light .lb-lo{color:#0B7A8A}
-.stagewrap.light .cal{background:rgba(255,255,255,.88);border-color:#B7BEC8;color:#2A323E}
-.stagewrap.light .cal b{color:#121820}.stagewrap.light .cal i{color:#5E6875}
-.stagewrap.light #leaders polyline,.stagewrap.light #leaders line{stroke:#8B94A1}
-/* surface labels: no chrome, they sit on the geometry */
 .stagewrap .cal.flat{background:none;border:0;padding:0;font-weight:600;letter-spacing:.005em;
   color:#FFFFFF;text-shadow:0 1px 3px rgba(0,0,0,.55),0 0 6px rgba(0,0,0,.3)}
-/* "dark" surface labels follow the stage: light text on the dark ground, dark on the light one */
 .stagewrap .cal.flat.tone-dark{color:#E9EEF5;text-shadow:0 1px 3px rgba(0,0,0,.75),0 0 6px rgba(0,0,0,.45)}
 .stagewrap.light .cal.flat.tone-dark{color:#232B36;text-shadow:0 1px 2px rgba(255,255,255,.9),0 0 6px rgba(255,255,255,.7)}
 .stagewrap .cal.flat.sz-s{font-size:11.5px}
 .stagewrap .cal.flat.sz-m{font-size:15px}
 .stagewrap .cal.flat.sz-l{font-size:19px}
-@media(max-width:760px){.hud.br{display:none}}
-@media(max-width:700px){#logicbar{bottom:10px;top:auto;font-size:11px;padding:5px 11px}
-  #inspector{top:30px;bottom:auto;max-width:calc(100% - 26px);padding:5px 10px}#inspector .dt{display:none}}
-#logicbar{position:absolute;left:50%;bottom:12px;transform:translateX(-50%);display:flex;align-items:center;
-  gap:10px;background:rgba(13,16,21,.9);border:1px solid var(--stage-line);border-radius:999px;
-  padding:6px 14px 6px 12px;pointer-events:auto;font-family:"IBM Plex Mono",monospace;font-size:12px;
-  color:var(--stage-ink);box-shadow:0 6px 22px -10px rgba(0,0,0,.8);max-width:calc(100% - 26px)}
-#logicbar[hidden]{display:none}
+.stagetop{position:absolute;top:10px;left:12px;right:12px;display:flex;justify-content:space-between;
+  align-items:flex-start;gap:10px;pointer-events:none}
+.ttl{min-width:0;color:var(--stage-ink);text-shadow:0 1px 3px rgba(0,0,0,.6)}
+.ttl h1{margin:0;font-size:17px;font-weight:600;line-height:1.25;color:#fff;letter-spacing:-.01em;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ttl .tag{font-family:"IBM Plex Mono",monospace;font-size:10.5px;letter-spacing:.04em;color:var(--stage-ink-2);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:1px}
+#inspector{display:inline-flex;align-items:center;gap:7px;margin-top:7px;max-width:100%;background:var(--glass);
+  border:1px solid var(--stage-line);border-radius:7px;padding:4px 9px;color:var(--stage-ink);font-size:12px;
+  text-shadow:none}
+#inspector .sw{width:10px;height:10px;border-radius:2px;flex:0 0 auto;box-shadow:0 0 0 1px rgba(255,255,255,.25)}
+#inspector b{color:#fff;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#inspector span.dt{font-family:"IBM Plex Mono",monospace;font-size:10.5px;color:var(--stage-ink-2);white-space:nowrap;
+  overflow:hidden;text-overflow:ellipsis}
+.pills{display:flex;flex-direction:column;align-items:flex-end;gap:6px;flex:0 0 auto}
+.pill{display:inline-flex;background:var(--glass);border:1px solid var(--stage-line);border-radius:16px;padding:2px;
+  pointer-events:auto}
+.pill button{background:none;border:0;border-radius:14px;padding:4px 10px;font-size:11.5px;font-weight:600;
+  color:var(--stage-ink);cursor:pointer;white-space:nowrap}
+.pill button:hover{color:#fff}
+.pill button[aria-pressed="true"]{background:var(--accent);color:var(--on-accent)}
+.hint{position:absolute;right:13px;bottom:12px;font-family:"IBM Plex Mono",monospace;font-size:10px;
+  color:var(--stage-ink-2);pointer-events:none;opacity:.8}
+@media (max-width:1180px){.hint{display:none}}
+.bar{position:absolute;left:50%;transform:translateX(-50%);bottom:calc(var(--bar-b,0px) + 10px);
+  pointer-events:auto;background:var(--glass);border:1px solid var(--stage-line);color:var(--stage-ink);
+  box-shadow:0 6px 22px -10px rgba(0,0,0,.8);transition:bottom .25s}
+#logicbar{display:flex;align-items:center;gap:10px;border-radius:999px;padding:6px 14px 6px 12px;
+  font-family:"IBM Plex Mono",monospace;font-size:12px;max-width:calc(100% - 26px)}
 .lb-lbl{letter-spacing:.14em;color:var(--stage-ink-2);font-size:10.5px}
 .lb-seg{display:inline-flex;border:1px solid var(--stage-line);border-radius:999px;overflow:hidden}
-.lb-seg button{font:inherit;font-size:12px;font-weight:600;background:transparent;border:0;color:var(--stage-ink-2);
+.lb-seg button{font-size:12px;font-weight:600;background:transparent;border:0;color:var(--stage-ink-2);
   padding:3px 13px;cursor:pointer;line-height:1.4}
 .lb-seg button[aria-pressed="true"]{background:#2B3442;color:#fff}
 .lb-txt{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:11.5px}
 .lb-txt b{font-weight:600}
 .lb-hi{color:#FFC073}.lb-lo{color:#6FD8E6}
-#inspector{position:absolute;left:13px;bottom:11px;max-width:min(250px,40%);background:rgba(13,16,21,.86);
-  border:1px solid var(--stage-line);border-radius:7px;padding:8px 11px;color:var(--stage-ink);pointer-events:none}
-#inspector .nm{font-weight:600;color:#fff;font-size:12.5px;display:flex;align-items:center;gap:7px}
-#inspector .sw{width:10px;height:10px;border-radius:2px;flex:0 0 auto;box-shadow:0 0 0 1px rgba(255,255,255,.25)}
-#inspector .dt{font-family:"IBM Plex Mono",monospace;font-size:11px;color:var(--stage-ink-2);margin-top:2px}
-.rail{display:flex;flex-direction:column;gap:11px}
-.panel{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:12px 14px;box-shadow:var(--shadow)}
-.ptitle{font-family:"IBM Plex Mono",monospace;font-size:10.5px;font-weight:500;letter-spacing:.16em;
-  text-transform:uppercase;color:var(--ink-3);margin-bottom:10px}
-.chips{display:flex;flex-wrap:wrap;gap:6px}
-.modenote{margin:9px 0 0;font-size:11.5px;line-height:1.45;color:var(--ink-3)}
-.chip{font:inherit;font-size:12.5px;background:var(--surface-2);border:1px solid var(--line);color:var(--ink-2);
-  border-radius:999px;padding:5px 11px;cursor:pointer;transition:background .12s,border-color .12s}
-.chip:hover{border-color:var(--accent);color:var(--accent-ink)}
-.chip[aria-pressed="true"]{background:var(--accent-soft);border-color:var(--accent);color:var(--accent-ink);font-weight:600}
-.modules{margin-top:16px}
-.modhead{display:flex;align-items:center;gap:12px;margin-bottom:11px}
-.modhead .ptitle{margin:0;flex:0 0 auto}
-.modhint{flex:1;min-width:0;font-family:"IBM Plex Mono",monospace;font-size:10.5px;color:var(--ink-3);
-  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#procbar{display:flex;align-items:center;gap:2px;border-radius:24px;padding:2px;width:min(540px,calc(100% - 20px))}
+.bi{flex:0 0 auto;width:40px;height:40px;border-radius:50%;border:0;background:none;color:var(--stage-ink);
+  cursor:pointer;display:grid;place-items:center;padding:0}
+.bi:hover:not(:disabled){background:rgba(255,255,255,.07);color:#fff}
+.bi:disabled{opacity:.3;cursor:default}
+.pb-mid{flex:1 1 auto;min-width:0;text-align:left;background:none;border:0;border-radius:14px;padding:3px 6px;cursor:pointer}
+.pb-mid:hover{background:rgba(255,255,255,.05)}
+.pb-top{display:flex;flex-wrap:wrap;align-items:center;gap:2px 8px}
+.pb-n{font-family:"IBM Plex Mono",monospace;font-size:10px;color:var(--stage-ink-2);white-space:nowrap}
+.badge{font-family:"IBM Plex Mono",monospace;font-size:9.5px;letter-spacing:.04em;text-transform:uppercase;
+  color:var(--stage-ink-2);border:1px solid rgba(125,135,152,.6);border-radius:6px;padding:0 5px;white-space:nowrap}
+.badge.src{color:#4FC7D8;border-color:rgba(79,199,216,.6)}
+.pb-title{font-size:13px;line-height:1.25;font-weight:600;color:#fff;display:-webkit-box;-webkit-line-clamp:2;
+  -webkit-box-orient:vertical;overflow:hidden;margin-top:1px}
+.pb-title.fade{animation:fadein .22s ease}
+@keyframes fadein{from{opacity:0}to{opacity:1}}
+/* the stage's light-background switch flips its chrome */
+.stagewrap.light .cal{background:rgba(255,255,255,.88);border-color:#B7BEC8;color:#2A323E}
+.stagewrap.light .cal b{color:#121820}.stagewrap.light .cal i{color:#5E6875}
+.stagewrap.light #leaders polyline,.stagewrap.light #leaders line{stroke:#8B94A1}
+.stagewrap.light .ttl{color:#2A323E;text-shadow:none}.stagewrap.light .ttl h1{color:#121820}
+.stagewrap.light .ttl .tag,.stagewrap.light .hint{color:#5E6875}
 
-.modcols{columns:232px 5;column-gap:24px;max-height:clamp(400px,72vh,740px);overflow:auto}
-@media(max-width:520px){.modcols{columns:1;max-height:340px}}
+/* ---- side panel / bottom sheet ---- */
+.side{display:flex;flex-direction:column;min-height:0;background:var(--surface);border:1px solid var(--line);
+  border-radius:var(--r);box-shadow:var(--shadow);overflow:hidden}
+.grip{display:none}
+.tabs{flex:0 0 auto;display:flex;gap:2px;padding:6px 6px 0;border-bottom:1px solid var(--line)}
+.tabs button{flex:1 1 0;min-width:0;background:none;border:0;border-bottom:2px solid transparent;padding:8px 4px 9px;
+  font-size:13px;font-weight:500;color:var(--ink-3);cursor:pointer;white-space:nowrap}
+.tabs button:hover{color:var(--ink)}
+.tabs button[aria-selected="true"]{color:var(--accent-ink);border-bottom-color:var(--accent);font-weight:600}
+.tabbody{flex:1 1 auto;min-height:0;overflow:auto;padding:12px 14px 18px;overscroll-behavior:contain}
+.lbl{font-family:"IBM Plex Mono",monospace;font-size:10.5px;font-weight:500;letter-spacing:.14em;text-transform:uppercase;
+  color:var(--ink-3);margin:14px 0 7px}
+.lbl:first-child{margin-top:2px}
+.sub{font-size:12.5px;color:var(--ink-3);margin:0 0 10px;line-height:1.5}
 .views{display:grid;gap:6px}
-.view{display:grid;grid-template-columns:20px 1fr;gap:8px;align-items:center;width:100%;text-align:left;
-  background:var(--surface-2);border:1px solid transparent;border-radius:7px;padding:6px 9px;cursor:pointer;
-  color:var(--ink);font:inherit;font-size:13px;transition:background .12s,border-color .12s}
-.view:hover{background:var(--accent-soft);border-color:var(--accent)}
-.view[aria-pressed="true"]{background:var(--accent-soft);border-color:var(--accent);color:var(--accent-ink)}
-.view .k{font-family:"IBM Plex Mono",monospace;font-size:11px;color:var(--accent);font-weight:600;text-align:center}
-.view .s{display:block;font-size:11px;color:var(--ink-3);line-height:1.3}
-.seg{display:grid;grid-auto-flow:column;grid-auto-columns:1fr;gap:5px;margin-top:8px}
-.seg button{padding:5px 4px}
-.seg[hidden]{display:none}
-.seg button{font:inherit;font-size:12px;background:var(--surface-2);border:1px solid var(--line);color:var(--ink-2);
-  border-radius:6px;padding:5px 6px;cursor:pointer}
-.seg button[aria-pressed="true"]{background:var(--accent-soft);border-color:var(--accent);color:var(--accent-ink);font-weight:600}
-.grp{margin:0 0 15px;break-inside:avoid;-webkit-column-break-inside:avoid;page-break-inside:avoid}
-.ghd{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:0 0 5px}
-.ghd span{font-size:11px;font-weight:600;color:var(--ink-2)}
-.ghd button{background:none;border:0;font:inherit;font-size:10.5px;color:var(--accent);cursor:pointer;
-  font-family:"IBM Plex Mono",monospace;padding:1px 3px;border-radius:4px}
+.view{display:flex;gap:12px;align-items:center;width:100%;text-align:left;background:var(--surface-2);
+  border:1px solid transparent;border-radius:12px;padding:8px 12px;cursor:pointer;transition:background .15s,border-color .15s}
+.view:hover{border-color:var(--accent)}
+.view i{width:8px;height:8px;border-radius:50%;background:var(--line);flex:0 0 auto}
+.view b{display:block;font-size:13.5px;font-weight:500}
+.view span{display:block;font-size:12px;color:var(--ink-3);line-height:1.35}
+.view[aria-pressed="true"]{background:var(--accent-soft);border-color:var(--accent)}
+.view[aria-pressed="true"] i{background:var(--accent)}
+.view[aria-pressed="true"] b{color:var(--accent-ink);font-weight:600}
+.ctl{margin-bottom:10px}
+.ctl label{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:12.5px;margin-bottom:3px}
+.ctl .val{font-family:"IBM Plex Mono",monospace;font-size:11px;color:var(--ink-3);font-variant-numeric:tabular-nums}
+input[type=range]{width:100%;accent-color:var(--accent);margin:0;height:20px}
+.toggles{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.tg{display:flex;align-items:center;gap:8px;font-size:12.5px;padding:7px 9px;border-radius:9px;background:var(--surface-2);
+  cursor:pointer;border:1px solid transparent;text-align:left}
+.tg:hover{border-color:var(--line)}
+.tg input{accent-color:var(--accent);width:14px;height:14px;margin:0;flex:0 0 auto}
+.btn{font-size:12.5px;background:var(--surface-2);border:1px solid var(--line);color:var(--ink);border-radius:8px;
+  padding:7px 12px;cursor:pointer}
+.btn:hover{border-color:var(--accent);color:var(--accent-ink)}
+.btn.wide{width:100%;margin-top:12px}
+.lyhead{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:2px 2px 8px;
+  border-bottom:1px solid var(--line-soft)}
+.lyhead span{font-family:"IBM Plex Mono",monospace;font-size:11px;color:var(--ink-3)}
+.link{background:none;border:0;padding:2px 4px;border-radius:5px;font-size:12.5px;font-weight:600;color:var(--accent);cursor:pointer}
+.link:hover{background:var(--accent-soft)}
+.legend{display:flex;flex-wrap:wrap;gap:5px;margin:10px 0 4px}
+.legend button{display:inline-flex;align-items:center;gap:6px;font-size:11.5px;padding:3px 8px;border-radius:7px;
+  background:var(--surface-2);border:1px solid transparent;cursor:pointer;color:var(--ink-2)}
+.legend button[aria-pressed="true"]{border-color:var(--accent);color:var(--accent-ink)}
+.legend i,.lay i,.swcell i{width:11px;height:11px;border-radius:3px;flex:0 0 auto;box-shadow:0 0 0 1px rgba(0,0,0,.2) inset}
+.legnote{font-size:12px;color:var(--ink-2);margin:4px 2px 2px;line-height:1.5}
+.grp{margin-top:10px}
+.ghd{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:0 2px 3px}
+.ghd span{font-family:"IBM Plex Mono",monospace;font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-3)}
+.ghd button{background:none;border:0;font-family:"IBM Plex Mono",monospace;font-size:10.5px;color:var(--accent);cursor:pointer;
+  padding:1px 4px;border-radius:4px}
 .ghd button:hover{background:var(--accent-soft)}
-.lay{display:flex;align-items:center;gap:8px;padding:3px 4px;border-radius:5px;cursor:pointer;font-size:12.5px}
+.lays{display:grid;grid-template-columns:1fr 1fr;gap:2px 6px}
+.lay{display:flex;align-items:center;gap:7px;padding:4px 5px;border-radius:6px;cursor:pointer;font-size:12.5px;min-width:0}
 .lay:hover{background:var(--surface-2)}
 .lay input{margin:0;accent-color:var(--accent);width:13px;height:13px;flex:0 0 auto}
-.lay .sw{width:12px;height:12px;border-radius:3px;flex:0 0 auto;box-shadow:0 0 0 1px rgba(0,0,0,.18) inset}
 .lay .tx{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.lay.off .tx{color:var(--ink-3);opacity:.55}
-.ctl{margin-bottom:9px}.ctl:last-child{margin-bottom:2px}
-.ctl label{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:12.5px;margin-bottom:4px}
-.ctl .val{font-family:"IBM Plex Mono",monospace;font-size:11px;color:var(--ink-3);font-variant-numeric:tabular-nums}
-input[type=range]{width:100%;accent-color:var(--accent);margin:0;height:18px}
-.chk{display:flex;align-items:center;gap:8px;font-size:12.5px;padding:3px 0;cursor:pointer}
-.chk input{accent-color:var(--accent);width:13px;height:13px;margin:0}
-.btn{font:inherit;font-size:12.5px;background:var(--surface-2);border:1px solid var(--line);color:var(--ink);
-  border-radius:7px;padding:6px 10px;cursor:pointer;width:100%}
-.btn:hover{border-color:var(--accent);color:var(--accent-ink)}
-.modhead .btn{width:auto;flex:0 0 auto;padding:5px 12px;font-size:12px}
-:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
-.sheets{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px;margin-top:26px}
-.panel h2{font-size:14px;font-weight:600;margin-bottom:3px}
-.panel .sub{font-size:12.5px;color:var(--ink-3);margin:0 0 12px}
-table{width:100%;border-collapse:collapse;font-size:13px}
-th,td{text-align:left;padding:6px 8px;border-bottom:1px solid var(--line-soft);vertical-align:top}
+.lay.off .tx{color:var(--ink-3);opacity:.6}
+table{width:100%;border-collapse:collapse;font-size:12.5px}
+th,td{text-align:left;padding:6px 6px;border-bottom:1px solid var(--line-soft);vertical-align:top}
 th{font-family:"IBM Plex Mono",monospace;font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-3);font-weight:500}
 tbody tr:last-child td{border-bottom:0}
 td.n{font-family:"IBM Plex Mono",monospace;font-variant-numeric:tabular-nums;white-space:nowrap;text-align:right}
 td.sym{font-family:"IBM Plex Mono",monospace;color:var(--accent-ink);white-space:nowrap}
-:root:not([data-theme="light"]) td.sym{color:var(--accent)}
-@media(prefers-color-scheme:light){:root:not([data-theme="dark"]) td.sym{color:var(--accent-ink)}}
-td.d{color:var(--ink-2);font-size:12.5px}
+td.d{color:var(--ink-2)}
+.specs{display:grid}
+.spec{display:grid;grid-template-columns:84px minmax(0,1fr) auto;gap:2px 10px;padding:6px 2px;border-bottom:1px solid var(--line-soft);font-size:12.5px}
+.spec:last-child{border-bottom:0}
+.spec .sym{font-family:"IBM Plex Mono",monospace;font-size:12px;color:var(--accent-ink)}
+.spec .d{color:var(--ink-2);line-height:1.45}
+.spec .n{font-family:"IBM Plex Mono",monospace;font-size:12px;text-align:right;max-width:140px;font-variant-numeric:tabular-nums}
+.spec.wide .n{grid-column:2 / 4;text-align:left;max-width:none}
 .swcell{display:flex;align-items:center;gap:8px}
-.swcell i{width:11px;height:11px;border-radius:3px;flex:0 0 auto;box-shadow:0 0 0 1px rgba(0,0,0,.2) inset}
-.note{margin-top:22px;padding:14px 16px;border:1px solid var(--line);border-left:2px solid var(--accent);
-  background:var(--surface);border-radius:0 var(--r) var(--r) 0;font-size:13.5px;color:var(--ink-2)}
+.note{margin-top:14px;padding:11px 13px;border:1px solid var(--line);border-left:2px solid var(--accent);
+  background:var(--surface-2);border-radius:0 9px 9px 0;font-size:12.5px;color:var(--ink-2);line-height:1.55}
 .note b{color:var(--ink);font-weight:600}
-.tablewrap{overflow-x:auto}
-.story{margin-top:22px}
-.story h4{margin:20px 0 6px;font-size:14.5px;letter-spacing:-.01em;color:var(--ink)}
-.story h4:first-child{margin-top:4px}
-.story p{margin:0 0 10px;font-size:14px;line-height:1.62;color:var(--ink-2);max-width:74ch}
-.story ul{margin:0 0 12px;padding-left:20px;max-width:74ch}
-.story li{font-size:14px;line-height:1.6;color:var(--ink-2);margin-bottom:5px}
-.story b{color:var(--ink);font-weight:600}
-.story i{font-style:italic}
-/* The small-screen inspector rules live here, after the base ones: a media query adds
-   no specificity, so the earlier copy was being overridden by the plain rule below it. */
-@media (max-width:700px){
-  .stagewrap .cal.flat.sz-l{font-size:13px}
-  .stagewrap .cal.flat.sz-m{font-size:11px}
-  .stagewrap .cal.flat.sz-s{display:none}
-  .stagewrap #inspector{top:28px;bottom:auto;max-width:72%;padding:4px 9px}
-  .stagewrap #inspector .dt{display:none}
-  .stagewrap #inspector .nm{font-size:12px}
+.prose h4{margin:18px 0 5px;font-size:14px;letter-spacing:-.01em;color:var(--ink)}
+.prose h4:first-child{margin-top:2px}
+.prose p{margin:0 0 9px;font-size:13.5px;line-height:1.62;color:var(--ink-2)}
+.prose ul{margin:0 0 10px;padding-left:20px}
+.prose li{font-size:13.5px;line-height:1.6;color:var(--ink-2);margin-bottom:4px}
+.prose b{color:var(--ink);font-weight:600}
+
+/* ---- Steps ---- */
+.lesson{font-family:"IBM Plex Mono",monospace;font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--accent);
+  margin:2px 0 8px}
+.scope{font-size:12.5px;line-height:1.55;color:var(--ink-2);margin:0 0 7px}
+.sites{display:grid;grid-auto-flow:column;grid-auto-columns:1fr;gap:6px}
+.sites .chip{text-align:center}
+.sitenote{font-size:12px;color:var(--ink-3);margin:6px 0 10px;line-height:1.5}
+.opsw{display:flex;align-items:center;gap:12px;width:100%;text-align:left;background:none;border:0;padding:6px 2px;
+  border-radius:10px;cursor:pointer;margin:2px 0 6px}
+.opsw b{display:block;font-size:13px;font-weight:500}
+.opsw span{display:block;font-size:11.5px;color:var(--ink-3);line-height:1.45}
+.sw2{flex:0 0 auto;width:36px;height:20px;border-radius:10px;background:var(--line);position:relative;transition:background .15s}
+.sw2::after{content:"";position:absolute;top:2px;left:2px;width:16px;height:16px;border-radius:50%;background:#fff;
+  transition:left .15s;box-shadow:0 1px 2px rgba(0,0,0,.3)}
+.opsw[aria-checked="true"] .sw2{background:var(--accent)}
+.opsw[aria-checked="true"] .sw2::after{left:18px}
+.route{margin:6px 0 6px 14px;padding:10px 12px;border-radius:12px;background:var(--surface-2)}
+.route .lbl{margin:0 0 3px}
+.route p{font-size:12px;color:var(--ink-3);margin:0 0 8px;line-height:1.5}
+.route .sites{margin-bottom:2px}
+.route p.rn{margin:8px 0 0;color:var(--ink-2)}
+.step{border-radius:12px;margin:1px 0}
+.step.op{margin-left:14px}
+.step.on{background:var(--accent-soft)}
+.sthd{display:flex;align-items:baseline;gap:6px;width:100%;text-align:left;background:none;border:0;padding:7px 10px;
+  border-radius:12px;cursor:pointer}
+.sthd:hover{background:var(--surface-2)}
+.step.on .sthd:hover{background:none}
+.sthd .no{flex:0 0 34px;font-family:"IBM Plex Mono",monospace;font-size:12px;color:var(--accent)}
+.step.op .sthd .no{font-size:11px}
+.sthd .tt{font-size:13.5px;line-height:1.4}
+.step.op .sthd .tt{font-size:12.5px}
+.step.on .sthd .tt{font-weight:600}
+.stbody{padding:0 10px 10px 50px;animation:fadein .22s ease}
+.stbody>p{margin:0;font-size:12.5px;line-height:1.6;color:var(--ink-2)}
+.terms{display:flex;flex-wrap:wrap;gap:5px;margin-top:7px}
+.terms button{font-size:11.5px;padding:2px 7px;border-radius:8px;border:1px solid color-mix(in srgb,var(--accent) 45%,transparent);
+  background:none;color:var(--accent);cursor:pointer}
+.terms button[aria-pressed="true"]{background:var(--accent);color:var(--on-accent)}
+.gloss{margin-top:5px;padding:2px 4px}
+.gloss b{display:block;font-size:13px}
+.gloss span{display:block;font-size:12.5px;color:var(--ink-2);line-height:1.5}
+.regions{display:flex;gap:6px;margin-top:7px}
+.regions span{flex:1 1 0;font-size:11px;line-height:1.4;padding:5px 8px;border-radius:8px;background:var(--surface);color:var(--accent-ink)}
+.regions span.masked{background:var(--surface-2);color:var(--ink-3)}
+.srcline{font-family:"IBM Plex Mono",monospace;font-size:10.5px;line-height:1.5;color:var(--accent-ink);margin-top:8px}
+.bnote{font-size:11.5px;line-height:1.5;color:var(--ink-3);margin-top:4px}
+.notes{margin-top:8px}
+.notes .lbl{margin:0 0 2px;font-size:10px}
+.notes p{margin:2px 0 0;font-size:12px;line-height:1.5;color:var(--ink-3)}
+.stbody .btn{margin-top:9px}
+a.ref{color:var(--accent);text-decoration:none;font-family:"IBM Plex Mono",monospace;font-size:.92em}
+a.ref:hover{text-decoration:underline}
+.cited a{display:block;font-size:12px;line-height:1.5;color:var(--accent);text-decoration:none;padding:5px 2px;border-radius:6px}
+.cited a:hover{background:var(--surface-2)}
+
+/* ---- dialogs ---- */
+dialog{border:1px solid var(--line);border-radius:16px;padding:0;background:var(--surface);color:var(--ink);
+  width:min(760px,calc(100% - 24px));max-height:calc(100dvh - 40px);box-shadow:0 24px 70px -20px rgba(0,0,0,.55)}
+dialog::backdrop{background:rgba(8,10,14,.55)}
+.dlghd{position:sticky;top:0;display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 16px;
+  background:var(--surface);border-bottom:1px solid var(--line);z-index:1}
+.dlghd h2{margin:0;font-size:15px;font-weight:600}
+.dlgbd{padding:6px 18px 22px;overflow:auto}
+.dlgbd>p{font-size:13.5px;line-height:1.6;color:var(--ink-2);max-width:68ch}
+.dlgbd h3{font-family:"IBM Plex Mono",monospace;font-size:10.5px;font-weight:500;letter-spacing:.14em;text-transform:uppercase;
+  color:var(--ink-3);margin:20px 0 8px}
+.refs h2{font-family:"IBM Plex Mono",monospace;font-size:10.5px;font-weight:500;letter-spacing:.14em;text-transform:uppercase;
+  color:var(--ink-3);margin:20px 0 8px}
+.refs>p{font-size:12.5px;color:var(--ink-2);line-height:1.55}
+.refs ol{padding-left:22px;margin:8px 0}
+.refs li{font-size:12.5px;margin-bottom:8px;line-height:1.5;scroll-margin-top:70px}
+.refs li a{color:var(--accent);text-decoration:none}
+.refs li a:hover{text-decoration:underline}
+.refs li p{margin:2px 0 0;color:var(--ink-3);font-size:12px}
+.refs li.flash{background:var(--accent-soft);border-radius:6px}
+.credit{display:flex;flex-wrap:wrap;gap:8px 18px;font-size:12.5px;color:var(--ink-2)}
+.credit a{color:var(--accent);text-decoration:none}
+.learn{display:grid;gap:6px}
+.learn button{text-align:left;background:var(--accent-soft);border:0;border-radius:12px;padding:9px 13px;cursor:pointer}
+.learn button b{display:block;font-size:13.5px}
+.learn button span{display:block;font-size:12.5px;color:var(--ink-2);line-height:1.45;margin-top:1px}
+.keys{display:grid;grid-template-columns:auto 1fr;gap:5px 14px;font-size:12.5px;color:var(--ink-2)}
+.keys b{font-family:"IBM Plex Mono",monospace;font-weight:500;font-size:11.5px;color:var(--ink)}
+#gq{width:100%;font:inherit;font-size:13px;padding:8px 11px;border-radius:9px;border:1px solid var(--line);
+  background:var(--surface-2);color:var(--ink)}
+.glist .gloss{padding:7px 2px;border-bottom:1px solid var(--line-soft);margin:0}
+#toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%) translateY(20px);background:#232A35;color:#fff;
+  padding:9px 16px;border-radius:999px;font-size:13px;opacity:0;pointer-events:none;transition:opacity .2s,transform .2s;
+  z-index:10;max-width:calc(100% - 32px);text-align:center}
+#toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
+
+/* ---- phone: the stage fills the window, the panel is a sheet over it ---- */
+@media (max-width:639px),(max-width:859px) and (orientation:portrait){
+  .top{flex-wrap:wrap;gap:8px 10px;padding:8px 12px}
+  .brand span{display:none}
+  .modeseg{order:3;width:100%;display:grid;grid-auto-flow:column;grid-auto-columns:1fr}
+  .modeseg button{padding:6px 4px}
+  .chiprow{padding:7px 12px}
+  .main{display:block;position:relative;padding:0}
+  .stagewrap{position:absolute;inset:0;border-radius:0;border:0;box-shadow:none;min-height:0}
+  .side{position:absolute;left:0;right:0;bottom:0;height:var(--sheet-h);border-radius:18px 18px 0 0;border-bottom:0;
+    box-shadow:0 -10px 30px -12px rgba(0,0,0,.5);transition:height .26s cubic-bezier(.2,.8,.2,1);z-index:2}
+  .side.dragging{transition:none}
+  .grip{display:block;flex:0 0 auto;height:16px;cursor:grab;touch-action:none;position:relative}
+  .grip::after{content:"";position:absolute;left:50%;top:6px;width:38px;height:4px;margin-left:-19px;border-radius:2px;background:var(--line)}
+  .tabs{padding-top:0;touch-action:none}
+  .tabs button{padding:6px 2px 9px}
+  .tabbody{padding-bottom:calc(18px + env(safe-area-inset-bottom))}
+  .ttl h1{font-size:15px}
+  .lays{grid-template-columns:1fr}
+  dialog{width:100%;max-width:100%;max-height:100dvh;height:100dvh;border-radius:0;margin:0;border:0}
 }
-.colophon{margin-top:26px;padding-top:18px;border-top:1px solid var(--line);
-  display:flex;flex-wrap:wrap;gap:18px 34px;align-items:flex-start;justify-content:space-between;
-  font-size:13px;color:var(--ink-2);line-height:1.55}
-.colophon .who{max-width:34em}
-.colophon .who strong{display:block;color:var(--ink);font-size:14px;font-weight:600;letter-spacing:-.01em}
-.colophon a{color:var(--accent);text-decoration:none;border-bottom:1px solid transparent}
-.colophon a:hover{border-bottom-color:currentColor}
-.colophon ul{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:6px 18px}
-@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
 </style>
 
-<div class="wrap">
-<header>
-  <div>
-    <div class="eyebrow">Transistor architectures · educational models</div>
-    <h1>FinFET to CFET</h1>
-    <p>Explore FinFET, gate-all-around nanosheet, inner-wall forksheet and CFET examples.
-       Compare device structures, illustrative CMOS inverters and schematic layouts.
-       Logic colors show ideal switching states, not simulated currents or timing.</p>
+<div id="app">
+<header class="top">
+  <div class="brand">
+    <svg width="26" height="26" viewBox="0 0 26 26" aria-hidden="true"><rect x="1" y="1" width="24" height="24" rx="6" fill="var(--accent)"/>
+      <rect x="6" y="7" width="3.2" height="13" rx="1" fill="var(--on-accent)"/><rect x="11.4" y="7" width="3.2" height="13" rx="1" fill="var(--on-accent)"/>
+      <rect x="16.8" y="7" width="3.2" height="13" rx="1" fill="var(--on-accent)"/><rect x="4" y="11" width="18" height="3.4" rx="1" fill="var(--on-accent)" opacity=".55"/></svg>
+    <b>FET Lab</b><span>FinFET to CFET · educational 3D models</span>
   </div>
-  <div class="cite">Illustrative geometry, not a foundry recipe<br>
-    <a href="#technical-references">Technical references and model scope</a><br><span class="mono">1 unit = 1 nm; Layout vertical dimensions simplified, not to scale</span></div>
+  <div class="modeseg" id="modeseg" role="group" aria-label="Viewing mode">
+    <button type="button" data-m="dev">Device</button><button type="button" data-m="inv">Inverter</button><button type="button" data-m="show">Layout</button><button type="button" data-m="proc">Process</button>
+  </div>
+  <div class="tools">
+    <button type="button" class="iconbtn" id="helpbtn" aria-label="Help, learning path and glossary" title="Help and glossary">
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M5.6 5.8a2.5 2.5 0 1 1 3.4 2.3c-.6.3-1 .8-1 1.5v.4"/><circle cx="8" cy="12.6" r=".5" fill="currentColor"/></svg></button>
+    <button type="button" class="iconbtn" id="aboutbtn" aria-label="About and technical references" title="About and references">
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><circle cx="8" cy="8" r="6.3"/><path d="M8 7.3v4"/><circle cx="8" cy="4.9" r=".5" fill="currentColor"/></svg></button>
+  </div>
 </header>
-
-<div class="app">
-  <div class="rail">
-    <div class="panel">
-      <div class="ptitle">Scene</div>
-      <div class="seg seg3" id="modeseg">
-        <button type="button" data-m="dev" aria-pressed="true">Device</button>
-        <button type="button" data-m="inv">Inverter</button>
-        <button type="button" data-m="show">Layout</button>
-      </div>
-      <div class="chips" id="devs" style="margin-top:9px"></div>
-      <div class="seg" id="cfetseg" hidden>
-        <button type="button" data-k="cfet_seq">Sequential</button>
-        <button type="button" data-k="cfet_mono">Monolithic</button>
-      </div>
-      <p class="modenote">Process mode, the fabrication steps from bare silicon to finished device, is in the Android app.</p>
-    </div>
-    <div class="panel"><div class="ptitle">Views</div><div class="views" id="views"></div></div>
-    <div class="panel">
-      <div class="ptitle">Section planes</div>
-      <div class="ctl"><label><span>Cut along channel <span class="mono">(X)</span></span><span class="val" id="vcx">off</span></label>
-        <input type="range" id="cx" min="0" max="100" value="100" aria-label="Cut along channel"></div>
-      <div class="ctl"><label><span>Cut vertically <span class="mono">(Y)</span></span><span class="val" id="vcy">off</span></label>
-        <input type="range" id="cy" min="0" max="100" value="100" aria-label="Cut vertically"></div>
-      <div class="ctl"><label><span>Cut across channel <span class="mono">(Z)</span></span><span class="val" id="vcz">off</span></label>
-        <input type="range" id="cz" min="0" max="100" value="100" aria-label="Cut across channel"></div>
-      <div class="ctl"><label><span>Separate layers</span><span class="val" id="vex">0 nm</span></label>
-        <input type="range" id="ex" min="0" max="100" value="0" aria-label="Separate layers"></div>
-      <label class="chk"><input type="checkbox" id="lightbg"> Light background</label>
-      <label class="chk"><input type="checkbox" id="edges" checked> Edge outlines</label>
-      <label class="chk"><input type="checkbox" id="tex" checked> Surface texture</label>
-      <label class="chk"><input type="checkbox" id="ghost"> Ghost the Mo gate fill</label>
-      <label class="chk"><input type="checkbox" id="dims" checked> Dimension callouts</label>
-      <label class="chk"><input type="checkbox" id="spin"> Slow rotate</label>
-    </div>
-  </div>
-  <div class="stagewrap">
+<nav class="chiprow" id="chips" aria-label="Technology"></nav>
+<div class="main">
+  <section class="stagewrap" id="stagewrap" aria-label="3D model">
     <canvas id="stage"></canvas>
-    <div id="overlay">
-      <svg id="leaders"></svg>
-      <div class="hud tl" id="hudview">3D overview</div>
-      <div class="hud br">drag orbit · wheel zoom · shift+drag pan · click identify</div>
-      <div id="logicbar" hidden>
-        <span class="lb-lbl">IN</span>
-        <span class="lb-seg"><button type="button" data-v="0" aria-pressed="true">0</button><button type="button" data-v="1">1</button></span>
-        <span class="lb-txt" id="lbtxt"></span>
+    <div id="overlay"><svg id="leaders"></svg></div>
+    <div class="scrim" id="scrim"></div>
+    <div class="stagetop">
+      <div class="ttl" aria-live="polite"><h1 id="sname">FinFET</h1><div class="tag" id="stag"></div>
+        <div id="inspector" hidden><span class="sw"></span><b id="inm"></b><span class="dt" id="idt"></span></div></div>
+      <div class="pills">
+        <div class="pill" id="designpill" role="group" aria-label="Nanosheet channel design" hidden>
+          <button type="button" data-d="sige" aria-label="Si/SiGe CMOS channel design">Si/SiGe</button><button type="button" data-d="si" aria-label="Si/Si CMOS channel design">Si/Si</button></div>
+        <div class="pill" id="cfetpill" role="group" aria-label="CFET integration" hidden>
+          <button type="button" data-k="cfet_seq">Sequential</button><button type="button" data-k="cfet_mono">Monolithic</button></div>
+        <div class="pill" id="sitepill" role="group" aria-label="Device site" hidden></div>
       </div>
-      <div id="inspector"><div class="nm"><span class="sw"></span><span id="inm">—</span></div>
-        <div class="dt" id="idt">Click any layer in the model to inspect it</div></div>
+    </div>
+    <div class="hint" id="hint">drag orbit · wheel zoom · shift+drag pan · click identify</div>
+    <div class="bar" id="logicbar" hidden>
+      <span class="lb-lbl">IN</span>
+      <span class="lb-seg"><button type="button" data-v="0" aria-pressed="true">0</button><button type="button" data-v="1">1</button></span>
+      <span class="lb-txt" id="lbtxt"></span>
+    </div>
+    <div class="bar" id="procbar" hidden>
+      <button type="button" class="bi" id="pbprev" aria-label="Previous step"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.4 2.6 4.8 8l5.6 5.4"/></svg></button>
+      <button type="button" class="pb-mid" id="pbmid" aria-label="Open this step in the Steps tab">
+        <span class="pb-top"><span class="pb-n" id="pbn"></span><span class="badge" id="pbbadge"></span></span>
+        <span class="pb-title" id="pbtitle"></span></button>
+      <button type="button" class="bi" id="pbplay" aria-label="Play the steps"></button>
+      <button type="button" class="bi" id="pbnext" aria-label="Next step"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5.6 2.6 11.2 8l-5.6 5.4"/></svg></button>
+    </div>
+  </section>
+  <aside class="side" id="side">
+    <div class="grip" id="grip" aria-hidden="true"></div>
+    <div class="tabs" id="tabs" role="tablist"></div>
+    <div class="tabbody" id="tabbody" role="tabpanel"></div>
+  </aside>
+</div>
+</div>
+
+<dialog id="about" aria-labelledby="abouth">
+  <div class="dlghd"><h2 id="abouth">About FET Lab</h2><button type="button" class="iconbtn" data-close aria-label="Close">
+    <svg width="14" height="14" viewBox="0 0 14 14" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M3 3l8 8M11 3l-8 8"/></svg></button></div>
+  <div class="dlgbd">
+    <p>Explore FinFET, gate-all-around nanosheet, inner-wall forksheet and CFET examples. Compare device
+       structures, illustrative CMOS inverters and schematic layouts, and step through how the FinFET and
+       the nanosheet are made, from bare silicon to the finished device. Logic colours show ideal switching
+       states, not simulated currents or timing.</p>
+    <p>Illustrative geometry, not a foundry recipe. One unit is 1 nm; Layout vertical dimensions are
+       simplified and not to scale.</p>
+<!-- TECHNICAL_REFERENCES -->
+    <h3>Credits</h3>
+    <p><b>Developed by Khandaker Ehsanul Karim.</b> FET Lab · MIT licensed. Parametric teaching models, not
+       fabrication-ready cells. Dimensions and material choices are illustrative, not measured process data.</p>
+    <div class="credit">
+      <a href="mailto:ehsan.pappu.99@gmail.com">ehsan.pappu.99@gmail.com</a>
+      <a href="https://github.com/ehsanul-karim-pappu/fet-lab" rel="noopener">Source on GitHub</a>
+      <a href="https://github.com/ehsanul-karim-pappu/fet-lab/issues" rel="noopener">Report an issue</a>
+      <a href="https://github.com/ehsanul-karim-pappu" rel="noopener">@ehsanul-karim-pappu</a>
     </div>
   </div>
-</div>
-
-<div class="panel modules">
-  <div class="modhead">
-    <div class="ptitle">Process modules</div>
-    <span class="modhint" id="modcount"></span>
-    <button class="btn btnsm" id="reset">Reset this device</button>
+</dialog>
+<dialog id="help" aria-labelledby="helph">
+  <div class="dlghd"><h2 id="helph">Help and glossary</h2><button type="button" class="iconbtn" data-close aria-label="Close">
+    <svg width="14" height="14" viewBox="0 0 14 14" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M3 3l8 8M11 3l-8 8"/></svg></button></div>
+  <div class="dlgbd">
+    <h3>Moving the model</h3>
+    <div class="keys">
+      <b>Drag</b><span>Turn the model (one finger on a touch screen)</span>
+      <b>Wheel · pinch</b><span>Zoom in and out</span>
+      <b>Shift + drag · two fingers</b><span>Move the model sideways</span>
+      <b>Click · tap</b><span>Name the layer under the pointer</span>
+      <b>← →  ·  Space</b><span>Process mode: previous and next step, play or pause</span>
+      <b>0 · 1</b><span>Inverter mode: set the input low or high</span>
+    </div>
+    <h3>Learn in order</h3>
+    <div class="learn" id="learn"></div>
+    <h3>Glossary</h3>
+    <input id="gq" type="search" placeholder="Search terms" aria-label="Search the glossary">
+    <div class="glist" id="glist"></div>
   </div>
-  <div class="modcols" id="layers"></div>
-</div>
-
-<div class="sheets">
-  <div class="panel">
-    <h2 id="dimtitle">Critical dimensions</h2>
-    <p class="sub" id="dimsub"></p>
-    <div class="tablewrap"><table><thead><tr><th>Symbol</th><th>Parameter</th><th style="text-align:right">Value</th></tr></thead>
-      <tbody id="dimtable"></tbody></table></div>
-  </div>
-  <div class="panel">
-    <h2>Film stack</h2>
-    <p class="sub" id="matsub">Materials present in this device.</p>
-    <div class="tablewrap"><table><thead><tr><th>Material</th><th>Role</th></tr></thead>
-      <tbody id="mattable"></tbody></table></div>
-  </div>
-  <div class="panel" id="parpanel" hidden>
-    <h2>Capacitance estimates</h2>
-    <p class="sub" id="parsub"></p>
-    <div class="tablewrap"><table><thead><tr><th>Term</th><th>Couples</th>
-      <th style="text-align:right">aF</th><th style="text-align:right">aF/µm</th>
-      <th style="text-align:right">of C<sub>ox</sub></th></tr></thead>
-      <tbody id="partable"></tbody></table></div>
-    <p class="parsel" id="parsel"></p>
-    <details class="parhow"><summary>How these are worked out</summary>
-      <p id="parnote"></p></details>
-  </div>
-</div>
-<div class="note" id="note"></div>
-
-<div class="panel story">
-  <h2>Why this device exists</h2>
-  <p class="sub" id="storysub">The history behind the architecture on screen.</p>
-  <div id="storybody"></div>
-</div>
-
-<!-- TECHNICAL_REFERENCES -->
-<footer class="colophon">
-  <div class="who">
-    <strong>Developed by Khandaker Ehsanul Karim</strong>
-    FET Lab &middot; MIT licensed. Parametric teaching models, not fabrication-ready cells.
-    Dimensions and material choices are illustrative, not measured process data.
-  </div>
-  <ul>
-    <li><a href="mailto:ehsan.pappu.99@gmail.com">ehsan.pappu.99@gmail.com</a></li>
-    <li><a href="https://github.com/ehsanul-karim-pappu/fet-lab" rel="noopener">Source on GitHub</a></li>
-    <li><a href="https://github.com/ehsanul-karim-pappu/fet-lab/issues" rel="noopener">Report an issue</a></li>
-    <li><a href="https://github.com/ehsanul-karim-pappu" rel="noopener">@ehsanul-karim-pappu</a></li>
-  </ul>
-</footer>
-</div>
+</dialog>
+<div id="toast" role="status"></div>
 
 <script>
 const DATA = /*__DATA__*/null;
+const PROC = /*__PROC__*/null;
+const GUIDE = /*__GUIDE__*/null;
+const REFS = /*__REFS__*/null;
 (function(){
 "use strict";
-const MAT=DATA.materials, DEVS=DATA.devices;
-const byKey={}; DEVS.forEach(d=>byKey[d.key]=d);
-const cv=document.getElementById("stage");
-const gl=cv.getContext("webgl",{antialias:true,alpha:false,preserveDrawingBuffer:true});
+const MAT=DATA.materials, DEVJ={};
+DATA.devices.forEach(d=>DEVJ[d.key]=d);
+const FLOWJ=(PROC&&PROC.flows)||{};
+const REFMAP={};((REFS&&REFS.sources)||[]).forEach(r=>REFMAP[r.id]=r);
+const $=id=>document.getElementById(id);
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const reEsc=s=>s.replace(/[.*+?^${}()|[\]\\]/g,"\\$&");
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+const store={get(k){try{return localStorage.getItem(k);}catch(e){return null;}},
+             set(k,v){try{localStorage.setItem(k,v);}catch(e){}}};
 const RM=matchMedia("(prefers-reduced-motion:reduce)").matches;
-if(!gl){document.querySelector(".stagewrap").innerHTML='<p style="color:#C7CEDA;font:14px/1.6 system-ui;padding:40px 28px;margin:0">'+
- 'This browser has WebGL disabled, so the 3D models cannot draw. The tables below still describe each device, '+
- 'and the downloadable GLB / STL / OBJ files open in any 3D viewer.</p>'; return;}
+const PHONE=matchMedia("(max-width:639px),(max-width:859px) and (orientation:portrait)");
+const cv=$("stage"), wrap=$("stagewrap");
+const gl=cv.getContext("webgl",{antialias:true,alpha:false,preserveDrawingBuffer:true});
+if(!gl){wrap.innerHTML='<p style="color:#C7CEDA;font:14px/1.6 system-ui;padding:40px 28px;margin:0">'+
+ 'This browser has WebGL disabled, so the 3D models cannot draw. The Specs and Story tabs still describe each device.</p>';}
+
+/* ---- glossary: an all-caps term is a whole word, any other matches at a word start ---- */
+const GLOSS=((GUIDE&&GUIDE.glossary)||[]).map(t=>({term:t.term,name:t.name,text:t.text,
+  res:t.match.map(m=>m===m.toUpperCase()?new RegExp("\\b"+reEsc(m)+"\\b"):new RegExp("\\b"+reEsc(m),"i"))}));
+const termsIn=text=>GLOSS.filter(t=>t.res.some(r=>r.test(text)));
 
 /* ---- mat4 ---- */
 const sub=(a,b)=>[a[0]-b[0],a[1]-b[1],a[2]-b[2]],dot=(a,b)=>a[0]*b[0]+a[1]*b[1]+a[2]*b[2];
@@ -352,10 +481,83 @@ const M4={mul:(a,b)=>{const o=new Float32Array(16);for(let i=0;i<4;i++)for(let j
  persp:(f,ar,n,fa)=>{const t=1/Math.tan(f/2);return new Float32Array([t/ar,0,0,0,0,t,0,0,0,0,(fa+n)/(n-fa),-1,0,0,2*fa*n/(n-fa),0]);},
  look:(e,c,u)=>{const z=nrm(sub(e,c)),x=nrm(cross(u,z)),y=cross(z,x);
    return new Float32Array([x[0],y[0],z[0],0,x[1],y[1],z[1],0,x[2],y[2],z[2],0,-dot(x,e),-dot(y,e),-dot(z,e),1]);}};
+const FOV=0.62, TANH=Math.tan(FOV/2);
+
+/* ---- scenes: every device, and every step of every fabrication flow, built on demand ---- */
+const bnds=b=>({lo:[b.x[0],b.y[0],b.z[0]],hi:[b.x[1],b.y[1],b.z[1]]});
+const viewsOf=o=>Object.entries(o||{}).map(([k,v])=>({k,n:v.n,s:v.s,az:v.az,el:v.el,r:v.r,tgt:v.tgt,
+  clip:v.clip||null,off:v.off||[],scale:v.scale||"site"}));
+const mkPart=pj=>({id:pj.id,name:pj.name,material:pj.material,group:pj.group||"Other",net:pj.net||"body",
+  boxes:pj.boxes,explode:pj.explode,on:true});
+function prep(sc){
+  const C=[(sc.lo[0]+sc.hi[0])/2,(sc.lo[1]+sc.hi[1])/2,(sc.lo[2]+sc.hi[2])/2];
+  sc.parts.forEach(p=>{
+    p.aabb=p.boxes.map(b=>{const[cx,cy,cz,dx,dy,dz]=b,e=p.explode;let ev;
+      if(Array.isArray(e)&&e[0]==="radial"){const d=nrm([0,cy-e[1],cz-(e[3]||0)]);ev=[d[0]*e[2],d[1]*e[2],d[2]*e[2]];}
+      else if(Array.isArray(e))ev=e;else ev=nrm([cx-C[0],cy-C[1],cz-C[2]]).map(v=>v*1.3);
+      return{lo:[cx-dx/2,cy-dy/2,cz-dz/2],hi:[cx+dx/2,cy+dy/2,cz+dz/2],ev};});
+    p.yr=[Math.min(...p.boxes.map(b=>b[1]-b[4]/2)),Math.max(...p.boxes.map(b=>b[1]+b[4]/2))];});
+  return sc;}
+const SCN={};
+function scene(key){
+  if(SCN[key])return SCN[key];
+  let sc;
+  if(key.indexOf("proc_")===0)sc=stepScene(key);
+  else{const d=DEVJ[key];
+    sc={key,name:d.name,tag:d.tag||"",blurb:d.blurb||"",note:d.note||"",logic:!!d.logic,style:d.style||"",
+      ...bnds(d.bounds),parts:d.parts.map(mkPart),views:viewsOf(d.views),dims:d.dims||[],groups:d.groups||[],
+      callouts:d.callouts||[],story:d.story||""};}
+  return SCN[key]=prep(sc);}
+
+const FLOWS={};
+const stepKey=(dk,i)=>"proc_"+dk+"@"+i;
+function flow(dk){
+  if(FLOWS[dk])return FLOWS[dk];
+  const fj=FLOWJ[dk]; if(!fj)return null;
+  const own=!!(fj.lesson||fj.own);
+  if(!own&&!DEVJ[dk])return null;
+  const steps=fj.steps.map((s,i)=>({id:s.id,title:s.title,body:s.body||"",view:s.view||"iso",figs:s.figs||[],
+    match:s.match||"",subs:s.subs||[],omitted:s.omitted||[],level:s.level||"core",isOp:s.level==="op",of:s.of||"",
+    label:s.label||String(i+1),scale:s.scale||"site",route:s.route||null,labels:s.labels||{},src:s.src||[],
+    deposit:s.deposit||[],groups:s.deposit_groups||[],regions:s.regions||{}}));
+  const routes=(fj.routes||[]).map(r=>({id:r.id,name:r.name,note:r.note||"",def:!!r.default}));
+  const f={device:dk,fj,own,steps,routes,keys:steps.map((_,i)=>stepKey(dk,i)),
+    defaultRoute:((routes.find(r=>r.def)||routes[0])||{}).id||"",
+    routeTitle:fj.route_title||"How this is patterned",routeJoin:fj.route_join||"the next step",
+    routeKind:fj.route_kind||"",badge:fj.badge||{},badgeNote:fj.badge_note||{},match:fj.match||{},
+    refs:fj.refs||[],sites:fj.sites||[],site:fj.site||"",lessonLabel:fj.lesson_label||"",
+    scope:fj.scope||"",branch:fj.branch||"",figures:fj.figures||"",pitchwalk:fj.pitchwalk||null,
+    coreCount:steps.filter(s=>!s.isOp).length};
+  f.routeOr=r=>routes.some(x=>x.id===r)?r:f.defaultRoute;
+  f.onRoute=(i,r)=>{const sr=steps[i].route;return sr==null||sr===f.routeOr(r);};
+  f.next=(from,dir,ops,r)=>{for(let i=from+dir;i>=0&&i<steps.length;i+=dir)
+    if((ops||!steps[i].isOp)&&f.onRoute(i,r))return i;return null;};
+  return FLOWS[dk]=f;}
+const labelIn=(st,r)=>st.labels[r]||st.label;
+function tagOf(st,r){const l=labelIn(st,r);
+  return st.scale==="tile"?"Process · 2 × 2 tile · step "+l:st.scale==="field"?"Process · line field · step "+l:
+         st.scale==="pair"?"Process · nFET + pFET · step "+l:"Process · step "+l;}
+function stepScene(key){
+  const at=key.lastIndexOf("@"),dk=key.slice(5,at),i=+key.slice(at+1),f=flow(dk),fj=f.fj,st=f.steps[i],sj=fj.steps[i];
+  let base;
+  if(f.own)base={name:fj.name||dk,...bnds(fj.bounds),views:[],groups:[],story:fj.scope||"",style:""};
+  else{const d=DEVJ[dk];base={name:d.name,...bnds(d.bounds),views:viewsOf(d.views),groups:d.groups||[],
+    story:d.story||"",style:d.style||""};}
+  if(!f.finals){f.finals={};(fj.final||(DEVJ[dk]&&DEVJ[dk].parts)||[]).forEach(p=>f.finals[p.id]=p);}
+  const parts=[];
+  sj.parts.forEach(r=>{const pj=typeof r==="string"?f.finals[r]:r;if(pj)parts.push(mkPart(pj));});
+  const present=new Set(parts.map(p=>p.group));
+  const groups=base.groups.filter(g=>present.has(g))
+    .concat([...new Set(parts.map(p=>p.group))].filter(g=>base.groups.indexOf(g)<0));
+  const b=sj.bounds?bnds(sj.bounds):{lo:base.lo,hi:base.hi};
+  let views=base.views.concat(viewsOf(fj.views)).filter(v=>v.scale===st.scale);
+  if(!views.length)views=base.views.concat(viewsOf(fj.views));
+  return{key,name:base.name,tag:"",blurb:st.title,note:"",logic:false,style:base.style,lo:b.lo,hi:b.hi,parts,views,
+    dims:[],groups,callouts:[],story:fj.why||base.story,flow:f,stepIndex:i,step:st};}
 
 /* ---- shaders ---- */
-const VS=`attribute vec3 aPos,aNrm,aCol,aExp;uniform mat4 uVP;uniform float uE;varying vec3 vN,vC,vW;
-void main(){vec3 p=aPos+aExp*uE;vW=p;vN=aNrm;vC=aCol;gl_Position=uVP*vec4(p,1.0);}`;
+const VS=`attribute vec3 aPos,aNrm,aCol,aExp;uniform mat4 uVP;uniform float uE;uniform vec3 uGLo,uGHi;varying vec3 vN,vC,vW;
+void main(){vec3 p=clamp(aPos+aExp*uE,uGLo,uGHi);vW=p;vN=aNrm;vC=aCol;gl_Position=uVP*vec4(p,1.0);}`;
 const FS=`precision highp float;varying vec3 vN,vC,vW;uniform vec3 uHi,uAdd,uTex;uniform float uA,uTint,uClip,uFlat;
 float h31(vec3 p){return fract(sin(dot(p,vec3(12.9898,78.233,37.719)))*43758.5453);}
 float vn(vec3 p){vec3 i=floor(p),f=fract(p);f=f*f*(3.0-2.0*f);
@@ -378,349 +580,332 @@ void main(){ if(uClip>0.5){if(vW.x>uHi.x+0.001||vW.y>uHi.y+0.001||vW.z>uHi.z+0.0
    if(uTex.z>0.5) g*=1.0+0.055*sin(vW.x*0.55+vW.z*0.18+nz*2.2);
  }
  gl_FragColor=vec4(pow(clamp(vC*(d+rim)*uTint*g+uAdd,0.0,1.5),vec3(0.95)),uA);}`;
-function sh(t,s){const o=gl.createShader(t);gl.shaderSource(o,s);gl.compileShader(o);
- if(!gl.getShaderParameter(o,gl.COMPILE_STATUS))console.error(gl.getShaderInfoLog(o));return o;}
-const PROG=gl.createProgram();
-gl.attachShader(PROG,sh(gl.VERTEX_SHADER,VS));gl.attachShader(PROG,sh(gl.FRAGMENT_SHADER,FS));
-gl.linkProgram(PROG);gl.useProgram(PROG);
-const A={pos:gl.getAttribLocation(PROG,"aPos"),nrm:gl.getAttribLocation(PROG,"aNrm"),
-         col:gl.getAttribLocation(PROG,"aCol"),exp:gl.getAttribLocation(PROG,"aExp")};
-const U={vp:gl.getUniformLocation(PROG,"uVP"),e:gl.getUniformLocation(PROG,"uE"),
-  hi:gl.getUniformLocation(PROG,"uHi"),a:gl.getUniformLocation(PROG,"uA"),
-  tint:gl.getUniformLocation(PROG,"uTint"),clip:gl.getUniformLocation(PROG,"uClip"),
-  add:gl.getUniformLocation(PROG,"uAdd"),flat:gl.getUniformLocation(PROG,"uFlat"),tex:gl.getUniformLocation(PROG,"uTex")};
-
-/* ---- surface text: layer names lying on the faces they belong to ---- */
 const TVS=`attribute vec3 aP;attribute vec2 aT;uniform mat4 uVP;varying vec2 vT;
 void main(){vT=aT;gl_Position=uVP*vec4(aP,1.0);}`;
 const TFS=`precision mediump float;varying vec2 vT;uniform sampler2D uS;uniform float uA;
 void main(){vec4 t=texture2D(uS,vT);if(t.a<0.02)discard;gl_FragColor=vec4(t.rgb,t.a*uA);}`;
-const TPROG=gl.createProgram();
-gl.attachShader(TPROG,sh(gl.VERTEX_SHADER,TVS));gl.attachShader(TPROG,sh(gl.FRAGMENT_SHADER,TFS));
-gl.linkProgram(TPROG);
-const TA={p:gl.getAttribLocation(TPROG,"aP"),t:gl.getAttribLocation(TPROG,"aT")};
-const TU={vp:gl.getUniformLocation(TPROG,"uVP"),s:gl.getUniformLocation(TPROG,"uS"),
-          a:gl.getUniformLocation(TPROG,"uA")};
-const TB={p:gl.createBuffer(),t:gl.createBuffer()};
-
-// One atlas holding every label string, drawn white with a dark halo so it stays
-// readable whichever colour of slab it ends up lying on.
-const GLYPH={}, ATLAS=document.createElement("canvas");
-(function buildAtlas(){
-  const names=new Set();
-  DEVS.forEach(d=>(d.callouts||[]).forEach(c=>{if(c.lead)names.add(c.label);}));
-  const list=[...names], PAD=10, FS=72, ctx0=ATLAS.getContext("2d");
-  ctx0.font=`600 ${FS}px "IBM Plex Sans","Segoe UI",system-ui,sans-serif`;
+let PROG,TPROG,A,U,TA,TU,TB,TEX,CB,CL;
+const GLYPH={};
+function sh(t,s){const o=gl.createShader(t);gl.shaderSource(o,s);gl.compileShader(o);
+ if(!gl.getShaderParameter(o,gl.COMPILE_STATUS))console.error(gl.getShaderInfoLog(o));return o;}
+function initGL(){
+  PROG=gl.createProgram();
+  gl.attachShader(PROG,sh(gl.VERTEX_SHADER,VS));gl.attachShader(PROG,sh(gl.FRAGMENT_SHADER,FS));
+  gl.linkProgram(PROG);gl.useProgram(PROG);
+  A={pos:gl.getAttribLocation(PROG,"aPos"),nrm:gl.getAttribLocation(PROG,"aNrm"),
+     col:gl.getAttribLocation(PROG,"aCol"),exp:gl.getAttribLocation(PROG,"aExp")};
+  const u=n=>gl.getUniformLocation(PROG,n);
+  U={vp:u("uVP"),e:u("uE"),hi:u("uHi"),a:u("uA"),tint:u("uTint"),clip:u("uClip"),add:u("uAdd"),flat:u("uFlat"),
+     tex:u("uTex"),glo:u("uGLo"),ghi:u("uGHi")};
+  TPROG=gl.createProgram();
+  gl.attachShader(TPROG,sh(gl.VERTEX_SHADER,TVS));gl.attachShader(TPROG,sh(gl.FRAGMENT_SHADER,TFS));
+  gl.linkProgram(TPROG);
+  TA={p:gl.getAttribLocation(TPROG,"aP"),t:gl.getAttribLocation(TPROG,"aT")};
+  TU={vp:gl.getUniformLocation(TPROG,"uVP"),s:gl.getUniformLocation(TPROG,"uS"),a:gl.getUniformLocation(TPROG,"uA")};
+  TB={p:gl.createBuffer(),t:gl.createBuffer()};
+  CB={p:gl.createBuffer(),n:gl.createBuffer(),c:gl.createBuffer(),e:gl.createBuffer()};
+  CL={p:gl.createBuffer(),e:gl.createBuffer()};
+  // One atlas holding every surface-label string, drawn white with a dark halo so it
+  // stays readable whichever colour of slab it lies on.
+  const names=new Set(), ATLAS=document.createElement("canvas");
+  DATA.devices.forEach(d=>(d.callouts||[]).forEach(c=>{if(c.lead)names.add(c.label);}));
+  const list=[...names], PAD=10, FSZ=72, ctx0=ATLAS.getContext("2d");
+  const font=`600 ${FSZ}px "IBM Plex Sans","Segoe UI",system-ui,sans-serif`;
+  ctx0.font=font;
   const widths=list.map(t=>Math.ceil(ctx0.measureText(t).width));
-  const rowH=FS+PAD*2, cols=Math.max(1,Math.ceil(Math.sqrt(list.length)));
-  let W=0,x=0,y=0,rows=1;
-  const place=[];
-  for(let i=0;i<list.length;i++){
-    const w=widths[i]+PAD*2;
+  const rowH=FSZ+PAD*2, cols=Math.max(1,Math.ceil(Math.sqrt(list.length)));
+  let Wd=0,x=0,y=0,rows=1;const place=[];
+  for(let i=0;i<list.length;i++){const w=widths[i]+PAD*2;
     if(i%cols===0&&i>0){x=0;y+=rowH;rows++;}
-    place.push([x,y,w]);x+=w;W=Math.max(W,x);}
-  ATLAS.width=Math.max(2,W);ATLAS.height=Math.max(2,rows*rowH);
+    place.push([x,y,w]);x+=w;Wd=Math.max(Wd,x);}
+  ATLAS.width=Math.max(2,Wd);ATLAS.height=Math.max(2,rows*rowH);
   const ctx=ATLAS.getContext("2d");
-  ctx.font=`600 ${FS}px "IBM Plex Sans","Segoe UI",system-ui,sans-serif`;
-  ctx.textBaseline="middle";ctx.lineJoin="round";
-  list.forEach((t,i)=>{const [px,py,w]=place[i];
-    ctx.lineWidth=9;ctx.strokeStyle="rgba(9,13,19,0.92)";
-    ctx.strokeText(t,px+PAD,py+rowH/2);
+  ctx.font=font;ctx.textBaseline="middle";ctx.lineJoin="round";
+  list.forEach((t,i)=>{const[px,py,w]=place[i];
+    ctx.lineWidth=9;ctx.strokeStyle="rgba(9,13,19,0.92)";ctx.strokeText(t,px+PAD,py+rowH/2);
     ctx.fillStyle="#FFFFFF";ctx.fillText(t,px+PAD,py+rowH/2);
-    GLYPH[t]={u0:px/ATLAS.width,v0:py/ATLAS.height,
-              u1:(px+w)/ATLAS.width,v1:(py+rowH)/ATLAS.height,
-              aspect:w/rowH};});
-})();
-const TEX=gl.createTexture();
-gl.bindTexture(gl.TEXTURE_2D,TEX);
-gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,gl.RGBA,gl.UNSIGNED_BYTE,ATLAS);
-gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,gl.LINEAR);
-gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MAG_FILTER,gl.LINEAR);
-gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_S,gl.CLAMP_TO_EDGE);
-gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_T,gl.CLAMP_TO_EDGE);
+    GLYPH[t]={u0:px/ATLAS.width,v0:py/ATLAS.height,u1:(px+w)/ATLAS.width,v1:(py+rowH)/ATLAS.height,aspect:w/rowH};});
+  TEX=gl.createTexture();
+  gl.bindTexture(gl.TEXTURE_2D,TEX);
+  gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,gl.RGBA,gl.UNSIGNED_BYTE,ATLAS);
+  gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,gl.LINEAR);
+  gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MAG_FILTER,gl.LINEAR);
+  gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_S,gl.CLAMP_TO_EDGE);
+  gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_T,gl.CLAMP_TO_EDGE);
+}
 
-/* ---- geometry: every device in one buffer ---- */
+/* ---- meshes: one set of buffers per scene, so no scene outgrows 16-bit indices;
+       the least recently drawn are freed once more than MAXMESH are held ---- */
 const hex=h=>[parseInt(h.slice(1,3),16)/255,parseInt(h.slice(3,5),16)/255,parseInt(h.slice(5,7),16)/255];
 const FACES=[[[0,0,1],[[-1,-1,1],[1,-1,1],[1,1,1],[-1,1,1]]],[[0,0,-1],[[1,-1,-1],[-1,-1,-1],[-1,1,-1],[1,1,-1]]],
  [[1,0,0],[[1,-1,1],[1,-1,-1],[1,1,-1],[1,1,1]]],[[-1,0,0],[[-1,-1,-1],[-1,-1,1],[-1,1,1],[-1,1,-1]]],
  [[0,1,0],[[-1,1,1],[1,1,1],[1,1,-1],[-1,1,-1]]],[[0,-1,0],[[-1,-1,-1],[1,-1,-1],[1,-1,1],[-1,-1,1]]]];
-const pos=[],nrmA=[],colA=[],expA=[],idx=[];let vc=0;
-const lpos=[],lexp=[];let lvc=0;
 const EDG=[[0,1],[2,3],[4,5],[6,7],[0,2],[1,3],[4,6],[5,7],[0,4],[1,5],[2,6],[3,7]];
-DEVS.forEach(dev=>{
-  const B=dev.bounds, CEN=[(B.x[0]+B.x[1])/2,(B.y[0]+B.y[1])/2,(B.z[0]+B.z[1])/2];
-  dev.parts.forEach(p=>{
-    const c=hex(MAT[p.material].color);p.start=idx.length;p.lstart=lvc;p.aabb=[];p.dev=dev.key;p.on=true;
-    p.boxes.forEach(b=>{
-      const[cx,cy,cz,dx,dy,dz]=b,h=[dx/2,dy/2,dz/2];const e=p.explode;let ev;
-      if(Array.isArray(e)&&e[0]==="radial"){const zc=e[3]||0;const d=nrm([0,cy-e[1],cz-zc]);ev=[d[0]*e[2],d[1]*e[2],d[2]*e[2]];}
-      else if(Array.isArray(e))ev=e;else ev=nrm([cx-CEN[0],cy-CEN[1],cz-CEN[2]]).map(v=>v*1.3);
-      p.aabb.push({lo:[cx-h[0],cy-h[1],cz-h[2]],hi:[cx+h[0],cy+h[1],cz+h[2]],ev:ev});
-      const cn=[];
+const MESH=new Map(), MAXMESH=36;
+function buf(d){const b=gl.createBuffer();gl.bindBuffer(gl.ARRAY_BUFFER,b);
+  gl.bufferData(gl.ARRAY_BUFFER,new Float32Array(d),gl.STATIC_DRAW);return b;}
+function mesh(sc){
+  if(!gl)return null;
+  let m=MESH.get(sc.key);
+  if(m){MESH.delete(sc.key);MESH.set(sc.key,m);return m;}
+  const pos=[],nr=[],col=[],ex=[],idx=[],lp=[],le=[];let vc=0,lvc=0;
+  sc.parts.forEach(p=>{
+    const c=hex((MAT[p.material]||{color:"#FF00FF"}).color);p.start=idx.length;p.lstart=lvc;
+    p.boxes.forEach((b,bi)=>{const[cx,cy,cz,dx,dy,dz]=b,h=[dx/2,dy/2,dz/2],ev=p.aabb[bi].ev,cn=[];
       for(let k=0;k<8;k++)cn.push([cx+(k&1?h[0]:-h[0]),cy+(k&2?h[1]:-h[1]),cz+(k&4?h[2]:-h[2])]);
-      EDG.forEach(([a2,b2])=>{[cn[a2],cn[b2]].forEach(v=>{
-        lpos.push(v[0],v[1],v[2]);lexp.push(ev[0],ev[1],ev[2]);lvc++;});});
+      EDG.forEach(([a,b2])=>{[cn[a],cn[b2]].forEach(v=>{lp.push(v[0],v[1],v[2]);le.push(ev[0],ev[1],ev[2]);lvc++;});});
       FACES.forEach(([n,q])=>{const base=vc;
-        q.forEach(s=>{pos.push(cx+s[0]*h[0],cy+s[1]*h[1],cz+s[2]*h[2]);
-          nrmA.push(n[0],n[1],n[2]);colA.push(c[0],c[1],c[2]);expA.push(ev[0],ev[1],ev[2]);vc++;});
-        idx.push(base,base+1,base+2,base,base+2,base+3);});
-    });
-    p.count=idx.length-p.start;p.lcount=lvc-p.lstart;
-  });
-});
-function mkbuf(d,loc,n){const b=gl.createBuffer();gl.bindBuffer(gl.ARRAY_BUFFER,b);
-  gl.bufferData(gl.ARRAY_BUFFER,new Float32Array(d),gl.STATIC_DRAW);
-  gl.enableVertexAttribArray(loc);gl.vertexAttribPointer(loc,n,gl.FLOAT,false,0,0);return b;}
-const SB={p:mkbuf(pos,A.pos,3),n:mkbuf(nrmA,A.nrm,3),c:mkbuf(colA,A.col,3),e:mkbuf(expA,A.exp,3)};
-const LB={p:mkbuf(lpos,A.pos,3),e:mkbuf(lexp,A.exp,3)};
-const IB=gl.createBuffer();gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER,IB);
-gl.bufferData(gl.ELEMENT_ARRAY_BUFFER,new Uint16Array(idx),gl.STATIC_DRAW);
-const CB={p:gl.createBuffer(),n:gl.createBuffer(),c:gl.createBuffer(),e:gl.createBuffer()};
-const CL={p:gl.createBuffer(),e:gl.createBuffer()};let capLN=0;   // outlines for the cut faces
-let capN=0;
-const bindSet=o=>{const f=(b,l,n)=>{gl.bindBuffer(gl.ARRAY_BUFFER,b);gl.enableVertexAttribArray(l);
-  gl.vertexAttribPointer(l,n,gl.FLOAT,false,0,0);};f(o.p,A.pos,3);f(o.n,A.nrm,3);f(o.c,A.col,3);f(o.e,A.exp,3);};
+        q.forEach(s=>{pos.push(cx+s[0]*h[0],cy+s[1]*h[1],cz+s[2]*h[2]);nr.push(n[0],n[1],n[2]);
+          col.push(c[0],c[1],c[2]);ex.push(ev[0],ev[1],ev[2]);vc++;});
+        idx.push(base,base+1,base+2,base,base+2,base+3);});});
+    p.count=idx.length-p.start;p.lcount=lvc-p.lstart;});
+  m={p:buf(pos),n:buf(nr),c:buf(col),e:buf(ex),lp:buf(lp),le:buf(le),ib:gl.createBuffer()};
+  gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER,m.ib);
+  gl.bufferData(gl.ELEMENT_ARRAY_BUFFER,new Uint16Array(idx),gl.STATIC_DRAW);
+  MESH.set(sc.key,m);
+  for(const[k,o]of MESH){ if(MESH.size<=MAXMESH)break;
+    if(k===SC.key||(AN.fade&&k===AN.fade.key)||k===sc.key)continue;
+    [o.p,o.n,o.c,o.e,o.lp,o.le,o.ib].forEach(b=>gl.deleteBuffer(b));MESH.delete(k);}
+  return m;}
+function attr(b,l,n){gl.bindBuffer(gl.ARRAY_BUFFER,b);gl.enableVertexAttribArray(l);gl.vertexAttribPointer(l,n,gl.FLOAT,false,0,0);}
+function bindMesh(m){attr(m.p,A.pos,3);attr(m.n,A.nrm,3);attr(m.c,A.col,3);attr(m.e,A.exp,3);
+  gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER,m.ib);}
+function bindCaps(){attr(CB.p,A.pos,3);attr(CB.n,A.nrm,3);attr(CB.c,A.col,3);attr(CB.e,A.exp,3);}
 
-/* ---- surface texture (procedural: no image assets, works everywhere) ---- */
+/* ---- surface texture (procedural: no image assets) ---- */
 const GATE_FILLS=new Set(["mo","wfill","cofill"]);
-const TEXSET=[
-  [["mo","wfill","cofill","copper","tin","nwf","cobalt","tungsten","tisi","md","po","vd","vg","m0"],[0.10,0.28,1]],
-  [["silicon","sige","nanowire"],                                   [0.09,0.40,0]],
-  [["sio2","highk","si3n4","sibcn","lowk","alox","tiox","wall","mdi","bond","fox"],[0.07,0.18,0]],
-  [["pwell","nwell"],                                               [0.055,0.10,0]]];
 const TEXMAP={};
-TEXSET.forEach(([keys,v])=>keys.forEach(k=>{TEXMAP[k]=v;}));
-const NOTEX=[0,1,0];
-const texOf=mat=>S.tex?(TEXMAP[mat]||[0.06,0.3,0]):NOTEX;
+[[["mo","wfill","cofill","copper","tin","nwf","cobalt","tungsten","tisi","md","po","vd","vg","m0"],[0.10,0.28,1]],
+ [["silicon","sige","nanowire"],[0.09,0.40,0]],
+ [["sio2","highk","si3n4","sibcn","lowk","alox","tiox","wall","mdi","bond","fox"],[0.07,0.18,0]],
+ [["pwell","nwell"],[0.055,0.10,0]]].forEach(([keys,v])=>keys.forEach(k=>{TEXMAP[k]=v;}));
+const texOf=mat=>S.tex?(TEXMAP[mat]||[0.06,0.3,0]):[0,1,0];
 
-/* ---- logic ---- */
-const HIC=[0.32,0.19,0.03], LOC=[0.02,0.18,0.23], NIL=[0,0,0];
-const HIC2=[0.16,0.10,0.02], LOC2=[0.01,0.09,0.12];   // flat scenes take half the glow
-const PAR_A=[0.34,0.16,0.02], PAR_B=[0.02,0.20,0.26];   // gate side / the other side
-function style(p){
-  if(S.par){                                   // a parasitic is selected: only its two
-    const t=S.par;                             // conductors stay lit, everything else drops
-    if(t.a.indexOf(p.id)>=0) return [1.25,PAR_A];
-    if(t.b.indexOf(p.id)>=0) return [1.25,PAR_B];
-    if(t.via.indexOf(p.id)>=0) return [1.1,NIL];
-    return [0.30,NIL];
-  }
-  if(!DEV.logic) return [1,NIL];
-  const F=DEV.style==="schematic", H=F?HIC2:HIC, L=F?LOC2:LOC, dim=F?0.62:0.38;
+/* ---- logic colours ---- */
+const HIC=[0.32,0.19,0.03],LOC=[0.02,0.18,0.23],NIL=[0,0,0],HIC2=[0.16,0.10,0.02],LOC2=[0.01,0.09,0.12];
+function style(sc,p){
+  if(!sc.logic)return[1,NIL];
+  const F=sc.style==="schematic",H=F?HIC2:HIC,L=F?LOC2:LOC,dim=F?0.62:0.38;
   switch(p.net){
-    case "vdd": return [1,H];
-    case "gnd": return [1,L];
-    case "in":  return [1,S.inp?H:L];
-    case "out": return [1,S.inp?L:H];
+    case "vdd":return[1,H];
+    case "gnd":return[1,L];
+    case "in":return[1,S.inp?H:L];
+    case "out":return[1,S.inp?L:H];
     // on the flat pastel palette a colour wash reads as "darker", so channels use brightness only
-    case "chan_p": return F?(S.inp?[0.50,NIL]:[1.22,NIL]):(S.inp?[dim,NIL]:[1,H]);
-    case "chan_n": return F?(S.inp?[1.22,NIL]:[0.50,NIL]):(S.inp?[1,L]:[dim,NIL]);
-    default: return [1,NIL];
-  }}
+    case "chan_p":return F?(S.inp?[0.50,NIL]:[1.22,NIL]):(S.inp?[dim,NIL]:[1,H]);
+    case "chan_n":return F?(S.inp?[1.22,NIL]:[0.50,NIL]):(S.inp?[1,L]:[dim,NIL]);
+    default:return[1,NIL];}}
+
 /* ---- state ---- */
-const S={key:"fin",inp:0,par:null,tex:true,edges:true,lightBg:false,az:-.76,el:.36,r:300,tgt:[0,40,0],ex:0,ghost:false,dims:true,spin:false,
-         clip:[0,0,0],view:"iso",lset:"iso"};
-let DEV=byKey.fin, HOT=null;
+const S={inp:0,tex:true,edges:true,lightBg:false,az:-.76,el:.36,r:300,tgt:[0,40,0],ex:0,ghost:false,dims:true,
+  spin:false,cf:[1,1,1],clip:[1e9,1e9,1e9],view:null,lset:null};
+let SC=null,HOT=null,CAPS_DIRTY=true;
+// A step's transition: what changed glows; what it removed is etched off from the top by a
+// sweeping plane; zooming out grows the area; deposited films grow up group by group.
+const AN={fresh:new Set(),glow:0,fade:null,fadeParts:[],etch:1,etchTop:0,etchBottom:0,growBox:null,deposit:null};
+let HOLD=false;            // a pointer is on the model: process animations wait
 const OFFB=(p,i)=>{const a=p.aabb[i],e=S.ex;
-  return{lo:[a.lo[0]+a.ev[0]*e,a.lo[1]+a.ev[1]*e,a.lo[2]+a.ev[2]*e],
-         hi:[a.hi[0]+a.ev[0]*e,a.hi[1]+a.ev[1]*e,a.hi[2]+a.ev[2]*e]};};
+  return{lo:[a.lo[0]+a.ev[0]*e,a.lo[1]+a.ev[1]*e,a.lo[2]+a.ev[2]*e],hi:[a.hi[0]+a.ev[0]*e,a.hi[1]+a.ev[1]*e,a.hi[2]+a.ev[2]*e]};};
+function syncClip(){for(let ax=0;ax<3;ax++){const f=S.cf[ax];
+  S.clip[ax]=f>=0.999?1e9:SC.lo[ax]+(SC.hi[ax]-SC.lo[ax])*f;}CAPS_DIRTY=true;}
+
+/* ---- section caps: per part, so each is clamped with its own part while it grows ---- */
+let capN=0,capLN=0,capPart=[],capSpan=[],fadeCapFrom=0;
 function rebuildCaps(){
-  const pp=[],nn=[],cc=[],lp=[],B=DEV.bounds,HI=[B.x[1],B.y[1],B.z[1]];
-  const on=[S.clip[0]<HI[0]-.01,S.clip[1]<HI[1]-.01,S.clip[2]<HI[2]-.01];
-  if(on[0]||on[1]||on[2]) DEV.parts.forEach(p=>{ if(!p.on)return;
-    const st=style(p),c0=hex(MAT[p.material].color),
+  const pp=[],nn=[],cc=[],lp=[],on=[S.cf[0]<0.999,S.cf[1]<0.999,S.cf[2]<0.999];
+  capPart=[];capSpan=[];fadeCapFrom=0;
+  const faces=(sc,p)=>{const n0=pp.length/3,l0=lp.length/3;
+    const st=style(sc,p),c0=hex((MAT[p.material]||{color:"#FF00FF"}).color),
       c=[Math.min(1.4,c0[0]*st[0]+st[1][0]),Math.min(1.4,c0[1]*st[0]+st[1][1]),Math.min(1.4,c0[2]*st[0]+st[1][2])];
-    p.aabb.forEach((_,i)=>{const a=OFFB(p,i);
-      const lo=a.lo, hi=[Math.min(a.hi[0],S.clip[0]),Math.min(a.hi[1],S.clip[1]),Math.min(a.hi[2],S.clip[2])];
-      for(let ax=0;ax<3;ax++){ if(!on[ax])continue; const v=S.clip[ax];
+    p.aabb.forEach((_,i)=>{const a=OFFB(p,i),lo=a.lo,
+      hi=[Math.min(a.hi[0],S.clip[0]),Math.min(a.hi[1],S.clip[1]),Math.min(a.hi[2],S.clip[2])];
+      for(let ax=0;ax<3;ax++){if(!on[ax])continue;const v=S.clip[ax];
         if(v<=a.lo[ax]||v>=a.hi[ax])continue;
         const u=(ax+1)%3,w=(ax+2)%3;
         if(hi[u]<=lo[u]||hi[w]<=lo[w])continue;
         const n=[0,0,0];n[ax]=1;
         const mk=(su,sw)=>{const q=[0,0,0];q[ax]=v-0.002;q[u]=su?hi[u]:lo[u];q[w]=sw?hi[w]:lo[w];return q;};
-        const qd=(ax===1)?[mk(0,0),mk(0,1),mk(1,1),mk(1,0)]:[mk(0,0),mk(1,0),mk(1,1),mk(0,1)];
+        const qd=ax===1?[mk(0,0),mk(0,1),mk(1,1),mk(1,0)]:[mk(0,0),mk(1,0),mk(1,1),mk(0,1)];
         [0,1,2,0,2,3].forEach(k=>{pp.push(qd[k][0],qd[k][1],qd[k][2]);nn.push(n[0],n[1],n[2]);cc.push(c[0],c[1],c[2]);});
-        for(let k=0;k<4;k++){const q0=qd[k],q1=qd[(k+1)%4];   // border of this cross-section
-          lp.push(q0[0],q0[1],q0[2],q1[0],q1[1],q1[2]);}
-      }});});
-  gl.bindBuffer(gl.ARRAY_BUFFER,CB.p);gl.bufferData(gl.ARRAY_BUFFER,new Float32Array(pp),gl.DYNAMIC_DRAW);
-  gl.bindBuffer(gl.ARRAY_BUFFER,CB.n);gl.bufferData(gl.ARRAY_BUFFER,new Float32Array(nn),gl.DYNAMIC_DRAW);
-  gl.bindBuffer(gl.ARRAY_BUFFER,CB.c);gl.bufferData(gl.ARRAY_BUFFER,new Float32Array(cc),gl.DYNAMIC_DRAW);
-  gl.bindBuffer(gl.ARRAY_BUFFER,CB.e);gl.bufferData(gl.ARRAY_BUFFER,new Float32Array(pp.length),gl.DYNAMIC_DRAW);
-  gl.bindBuffer(gl.ARRAY_BUFFER,CL.p);gl.bufferData(gl.ARRAY_BUFFER,new Float32Array(lp),gl.DYNAMIC_DRAW);
-  gl.bindBuffer(gl.ARRAY_BUFFER,CL.e);gl.bufferData(gl.ARRAY_BUFFER,new Float32Array(lp.length),gl.DYNAMIC_DRAW);
-  capN=pp.length/3; capLN=lp.length/3;}
+        for(let k=0;k<4;k++){const q0=qd[k],q1=qd[(k+1)%4];lp.push(q0[0],q0[1],q0[2],q1[0],q1[1],q1[2]);}}});
+    const n1=pp.length/3,l1=lp.length/3;
+    if(n1>n0||l1>l0){capPart.push(p);capSpan.push([n0,n1-n0,l0,l1-l0]);}};
+  if(on[0]||on[1]||on[2]){
+    SC.parts.forEach(p=>{if(p.on)faces(SC,p);});
+    fadeCapFrom=capPart.length;
+    // what the step is etching away is cut open too, so its faces sink with it
+    if(AN.fade&&AN.etch<1)AN.fadeParts.forEach(p=>faces(AN.fade,p));}
+  const put=(b,d)=>{gl.bindBuffer(gl.ARRAY_BUFFER,b);gl.bufferData(gl.ARRAY_BUFFER,new Float32Array(d),gl.DYNAMIC_DRAW);};
+  put(CB.p,pp);put(CB.n,nn);put(CB.c,cc);put(CB.e,new Array(pp.length).fill(0));
+  put(CL.p,lp);put(CL.e,new Array(lp.length).fill(0));
+  capN=pp.length/3;capLN=lp.length/3;}
+
+/* ---- growing and depositing ---- */
+function unclamped(){gl.uniform3f(U.glo,-1e7,-1e7,-1e7);gl.uniform3f(U.ghi,1e7,1e7,1e7);}
+/** Sets p's clamp box from the growing region and its own deposition; false while p is a
+ *  film not yet deposited, which is then not drawn. */
+function clampPart(p){
+  const gb=AN.growBox,d=AN.deposit?AN.deposit.get(p):undefined;
+  if(!gb&&d===undefined){unclamped();return true;}
+  if(d!==undefined&&d<=0)return false;
+  let hy=gb?gb[4]:1e7;
+  if(d!==undefined){const lift=(p.aabb[0]?p.aabb[0].ev[1]:0)*S.ex;hy=Math.min(hy,p.yr[0]+lift+(p.yr[1]-p.yr[0])*d);}
+  if(gb){gl.uniform3f(U.glo,gb[0],gb[1],gb[2]);gl.uniform3f(U.ghi,gb[3],hy,gb[5]);}
+  else{gl.uniform3f(U.glo,-1e7,-1e7,-1e7);gl.uniform3f(U.ghi,1e7,hy,1e7);}
+  return true;}
 
 /* ---- render ---- */
-let VP=new Float32Array(16),W=1,H=1;
+let VP=new Float32Array(16),W=1,H=1,OCC=0;
 const eye=()=>{const ce=Math.cos(S.el);
   return[S.tgt[0]+S.r*ce*Math.sin(S.az),S.tgt[1]+S.r*Math.sin(S.el),S.tgt[2]+S.r*ce*Math.cos(S.az)];};
 function draw(){
+  if(!gl||!SC)return;
   const dpr=Math.min(devicePixelRatio||1,2),w=cv.clientWidth,h=cv.clientHeight;
+  if(!w||!h)return;
   if(cv.width!==Math.round(w*dpr)||cv.height!==Math.round(h*dpr)){cv.width=Math.round(w*dpr);cv.height=Math.round(h*dpr);}
   W=w;H=h;gl.viewport(0,0,cv.width,cv.height);
-  VP=M4.mul(M4.persp(0.62,W/H,8,6000),M4.look(eye(),S.tgt,[0,1,0]));
-  const SCH=DEV.style==="schematic";
+  if(CAPS_DIRTY){rebuildCaps();CAPS_DIRTY=false;}
+  const sc=SC,e=eye();
+  // near and far hug what is drawn, so thin films keep their depth precision at a field's distance
+  let zn=1e9,zf=0;
+  for(const s of [sc,AN.fade]){if(!s)continue;
+    const c=[(s.lo[0]+s.hi[0])/2,(s.lo[1]+s.hi[1])/2,(s.lo[2]+s.hi[2])/2],dc=Math.hypot(e[0]-c[0],e[1]-c[1],e[2]-c[2]);
+    const rad=0.5*Math.hypot(s.hi[0]-s.lo[0],s.hi[1]-s.lo[1],s.hi[2]-s.lo[2])+64;
+    zn=Math.min(zn,Math.max(4,(dc-rad)*0.9));zf=Math.max(zf,dc+rad*1.1);}
+  // The sheet over the bottom of a phone stage: the picture is lifted to centre above it.
+  const T=new Float32Array([1,0,0,0,0,1,0,0,0,0,1,0,0,OCC/H,0,1]);
+  VP=M4.mul(M4.mul(T,M4.persp(FOV,W/H,zn,Math.max(zn*4,zf))),M4.look(e,S.tgt,[0,1,0]));
+  const SCH=sc.style==="schematic";
   if(S.lightBg)gl.clearColor(0.855,0.859,0.866,1);else gl.clearColor(0.051,0.063,0.082,1);
-  gl.uniform1f(U.flat,SCH?1:0);
   gl.enable(gl.DEPTH_TEST);gl.disable(gl.CULL_FACE);
   gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT);gl.useProgram(PROG);
-  gl.uniformMatrix4fv(U.vp,false,VP);gl.uniform1f(U.e,S.ex);gl.uniform1f(U.flat,DEV.style==="schematic"?1:0);
-  gl.uniform3f(U.hi,S.clip[0],S.clip[1],S.clip[2]);gl.uniform1f(U.clip,1);
-  bindSet(SB);gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER,IB);
+  gl.uniformMatrix4fv(U.vp,false,VP);gl.uniform1f(U.e,S.ex);gl.uniform1f(U.flat,SCH?1:0);
+  gl.uniform3f(U.hi,S.clip[0],S.clip[1],S.clip[2]);gl.uniform1f(U.clip,1);unclamped();
+  const m=mesh(sc);bindMesh(m);
   gl.enable(gl.BLEND);gl.blendFunc(gl.SRC_ALPHA,gl.ONE_MINUS_SRC_ALPHA);
   if(S.edges){gl.enable(gl.POLYGON_OFFSET_FILL);gl.polygonOffset(1.2,1.2);}
   const solid=[],ghost=[];
-  DEV.parts.forEach(p=>{if(!p.on)return;(S.ghost&&GATE_FILLS.has(p.material)?ghost:solid).push(p);});
-  solid.forEach(p=>{const st=style(p);const tx=texOf(p.material);
+  sc.parts.forEach(p=>{if(!p.on)return;(S.ghost&&GATE_FILLS.has(p.material)?ghost:solid).push(p);});
+  solid.forEach(p=>{if(!clampPart(p))return;
+    const st=style(sc,p),tx=texOf(p.material);
     gl.uniform3f(U.tex,tx[0],tx[1],tx[2]);gl.uniform1f(U.a,1);
-    gl.uniform1f(U.tint,p===HOT?st[0]*1.28:st[0]);
+    gl.uniform1f(U.tint,p===HOT?st[0]*1.28:(AN.glow>0&&AN.fresh.has(p)?st[0]*(1+0.4*AN.glow):st[0]));
     gl.uniform3f(U.add,st[1][0],st[1][1],st[1][2]);
     gl.drawElements(gl.TRIANGLES,p.count,gl.UNSIGNED_SHORT,p.start*2);});
-  gl.uniform3f(U.add,0,0,0);
+  gl.uniform3f(U.add,0,0,0);unclamped();
   if(capN){gl.uniform1f(U.clip,0);gl.uniform1f(U.a,1);gl.uniform1f(U.tint,1.02);
     gl.uniform3f(U.tex,S.tex?0.05:0,0.34,0);
-    bindSet(CB);gl.drawArrays(gl.TRIANGLES,0,capN);
-    bindSet(SB);gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER,IB);gl.uniform1f(U.clip,1);}
-  if(ghost.length){gl.depthMask(false);
-    gl.uniform3f(U.tex,0,1,0);
-    ghost.forEach(p=>{gl.uniform1f(U.a,0.16);gl.uniform1f(U.tint,1.3);gl.uniform3f(U.add,0,0,0);
+    bindCaps();
+    for(let i=0;i<fadeCapFrom;i++){const sp=capSpan[i];
+      if(!sp[1]||!clampPart(capPart[i]))continue;gl.drawArrays(gl.TRIANGLES,sp[0],sp[1]);}
+    unclamped();bindMesh(m);gl.uniform1f(U.clip,1);}
+  // What the step takes away is etched (or polished) off from the top: the old solid, cut
+  // by a plane sweeping down, pushed back in depth so shared faces show the new geometry.
+  const fs=AN.fade;
+  if(fs&&AN.etch<1&&AN.fadeParts.length){
+    const fm=mesh(fs);bindMesh(fm);
+    gl.enable(gl.POLYGON_OFFSET_FILL);gl.polygonOffset(3,3);
+    gl.uniform3f(U.tex,0,1,0);gl.uniform3f(U.add,0,0,0);gl.uniform1f(U.a,1);gl.uniform1f(U.tint,1);
+    const hy=AN.etchTop+(AN.etchBottom-AN.etchTop)*AN.etch;
+    gl.uniform3f(U.glo,-1e7,-1e7,-1e7);gl.uniform3f(U.ghi,1e7,hy,1e7);
+    AN.fadeParts.forEach(p=>gl.drawElements(gl.TRIANGLES,p.count,gl.UNSIGNED_SHORT,p.start*2));
+    if(capN&&fadeCapFrom<capPart.length){gl.uniform1f(U.clip,0);gl.uniform1f(U.tint,1.02);bindCaps();
+      for(let i=fadeCapFrom;i<capPart.length;i++){const sp=capSpan[i];if(sp[1])gl.drawArrays(gl.TRIANGLES,sp[0],sp[1]);}
+      gl.uniform1f(U.clip,1);}
+    unclamped();
+    if(S.edges)gl.polygonOffset(1.2,1.2);else gl.disable(gl.POLYGON_OFFSET_FILL);
+    bindMesh(m);}
+  if(ghost.length){gl.depthMask(false);gl.uniform3f(U.tex,0,1,0);
+    ghost.forEach(p=>{if(!clampPart(p))return;gl.uniform1f(U.a,0.16);gl.uniform1f(U.tint,1.3);gl.uniform3f(U.add,0,0,0);
       gl.drawElements(gl.TRIANGLES,p.count,gl.UNSIGNED_SHORT,p.start*2);});
-    gl.depthMask(true);}
+    gl.depthMask(true);unclamped();}
   if(S.edges){
     gl.disable(gl.POLYGON_OFFSET_FILL);
     const EC=S.lightBg?[0.16,0.19,0.24]:[0.09,0.12,0.17];
-    gl.bindBuffer(gl.ARRAY_BUFFER,LB.p);gl.enableVertexAttribArray(A.pos);
-    gl.vertexAttribPointer(A.pos,3,gl.FLOAT,false,0,0);
-    gl.bindBuffer(gl.ARRAY_BUFFER,LB.e);gl.enableVertexAttribArray(A.exp);
-    gl.vertexAttribPointer(A.exp,3,gl.FLOAT,false,0,0);
+    attr(m.lp,A.pos,3);attr(m.le,A.exp,3);
     gl.disableVertexAttribArray(A.nrm);gl.vertexAttrib3f(A.nrm,0,0,1);
     gl.disableVertexAttribArray(A.col);gl.vertexAttrib3f(A.col,0,0,0);
     gl.uniform1f(U.clip,1);gl.uniform1f(U.a,1);gl.uniform1f(U.tint,0);
     gl.uniform3f(U.tex,0,1,0);gl.uniform3f(U.add,EC[0],EC[1],EC[2]);
-    solid.forEach(p=>{if(p.lcount)gl.drawArrays(gl.LINES,p.lstart,p.lcount);});
+    solid.forEach(p=>{if(p.lcount&&clampPart(p))gl.drawArrays(gl.LINES,p.lstart,p.lcount);});
+    unclamped();
     if(capLN){                        // and round every cut face, so a section reads as a drawing
-      gl.bindBuffer(gl.ARRAY_BUFFER,CL.p);gl.vertexAttribPointer(A.pos,3,gl.FLOAT,false,0,0);
-      gl.bindBuffer(gl.ARRAY_BUFFER,CL.e);gl.vertexAttribPointer(A.exp,3,gl.FLOAT,false,0,0);
-      gl.uniform1f(U.clip,0);
-      gl.drawArrays(gl.LINES,0,capLN);
-      gl.uniform1f(U.clip,1);}
+      attr(CL.p,A.pos,3);attr(CL.e,A.exp,3);gl.uniform1f(U.clip,0);
+      for(let i=0;i<fadeCapFrom;i++){const sp=capSpan[i];
+        if(!sp[3]||!clampPart(capPart[i]))continue;gl.drawArrays(gl.LINES,sp[2],sp[3]);}
+      if(fs&&AN.etch<1&&fadeCapFrom<capPart.length){
+        gl.uniform3f(U.glo,-1e7,-1e7,-1e7);gl.uniform3f(U.ghi,1e7,AN.etchTop+(AN.etchBottom-AN.etchTop)*AN.etch,1e7);
+        for(let i=fadeCapFrom;i<capPart.length;i++){const sp=capSpan[i];if(sp[3])gl.drawArrays(gl.LINES,sp[2],sp[3]);}}
+      unclamped();gl.uniform1f(U.clip,1);}
     gl.enableVertexAttribArray(A.nrm);gl.enableVertexAttribArray(A.col);
-    gl.uniform3f(U.add,0,0,0);
-  }
+    gl.uniform3f(U.add,0,0,0);}
   surfaceText();
   gl.disable(gl.BLEND);labels();}
 let raf=0;
-const render=()=>{if(!raf)raf=requestAnimationFrame(()=>{raf=0;draw();});};
-function loop(){if(!S.spin)return;S.az+=RM?0:0.0032;setView(null);draw();requestAnimationFrame(loop);}
-addEventListener("resize",()=>{
-  if(S.view&&DEV.views[S.view])S.r=viewR(DEV.views[S.view]);
-  render();});
+const render=()=>{if(gl&&!raf)raf=requestAnimationFrame(()=>{raf=0;draw();});};
 
 /* ---- surface text: pick a face the camera can read, lay the name on it ---- */
-function boxesOf(pid){
-  const ids=Array.isArray(pid)?pid:[pid],out=[];
-  for(const id of ids){const part=DEV.parts.find(q=>q.id===id);
+function boxesOf(pid){const ids=Array.isArray(pid)?pid:[pid],out=[];
+  for(const id of ids){const part=SC.parts.find(q=>q.id===id);
     if(part)part.boxes.forEach((b,bi)=>out.push({part,bi,b,vol:b[3]*b[4]*b[5]}));}
   return out.sort((a,b)=>b.vol-a.vol).slice(0,2);}
-
 function textQuad(c,e,ctx){
-  const g=GLYPH[c.label]; if(!g)return null;
-  const B0=DEV.bounds;
-  const span0=Math.max(B0.x[1]-B0.x[0],B0.y[1]-B0.y[0],B0.z[1]-B0.z[0]);
-  const nom0=span0*0.042;
-  // how tall the name can be drawn if it runs along `da` with `ua` as its up
+  const g=GLYPH[c.label];if(!g)return null;
+  const span0=Math.max(SC.hi[0]-SC.lo[0],SC.hi[1]-SC.lo[1],SC.hi[2]-SC.lo[2]),nom0=span0*0.042;
   const fits=(h,da,ua)=>Math.min(nom0,h[ua]*2*0.62,h[da]*2*0.88/g.aspect);
   let best=null,bs=-1e9;
   for(const r of boxesOf(c.pid)){
-    const a=OFFB(r.part,r.bi);
-    const cen=[(a.lo[0]+a.hi[0])/2,(a.lo[1]+a.hi[1])/2,(a.lo[2]+a.hi[2])/2];
-    const h=[(a.hi[0]-a.lo[0])/2,(a.hi[1]-a.lo[1])/2,(a.hi[2]-a.lo[2])/2];
+    const a=OFFB(r.part,r.bi),cen=[(a.lo[0]+a.hi[0])/2,(a.lo[1]+a.hi[1])/2,(a.lo[2]+a.hi[2])/2],
+      h=[(a.hi[0]-a.lo[0])/2,(a.hi[1]-a.lo[1])/2,(a.hi[2]-a.lo[2])/2];
     for(let ax=0;ax<3;ax++)for(const sg of [-1,1]){
       const n=[0,0,0];n[ax]=sg;
       const fc=[cen[0],cen[1],cen[2]];fc[ax]+=sg*(h[ax]+0.35);
-      const tc=nrm([e[0]-fc[0],e[1]-fc[1],e[2]-fc[2]]);
-      const face=n[0]*tc[0]+n[1]*tc[1]+n[2]*tc[2];
-      if(face<0.18)continue;                        // edge-on or facing away
-      const u=(ax+1)%3,v=(ax+2)%3;
-      // text must run horizontally: on a side face that is whichever of x/z is in
-      // plane, with world up as the text's up; on a top face, the longer in-plane axis
-      let dA,uA;
+      const tc=nrm([e[0]-fc[0],e[1]-fc[1],e[2]-fc[2]]),face=n[0]*tc[0]+n[1]*tc[1]+n[2]*tc[2];
+      if(face<0.18)continue;
+      const u=(ax+1)%3,v=(ax+2)%3;let dA,uA;
       if(ax===1){
-        // A top face has no "up", so either in-plane axis could carry the name. Score
-        // each by how big the name comes out, nudged towards whichever reads more
-        // horizontally on screen: a tie goes to the readable one, but a narrow strip
-        // still gets its name along its length rather than losing it to a size cull.
-        const horiz=(axis)=>{const p0=proj(fc),d2=[0,0,0];d2[axis]=1;
-          const p1=proj([fc[0]+d2[0],fc[1]+d2[1],fc[2]+d2[2]]);
-          if(!p0||!p1)return 0.5;
-          const dx=Math.abs(p1[0]-p0[0]),dy=Math.abs(p1[1]-p0[1]);
-          return dx/(dx+dy+1e-6);};
-        const sU=fits(h,u,v)*(0.75+0.25*horiz(u));
-        const sV=fits(h,v,u)*(0.75+0.25*horiz(v));
-        dA = sU>=sV ? u : v; uA = dA===u?v:u;
-      } else    { dA=(u===1)?v:u;    uA=1; }
-      // Sample across the face rather than testing its centre alone: a slab is often
-      // half-hidden behind the next one, and the readable part is whatever is left.
+        const horiz=axis=>{const p0=proj(fc),d2=[0,0,0];d2[axis]=1;
+          const p1=proj([fc[0]+d2[0],fc[1]+d2[1],fc[2]+d2[2]]);if(!p0||!p1)return 0.5;
+          const dx=Math.abs(p1[0]-p0[0]),dy=Math.abs(p1[1]-p0[1]);return dx/(dx+dy+1e-6);};
+        const sU=fits(h,u,v)*(0.75+0.25*horiz(u)),sV=fits(h,v,u)*(0.75+0.25*horiz(v));
+        dA=sU>=sV?u:v;uA=dA===u?v:u;
+      }else{dA=u===1?v:u;uA=1;}
       let seen=0,ax0=0,ax1=0;
-      for(const [ta,tb] of [[0,0],[-0.62,0],[0.62,0],[0,-0.6],[0,0.6],
-                           [-0.5,0.78],[0.5,0.78],[0,0.78]]){
-        const q=[fc[0],fc[1],fc[2]];
-        q[dA]+=ta*h[dA];q[uA]+=tb*h[uA];
-        if(!seesPoint(q,r.part.id,ctx))continue;
-        seen++;ax0+=ta*h[dA];ax1+=tb*h[uA];}
-      if(!seen)continue;                            // nothing of this face is in view
-      const off=[ax0/seen,ax1/seen];                // sit on the part that is visible
+      for(const[ta,tb]of [[0,0],[-0.62,0],[0.62,0],[0,-0.6],[0,0.6],[-0.5,0.78],[0.5,0.78],[0,0.78]]){
+        const q=[fc[0],fc[1],fc[2]];q[dA]+=ta*h[dA];q[uA]+=tb*h[uA];
+        if(!seesPoint(q,r.part.id,ctx))continue;seen++;ax0+=ta*h[dA];ax1+=tb*h[uA];}
+      if(!seen)continue;
       const sc=face*Math.max(h[dA],0.01)*Math.max(h[uA],0.01)*(seen/8);
-      if(sc>bs){bs=sc;best={cen,h,ax,sg,fc,dA,uA,off};}
-    }}
+      if(sc>bs){bs=sc;best={h,fc,dA,uA,off:[ax0/seen,ax1/seen]};}}}
   if(!best)return null;
-  const {h,dA,uA,off}=best;
-  const fc=[best.fc[0],best.fc[1],best.fc[2]];
+  const{h,dA,uA,off}=best,fc=[best.fc[0],best.fc[1],best.fc[2]];
   fc[dA]+=off[0];fc[uA]+=off[1];
-  // orient the axes so the text reads left-to-right, upright, from where we are
-  const ori=(axis)=>{const p0=proj(fc),d=[0,0,0];d[axis]=1;
-    const p1=proj([fc[0]+d[0],fc[1]+d[1],fc[2]+d[2]]);
-    return (p0&&p1)?[p1[0]-p0[0],p1[1]-p0[1]]:[1,0];};
-  const od=ori(dA),ou=ori(uA);
-  const ds=od[0]>=0?1:-1, us=ou[1]<=0?1:-1;
-  const dir=[0,0,0];dir[dA]=ds;
-  const up=[0,0,0];up[uA]=us;
-  const span=span0;
-  let hgt=fits(h,dA,uA);      // every name the same size unless it will not fit
-  if(hgt<span*0.024)return null;                  // too small to read: leave it off
-  const wid=hgt*g.aspect, hw=wid/2, hh=hgt/2;
-  // keep the whole name on the face it belongs to
-  fc[dA]=Math.max(best.fc[dA]-h[dA]+hw, Math.min(best.fc[dA]+h[dA]-hw, fc[dA]));
-  fc[uA]=Math.max(best.fc[uA]-h[uA]+hh, Math.min(best.fc[uA]+h[uA]-hh, fc[uA]));
-  const pt=(a,b)=>[fc[0]+dir[0]*a+up[0]*b, fc[1]+dir[1]*a+up[1]*b, fc[2]+dir[2]*a+up[2]*b];
+  const ori=axis=>{const p0=proj(fc),d=[0,0,0];d[axis]=1;const p1=proj([fc[0]+d[0],fc[1]+d[1],fc[2]+d[2]]);
+    return(p0&&p1)?[p1[0]-p0[0],p1[1]-p0[1]]:[1,0];};
+  const od=ori(dA),ou=ori(uA),dir=[0,0,0],up=[0,0,0];dir[dA]=od[0]>=0?1:-1;up[uA]=ou[1]<=0?1:-1;
+  const hgt=fits(h,dA,uA);if(hgt<span0*0.024)return null;
+  const hw=hgt*g.aspect/2,hh=hgt/2;
+  fc[dA]=Math.max(best.fc[dA]-h[dA]+hw,Math.min(best.fc[dA]+h[dA]-hw,fc[dA]));
+  fc[uA]=Math.max(best.fc[uA]-h[uA]+hh,Math.min(best.fc[uA]+h[uA]-hh,fc[uA]));
+  const pt=(a,b)=>[fc[0]+dir[0]*a+up[0]*b,fc[1]+dir[1]*a+up[1]*b,fc[2]+dir[2]*a+up[2]*b];
   const q=[pt(-hw,-hh),pt(hw,-hh),pt(hw,hh),pt(-hw,hh)];
   let x0=1e9,y0=1e9,x1=-1e9,y1=-1e9;
-  for(const v of q){const sp=proj(v); if(!sp)return null;
+  for(const v of q){const sp=proj(v);if(!sp)return null;
     x0=Math.min(x0,sp[0]);x1=Math.max(x1,sp[0]);y0=Math.min(y0,sp[1]);y1=Math.max(y1,sp[1]);}
-  return {q,g,sb:[x0,y0,x1,y1],area:(x1-x0)*(y1-y0)};}
-
+  return{q,g,sb:[x0,y0,x1,y1],area:(x1-x0)*(y1-y0)};}
 function surfaceText(){
   if(!S.dims)return;
-  const cal=(DEV.callouts||[]).filter(c=>c.lead&&c.pid&&(!c.v||c.v.indexOf(S.lset)>=0));
+  const cal=SC.callouts.filter(c=>c.lead&&c.pid&&(!c.v||c.v.indexOf(S.lset)>=0));
   if(!cal.length)return;
-  const e=eye(),ctx=pickCtx(),P=[],T=[],taken=[];
-  const boxes=[];
-  for(const c of cal){const r=textQuad(c,e,ctx); if(r)boxes.push({c,r,area:r.area});}
-  boxes.sort((a,b)=>b.area-a.area);               // biggest, clearest name wins a spot
-  for(const {r} of boxes){
-    const sb=r.sb;
-    const clash=taken.some(t=>{
-      const ox=Math.min(t[2],sb[2])-Math.max(t[0],sb[0]);
-      const oy=Math.min(t[3],sb[3])-Math.max(t[1],sb[1]);
-      if(ox<=0||oy<=0)return false;
-      return (ox*oy)/Math.max(1,(sb[2]-sb[0])*(sb[3]-sb[1]))>0.16;});
-    if(clash)continue;
+  const e=eye(),ctx=pickCtx(),P=[],T=[],taken=[],boxes=[];
+  for(const c of cal){const r=textQuad(c,e,ctx);if(r)boxes.push({r,area:r.area});}
+  boxes.sort((a,b)=>b.area-a.area);
+  for(const{r}of boxes){const sb=r.sb;
+    if(taken.some(t=>{const ox=Math.min(t[2],sb[2])-Math.max(t[0],sb[0]),oy=Math.min(t[3],sb[3])-Math.max(t[1],sb[1]);
+      return ox>0&&oy>0&&(ox*oy)/Math.max(1,(sb[2]-sb[0])*(sb[3]-sb[1]))>0.16;}))continue;
     taken.push(sb);
-    const G=r.g;
-    const uv=[[G.u0,G.v1],[G.u1,G.v1],[G.u1,G.v0],[G.u0,G.v0]];
-    [[0,1,2],[0,2,3]].forEach(tri=>tri.forEach(k=>{
-      const v=r.q[k];P.push(v[0],v[1],v[2]);T.push(uv[k][0],uv[k][1]);}));}
+    const G=r.g,uv=[[G.u0,G.v1],[G.u1,G.v1],[G.u1,G.v0],[G.u0,G.v0]];
+    [[0,1,2],[0,2,3]].forEach(tri=>tri.forEach(k=>{const v=r.q[k];P.push(v[0],v[1],v[2]);T.push(uv[k][0],uv[k][1]);}));}
   if(!P.length)return;
   gl.useProgram(TPROG);
   gl.bindBuffer(gl.ARRAY_BUFFER,TB.p);gl.bufferData(gl.ARRAY_BUFFER,new Float32Array(P),gl.DYNAMIC_DRAW);
@@ -734,8 +919,8 @@ function surfaceText(){
   gl.useProgram(PROG);}
 
 /* ---- callout labels ---- */
-const ov=document.getElementById("overlay"),svg=document.getElementById("leaders");
-const MAXC=Math.max(...DEVS.map(d=>d.callouts.length));
+const ov=$("overlay"),svg=$("leaders");
+const MAXC=Math.max(1,...DATA.devices.map(d=>(d.callouts||[]).length));
 const calEls=[],lines=[];
 for(let i=0;i<MAXC;i++){
   const d=document.createElement("div");d.className="cal";d.style.display="none";ov.appendChild(d);calEls.push(d);
@@ -746,121 +931,78 @@ for(let i=0;i<MAXC;i++){
   t.setAttribute("stroke","#9AA6B6");t.setAttribute("stroke-width","1.4");
   const o=document.createElementNS("http://www.w3.org/2000/svg","circle");
   o.setAttribute("r","2.6");o.setAttribute("fill","#6E7A8C");o.style.display="none";
-  g.appendChild(l);g.appendChild(t);g.appendChild(o);
-  g.style.display="none";svg.appendChild(g);lines.push({g,l,t,o});}
-// Sample points on a part's faces, so a leader can be anchored somewhere the camera
-// can actually see. Face centre plus two points along each face's longer axis, on the
-// largest box of the part — enough coverage without making picking expensive.
+  g.appendChild(l);g.appendChild(t);g.appendChild(o);g.style.display="none";svg.appendChild(g);lines.push({g,l,t,o});}
 function faceSamples(pid){
-  const ids=Array.isArray(pid)?pid:[pid];
-  const refs=[];
-  for(const id of ids){const part=DEV.parts.find(q=>q.id===id); if(!part)continue;
+  const ids=Array.isArray(pid)?pid:[pid],refs=[];
+  for(const id of ids){const part=SC.parts.find(q=>q.id===id);if(!part)continue;
     part.boxes.forEach((b,bi)=>refs.push({part,bi,b,vol:b[3]*b[4]*b[5]}));}
   if(!refs.length)return null;
   refs.sort((a,b)=>b.vol-a.vol);
   const out=[];
-  for(const r of refs.slice(0,3)){
-    const h=[r.b[3]/2,r.b[4]/2,r.b[5]/2];
-    for(let ax=0;ax<3;ax++)for(const sg of [-1,1]){
-      const u=(ax+1)%3, v=(ax+2)%3, long=h[u]>=h[v]?u:v;
-      for(const t of [0,-0.55,0.55]){
-        const d=[0,0,0];
-        d[ax]=sg*(h[ax]+0.35);         // just proud of the face, so the pick lands on it
-        d[long]+=t*h[long];
-        out.push({part:r.part,bi:r.bi,d});}}}
+  for(const r of refs.slice(0,3)){const h=[r.b[3]/2,r.b[4]/2,r.b[5]/2];
+    for(let ax=0;ax<3;ax++)for(const sg of [-1,1]){const u=(ax+1)%3,v=(ax+2)%3,long=h[u]>=h[v]?u:v;
+      for(const t of [0,-0.55,0.55]){const d=[0,0,0];d[ax]=sg*(h[ax]+0.35);d[long]+=t*h[long];out.push({part:r.part,bi:r.bi,d});}}}
   return out;}
-// sample point in world space, following the part if the model is exploded
 function samplePt(sm){const a=OFFB(sm.part,sm.bi);
-  return [(a.lo[0]+a.hi[0])/2+sm.d[0],(a.lo[1]+a.hi[1])/2+sm.d[1],(a.lo[2]+a.hi[2])/2+sm.d[2]];}
-function fillCalouts(){
-  calEls.forEach((el,i)=>{const c=DEV.callouts[i];
+  return[(a.lo[0]+a.hi[0])/2+sm.d[0],(a.lo[1]+a.hi[1])/2+sm.d[1],(a.lo[2]+a.hi[2])/2+sm.d[2]];}
+function fillCallouts(){
+  calEls.forEach((el,i)=>{const c=SC.callouts[i];
     if(!c){el.style.display="none";lines[i].g.style.display="none";el._c=null;return;}
-    el._c=c; el._pts=c.pid?faceSamples(c.pid):null;
+    el._c=c;el._pts=c.pid?faceSamples(c.pid):null;
     if(c.flat){el.className=`cal flat sz-${c.size||"m"} tone-${c.tone||"dark"}`;el.textContent=c.label;}
-    else{el.className="cal";
-      el.innerHTML=(c.value?`<b>${c.label} = ${c.value}</b>`:`<b>${c.label}</b>`)+`<i>${c.desc}</i>`;}});}
+    else{el.className="cal";el.innerHTML=(c.value?`<b>${c.label} = ${c.value}</b>`:`<b>${c.label}</b>`)+`<i>${c.desc}</i>`;}});}
 function proj(p){const x=VP[0]*p[0]+VP[4]*p[1]+VP[8]*p[2]+VP[12],
   y=VP[1]*p[0]+VP[5]*p[1]+VP[9]*p[2]+VP[13],w=VP[3]*p[0]+VP[7]*p[1]+VP[11]*p[2]+VP[15];
   return w<=0?null:[(x/w*.5+.5)*W,(1-(y/w*.5+.5))*H];}
 function labels(){
-  // Screen-space silhouette of the scene, so leader labels can be parked clear of it.
-  const B=DEV.bounds; let SX0=1e9,SX1=-1e9,SY0=1e9,SY1=-1e9;
-  for(const X of B.x)for(const Y of B.y)for(const Z of B.z){const q=proj([X,Y,Z]);
-    if(!q)continue; SX0=Math.min(SX0,q[0]);SX1=Math.max(SX1,q[0]);
-                    SY0=Math.min(SY0,q[1]);SY1=Math.max(SY1,q[1]);}
-  const CX=(SX0+SX1)/2, PCTX=pickCtx();
-  const live=[];
+  let SX0=1e9,SX1=-1e9,SY0=1e9,SY1=-1e9;
+  for(const X of [SC.lo[0],SC.hi[0]])for(const Y of [SC.lo[1],SC.hi[1]])for(const Z of [SC.lo[2],SC.hi[2]]){const q=proj([X,Y,Z]);
+    if(!q)continue;SX0=Math.min(SX0,q[0]);SX1=Math.max(SX1,q[0]);SY0=Math.min(SY0,q[1]);SY1=Math.max(SY1,q[1]);}
+  // labels follow the model's size on screen, within 60-120 % of their own size
+  const K=SX1>SX0?clamp(Math.max((SX1-SX0)/W,(SY1-SY0)/(H-OCC))/0.85,0.6,1.2):1;
+  const CX=(SX0+SX1)/2,PCTX=pickCtx(),live=[];
   calEls.forEach((el,i)=>{const c=el._c,ln=lines[i];
     if(!c||(c.lead&&c.pid)){el.style.display="none";ln.g.style.display="none";return;}
     let a=proj(c.a);
-    if(c.lead&&el._pts){                       // anchor on a face the camera can see
-      let best=null,bs=-1e9, sd=c.sd||0;
-      const want=Array.isArray(c.pid)?c.pid:[c.pid];
-      for(const sm of el._pts){const sp=proj(samplePt(sm)); if(!sp)continue;
+    if(c.lead&&el._pts){let best=null,bs=-1e9;const sd=c.sd||0,want=Array.isArray(c.pid)?c.pid:[c.pid];
+      for(const sm of el._pts){const sp=proj(samplePt(sm));if(!sp)continue;
         if(sp[0]<0||sp[0]>W||sp[1]<0||sp[1]>H)continue;
-        const hit=pick(sp[0],sp[1],PCTX); if(!hit||want.indexOf(hit.id)<0)continue;
-        const sc=sd?sd*sp[0]:Math.abs(sp[0]-W/2);
-        if(sc>bs){bs=sc;best=sp;}}
-      if(best)a=best; else a=null;}            // nothing of it in view: drop the label
+        const hit=pick(sp[0],sp[1],PCTX);if(!hit||want.indexOf(hit.id)<0)continue;
+        const s=sd?sd*sp[0]:Math.abs(sp[0]-W/2);if(s>bs){bs=s;best=sp;}}
+      a=best;}
     const b=a&&proj(c.b),l=a&&proj(c.lab);
     if(!S.dims||(c.v&&c.v.indexOf(S.lset)<0)||!a||!b||!l||l[0]<-70||l[0]>W+70||l[1]<-70||l[1]>H+70){
       el.style.display="none";ln.g.style.display="none";return;}
-    el.style.display="";
-    live.push({el,ln,a,b,x:l[0],y:l[1],h:el.offsetHeight||26,w:el.offsetWidth||110,
-               flat:!!c.flat,lead:!!c.lead,sd:c.sd|0,side:0});});
-
-  const PAD=8, TOP=32, BOT=DEV.logic?48:PAD, GAP=22;
-  const leads=live.filter(p=>p.lead), rest=live.filter(p=>!p.lead);
-
-  // --- leader labels: one tidy column per side, swept so none can overlap ---
-  leads.forEach(p=>{ p.side = p.sd || (p.a[0]<CX ? -1 : 1); p.y = p.a[1]; });
+    el.style.display="";el.style.transform=`translate(-50%,-50%) scale(${K.toFixed(3)})`;
+    live.push({el,ln,a,b,x:l[0],y:l[1],h:(el.offsetHeight||26)*K,w:(el.offsetWidth||110)*K,
+      flat:!!c.flat,lead:!!c.lead,sd:c.sd|0,side:0});});
+  const PAD=8,TOP=58,BOT=Math.max(OCC,SC.logic||SC.flow?64:0)+PAD,GAP=22;
+  const leads=live.filter(p=>p.lead),rest=live.filter(p=>!p.lead);
+  leads.forEach(p=>{p.side=p.sd||(p.a[0]<CX?-1:1);p.y=p.a[1];});
   for(const sd of [-1,1]){
-    const col=leads.filter(p=>p.side===sd).sort((a,b)=>a.y-b.y);
-    if(!col.length)continue;
-    let x = sd<0 ? SX0-GAP : SX1+GAP;                 // park clear of the silhouette
-    const wmax=Math.max(...col.map(p=>p.w));
-    if(sd<0) x=Math.max(x, wmax+PAD); else x=Math.min(x, W-wmax-PAD);
-    col.forEach(p=>p.x = sd<0 ? x-p.w/2 : x+p.w/2);
-    let y=TOP;                                        // sweep down, never closer than the gap
-    col.forEach(p=>{ y=Math.max(p.y, y+p.h/2); p.y=y; y+=p.h/2+6; });
+    const col=leads.filter(p=>p.side===sd).sort((a,b)=>a.y-b.y);if(!col.length)continue;
+    let x=sd<0?SX0-GAP:SX1+GAP;const wmax=Math.max(...col.map(p=>p.w));
+    x=sd<0?Math.max(x,wmax+PAD):Math.min(x,W-wmax-PAD);
+    col.forEach(p=>p.x=sd<0?x-p.w/2:x+p.w/2);
+    let y=TOP;col.forEach(p=>{y=Math.max(p.y,y+p.h/2);p.y=y;y+=p.h/2+6;});
     const over=col[col.length-1].y+col[col.length-1].h/2-(H-BOT);
-    if(over>0){ let lift=over;                        // column ran off the bottom: lift as a block
-      const head=col[0].y-col[0].h/2-TOP; lift=Math.min(lift,Math.max(head,0));
-      col.forEach(p=>p.y-=lift); }
-    col.forEach(p=>{p.x=Math.max(p.w/2+PAD,Math.min(W-p.w/2-PAD,p.x));
-                    p.y=Math.max(p.h/2+TOP,Math.min(H-p.h/2-BOT,p.y));});}
-
-  // --- everything else keeps the original nudge-apart behaviour -------------
-  rest.sort((p,q)=>p.y-q.y);
-  rest.forEach(p=>{p.x=Math.max(p.w/2+PAD,Math.min(W-p.w/2-PAD,p.x));
-                   p.y=Math.max(p.h/2+TOP,Math.min(H-p.h/2-BOT,p.y));});
-  for(let k=0;k<6;k++){
-    rest.sort((p,q)=>p.y-q.y);
-    for(let i=1;i<rest.length;i++){const a=rest[i-1],b=rest[i];
-      if(a.flat||b.flat)continue;
-      const need=(a.h+b.h)/2+8;
-      if(Math.abs(b.x-a.x)<(a.w+b.w)/2+4&&b.y-a.y<need)b.y=a.y+need;}}
-  rest.forEach(p=>{p.y=Math.max(p.h/2+TOP,Math.min(H-p.h/2-BOT,p.y));});
-
-  const DARKBG=!S.lightBg;
-  const LEAD=DARKBG?"#8A97A8":"#59636F", DOT=DARKBG?"#AEB9C8":"#454F5C";
+    if(over>0){const lift=Math.min(over,Math.max(col[0].y-col[0].h/2-TOP,0));col.forEach(p=>p.y-=lift);}
+    col.forEach(p=>{p.x=clamp(p.x,p.w/2+PAD,W-p.w/2-PAD);p.y=clamp(p.y,p.h/2+TOP,H-p.h/2-BOT);});}
+  rest.forEach(p=>{p.x=clamp(p.x,p.w/2+PAD,W-p.w/2-PAD);p.y=clamp(p.y,p.h/2+TOP,H-p.h/2-BOT);});
+  for(let k=0;k<6;k++){rest.sort((p,q)=>p.y-q.y);
+    for(let i=1;i<rest.length;i++){const a=rest[i-1],b=rest[i];if(a.flat||b.flat)continue;
+      const need=(a.h+b.h)/2+8;if(Math.abs(b.x-a.x)<(a.w+b.w)/2+4&&b.y-a.y<need)b.y=a.y+need;}}
+  rest.forEach(p=>{p.y=clamp(p.y,p.h/2+TOP,H-p.h/2-BOT);});
+  const LEAD=S.lightBg?"#59636F":"#8A97A8",DOT=S.lightBg?"#454F5C":"#AEB9C8";
   live.forEach(p=>{
-    if(!p.lead)p.y=Math.min(p.y,H-p.h/2-BOT);
     p.el.style.left=p.x+"px";p.el.style.top=p.y+"px";
     if(p.flat&&!p.lead){p.ln.g.style.display="none";return;}
-    p.ln.g.style.display="";
-    p.ln.l.setAttribute("stroke",LEAD);
-    if(p.lead){
-      // stub out of the label, then a straight run to the dot sitting on the layer
-      const dir=p.side<0?1:-1, ix=p.x+dir*(p.w/2+4), kx=ix+dir*11;
-      p.ln.l.setAttribute("points",
-        `${ix.toFixed(1)},${p.y.toFixed(1)} ${kx.toFixed(1)},${p.y.toFixed(1)} `+
-        `${p.a[0].toFixed(1)},${p.a[1].toFixed(1)}`);
-      p.ln.t.setAttribute("x1",0);p.ln.t.setAttribute("y1",0);
-      p.ln.t.setAttribute("x2",0);p.ln.t.setAttribute("y2",0);
+    p.ln.g.style.display="";p.ln.l.setAttribute("stroke",LEAD);
+    if(p.lead){const dir=p.side<0?1:-1,ix=p.x+dir*(p.w/2+4),kx=ix+dir*11;
+      p.ln.l.setAttribute("points",`${ix.toFixed(1)},${p.y.toFixed(1)} ${kx.toFixed(1)},${p.y.toFixed(1)} ${p.a[0].toFixed(1)},${p.a[1].toFixed(1)}`);
+      ["x1","y1","x2","y2"].forEach(k=>p.ln.t.setAttribute(k,0));
       p.ln.o.style.display="";p.ln.o.setAttribute("fill",DOT);
-      p.ln.o.setAttribute("cx",p.a[0].toFixed(1));p.ln.o.setAttribute("cy",p.a[1].toFixed(1));
-      return;}
+      p.ln.o.setAttribute("cx",p.a[0].toFixed(1));p.ln.o.setAttribute("cy",p.a[1].toFixed(1));return;}
     p.ln.o.style.display="none";
     const mx=(p.a[0]+p.b[0])/2,my=(p.a[1]+p.b[1])/2,dx=mx-p.x,dy=my-p.y,L=Math.hypot(dx,dy)||1;
     const sx=p.x+dx/L*Math.min(p.w/2+4,L),sy=p.y+dy/L*Math.min(p.h/2+4,L);
@@ -889,259 +1031,605 @@ function invVP(){const m=VP,v=new Float32Array(16);
  let d=m[0]*v[0]+m[1]*v[4]+m[2]*v[8]+m[3]*v[12];if(!d)return null;d=1/d;
  for(let i=0;i<16;i++)v[i]*=d;return v;}
 function pickCtx(){const inv=invVP();return inv?{e:eye(),inv}:null;}
-// Distance along the ray of the last hit, plus that ray, so a caller can ask not just
-// "did I hit this part" but "did I hit it HERE" — a part often has another box in front.
 let PICK_T=0,PICK_O=null,PICK_D=null;
 function pick(px,py,ctx){
-  const c=ctx||pickCtx(); if(!c)return null; const e=c.e,inv=c.inv;
-  const ndc=[(px/W)*2-1,1-(py/H)*2];
+  const c=ctx||pickCtx();if(!c)return null;const e=c.e,inv=c.inv,ndc=[(px/W)*2-1,1-(py/H)*2];
   const un=z=>{const q=[ndc[0],ndc[1],z,1],o=[0,0,0,0];
-    for(let i=0;i<4;i++)o[i]=inv[0+i]*q[0]+inv[4+i]*q[1]+inv[8+i]*q[2]+inv[12+i]*q[3];
+    for(let i=0;i<4;i++)o[i]=inv[i]*q[0]+inv[4+i]*q[1]+inv[8+i]*q[2]+inv[12+i]*q[3];
     return[o[0]/o[3],o[1]/o[3],o[2]/o[3]];};
-  const d=nrm(sub(un(1),un(-1)));let best=null,bt=1e9;
-  PICK_O=e;PICK_D=d;          // t below is measured from the eye
-  DEV.parts.forEach(p=>{if(!p.on)return;
-    p.aabb.forEach((_,i)=>{const a=OFFB(p,i);
-      const hi=[Math.min(a.hi[0],S.clip[0]),Math.min(a.hi[1],S.clip[1]),Math.min(a.hi[2],S.clip[2])];
+  const d=nrm(sub(un(1),un(-1)));let best=null,bt=1e9;PICK_O=e;PICK_D=d;
+  SC.parts.forEach(p=>{if(!p.on)return;
+    p.aabb.forEach((_,i)=>{const a=OFFB(p,i),hi=[Math.min(a.hi[0],S.clip[0]),Math.min(a.hi[1],S.clip[1]),Math.min(a.hi[2],S.clip[2])];
       if(hi[0]<=a.lo[0]||hi[1]<=a.lo[1]||hi[2]<=a.lo[2])return;
       let t0=-1e9,t1=1e9;
-      for(let k=0;k<3;k++){ if(Math.abs(d[k])<1e-9){if(e[k]<a.lo[k]||e[k]>hi[k])return;continue;}
+      for(let k=0;k<3;k++){if(Math.abs(d[k])<1e-9){if(e[k]<a.lo[k]||e[k]>hi[k])return;continue;}
         let ta=(a.lo[k]-e[k])/d[k],tb=(hi[k]-e[k])/d[k];if(ta>tb){const s=ta;ta=tb;tb=s;}
         t0=Math.max(t0,ta);t1=Math.min(t1,tb);if(t0>t1)return;}
       if(t0>0&&t0<bt){bt=t0;best=p;}});});
   PICK_T=bt;return best;}
-/** True when the frontmost thing along the ray through `q` is that part, at `q` itself. */
 function seesPoint(q,pid,ctx){
-  const sp=proj(q); if(!sp||sp[0]<0||sp[0]>W||sp[1]<0||sp[1]>H)return false;
-  const hit=pick(sp[0],sp[1],ctx);
-  if(!hit||hit.id!==pid||!PICK_O)return false;
+  const sp=proj(q);if(!sp||sp[0]<0||sp[0]>W||sp[1]<0||sp[1]>H)return false;
+  const hit=pick(sp[0],sp[1],ctx);if(!hit||hit.id!==pid||!PICK_O)return false;
   const want=(q[0]-PICK_O[0])*PICK_D[0]+(q[1]-PICK_O[1])*PICK_D[1]+(q[2]-PICK_O[2])*PICK_D[2];
   return Math.abs(PICK_T-want)<2.0;}
 
-/* ---- interaction ---- */
-let drag=null;
-cv.addEventListener("pointerdown",e=>{cv.setPointerCapture(e.pointerId);
-  drag={x:e.clientX,y:e.clientY,pan:e.shiftKey||e.button===2,moved:0};cv.classList.add("drag");});
-cv.addEventListener("pointermove",e=>{if(!drag)return;
-  const dx=e.clientX-drag.x,dy=e.clientY-drag.y;drag.x=e.clientX;drag.y=e.clientY;drag.moved+=Math.abs(dx)+Math.abs(dy);
-  if(drag.pan){const s=2*S.r*Math.tan(0.31)/H,ey=eye(),f=nrm(sub(S.tgt,ey)),rt=nrm(cross(f,[0,1,0])),up=cross(rt,f);
-    S.tgt=[S.tgt[0]-(rt[0]*dx-up[0]*dy)*s,S.tgt[1]-(rt[1]*dx-up[1]*dy)*s,S.tgt[2]-(rt[2]*dx-up[2]*dy)*s];}
-  else{S.az-=dx*.008;S.el=Math.max(-1.45,Math.min(1.45,S.el+dy*.006));setView(null);}
-  render();});
-addEventListener("pointerup",e=>{if(drag&&drag.moved<5)doPick(e);drag=null;cv.classList.remove("drag");});
-cv.addEventListener("contextmenu",e=>e.preventDefault());
-cv.addEventListener("wheel",e=>{e.preventDefault();
-  S.r=Math.max(40,Math.min(3000,S.r*Math.exp(e.deltaY*0.0011)));render();},{passive:false});
-function doPick(e){const r=cv.getBoundingClientRect(),p=pick(e.clientX-r.left,e.clientY-r.top);HOT=p;
-  const inm=document.getElementById("inm"),idt=document.getElementById("idt"),sw=document.querySelector("#inspector .sw");
-  if(!p){inm.textContent="No layer here";idt.textContent="Click any layer in the model to inspect it";
-    sw.style.background="#4A5364";render();return;}
-  const m=MAT[p.material];sw.style.background=m.color;inm.textContent=p.name;
-  idt.textContent=`${m.label} · ${p.group}`;render();}
+/* ---- framing ---- */
+/** Distance at which the whole scene just fits in the visible part of the stage. */
+function fitDist(sc,az,el,w,h,occ){
+  const ce=Math.cos(el),f=[-ce*Math.sin(az),-Math.sin(el),-ce*Math.cos(az)];
+  const rt=nrm(cross(f,[0,1,0])),up=cross(rt,f),c=[(sc.lo[0]+sc.hi[0])/2,(sc.lo[1]+sc.hi[1])/2,(sc.lo[2]+sc.hi[2])/2];
+  let hw=0,hh=0;
+  for(const X of [sc.lo[0],sc.hi[0]])for(const Y of [sc.lo[1],sc.hi[1]])for(const Z of [sc.lo[2],sc.hi[2]]){
+    const d=[X-c[0],Y-c[1],Z-c[2]];
+    hw=Math.max(hw,Math.abs(dot(d,rt)));hh=Math.max(hh,Math.abs(dot(d,up)));}
+  const vis=Math.max(0.3,(h-occ)/h);
+  return Math.max(hh/(TANH*vis),hw/(TANH*Math.max(w/h,0.05)));}
+function measure(){const w=cv.clientWidth,h=cv.clientHeight;if(w&&h){W=w;H=h;}}
+/** Each preset keeps the framing it was authored with (a 3:2 stage), re-fitted to this one. */
+function viewR(sc,v){measure();const ref=fitDist(sc,v.az,v.el,1.5,1,0);
+  return ref>0?v.r*fitDist(sc,v.az,v.el,W,H,OCC)/ref:v.r;}
+
+/* ---- camera flights ---- */
+let FLIGHT=null;   // {raf, done: Promise}
+const camNow=()=>({az:S.az,el:S.el,r:S.r,t:S.tgt.slice(),c:S.cf.slice()});
+const frac=(v,lo,hi)=>clamp((v-lo)/(hi-lo),0,1);
+function camOf(sc,v){return{az:v.az,el:v.el,r:viewR(sc,v),t:v.tgt.slice(),
+  c:[0,1,2].map(ax=>v.clip&&v.clip[ax]!=null?frac(v.clip[ax],sc.lo[ax],sc.hi[ax]):1)};}
+function applyCam(c){S.az=c.az;S.el=c.el;S.r=c.r;S.tgt=c.t.slice();S.cf=c.c.slice();syncClip();}
+function cancelFlight(){if(FLIGHT){cancelAnimationFrame(FLIGHT.raf);FLIGHT.resolve();FLIGHT=null;}}
+function fly(to,slow){
+  cancelFlight();
+  const from=camNow(),dur=slow?1100:520;
+  let da=to.az-from.az;da=((da+Math.PI)%(2*Math.PI)+2*Math.PI)%(2*Math.PI)-Math.PI;
+  const F={};F.done=new Promise(r=>F.resolve=r);
+  let t0=0;
+  const step=now=>{if(!t0)t0=now;const raw=Math.min(1,(now-t0)/dur),e=raw*raw*(3-2*raw),L=(a,b)=>a+(b-a)*e;
+    applyCam({az:from.az+da*e,el:L(from.el,to.el),r:L(from.r,to.r),t:[0,1,2].map(k=>L(from.t[k],to.t[k])),
+      c:[0,1,2].map(k=>L(from.c[k],to.c[k]))});
+    draw();
+    if(raw>=1){if(FLIGHT===F)FLIGHT=null;F.resolve();syncSliders();}else F.raf=requestAnimationFrame(step);};
+  F.raf=requestAnimationFrame(step);FLIGHT=F;}
+/** [slow] for a change of scale (site, tile, line field), which moves the camera much farther. */
+function goToView(sc,v,animate,slow){
+  S.view=v.k;S.lset=v.k;
+  sc.parts.forEach(p=>p.on=v.off.indexOf(p.id)<0);
+  const to=camOf(sc,v);
+  if(!animate||RM){cancelFlight();applyCam(to);render();}
+  else fly(to,slow);
+  zoomTo=null;refreshTab(["views","layers","section"]);hud();}
+
+/* ---- timed animations that stand still while a pointer is on the model ---- */
+const frame=()=>new Promise(r=>requestAnimationFrame(r));
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+function anim(ms,fn,tok){return new Promise(res=>{let t=0,last=0;
+  const f=now=>{if(tok.dead)return res(false);if(last&&!HOLD)t+=now-last;last=now;
+    const raw=Math.min(1,t/ms);fn(raw*raw*(3-2*raw));draw();if(raw>=1)res(true);else requestAnimationFrame(f);};
+  requestAnimationFrame(f);});}
+let GROW=null,GROWTOK={dead:true},GLOWTOK={dead:true};
+function stopGrowth(){GROWTOK.dead=true;GROW=null;AN.growBox=null;AN.deposit=null;AN.etch=1;}
+
+/* ---- Process: flows, steps, routes ---- */
+const ADDS=/deposit|fill|growth|grow|epitax|coat|liner|film|oxid|dispens|multilayer|masked|protected|covered|seal|resist|\bcaps?\b/i;
+const TAKES=/etch|recess|remov|strip|pull|release|open|clean|trim|cmp|polish|planari|pattern|develop|expos|implant|\bcut\b/i;
+const P={at:{},route:{},ops:true,playing:false,tok:0};
+const routeIn=f=>f?(P.route[f.device]||f.defaultRoute):"";
+const sameBoxes=(a,b)=>a.boxes.length===b.boxes.length&&a.boxes.every((x,i)=>x.every((v,k)=>v===b.boxes[i][k]));
+/** Moves to step i of the flow on screen, keeping the camera, the cuts and any layers the
+ *  user hid unless the step suggests another view; then animates what it changed. */
+function goStep(i){
+  const old=SC,f=old.flow;if(!f)return;
+  const n=clamp(i,0,f.steps.length-1),key=f.keys[n];if(key===SC.key)return;
+  cancelFlight();stopGrowth();
+  const sc=scene(key);
+  const hidden=new Set(old.parts.filter(p=>!p.on).map(p=>p.id)),before={},after={};
+  old.parts.forEach(p=>before[p.id]=p);sc.parts.forEach(p=>after[p.id]=p);
+  const rescale=old.step.scale!==sc.step.scale;
+  SC=sc;P.at[f.device]=n;HOT=null;
+  const v=sc.views.find(x=>x.k===sc.step.view);
+  if(v&&(rescale||v.k!==S.view))goToView(sc,v,true,rescale);
+  else{sc.parts.forEach(p=>p.on=!hidden.has(p.id));syncClip();}
+  AN.fresh=rescale?new Set():new Set(sc.parts.filter(p=>!(before[p.id]&&sameBoxes(before[p.id],p))));
+  AN.fade=old;
+  // the pitch-walk lesson's steps change one size, not the process: nothing is etched or grown
+  const process=!f.pitchwalk&&!RM;
+  AN.fadeParts=(rescale||!process)?[]:old.parts.filter(q=>q.on&&!(after[q.id]&&sameBoxes(q,after[q.id])));
+  const removing=AN.fadeParts.length>0;
+  if(removing){let top=-1e7,bot=1e7;
+    AN.fadeParts.forEach(q=>{top=Math.max(top,q.yr[1]);const a=after[q.id];
+      bot=Math.min(bot,a&&a.yr[1]<q.yr[1]-0.01?a.yr[1]:q.yr[0]);});
+    AN.etchTop=top+0.01;AN.etchBottom=bot-0.01;}
+  AN.etch=removing?0:1;AN.glow=0;
+  const size=s=>(s.hi[0]-s.lo[0])*(s.hi[1]-s.lo[1])*(s.hi[2]-s.lo[2]);
+  const grows=rescale&&!RM&&size(sc)>size(old)*1.05;
+  const groups=(!process?[]:(sc.step.groups.length?sc.step.groups:sc.step.deposit.map(id=>[id])))
+    .map(g=>g.map(id=>after[id]).filter(Boolean)).filter(g=>g.length);
+  const films=[].concat(...groups);
+  const title=sc.step.title,am=title.search(ADDS),tm=title.search(TAKES);
+  const growFirst=(am<0?1e9:am)<(tm<0?1e9:tm);
+  if(grows||films.length||removing){
+    const from=[0,1,2].map(k=>Math.max(old.lo[k],sc.lo[k])).concat([0,1,2].map(k=>Math.min(old.hi[k],sc.hi[k])));
+    const to=sc.lo.concat(sc.hi);
+    AN.deposit=films.length?new Map(films.map(p=>[p,0])):null;
+    if(grows)AN.growBox=from.slice();
+    const tok={dead:false};GROWTOK=tok;
+    const fl=FLIGHT;
+    GROW=(async()=>{
+      if(grows)await anim(1100,e=>{AN.growBox=from.map((v,k)=>v+(to[k]-v)*e);},tok);
+      if(tok.dead)return;AN.growBox=null;
+      if(fl)await fl.done;                         // the camera settles first
+      while(HOLD&&!tok.dead)await frame();
+      const etchOff=async()=>{if(removing)await anim(450,e=>{AN.etch=e;},tok);if(!tok.dead)AN.etch=1;};
+      const growOn=async()=>{for(const g of groups){await anim(450,e=>{g.forEach(p=>AN.deposit.set(p,e));},tok);
+        if(tok.dead)return;}AN.deposit=null;};
+      if(growFirst){await growOn();if(!tok.dead)await etchOff();}else{await etchOff();if(!tok.dead)await growOn();}
+      if(!tok.dead)render();})();
+  }
+  GLOWTOK.dead=true;const gtok={dead:false};GLOWTOK=gtok;const gw=GROW;
+  (async()=>{if(gw)await gw;if(gtok.dead)return;
+    await anim(1400,e=>{AN.glow=(1-e)*(1-e);},gtok);if(!gtok.dead)AN.glow=0;})();
+  CAPS_DIRTY=true;render();
+  sceneChanged(true);}
+function setPlaying(on){P.playing=on;P.tok++;procbar();if(on)playLoop(P.tok);}
+async function playLoop(tok){
+  while(P.playing&&tok===P.tok){
+    const f=SC.flow,nxt=f&&f.next(SC.stepIndex,1,P.ops,routeIn(f));
+    if(nxt==null){setPlaying(false);return;}
+    if(GROW)await GROW;           // the step's growing and etching play out, then it is read
+    await sleep(3000);
+    if(!P.playing||tok!==P.tok)return;
+    goStep(nxt);}}
+/** The flow a technology opens in Process mode, or null when none has been written. */
+function flowFor(tech){
+  const k=tech==="cfet"?(S_cfetSeq?"cfet_seq":"cfet_mono"):(tech==="ns"&&S_design==="si")?"ns~si":tech;
+  return flow(k)?k:null;}
+const openFlow=dk=>switchScene(stepKey(dk,P.at[dk]||0));
+/** The same technology's nFET, pFET or both-sites flow, at the matching step: the same
+ *  step if that flow has it, else the nearest earlier step it shares. */
+function openSite(dk){
+  const f=SC.flow,g=flow(dk);if(!f||!g||g===f)return;
+  const ids=g.steps.map(s=>s.id);let i=SC.stepIndex,to=-1;
+  while(i>=0&&to<0){to=ids.indexOf(f.steps[i].id);i--;}
+  setPlaying(false);switchScene(stepKey(dk,Math.max(0,to)));}
+
+/* ---- scenes, modes and chips ---- */
+const MODES={
+  dev:[["fin","FinFET"],["ns","Nanosheet"],["fs","Forksheet"],["cfet","CFET"],["cmp","Compare"]],
+  inv:[["inv_fin","FinFET"],["inv_ns","Nanosheet"],["inv_fs","Forksheet"],["inv_cfet","CFET"],["inv_cmp","Compare"]],
+  show:[["show_fin","FinFET"],["show_ns","Nanosheet"],["show_fs","Forksheet"],["show_cfet","CFET"],["show_cmp","Compare"]],
+  proc:[["proc_fin","FinFET"],["proc_ns","Nanosheet"],["proc_sadp","SADP"],["proc_saqp","SAQP"],
+        ["proc_pitchwalk","Pitch walk"],["proc_fs","Forksheet"],["proc_cfet","CFET"]]};
+const LESSONS_FROM="proc_sadp",SOON_FROM="proc_fs";
+let S_design=store.get("fetlab.design")==="si"?"si":"sige",S_cfetSeq=store.get("fetlab.cfet")!=="mono";
+const modeOf=k=>k.indexOf("inv_")===0?"inv":k.indexOf("show_")===0?"show":k.indexOf("proc_")===0?"proc":"dev";
+function techOf(key){
+  let k=key.replace(/^(inv_|show_|proc_)/,"").split("@")[0].split("~")[0].replace(/_pair$/,"").replace(/_p$/,"");
+  return k.indexOf("cfet")===0?"cfet":k;}
+/** The scene a chip opens in its mode: the nanosheet in its chosen design, CFET in its integration. */
+function resolve(k){
+  if(k==="ns"||k==="inv_ns")return k+"~"+S_design;
+  if(k==="cfet")return S_cfetSeq?"cfet_seq":"cfet_mono";
+  return k;}
+const isDesignScene=k=>/^(inv_)?ns~/.test(k);
+function sceneFor(mode,tech){const row=MODES[mode].find(r=>techOf(r[0])===tech);return row?resolve(row[0]):null;}
+const MEMO={};
+function memo(){if(!SC||SC.flow)return;
+  MEMO[SC.key]={cam:camNow(),view:S.view,lset:S.lset,vis:SC.parts.map(p=>p.on),ex:S.ex,hot:HOT&&HOT.id};}
+function openScene(key){
+  const sc=scene(key);SC=sc;
+  if(sc.flow)P.at[sc.flow.device]=sc.stepIndex;
+  const m=MEMO[key];
+  AN.fade=null;AN.fadeParts=[];AN.fresh=new Set();AN.glow=0;
+  if(!m){HOT=null;S.ex=0;
+    goToView(sc,(sc.step&&sc.views.find(v=>v.k===sc.step.view))||sc.views[0],false);}
+  else{cancelFlight();S.view=m.view;S.lset=m.lset;sc.parts.forEach((p,i)=>p.on=m.vis[i]);S.ex=m.ex;
+    HOT=m.hot?sc.parts.find(p=>p.id===m.hot)||null:null;applyCam(m.cam);}
+  fillCallouts();CAPS_DIRTY=true;render();sceneChanged(false);}
+let switching=null;
+function switchScene(key,keepView){
+  if(SC&&key===SC.key)return;
+  const keepV=S.view,keepVis=SC?Object.fromEntries(SC.parts.map(p=>[p.id,p.on])):{};
+  cancelFlight();stopGrowth();GLOWTOK.dead=true;memo();
+  if(SC&&SC.flow&&!(scene(key).flow===SC.flow))setPlaying(false);
+  const scr=$("scrim");
+  if(switching)clearTimeout(switching);
+  if(!SC||RM){openScene(key);return;}
+  scr.classList.add("on");
+  switching=setTimeout(()=>{switching=null;openScene(key);
+    if(keepView){const v=SC.views.find(x=>x.k===keepV);
+      if(v){goToView(SC,v,false);SC.parts.forEach(p=>{if(p.id in keepVis)p.on=keepVis[p.id];});refreshTab(["layers"]);CAPS_DIRTY=true;render();}}
+    scr.classList.remove("on");},140);}
+let MODE="dev";
+function selectMode(m){
+  if(m===MODE)return;
+  const tech=techOf(SC.key);
+  if(m==="proc"){const dk=flowFor(tech)||Object.keys(FLOWJ).find(k=>flow(k));if(dk)openFlow(dk);else toast("No process flow has been written yet.");return;}
+  switchScene(sceneFor(m,tech)||resolve(MODES[m][0][0]));}
+function selectChip(k){
+  if(k.indexOf("proc_")===0){const dk=flowFor(techOf(k));
+    if(dk)openFlow(dk);else toast("The "+MODES.proc.find(r=>r[0]===k)[1]+" process flow is still being written.");return;}
+  switchScene(resolve(k));}
+function changeDesign(d){
+  if(d===S_design)return;S_design=d;store.set("fetlab.design",d);setPlaying(false);
+  if(MODE==="proc"&&techOf(SC.key)==="ns"){const dk=flowFor("ns");if(dk)openFlow(dk);}
+  else if(isDesignScene(SC.key))switchScene(resolve(SC.key.split("~")[0]),true);
+  pills();}
+function changeCfet(k){S_cfetSeq=k==="cfet_seq";store.set("fetlab.cfet",S_cfetSeq?"seq":"mono");switchScene(k,true);}
 
 /* ---- UI ---- */
-const MODES={
-  dev:[["fin","FinFET"],["ns~sige","Nanosheet · Si/SiGe"],["ns~si","Nanosheet · Si/Si"],["fs","Forksheet"],["cfet","CFET"],["cmp","Compare"]],
-  inv:[["inv_fin","FinFET"],["inv_ns~sige","Nanosheet · Si/SiGe"],["inv_ns~si","Nanosheet · Si/Si"],["inv_fs","Forksheet"],["inv_cfet","CFET"],["inv_cmp","Compare"]],
-  show:[["show_fin","FinFET"],["show_ns","Nanosheet"],["show_fs","Forksheet"],["show_cfet","CFET"],["show_cmp","Compare"]]};
-let MODE="dev";
-const dwrap=document.getElementById("devs"),seg=document.getElementById("cfetseg"),
-      mseg=document.getElementById("modeseg"),lbar=document.getElementById("logicbar");
-/** The technology a scene shows, with the viewing mode stripped off. The two CFET
- *  scenes are one technology: only the device mode splits them into mono/sequential. */
-function techOf(key){
-  // A nanosheet channel design ("ns~sige") is its own technology between Device and
-  // Inverter; Layout has one nanosheet cell for both.
-  const k=key.replace(/^(inv_|show_)/,"");
-  return k.indexOf("cfet")===0?"cfet":k;}
-/** Last scene opened per mode per technology, so switching away from Sequential CFET
- *  and back lands on Sequential again rather than snapping to Monolithic. */
-const LAST={dev:{},inv:{},show:{}};
-/** The scene that shows `tech` in `mode`, or null when that mode has no equivalent. */
-function sceneFor(mode,tech){
-  if(LAST[mode][tech])return LAST[mode][tech];
-  const row=MODES[mode].find(r=>techOf(r[0])===tech);
-  if(!row)return null;
-  return mode==="dev"&&tech==="cfet"?"cfet_seq":row[0];}
-/** Which scene a device chip should open. */
-function devKey(fam){
-  if(fam==="cfet")return S.key.indexOf("cfet")===0?S.key:(LAST.dev.cfet||"cfet_seq");
-  return fam;}
+let toastT=0;
+function toast(t){const el=$("toast");el.textContent=t;el.classList.add("on");clearTimeout(toastT);
+  toastT=setTimeout(()=>el.classList.remove("on"),2600);}
+const chipsEl=$("chips"),mseg=$("modeseg");
+let chipsMode=null;
 function chips(){
-  dwrap.innerHTML="";
-  MODES[MODE].forEach(([k,n])=>{const b=document.createElement("button");b.className="chip";b.type="button";
-    b.dataset.d=k;b.textContent=n;
-    b.onclick=()=>setDevice(MODE==="dev"?devKey(k):k);
-    dwrap.appendChild(b);});}
-mseg.querySelectorAll("button").forEach(b=>b.onclick=()=>{
-  const m=b.dataset.m; if(MODE===m)return;
-  // Only the viewing mode changes: the technology on screen carries across.
-  setDevice(sceneFor(m,techOf(S.key))||MODES[m][0][0]);});
-chips();
-lbar.querySelectorAll("button").forEach(b=>b.onclick=()=>{
-  S.inp=+b.dataset.v; lbar.querySelectorAll("button").forEach(x=>x.setAttribute("aria-pressed",String(+x.dataset.v===S.inp)));
-  logicText(); rebuildCaps(); render();});
-function logicText(){
-  const on=S.inp?"nMOS conducting":"pMOS conducting", out=S.inp?0:1;
-  const cls=S.inp?"lb-lo":"lb-hi";
-  document.getElementById("lbtxt").innerHTML=
-    `${on} &nbsp;·&nbsp; OUT = <b class="${cls}">${out}</b>`;}
-seg.querySelectorAll("button").forEach(b=>b.onclick=()=>setDevice(b.dataset.k));
+  if(chipsMode!==MODE){chipsMode=MODE;chipsEl.innerHTML="";
+    MODES[MODE].forEach(([k,n])=>{
+      if(k===LESSONS_FROM||k===SOON_FROM){const s=document.createElement("span");s.className="chipsep";
+        s.textContent=k===LESSONS_FROM?"Lessons":"In writing";chipsEl.appendChild(s);}
+      const b=document.createElement("button");b.type="button";b.className="chip";b.dataset.k=k;b.textContent=n;
+      if(MODE==="proc"&&!flowFor(techOf(k))){b.classList.add("soon");b.title="Still being written";}
+      b.onclick=()=>selectChip(k);chipsEl.appendChild(b);});}
+  const t=techOf(SC.key);
+  chipsEl.querySelectorAll(".chip").forEach(b=>{const on=techOf(b.dataset.k)===t;b.setAttribute("aria-pressed",String(on));
+    if(on&&b.scrollIntoView&&chipsEl.scrollWidth>chipsEl.clientWidth){
+      const r=b.getBoundingClientRect(),cr=chipsEl.getBoundingClientRect();
+      if(r.left<cr.left||r.right>cr.right)chipsEl.scrollTo({left:chipsEl.scrollLeft+r.left-cr.left-40,behavior:RM?"auto":"smooth"});}});
+  mseg.querySelectorAll("button").forEach(b=>b.setAttribute("aria-pressed",String(b.dataset.m===MODE)));}
+mseg.querySelectorAll("button").forEach(b=>b.onclick=()=>selectMode(b.dataset.m));
+function hud(){
+  if(!SC)return;
+  $("sname").textContent=SC.name;
+  const v=SC.views.find(x=>x.k===S.view);
+  const tag=SC.step?tagOf(SC.step,routeIn(SC.flow)):SC.tag;
+  $("stag").textContent=[tag,v?v.n:"Free orbit"].filter(Boolean).join(" · ");
+  const ins=$("inspector");ins.hidden=!HOT;
+  if(HOT){const m=MAT[HOT.material]||{color:"#888",label:HOT.material};
+    ins.querySelector(".sw").style.background=m.color;$("inm").textContent=HOT.name;
+    $("idt").textContent=m.label+" · "+HOT.group;}}
+function pills(){
+  const dp=$("designpill"),cp=$("cfetpill"),sp=$("sitepill");
+  dp.hidden=!(isDesignScene(SC.key)||(MODE==="proc"&&techOf(SC.key)==="ns"));
+  dp.querySelectorAll("button").forEach(b=>b.setAttribute("aria-pressed",String(b.dataset.d===S_design)));
+  cp.hidden=!(MODE==="dev"&&techOf(SC.key)==="cfet");
+  cp.querySelectorAll("button").forEach(b=>b.setAttribute("aria-pressed",String(b.dataset.k===SC.key)));
+  const f=SC.flow;sp.hidden=!(f&&f.sites.length);if(sp.hidden)sp.innerHTML="";
+  if(f&&f.sites.length){sp.innerHTML=f.sites.map(s=>`<button type="button" data-f="${esc(s.flow)}" aria-pressed="${s.id===f.site}">${esc(s.name)}</button>`).join("");
+    sp.querySelectorAll("button").forEach(b=>b.onclick=()=>openSite(b.dataset.f));}}
+$("designpill").querySelectorAll("button").forEach(b=>b.onclick=()=>changeDesign(b.dataset.d));
+$("cfetpill").querySelectorAll("button").forEach(b=>b.onclick=()=>changeCfet(b.dataset.k));
+const lbar=$("logicbar");
+lbar.querySelectorAll("button").forEach(b=>b.onclick=()=>setInput(+b.dataset.v));
+function setInput(v){S.inp=v;lbar.querySelectorAll("button").forEach(x=>x.setAttribute("aria-pressed",String(+x.dataset.v===v)));
+  logicText();CAPS_DIRTY=true;render();}
+function logicText(){const on=S.inp?"nMOS conducting":"pMOS conducting",out=S.inp?0:1,cls=S.inp?"lb-lo":"lb-hi";
+  $("lbtxt").innerHTML=`${on} &nbsp;·&nbsp; OUT = <b class="${cls}">${out}</b>`;}
+const PLAY='<svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor"><path d="M4 2.2 13.4 8 4 13.8z"/></svg>',
+      PAUSE='<svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor"><rect x="3.4" y="2.4" width="3.2" height="11.2" rx=".6"/><rect x="9.4" y="2.4" width="3.2" height="11.2" rx=".6"/></svg>';
+let lastTitle="";
+function procbar(){
+  const pb=$("procbar"),f=SC&&SC.flow;pb.hidden=!f;lbar.hidden=!(SC&&SC.logic);
+  $("hint").hidden=PHONE.matches||!!f||!!(SC&&SC.logic);
+  if(SC&&SC.logic)logicText();
+  if(!f)return;
+  const st=SC.step,r=routeIn(f),lab=labelIn(st,r),core=lab.split(".")[0],op=st.isOp&&lab.indexOf(".")>=0?lab.split(".").slice(1).join("."):null;
+  $("pbn").textContent="STEP "+core+"/"+f.coreCount+(op?" · OP "+op:"");
+  $("pbn").setAttribute("aria-label","Step "+core+" of "+f.coreCount+(op?", operation "+op:""));
+  const bd=f.badge[st.match]||"",be=$("pbbadge");be.hidden=!bd;be.textContent=bd;be.classList.toggle("src",bd==="Source stage");
+  const t=$("pbtitle");
+  if(lastTitle!==st.title){t.textContent=st.title;t.classList.remove("fade");void t.offsetWidth;t.classList.add("fade");lastTitle=st.title;}
+  $("pbprev").disabled=f.next(SC.stepIndex,-1,P.ops,r)==null;
+  $("pbnext").disabled=f.next(SC.stepIndex,1,P.ops,r)==null;
+  $("pbplay").innerHTML=P.playing?PAUSE:PLAY;
+  $("pbplay").setAttribute("aria-label",P.playing?"Pause":"Play the steps");}
+const stepBy=d=>{const f=SC.flow;if(!f)return;setPlaying(false);const n=f.next(SC.stepIndex,d,P.ops,routeIn(f));if(n!=null)goStep(n);};
+$("pbprev").onclick=()=>stepBy(-1);
+$("pbnext").onclick=()=>stepBy(1);
+$("pbplay").onclick=()=>{const f=SC.flow;if(!f)return;
+  // from the last step, play starts again at the first
+  if(!P.playing&&f.next(SC.stepIndex,1,P.ops,routeIn(f))==null)goStep(0);
+  setPlaying(!P.playing);};
+$("pbmid").onclick=()=>{selectTab("steps");sheetOpen();};
 
-const vwrap=document.getElementById("views"),lwrap=document.getElementById("layers");
-/** Parasitics: a table beside the other two, and picking a row lights its two conductors. */
-function parPanel(){
-  const box=document.getElementById("parpanel"), tb=document.getElementById("partable"),
-        sub=document.getElementById("parsub"), sel=document.getElementById("parsel");
-  const P=DEV.parasitics;
-  box.hidden=!P; if(!P)return;
-  sub.innerHTML=`From this model's own geometry — L<sub>G</sub> ${P.lg} nm, `+
-    `total shown W<sub>eff</sub> ${P.weff} nm, gate-stack span ${P.foot} nm. C_gc + C_ge = `+
-     `<b>${P.gate_par_pct}%</b> of C<sub>ox</sub> in this approximation. Pick a row to highlight it; read the limitations below.`;
-  document.getElementById("parnote").innerHTML=P.note;
-  sel.textContent="";
-  tb.innerHTML="";
-  P.terms.forEach(t=>{
-    const tr=document.createElement("tr");
-    tr.setAttribute("aria-pressed","false");
-    tr.innerHTML=`<td class="sym">${t.sym}</td><td>${t.pair}</td>`+
-      `<td class="n">${t.aF}</td><td class="n">${t.per_um}</td><td class="pct">${t.pct}%</td>`;
-    tr.onclick=()=>{
-      const on=S.par&&S.par.id===t.id;
-      S.par=on?null:t;
-      tb.querySelectorAll("tr").forEach(x=>x.setAttribute("aria-pressed","false"));
-      if(!on)tr.setAttribute("aria-pressed","true");
-      sel.innerHTML=on?"":t.desc;
-      rebuildCaps();          // section caps bake the highlight in at build time
-      render();};
-    tb.appendChild(tr);});}
+/* ---- the panel's tabs ---- */
+const TABS=[["views","Views"],["section","Section"],["layers","Layers"],["specs","Specs"],["story","Story"]];
+const PTABS=[["views","Views"],["section","Section"],["layers","Layers"],["steps","Steps"],["why","Why"]];
+let TAB=store.get("fetlab.tab")||"views";
+const tabsEl=$("tabs"),body=$("tabbody");
+function tabList(){return SC&&SC.flow?PTABS:TABS;}
+function tabsRender(){
+  const L=tabList();
+  if(!L.some(t=>t[0]===TAB))TAB=TAB==="specs"?"steps":TAB==="steps"?"specs":TAB==="story"?"why":TAB==="why"?"story":"views";
+  const sig=L.map(t=>t[0]).join();
+  if(tabsEl.dataset.sig!==sig){tabsEl.dataset.sig=sig;
+    tabsEl.innerHTML=L.map(([k,n])=>`<button type="button" role="tab" data-t="${k}" id="tab-${k}">${n}</button>`).join("");
+    tabsEl.querySelectorAll("button").forEach(b=>b.onclick=()=>{
+      if(PHONE.matches&&TAB===b.dataset.t&&sheetLevel>0){setSheet(0);return;}
+      selectTab(b.dataset.t);sheetOpen();});}
+  tabsEl.querySelectorAll("button").forEach(b=>b.setAttribute("aria-selected",String(b.dataset.t===TAB)));
+  body.setAttribute("aria-labelledby","tab-"+TAB);}
+function selectTab(t){if(t!==TAB){TAB=t;store.set("fetlab.tab",t);tabsRender();renderTab(false);}}
+/** Re-draws the open tab if it is one of [which]. */
+function refreshTab(which){if(SC&&which.indexOf(TAB)>=0)renderTab(true);}
+function renderTab(keep){
+  const top=body.scrollTop;
+  ({views:tabViews,section:tabSection,layers:tabLayers,specs:tabSpecs,story:tabStory,steps:tabSteps,why:tabWhy}[TAB])();
+  if(keep&&TAB!=="steps")body.scrollTop=top;else if(TAB!=="steps")body.scrollTop=0;}
+function tabViews(){
+  body.innerHTML=`<div class="views">${SC.views.map(v=>`<button type="button" class="view" data-k="${esc(v.k)}" aria-pressed="${v.k===S.view}">
+    <i></i><div><b>${esc(v.n)}</b><span>${esc(v.s)}</span></div></button>`).join("")}</div>`;
+  body.querySelectorAll(".view").forEach(b=>b.onclick=()=>{const v=SC.views.find(x=>x.k===b.dataset.k);
+    if(v){goToView(SC,v,true,false);if(PHONE.matches&&sheetLevel>1)setSheet(1);}});}
+const AXN=[["Cut along the channel","X"],["Cut vertically","Y"],["Cut across the channel","Z"]];
+function tabSection(){
+  const tg=(id,label,on)=>`<label class="tg"><input type="checkbox" id="${id}" ${on?"checked":""}>${label}</label>`;
+  body.innerHTML=`<div class="lbl">Section planes</div>`+
+    AXN.map(([n,a],ax)=>`<div class="ctl"><label for="cut${ax}"><span>${n} <span class="mono">(${a})</span></span><span class="val" id="vcut${ax}"></span></label>
+      <input type="range" id="cut${ax}" min="0" max="100" value="${Math.round(S.cf[ax]*100)}"></div>`).join("")+
+    `<div class="ctl"><label for="exr"><span>Separate layers</span><span class="val" id="vex">${S.ex.toFixed(1)} nm</span></label>
+      <input type="range" id="exr" min="0" max="100" value="${Math.round(S.ex/16*100)}"></div>
+    <div class="lbl">Display</div><div class="toggles">`+
+    tg("t-light","Light background",S.lightBg)+tg("t-edges","Edge outlines",S.edges)+tg("t-tex","Surface texture",S.tex)+
+    tg("t-ghost","See-through gate fill",S.ghost)+tg("t-dims","Labels",S.dims)+tg("t-spin","Slow rotate",S.spin)+
+    `</div><button type="button" class="btn wide" id="resetbtn">Reset this scene</button>`;
+  for(let ax=0;ax<3;ax++){const r=$("cut"+ax);
+    r.oninput=()=>{cancelFlight();S.cf[ax]=+r.value/100;syncClip();S.view=null;hud();cutLabel(ax);render();};cutLabel(ax);}
+  $("exr").oninput=e=>{S.ex=+e.target.value/100*16;$("vex").textContent=S.ex.toFixed(1)+" nm";CAPS_DIRTY=true;render();};
+  $("t-light").onchange=e=>{S.lightBg=e.target.checked;wrap.classList.toggle("light",S.lightBg);render();};
+  $("t-edges").onchange=e=>{S.edges=e.target.checked;render();};
+  $("t-tex").onchange=e=>{S.tex=e.target.checked;render();};
+  $("t-ghost").onchange=e=>{S.ghost=e.target.checked;render();};
+  $("t-dims").onchange=e=>{S.dims=e.target.checked;render();};
+  $("t-spin").onchange=e=>{S.spin=e.target.checked;if(S.spin)spin();};
+  $("resetbtn").onclick=resetScene;}
+function cutLabel(ax){const el=$("vcut"+ax);if(!el)return;
+  el.textContent=S.cf[ax]>=0.999?"off":S.clip[ax].toFixed(1)+" nm";}
+function syncSliders(){if(TAB!=="section")return;
+  for(let ax=0;ax<3;ax++){const r=$("cut"+ax);if(r){r.value=Math.round(S.cf[ax]*100);cutLabel(ax);}}}
+function resetScene(){
+  S.ex=0;S.ghost=false;S.tex=true;S.edges=true;S.dims=true;S.spin=false;HOT=null;delete MEMO[SC.key];
+  goToView(SC,(SC.step&&SC.views.find(v=>v.k===SC.step.view))||SC.views[0],true,false);
+  CAPS_DIRTY=true;renderTab(true);hud();}
+let legendPick=null;
+function tabLayers(){
+  const sc=SC,vis=sc.parts.filter(p=>p.on).length,any=vis>0;
+  const mats=[...new Set(sc.parts.map(p=>p.material))].filter(k=>MAT[k]);
+  let h=`<div class="lyhead"><span>${vis} of ${sc.parts.length} layers visible</span>
+    <button type="button" class="link" id="lyall">${any?"Hide all":"Show all"}</button></div>
+    <div class="legend">${mats.map(k=>`<button type="button" data-m="${k}" aria-pressed="${legendPick===k}"><i style="background:${MAT[k].color}"></i>${esc(MAT[k].label)}</button>`).join("")}</div>`;
+  if(legendPick&&MAT[legendPick]&&mats.indexOf(legendPick)>=0)h+=`<p class="legnote">${esc(MAT[legendPick].note||"")}</p>`;
+  sc.groups.forEach((g,gi)=>{const ps=sc.parts.filter(p=>p.group===g);if(!ps.length)return;
+    h+=`<div class="grp"><div class="ghd"><span>${esc(g)}</span><button type="button" data-g="${gi}">${ps.some(p=>p.on)?"Hide":"Show"}</button></div><div class="lays">`+
+      ps.map(p=>`<label class="lay${p.on?"":" off"}"><input type="checkbox" data-id="${esc(p.id)}" ${p.on?"checked":""}><i style="background:${(MAT[p.material]||{color:"#888"}).color}"></i><span class="tx" title="${esc(p.name)}">${esc(p.name)}</span></label>`).join("")+
+      `</div></div>`;});
+  body.innerHTML=h;
+  const set=(ps,on)=>{ps.forEach(p=>p.on=on);CAPS_DIRTY=true;render();renderTab(true);};
+  $("lyall").onclick=()=>set(sc.parts,!any);
+  body.querySelectorAll(".legend button").forEach(b=>b.onclick=()=>{legendPick=legendPick===b.dataset.m?null:b.dataset.m;renderTab(true);});
+  body.querySelectorAll(".ghd button").forEach(b=>b.onclick=()=>{const ps=sc.parts.filter(p=>p.group===sc.groups[+b.dataset.g]);set(ps,!ps.some(p=>p.on));});
+  body.querySelectorAll(".lay input").forEach(c=>c.onchange=()=>set(sc.parts.filter(p=>p.id===c.dataset.id),c.checked));}
+function tabSpecs(){
+  const sc=SC,used=[...new Set(sc.parts.map(p=>p.material))];
+  const title=sc.key==="cmp"?"Active footprint":sc.logic?"Cell summary":"Critical dimensions";
+  body.innerHTML=`<div class="lbl">${title}</div><p class="sub">${esc(sc.blurb)}</p>
+    <div class="specs">${sc.dims.map(r=>{
+      // a short value sits at the right of its row; a long one gets its own line under the
+      // description, so neither column is squeezed to a letter's width
+      const wide=r[2].replace(/<[^>]*>/g,"").length>16||!r[1];
+      return`<div class="spec${wide?" wide":""}"><span class="sym">${r[0]}</span><span class="d">${r[1]}</span><span class="n">${r[2]}</span></div>`;}).join("")}</div>
+    <div class="lbl">Film stack</div><p class="sub">${used.length} materials in the ${esc(sc.name.toLowerCase())}.</p>
+    <table><thead><tr><th>Material</th><th>Role</th></tr></thead><tbody>${
+      DATA.order.filter(k=>used.indexOf(k)>=0).map(k=>`<tr><td><span class="swcell"><i style="background:${MAT[k].color}"></i>${MAT[k].label}</span></td><td class="d">${MAT[k].note}</td></tr>`).join("")}</tbody></table>
+    ${sc.note?`<div class="note">${sc.note}</div>`:""}`;}
+function tabStory(){
+  const sc=SC;
+  body.innerHTML=`<div class="lbl">Why this device exists</div><p class="sub">${sc.key.indexOf("cmp")>=0?"What drives the whole roadmap.":
+    "The history behind the "+esc(sc.tag?sc.name.split(" · ")[0]:sc.name)+"."}</p><div class="prose">${sc.story||""}</div>`;}
+function tabWhy(){body.innerHTML=`<div class="lbl">Why the steps come in this order</div><div class="prose">${SC.story||""}</div>`;}
+/** Step text is plain; its citations [R16] become links into the references. */
+const cites=t=>esc(t).replace(/\[(R\d+)\]/g,(m,id)=>REFMAP[id]?`<a class="ref" href="#ref-${id}" data-ref="${id}">[${id}]</a>`:m);
+let stepsAt="",openTerm=null;
+function tabSteps(){
+  const f=SC.flow,here=f.routeOr(routeIn(f)),cur=SC.stepIndex;
+  const at=f.device+"@"+cur+"|"+here+"|"+P.ops;
+  const first=stepsAt.split("@")[0]!==f.device||!body.querySelector(".step"),moved=first||at!==stepsAt;
+  stepsAt=at;
+  const top=body.scrollTop;
+  let h="";
+  if(f.lessonLabel)h+=`<div class="lesson">${esc(f.lessonLabel)}</div>`;
+  if(f.sites.length){
+    h+=`<div class="lbl">Device site</div><div class="sites">${f.sites.map(s=>`<button type="button" class="chip" data-f="${esc(s.flow)}" aria-pressed="${s.id===f.site}">${esc(s.name)}</button>`).join("")}</div>
+    <p class="sitenote">${f.site==="p"?"Following the pFET. It shares the nFET's early stages, then has its own masked steps.":
+      f.site==="both"?"One nFET and one pFET side by side, joined by their gate line: two devices, not a finished circuit.":
+      "Following the nFET. The pFET next to it has its own flow; Both sites shows the two together."}</p>`;}
+  [f.scope,f.branch,f.figures].forEach(t=>{if(t)h+=`<p class="scope">${cites(t)}</p>`;});
+  if(f.steps.some(s=>s.isOp))h+=`<button type="button" class="opsw" role="switch" id="opsw" aria-checked="${P.ops}">
+    <div style="flex:1"><b>Show every operation</b><span>Adds resist, exposure, etch and fill between main steps; some use a 2 × 2 tile</span></div><i class="sw2"></i></button>`;
+  const fork=f.steps.findIndex(s=>s.route!=null);
+  f.steps.forEach((st,i)=>{
+    if(i===fork&&(P.ops||f.routeKind==="terminal")&&f.routes.length){
+      const r=f.routes.find(x=>x.id===here);
+      h+=`<div class="route"><div class="lbl">${esc(f.routeTitle)}</div><p>${f.routeKind==="terminal"?
+        "Two different endings, not done one after the other. Pick one to step through.":
+        "Pick a route. The substeps below change to match it, then rejoin at "+esc(f.routeJoin)+"."}</p>
+        <div class="sites">${f.routes.map(x=>`<button type="button" class="chip" data-r="${esc(x.id)}" aria-pressed="${x.id===here}">${esc(x.name)}</button>`).join("")}</div>
+        ${r&&r.note?`<p class="rn">${cites(r.note)}</p>`:""}</div>`;}
+    if((st.isOp&&!P.ops)||!f.onRoute(i,here))return;
+    const on=i===cur;
+    h+=`<div class="step${st.isOp?" op":""}${on?" on":""}" data-i="${i}"><button type="button" class="sthd" data-i="${i}" aria-expanded="${on}">
+      <span class="no">${esc(labelIn(st,here))}</span><span class="tt">${esc(st.title)}</span></button>`;
+    if(on)h+=stepBody(f,st);
+    h+=`</div>`;});
+  const refs=f.refs.map(id=>REFMAP[id]).filter(Boolean);
+  if(refs.length)h+=`<div class="lbl">Sources cited</div><div class="cited">${refs.map(r=>`<a href="${esc(r.url)}" target="_blank" rel="noopener">[${r.id}] ${esc(r.title)} — ${esc(r.publisher)}</a>`).join("")}</div>`;
+  body.innerHTML=h;
+  body.scrollTop=top;
+  body.querySelectorAll(".sites .chip[data-f]").forEach(b=>b.onclick=()=>openSite(b.dataset.f));
+  body.querySelectorAll(".route .chip").forEach(b=>b.onclick=()=>{const r=b.dataset.r;P.route[f.device]=r;
+    // off the new route (on another route's operation): start it at its first operation
+    if(!f.onRoute(SC.stepIndex,r)){setPlaying(false);goStep(Math.max(0,f.steps.findIndex(s=>s.route===f.routeOr(r))));}
+    else{renderTab(true);procbar();hud();}});
+  const os=$("opsw");
+  if(os)os.onclick=()=>{P.ops=!P.ops;
+    // hiding the operations while on one jumps to the core step it leads into
+    if(!P.ops&&SC.step.isOp){goStep(Math.max(0,f.steps.findIndex(s=>s.id===SC.step.of)));}else{renderTab(true);procbar();}};
+  body.querySelectorAll(".sthd").forEach(b=>b.onclick=()=>{const i=+b.dataset.i;if(i!==SC.stepIndex){setPlaying(false);goStep(i);}});
+  body.querySelectorAll(".terms button").forEach(b=>b.onclick=()=>{openTerm=openTerm===b.dataset.t?null:b.dataset.t;renderTab(true);});
+  const dv=$("todev");if(dv)dv.onclick=()=>selectMode("dev");
+  // keep the current step in view: glide the exact distance to its title
+  const el=body.querySelector(".step.on");
+  if(el&&moved){
+    const want=body.scrollTop+el.getBoundingClientRect().top-body.getBoundingClientRect().top-8;
+    if(Math.abs(want-body.scrollTop)>2)body.scrollTo({top:want,behavior:first||RM?"auto":"smooth"});}}
+function stepBody(f,st){
+  let h=`<div class="stbody"><p>${cites(st.body)}</p>`;
+  const terms=termsIn([st.body].concat(st.subs).join(" "));
+  if(terms.length){h+=`<div class="terms">${terms.map(t=>`<button type="button" data-t="${esc(t.term)}" aria-pressed="${openTerm===t.term}" aria-label="Define ${esc(t.name)}">${esc(t.term)}</button>`).join("")}</div>`;
+    const t=terms.find(x=>x.term===openTerm);
+    if(t)h+=`<div class="gloss"><b>${esc(t.name===t.term?t.term:t.term+" · "+t.name)}</b><span>${esc(t.text)}</span></div>`;}
+  const rg=[["n","nFET"],["p","pFET"]].filter(([k])=>st.regions[k]);
+  if(rg.length)h+=`<div class="regions">${rg.map(([k,n])=>{const v=st.regions[k],m=/^(masked|protected)/.test(v);
+    return`<span class="${m?"masked":""}">${n} · ${esc(v)}</span>`;}).join("")}</div>`;
+  const label=f.match[st.match]||st.match,src=st.src.length?st.src.map(s=>"["+s+"]").join("")+" ":"";
+  const figs=st.figs.length?src+"Fig. "+st.figs.join(", ")+" · ":src?src+"· ":"";
+  if(label||figs)h+=`<div class="srcline">${cites(figs+label)}</div>`;
+  const bn=f.badgeNote[f.badge[st.match]];if(bn)h+=`<div class="bnote">${esc(bn)}</div>`;
+  [["Model choices",st.subs],["Not shown here",st.omitted]].forEach(([hd,items])=>{
+    if(items.length)h+=`<div class="notes"><div class="lbl">${hd}</div>${items.map(t=>`<p>·  ${cites(t)}</p>`).join("")}</div>`;});
+  if(/done$/.test(st.id)&&sceneFor("dev",techOf(SC.key)))h+=`<button type="button" class="btn" id="todev">Open in Device mode</button>`;
+  return h+`</div>`;}
+body.addEventListener("click",e=>{const a=e.target.closest("a.ref");if(!a)return;e.preventDefault();openRef(a.dataset.ref);});
 
-function setDevice(key){
-  S.key=key;DEV=byKey[key];HOT=null;
-  MODE=key.indexOf("inv_")===0?"inv":key.indexOf("show_")===0?"show":"dev";
-  LAST[MODE][techOf(key)]=key;
-  mseg.querySelectorAll("button").forEach(x=>x.setAttribute("aria-pressed",String(x.dataset.m===MODE)));
-  if(!dwrap.firstChild||!MODES[MODE].some(k=>k[0]===dwrap.firstChild.dataset.d)) chips();
-  const fam=(MODE==="dev"&&key.indexOf("cfet")===0)?"cfet":key;
-  dwrap.querySelectorAll("button").forEach(b=>b.setAttribute("aria-pressed",String(b.dataset.d===fam)));
-  seg.hidden=!(fam==="cfet"&&MODE==="dev");
-  lbar.hidden=!DEV.logic; if(DEV.logic) logicText();
-  S.par=null; parPanel();
-  S.lightBg=false;              // dark stage everywhere; the switch is still there
-  document.getElementById("lightbg").checked=S.lightBg;
-  document.querySelector(".stagewrap").classList.toggle("light",S.lightBg);
-  seg.querySelectorAll("button").forEach(b=>b.setAttribute("aria-pressed",String(b.dataset.k===key)));
-  vwrap.innerHTML="";
-  Object.entries(DEV.views).forEach(([k,v],i)=>{const b=document.createElement("button");
-    b.className="view";b.type="button";b.dataset.k=k;
-    b.innerHTML=`<span class="k">${["◧","▤","▥","★"][i]||"·"}</span><span>${v.n}<span class="s">${v.s}</span></span>`;
-    b.onclick=()=>applyView(k);vwrap.appendChild(b);});
-  lwrap.innerHTML="";
-  DEV.groups.forEach(g=>{
-    const ps=DEV.parts.filter(p=>p.group===g);if(!ps.length)return;
-    const d=document.createElement("div");d.className="grp";
-    d.innerHTML=`<div class="ghd"><span>${g}</span><button type="button">toggle</button></div>`;
-    ps.forEach(p=>{const l=document.createElement("label");l.className="lay";
-      l.innerHTML=`<input type="checkbox" checked><span class="sw" style="background:${MAT[p.material].color}"></span><span class="tx">${p.name}</span>`;
-      const ck=l.querySelector("input");p._ck=l;
-      ck.onchange=e=>{p.on=e.target.checked;l.classList.toggle("off",!p.on);rebuildCaps();render();};
-      d.appendChild(l);});
-    d.querySelector("button").onclick=()=>{const any=ps.some(p=>p.on);
-      ps.forEach(p=>{p.on=!any;const c=p._ck.querySelector("input");c.checked=!any;p._ck.classList.toggle("off",any);});
-      rebuildCaps();render();};
-    lwrap.appendChild(d);});
-  fillCalouts();
-  document.getElementById("storybody").innerHTML=DEV.story||"";
-  document.getElementById("storysub").textContent=
-    DEV.key.indexOf("cmp")>=0 ? "What drives the whole roadmap."
-                              : `The history behind the ${DEV.tag ? DEV.name.split(" · ")[0] : DEV.name}.`;
-  document.getElementById("dimtitle").textContent=
-    DEV.key==="cmp"?"Active footprint":(DEV.logic?"Cell summary":"Critical dimensions");
-  document.getElementById("dimsub").textContent=DEV.blurb;
-  document.getElementById("dimtable").innerHTML=DEV.dims.map(r=>
-    `<tr><td class="sym">${r[0]}</td><td class="d">${r[1]}</td><td class="n">${r[2]}</td></tr>`).join("");
-  const used=[...new Set(DEV.parts.map(p=>p.material))];
-  document.getElementById("mattable").innerHTML=DATA.order.filter(k=>used.indexOf(k)>=0).map(k=>
-    `<tr><td><span class="swcell"><i style="background:${MAT[k].color}"></i>${MAT[k].label}</span></td>
-      <td class="d">${MAT[k].note}</td></tr>`).join("");
-  document.getElementById("matsub").textContent=`${used.length} materials in the ${DEV.name.toLowerCase()}.`;
-  document.getElementById("note").innerHTML=DEV.note;
-  document.getElementById("modcount").textContent=
-    `${DEV.parts.length} parts · ${DEV.groups.length} modules · ${DEV.name}`;
-  document.getElementById("inm").textContent=DEV.name;
-  document.getElementById("idt").textContent="Click any layer in the model to inspect it";
-  document.querySelector("#inspector .sw").style.background="#4A5364";
-  applyView(Object.keys(DEV.views)[0]);}
-function setView(k){S.view=k;vwrap.querySelectorAll("button").forEach(b=>b.setAttribute("aria-pressed",String(b.dataset.k===k)));
-  document.getElementById("hudview").textContent=k?DEV.views[k].n:"Free orbit";}
-/**
- * Distance at which the whole scene just fits, for a given orientation and stage shape.
- * The presets were authored against a wide stage; on a tall phone the limiting dimension
- * is the width instead, so without this the model sits tiny in a sea of empty space.
- */
-function fitDist(az,el,aspect,cap){
-  const B=DEV.bounds,ce=Math.cos(el);
-  const f=[-ce*Math.sin(az),-Math.sin(el),-ce*Math.cos(az)];
-  const rt=nrm(cross(f,[0,1,0])),up=cross(rt,f);
-  const c=[(B.x[0]+B.x[1])/2,(B.y[0]+B.y[1])/2,(B.z[0]+B.z[1])/2];
-  let hw=0,hh=0;
-  for(const X of B.x)for(const Y of B.y)for(const Z of B.z){
-    const d=[X-c[0],Y-c[1],Z-c[2]];
-    hw=Math.max(hw,Math.abs(d[0]*rt[0]+d[1]*rt[1]+d[2]*rt[2]));
-    hh=Math.max(hh,Math.abs(d[0]*up[0]+d[1]*up[1]+d[2]*up[2]));}
-  const t=Math.tan(0.31);
-  const rv=hh/t, rh=hw/(t*Math.max(aspect,0.05));
-  // The cap stops a very wide scene pushing the camera so far back that the model is a
-  // smudge; it is a framing choice, not a fit, so it must not feed the aspect correction.
-  const raw=Math.max(rv,rh);
-  return cap===false ? raw : Math.min(raw, rv*2.4);}
-/** Each preset keeps the framing it was authored with, re-fitted to this stage. */
-function viewR(v){
-  const a=W/H, ref=fitDist(v.az,v.el,1.5,false);
-  return ref>0 ? v.r*fitDist(v.az,v.el,a,false)/ref : v.r;}
-function applyView(k){const v=DEV.views[k],B=DEV.bounds;
-  S.az=v.az;S.el=v.el;S.r=viewR(v);S.tgt=v.tgt.slice();S.lset=k;
-  const c=v.clip||[null,null,null];
-  S.clip=[c[0]==null?B.x[1]:c[0], c[1]==null?B.y[1]:c[1], c[2]==null?B.z[1]:c[2]];
-  DEV.parts.forEach(p=>{const want=!(v.off&&v.off.indexOf(p.id)>=0);
-    if(p.on!==want){p.on=want;const ck=p._ck&&p._ck.querySelector("input");
-      if(ck){ck.checked=want;p._ck.classList.toggle("off",!want);}}});
-  syncClip();setView(k);rebuildCaps();render();}
+/** Everything that follows a change of scene or step. */
+function sceneChanged(isStep){
+  MODE=modeOf(SC.key);
+  chips();pills();hud();procbar();tabsRender();
+  if(PHONE.matches)setSheet(sheetLevel);
+  if(isStep)refreshTab(["steps","layers","views","section","why"]);else renderTab(false);
+  wrap.classList.toggle("light",S.lightBg);}
 
-const rg={cx:document.getElementById("cx"),cy:document.getElementById("cy"),cz:document.getElementById("cz")};
-const AX={cx:0,cy:1,cz:2},LBL={cx:"vcx",cy:"vcy",cz:"vcz"},KEYS=["x","y","z"];
-Object.keys(rg).forEach(k=>{rg[k].oninput=()=>{const B=DEV.bounds[KEYS[AX[k]]],t=+rg[k].value/100;
-  S.clip[AX[k]]=B[0]+(B[1]-B[0])*t;updLbl(k);setView(null);rebuildCaps();render();};});
-function updLbl(k){const B=DEV.bounds[KEYS[AX[k]]],v=S.clip[AX[k]];
-  document.getElementById(LBL[k]).textContent=(v>=B[1]-0.01)?"off":v.toFixed(1)+" nm";}
-function syncClip(){Object.keys(rg).forEach(k=>{const B=DEV.bounds[KEYS[AX[k]]];
-  rg[k].value=Math.round((S.clip[AX[k]]-B[0])/(B[1]-B[0])*100);updLbl(k);});}
+/* ---- phone sheet ---- */
+const side=$("side");
+let sheetLevel=0;
+const PEEK=62;
+// Down, the sheet is its tabs; half open the model stays whole above it; fully open it rises over the model.
+function sheetHeights(){const mh=side.parentElement.clientHeight;return[PEEK,PEEK+Math.round(mh*0.26),PEEK+Math.round(mh*0.58)];}
+let occTo=0,occRun=false;
+/** The stage hidden under the sheet, gliding with it: the model is lifted (and, on a preset
+ *  view, re-fitted) to sit in what is left. */
+function setOcc(v,now){occTo=v;if(now||RM){OCC=v;refit();return;}
+  if(occRun)return;occRun=true;
+  const step=()=>{const d=occTo-OCC;if(Math.abs(d)<0.5){OCC=occTo;occRun=false;refit();return;}
+    OCC+=d*0.22;refit();requestAnimationFrame(step);};
+  requestAnimationFrame(step);}
+function refit(){if(SC&&S.view&&!FLIGHT){const v=SC.views.find(x=>x.k===S.view);if(v)S.r=viewR(SC,v);}draw();}
+function setSheet(l,px,now){
+  if(!PHONE.matches){side.style.height="";wrap.style.setProperty("--bar-b","0px");setOcc(0,true);return;}
+  sheetLevel=l;const hs=sheetHeights(),h=px!=null?px:hs[l],vis=Math.min(h,hs[1]);
+  side.style.height=h+"px";
+  wrap.style.setProperty("--bar-b",vis+"px");
+  setOcc(vis+(SC&&(SC.flow||SC.logic)?56:0),now||px!=null);}
+function sheetOpen(){if(PHONE.matches&&sheetLevel===0)setSheet(1);}
+(function sheetDrag(){
+  let d=null;
+  const down=e=>{if(!PHONE.matches)return;d={y:e.clientY,h:side.getBoundingClientRect().height,moved:0,id:e.pointerId,el:e.currentTarget};};
+  const move=e=>{if(!d||e.pointerId!==d.id)return;const dy=e.clientY-d.y;d.moved=Math.max(d.moved,Math.abs(dy));
+    if(d.moved<6)return;
+    if(!d.cap){d.cap=true;try{d.el.setPointerCapture(d.id);}catch(_){}side.classList.add("dragging");}
+    const hs=sheetHeights();setSheet(sheetLevel,clamp(d.h-dy,hs[0],hs[2]));};
+  const up=e=>{if(!d||e.pointerId!==d.id)return;side.classList.remove("dragging");
+    if(d.cap){const h=side.getBoundingClientRect().height,hs=sheetHeights();
+      let best=0;hs.forEach((v,i)=>{if(Math.abs(v-h)<Math.abs(hs[best]-h))best=i;});setSheet(best);
+      // a drag on the tabs must not also count as a tap on one
+      const stop=ev=>{ev.stopPropagation();ev.preventDefault();};
+      tabsEl.addEventListener("click",stop,{capture:true,once:true});setTimeout(()=>tabsEl.removeEventListener("click",stop,{capture:true}),50);}
+    else if(d.el===$("grip"))setSheet(sheetLevel===0?1:0);
+    d=null;};
+  [$("grip"),tabsEl].forEach(el=>{el.addEventListener("pointerdown",down);el.addEventListener("pointermove",move);
+    el.addEventListener("pointerup",up);el.addEventListener("pointercancel",up);});})();
 
-const exr=document.getElementById("ex");
-exr.oninput=()=>{S.ex=+exr.value/100*16;document.getElementById("vex").textContent=S.ex.toFixed(1)+" nm";
-  rebuildCaps();render();};
-document.getElementById("lightbg").onchange=e=>{S.lightBg=e.target.checked;
-  document.querySelector(".stagewrap").classList.toggle("light",S.lightBg);render();};
-document.getElementById("edges").onchange=e=>{S.edges=e.target.checked;render();};
-document.getElementById("tex").onchange=e=>{S.tex=e.target.checked;render();};
-document.getElementById("ghost").onchange=e=>{S.ghost=e.target.checked;render();};
-document.getElementById("dims").onchange=e=>{S.dims=e.target.checked;render();};
-document.getElementById("spin").onchange=e=>{S.spin=e.target.checked;if(S.spin)loop();};
-document.getElementById("reset").onclick=()=>{
-  S.ex=0;exr.value=0;document.getElementById("vex").textContent="0 nm";
-  S.ghost=false;document.getElementById("ghost").checked=false;
-  S.tex=true;document.getElementById("tex").checked=true;
-  S.edges=true;document.getElementById("edges").checked=true;
-  S.dims=true;document.getElementById("dims").checked=true;
-  S.spin=false;document.getElementById("spin").checked=false;
-  DEV.parts.forEach(p=>{p.on=true;const ck=p._ck&&p._ck.querySelector("input");
-    if(ck){ck.checked=true;p._ck.classList.remove("off");}});
-  HOT=null;applyView(Object.keys(DEV.views)[0]);};
-addEventListener("keydown",e=>{if(e.target.tagName==="INPUT")return;
-  if(e.key==="0"||e.key==="1"){if(DEV.logic){const b=lbar.querySelector(`button[data-v="${e.key}"]`);if(b)b.click();}return;}
-  const L=MODES[MODE]; const i="12345".indexOf(e.key);
-  if(i>=0&&i<L.length){const k=L[i][0];setDevice(MODE==="dev"?devKey(k):k);}});
+/* ---- interaction: one pointer orbits (shift or right button pans), two pinch and pan ---- */
+const PTR=new Map();let drag=null,pinch=null,zoomTo=null;
+let zooming=false;
+function zoomBy(f){zoomTo=clamp((zoomTo||S.r)*f,20,6000);cancelFlight();
+  if(RM){S.r=zoomTo;zoomTo=null;render();return;}
+  if(zooming)return;zooming=true;
+  const step=()=>{if(zoomTo==null){zooming=false;return;}const d=zoomTo-S.r;
+    if(Math.abs(d)<S.r*0.002){S.r=zoomTo;zoomTo=null;zooming=false;draw();return;}
+    S.r+=d*0.28;draw();requestAnimationFrame(step);};
+  requestAnimationFrame(step);}
+function panBy(dx,dy){const s=2*S.r*TANH/H,ey=eye(),f=nrm(sub(S.tgt,ey)),rt=nrm(cross(f,[0,1,0])),up=cross(rt,f);
+  S.tgt=[S.tgt[0]-(rt[0]*dx-up[0]*dy)*s,S.tgt[1]-(rt[1]*dx-up[1]*dy)*s,S.tgt[2]-(rt[2]*dx-up[2]*dy)*s];}
+function freeView(){if(S.view!==null){S.view=null;hud();refreshTab(["views"]);}}
+cv.addEventListener("pointerdown",e=>{
+  try{cv.setPointerCapture(e.pointerId);}catch(_){}
+  PTR.set(e.pointerId,{x:e.clientX,y:e.clientY});HOLD=true;cancelFlight();zoomTo=null;
+  if(PTR.size===1)drag={x:e.clientX,y:e.clientY,pan:e.shiftKey||e.button===2||e.button===1,moved:0};
+  else if(PTR.size===2){const[a,b]=[...PTR.values()];pinch={d:Math.hypot(a.x-b.x,a.y-b.y),mx:(a.x+b.x)/2,my:(a.y+b.y)/2};drag=null;}
+  cv.classList.add("drag");});
+cv.addEventListener("pointermove",e=>{
+  if(!PTR.has(e.pointerId))return;PTR.set(e.pointerId,{x:e.clientX,y:e.clientY});
+  if(pinch&&PTR.size>=2){const[a,b]=[...PTR.values()],d=Math.hypot(a.x-b.x,a.y-b.y),mx=(a.x+b.x)/2,my=(a.y+b.y)/2;
+    if(d>0&&pinch.d>0)S.r=clamp(S.r*pinch.d/d,20,6000);
+    panBy(mx-pinch.mx,my-pinch.my);pinch={d,mx,my};freeView();render();return;}
+  if(!drag)return;
+  const dx=e.clientX-drag.x,dy=e.clientY-drag.y;drag.x=e.clientX;drag.y=e.clientY;drag.moved+=Math.abs(dx)+Math.abs(dy);
+  if(drag.moved<4)return;
+  if(drag.pan)panBy(dx,dy);
+  else{S.az-=dx*.008;S.el=clamp(S.el+dy*.006,-1.45,1.45);}
+  freeView();render();});
+const ptrUp=e=>{
+  if(!PTR.has(e.pointerId))return;PTR.delete(e.pointerId);
+  if(drag&&drag.moved<5&&e.type==="pointerup")doPick(e);
+  if(PTR.size<2)pinch=null;
+  if(PTR.size===1){const[p]=[...PTR.values()];drag={x:p.x,y:p.y,pan:false,moved:99};}else drag=null;
+  if(!PTR.size){HOLD=false;cv.classList.remove("drag");}};
+cv.addEventListener("pointerup",ptrUp);cv.addEventListener("pointercancel",ptrUp);
+cv.addEventListener("contextmenu",e=>e.preventDefault());
+cv.addEventListener("wheel",e=>{e.preventDefault();
+  const dy=e.deltaMode===1?e.deltaY*16:e.deltaMode===2?e.deltaY*400:e.deltaY;
+  zoomBy(Math.exp(clamp(dy,-240,240)*0.0011));freeView();},{passive:false});
+function doPick(e){const r=cv.getBoundingClientRect(),p=pick(e.clientX-r.left,e.clientY-r.top);
+  HOT=p===HOT?null:p;hud();render();}
+function spin(){if(!S.spin)return;if(!RM&&!HOLD){S.az+=0.0032;freeView();}draw();requestAnimationFrame(spin);}
+addEventListener("keydown",e=>{
+  if(e.target.closest&&e.target.closest("input,textarea,select,dialog"))return;
+  if(e.ctrlKey||e.metaKey||e.altKey)return;
+  if(SC.flow){
+    if(e.key==="ArrowRight"){e.preventDefault();stepBy(1);return;}
+    if(e.key==="ArrowLeft"){e.preventDefault();stepBy(-1);return;}
+    if(e.key===" "&&!(e.target.closest&&e.target.closest("button"))){e.preventDefault();$("pbplay").click();return;}}
+  if((e.key==="0"||e.key==="1")&&SC.logic){setInput(+e.key);return;}
+  const i="12345".indexOf(e.key),L=MODES[MODE];
+  if(i>=0&&i<L.length&&MODE!=="proc")selectChip(L[i][0]);});
+function layout(){
+  measure();procbar();
+  setSheet(PHONE.matches?sheetLevel:0,null,true);}
+addEventListener("resize",layout);
+if(PHONE.addEventListener)PHONE.addEventListener("change",layout);
 
-setDevice("fin");
+/* ---- dialogs ---- */
+function openDialog(id){const d=$(id);if(d.open)return d;if(d.showModal)d.showModal();else d.setAttribute("open","");return d;}
+document.querySelectorAll("dialog [data-close]").forEach(b=>b.onclick=()=>b.closest("dialog").close());
+document.querySelectorAll("dialog").forEach(d=>d.addEventListener("click",e=>{if(e.target===d)d.close();}));
+$("aboutbtn").onclick=()=>openDialog("about");
+$("helpbtn").onclick=()=>openDialog("help");
+function openRef(id){const d=openDialog("about"),li=$("ref-"+id);if(!li)return;
+  li.scrollIntoView({block:"center"});li.classList.add("flash");setTimeout(()=>li.classList.remove("flash"),1600);}
+(function help(){
+  const L=(GUIDE&&GUIDE.learn)||[];
+  $("learn").innerHTML=L.map(l=>`<button type="button" data-k="${esc(l.key)}"><b>${esc(l.title)}</b><span>${esc(l.body)}</span></button>`).join("");
+  $("learn").querySelectorAll("button").forEach(b=>b.onclick=()=>{$("help").close();const k=b.dataset.k;
+    if(k==="process"){MODE==="proc"||selectMode("proc");}
+    else switchScene(k==="cfet_mono"||k==="cfet_seq"?resolve("cfet"):resolve(k));});
+  const list=()=>{const q=$("gq").value.trim().toLowerCase();
+    $("glist").innerHTML=GLOSS.filter(t=>!q||(t.term+" "+t.name+" "+t.text).toLowerCase().indexOf(q)>=0)
+      .map(t=>`<div class="gloss"><b>${esc(t.name===t.term?t.term:t.term+" · "+t.name)}</b><span>${esc(t.text)}</span></div>`).join("")||
+      `<p class="sub">No term matches.</p>`;};
+  $("gq").oninput=list;list();})();
+
+/* ---- start ---- */
+if(gl)initGL();
+layout();
+openScene("fin");
 })();
 </script>

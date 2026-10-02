@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """Assemble the shipped HTML from the template and the scene data.
 
-  scripts/roadmap.tpl.html + data/devices.json -> web/finfet-to-cfet.html
+  scripts/roadmap.tpl.html + data/{devices,process,guide,references}.json
+                                              -> web/finfet-to-cfet.html
   standalone viewer + pwa/parts/*             -> pwa/index.html
 
 Also bumps the service-worker cache name so an installed PWA picks the new
@@ -15,21 +16,30 @@ tpl  = (ROOT / "scripts/roadmap.tpl.html").read_text()
 data = json.loads((ROOT / "data/devices.json").read_text())
 refs = json.loads((ROOT / "data/references.json").read_text())
 
-MARK = "/*__DATA__*/null"
-if tpl.count(MARK) != 1:
-    sys.exit(f"expected exactly one {MARK} in roadmap.tpl.html, found {tpl.count(MARK)}")
+def payload(obj):
+    # </script> inside a JS string literal would close the tag early.
+    return json.dumps(obj, separators=(",", ":")).replace("</", "<\\/")
 
-blob = json.dumps(data, separators=(",", ":"))
-# </script> inside a JS string literal would close the tag early.
-blob = blob.replace("</", "<\\/")
-html = tpl.replace(MARK, blob)
-reference_html = '<section class="panel" id="technical-references"><h2>Technical references</h2><p>' + escape(refs['scope']) + '</p><ol>'
+guide = json.loads((ROOT / "data/guide.json").read_text())
+proc = json.loads((ROOT / "data/process.json").read_text())
+html = tpl
+# The scenes, the fabrication flows, the glossary and learning path, and the references.
+for mark, obj in (("DATA", data), ("PROC", proc), ("GUIDE", guide), ("REFS", refs)):
+    MARK = "/*__" + mark + "__*/null"
+    if html.count(MARK) != 1:
+        sys.exit(f"expected exactly one {MARK} in roadmap.tpl.html, found {html.count(MARK)}")
+    html = html.replace(MARK, payload(obj))
+reference_html = '<section class="refs" id="technical-references"><h2>Technical references</h2><p>' + escape(refs['scope']) + '</p><ol>'
 for r in refs['sources']:
-    reference_html += '<li id="ref-' + r['id'] + '"><a href="' + escape(r['url'], quote=True) + '">' + escape(r['id'] + ' — ' + r['title']) + '</a> — ' + escape(r['publisher']) + '<p>' + escape(r['supports']) + '</p></li>'
+    reference_html += '<li id="ref-' + r['id'] + '"><a href="' + escape(r['url'], quote=True) + '" target="_blank" rel="noopener">' + escape(r['id'] + ' — ' + r['title']) + '</a> — ' + escape(r['publisher']) + '<p>' + escape(r['supports']) + '</p></li>'
 reference_html += '</ol><p>Reviewed ' + refs['reviewed'] + '.</p></section>'
 assert html.count('<!-- TECHNICAL_REFERENCES -->') == 1
 html = html.replace('<!-- TECHNICAL_REFERENCES -->', reference_html)
-(ROOT / "web/finfet-to-cfet.html").write_text(html)
+# The standalone viewer is a whole document of its own; the PWA wraps the same page below.
+(ROOT / "web/finfet-to-cfet.html").write_text(
+    '<!doctype html>\n<html lang="en">\n<head>\n<meta charset="utf-8">\n'
+    '<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">\n'
+    + html.rstrip("\n") + '\n</html>\n')
 legacy_path = ROOT / 'web/nanosheet-only.html'
 legacy = legacy_path.read_text()
 geo = json.loads((ROOT / 'data/geometry.json').read_text())
