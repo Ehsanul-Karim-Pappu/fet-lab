@@ -5,6 +5,17 @@ All notable changes to FET Lab. Dates are the release date; versions follow
 
 ## Unreleased
 
+### The guided tour on the web
+
+- The web page has the app's guided tour: a spotlight on each part of the page, a hand that
+  shows each gesture and control, and a card with the step's explanation that keeps clear of
+  what it points at. It is offered on the first visit and can be replayed from Help, along
+  with the Process mode tour, which also runs by itself the first time Process is opened. The
+  tour puts the page back as it was when it ends; Esc ends it.
+- Help lists everything the page can do; each entry opens where that feature lives.
+- Where the page's controls differ from the app's (mouse and touch, the pill positions, no
+  see-through sheet), the tour says so in its own words.
+
 ### Fixes
 
 - The stepper's total counts the core steps on the route shown. On a both-sites lesson, the

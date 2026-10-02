@@ -29,6 +29,12 @@ for mark, obj in (("DATA", data), ("PROC", proc), ("GUIDE", guide), ("REFS", ref
     if html.count(MARK) != 1:
         sys.exit(f"expected exactly one {MARK} in roadmap.tpl.html, found {html.count(MARK)}")
     html = html.replace(MARK, payload(obj))
+# The tour's hand, a small copy of the app's drawable, inlined so the page stays one file.
+import base64
+HAND = '"/*__HAND__*/"'
+assert html.count(HAND) == 1, "expected one hand marker in roadmap.tpl.html"
+html = html.replace(HAND, '"data:image/webp;base64,' +
+                    base64.b64encode((ROOT / "scripts/tour_hand.webp").read_bytes()).decode() + '"')
 reference_html = '<section class="refs" id="technical-references"><h2>Technical references</h2><p>' + escape(refs['scope']) + '</p><ol>'
 for r in refs['sources']:
     reference_html += '<li id="ref-' + r['id'] + '"><a href="' + escape(r['url'], quote=True) + '" target="_blank" rel="noopener">' + escape(r['id'] + ' — ' + r['title']) + '</a> — ' + escape(r['publisher']) + '<p>' + escape(r['supports']) + '</p></li>'

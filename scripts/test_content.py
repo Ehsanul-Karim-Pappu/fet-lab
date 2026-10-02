@@ -704,6 +704,12 @@ class ContentTests(unittest.TestCase):
         ids = {s['id'] for s in g['stops']}
         for tour in ('tour', 'process_tour'):
             self.assertTrue(g[tour]); self.assertTrue(set(g[tour]) <= ids, tour)
+        # A stop's web wording, where the page's controls differ from the app's: it says
+        # something different, and nothing that exists only in the app.
+        for s in g['stops']:
+            if 'web' in s:
+                self.assertTrue(s['web'] and s['web'] != s['body'], s['id'])
+                self.assertNotRegex(s['web'], r"sheet's see-through|one finger|top left of the stage", s['id'])
         scenes = {d['key'] for d in self.data['devices']}
         self.assertEqual([l['key'] for l in g['learn']], ['fin', 'ns', 'fs', 'cfet_mono', 'process'])
         # The nanosheet stop opens the scene of the chosen channel design.

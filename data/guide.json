@@ -12,14 +12,16 @@
       "category": "Getting around",
       "title": "Compare architectures",
       "body": "Four device architectures, on one possible scaling roadmap: FinFET, nanosheet FET, inner-wall forksheet and CFET. Tap an architecture button to open one, or Compare to see the examples side by side.",
-      "gesture": "tap"
+      "gesture": "tap",
+      "web": "Four device architectures, on one possible scaling roadmap: FinFET, nanosheet FET, inner-wall forksheet and CFET. Pick an architecture to open it, or Compare to see the examples side by side."
     },
     {
       "id": "stage",
       "category": "The 3D view",
       "title": "Orbit, pan, zoom, inspect",
       "body": "Drag with one finger to orbit, two fingers to pan, and pinch to zoom. Tap any layer to see what it's made of.",
-      "gesture": "pinch"
+      "gesture": "pinch",
+      "web": "Drag to orbit. Shift-drag or use two fingers to pan; scroll or pinch to zoom. Click or tap any layer to see what it's made of."
     },
     {
       "id": "design",
@@ -42,7 +44,8 @@
       "title": "Section",
       "body": "Slide to cut the model open on any axis, or to pull the layers apart. Under Display: the sheet's see-through, slow rotate and the other display switches.",
       "tab": 1,
-      "gesture": "drag"
+      "gesture": "drag",
+      "web": "Slide to cut the model open on any axis, or to pull the layers apart. Under Display: edge outlines, surface texture, the see-through gate fill, labels and slow rotate."
     },
     {
       "id": "layers",
@@ -50,7 +53,8 @@
       "title": "Layers",
       "body": "Hide any single layer to see what's underneath it. Or hide a whole group, or everything, with one tap.",
       "tab": 2,
-      "gesture": "tap"
+      "gesture": "tap",
+      "web": "Hide any single layer to see what's underneath it. Or hide a whole group, or everything, at once."
     },
     {
       "id": "specs",
@@ -74,7 +78,8 @@
       "title": "Story",
       "body": "Read the concepts, trade-offs and limitations behind the architecture. Open About for Credits and linked Technical references.",
       "tab": 4,
-      "gesture": "none"
+      "gesture": "none",
+      "web": "Read the concepts, trade-offs and limitations behind the architecture. Open About (the i at the top right) for Credits and the Technical references."
     },
     {
       "id": "p_stepper",
@@ -89,14 +94,16 @@
       "title": "How a step stands against its source",
       "body": "The badge beside the step number says how the state relates to its cited source: Source stage, Reconstruction, Teaching or Concept. Tap the step's name to open its full explanation, source and substitutions in Steps.",
       "tab": 3,
-      "gesture": "tap"
+      "gesture": "tap",
+      "web": "The badge beside the step number says how the state relates to its cited source: Source stage, Reconstruction, Teaching or Concept. Click the step's name to open its full explanation, source and substitutions in Steps."
     },
     {
       "id": "p_sites",
       "category": "Process mode",
       "title": "nFET, pFET or both sites",
       "body": "The pill at the top left of the stage picks the device the flow follows: the nFET, the pFET, or both side by side on one gate line. The pFET shares the nFET's early stages, then has its own masked steps. On the nanosheet, pick the channel design (Si/SiGe or Si/Si CMOS) at the top right.",
-      "gesture": "tap"
+      "gesture": "tap",
+      "web": "The pill at the top right of the stage picks the device the flow follows: the nFET, the pFET, or both side by side on one gate line. The pFET shares the nFET's early stages, then has its own masked steps. On the nanosheet, the channel design (Si/SiGe or Si/Si CMOS) is picked just above it."
     },
     {
       "id": "p_planes",
@@ -104,7 +111,8 @@
       "title": "Section planes",
       "body": "On steps with a source figure, the Section tab lists named planes through the model: along the nFET or pFET, across the gate, across the source/drain. Pick one to see its 2D section, cut from the same model. Tap a layer in the section to name it; pinch to zoom.",
       "tab": 1,
-      "gesture": "tap"
+      "gesture": "tap",
+      "web": "On steps with a source figure, the Section tab lists named planes through the model: along the nFET or pFET, across the gate, across the source/drain. Pick one to see its 2D section, cut from the same model. Click or tap a layer in the section to name it; scroll or pinch to zoom."
     },
     {
       "id": "p_secmode",
@@ -128,7 +136,8 @@
       "title": "From a step to its cross section",
       "body": "In Steps, a step best seen in a plane has a Show cross section button under its text. One tap opens that plane's section beside the model.",
       "tab": 3,
-      "gesture": "tap"
+      "gesture": "tap",
+      "web": "In Steps, a step best seen in a plane has a Show cross section button under its text. One click opens that plane's section above the model."
     },
     {
       "id": "p_lessons",
