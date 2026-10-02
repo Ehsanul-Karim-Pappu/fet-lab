@@ -11,9 +11,7 @@ choices.
 - A sequential-CFET inverter; the CFET Inverter and Layout scenes are built on the monolithic
   CFET.
 - The Layout scenes' spans are schematic, not the Inverter scenes' numbers.
-- R24 and R25 name only "US patent" as their publisher; their assignees need the patents
-  themselves (Google Patents, the USPTO and Justia could not be reached from the build session).
-  R7's Intel link is an old press-release archive; search still indexes it at the same address,
+- R7's Intel link is an old press-release archive; search still indexes it at the same address,
   but it could not be opened to confirm.
 
 ## Rules that hold throughout

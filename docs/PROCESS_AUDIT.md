@@ -363,7 +363,7 @@ Each row sets one state against its source in one plane. **text-verified**: the 
 - **[R21]** Spacer defined double patterning for sub-72 nm pitch logic technology — IBM Research. <https://research.ibm.com/publications/spacer-defined-double-patterning-for-sub-72-nm-pitch-logic-technology>
 - **[R22]** N7 FinFET Self-Aligned Quadruple Patterning Modeling (Baudot, Guissi, Milenin, Ervin, Schram) — imec and Coventor, SISPAD 2018 (author paper). <https://in4.iue.tuwien.ac.at/pdfs/sispad2018/SISPAD_2018_344-347.pdf>
 - **[R23]** SAQP Specs for 7nm finFETs — Semiconductor Digest. <https://www.semiconductor-digest.com/saqp-specs-for-7nm-finfets/>
-- **[R24]** FinFet device and method of forming the same (US 10,505,021 B2) — US patent. <https://patents.google.com/patent/US10505021B2/en>
+- **[R24]** FinFet device and method of forming the same (US 10,505,021 B2) — Taiwan Semiconductor Manufacturing Company (assignee), US patent. <https://patents.google.com/patent/US10505021B2/en>
 - **[R26]** Contacts for a fin-type field-effect transistor (US 9,741,615 B1) — GlobalFoundries (assignee), US patent. <https://patents.google.com/patent/US9741615B1/en>
 - **[R27]** Bulk finFET with punchthrough stopper region and method of fabrication (US 9,082,853 B2) — IBM (original assignee; now GlobalFoundries), US patent. <https://patents.google.com/patent/US9082853B2/en>
 - **[R29]** FinFET structures and methods of forming the same (US 9,812,358 B1) — Taiwan Semiconductor Manufacturing Company (assignee), US patent. <https://patents.google.com/patent/US9812358B1/en>
@@ -1069,8 +1069,8 @@ Each row sets one state against its source in one plane. **text-verified**: the 
 - **[R21]** Spacer defined double patterning for sub-72 nm pitch logic technology — IBM Research. <https://research.ibm.com/publications/spacer-defined-double-patterning-for-sub-72-nm-pitch-logic-technology>
 - **[R22]** N7 FinFET Self-Aligned Quadruple Patterning Modeling (Baudot, Guissi, Milenin, Ervin, Schram) — imec and Coventor, SISPAD 2018 (author paper). <https://in4.iue.tuwien.ac.at/pdfs/sispad2018/SISPAD_2018_344-347.pdf>
 - **[R23]** SAQP Specs for 7nm finFETs — Semiconductor Digest. <https://www.semiconductor-digest.com/saqp-specs-for-7nm-finfets/>
-- **[R24]** FinFet device and method of forming the same (US 10,505,021 B2) — US patent. <https://patents.google.com/patent/US10505021B2/en>
-- **[R25]** Dummy fin structures and methods of forming same (US 10,510,580 B2) — US patent. <https://patents.google.com/patent/US10510580B2/en>
+- **[R24]** FinFet device and method of forming the same (US 10,505,021 B2) — Taiwan Semiconductor Manufacturing Company (assignee), US patent. <https://patents.google.com/patent/US10505021B2/en>
+- **[R25]** Dummy fin structures and methods of forming same (US 10,510,580 B2) — Taiwan Semiconductor Manufacturing Company (assignee), US patent. <https://patents.google.com/patent/US10510580B2/en>
 - **[R26]** Contacts for a fin-type field-effect transistor (US 9,741,615 B1) — GlobalFoundries (assignee), US patent. <https://patents.google.com/patent/US9741615B1/en>
 - **[R27]** Bulk finFET with punchthrough stopper region and method of fabrication (US 9,082,853 B2) — IBM (original assignee; now GlobalFoundries), US patent. <https://patents.google.com/patent/US9082853B2/en>
 - **[R29]** FinFET structures and methods of forming the same (US 9,812,358 B1) — Taiwan Semiconductor Manufacturing Company (assignee), US patent. <https://patents.google.com/patent/US9812358B1/en>

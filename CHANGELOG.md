@@ -11,6 +11,8 @@ All notable changes to FET Lab. Dates are the release date; versions follow
   gate-cut ending read "STEP 20/21" on its last step, because the shared-gate ending was counted
   too; each ending now finishes on its own total (app and web).
 - R26 and R27 name their assignees: GlobalFoundries, and IBM (now GlobalFoundries).
+- R24 and R25 name their assignee, Taiwan Semiconductor Manufacturing Company, read from the
+  patents themselves. R24's route was checked against its drawings as well as its text.
 
 ### Web: section planes, Pitch walk controls, and a stage that follows the system theme
 

@@ -166,14 +166,14 @@
     {
       "id": "R24",
       "title": "FinFet device and method of forming the same (US 10,505,021 B2)",
-      "publisher": "US patent",
+      "publisher": "Taiwan Semiconductor Manufacturing Company (assignee), US patent",
       "url": "https://patents.google.com/patent/US10505021B2/en",
-      "supports": "A gate-last FinFET route, from its text and flowchart (Fig. 23): substrate with optional p- and n-wells and a first mask (Fig. 2A); fin etch (3A); isolation fill and CMP (4A); STI recess (5A); dummy gate dielectric, silicon and mask (6A/B); dummy gate patterned, with optional lightly doped extensions (7A–C); gate spacers deposited selectively (8–15); source/drain fin recess (16A–C); epitaxial source/drain (17A–C); etch-stop layer, ILD and CMP (18A–C); dummy gate removed (19A–C); replacement gate dielectric and metal (20A–C); contacts (21A–C). Fig. 22 shows merged epitaxy as an alternative. Mapped from the text; the drawings were not compared."
+      "supports": "A gate-last FinFET route, from its text and flowchart (Fig. 23): substrate with optional p- and n-wells and a first mask (Fig. 2A); fin etch (3A); isolation fill and CMP (4A); STI recess (5A); dummy gate dielectric, silicon and mask (6A/B); dummy gate patterned, with optional lightly doped extensions (7A–C); gate spacers deposited selectively (8–15); source/drain fin recess (16A–C); epitaxial source/drain (17A–C); etch-stop layer, ILD and CMP (18A–C); dummy gate removed (19A–C); replacement gate dielectric and metal (20A–C); contacts (21A–C). Fig. 22 shows merged epitaxy as an alternative. Checked against the text and the drawings of Figs. 1–5A, 16–21 and 23."
     },
     {
       "id": "R25",
       "title": "Dummy fin structures and methods of forming same (US 10,510,580 B2)",
-      "publisher": "US patent",
+      "publisher": "Taiwan Semiconductor Manufacturing Company (assignee), US patent",
       "url": "https://patents.google.com/patent/US10510580B2/en",
       "supports": "An integrated FinFET flow: gate seal and spacer films made by deposition and anisotropic etch; nFET and pFET source/drain recess and epitaxy, each done with the other region masked; etch-stop layer and ILD; dummy gate removal; replacement gate; contacts with optional silicide. Its dummy fins are structures made on purpose, not the extra mask line the app cuts."
     },
