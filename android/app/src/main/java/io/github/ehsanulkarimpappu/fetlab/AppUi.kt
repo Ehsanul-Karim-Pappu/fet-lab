@@ -297,7 +297,7 @@ fun FetLabApp(lib: Library, renderer: Renderer) {
     var mode by rememberSaveable { mutableStateOf(0) }
     var sceneKey by rememberSaveable { mutableStateOf("fin") }
     var design by rememberSaveable { mutableStateOf(loadDesign(ctx)) }
-    var cfetSeq by rememberSaveable { mutableStateOf(false) }
+    var cfetSeq by rememberSaveable { mutableStateOf(true) }      // CFET opens on the sequential design
     var viewKey by rememberSaveable { mutableStateOf("") }
     var cx by rememberSaveable { mutableStateOf(1f) }
     var cy by rememberSaveable { mutableStateOf(1f) }
@@ -1212,10 +1212,11 @@ fun FetLabApp(lib: Library, renderer: Renderer) {
             AnimatedVisibility(visible = sceneKey.startsWith("cfet"),
                 enter = fadeIn() + expandVertically(), exit = fadeOut() + shrinkVertically()) {
                 Box(Modifier.padding(start = 16.dp, end = 16.dp, top = 6.dp)) {
-                    Segmented(listOf("Monolithic", "Sequential"),
-                        if (sceneKey == "cfet_seq") 1 else 0) { i ->
-                        cfetSeq = i == 1
-                        switchScene(if (i == 1) "cfet_seq" else "cfet_mono")
+                    // Sequential first: it is the default CFET.
+                    Segmented(listOf("Sequential", "Monolithic"),
+                        if (sceneKey == "cfet_seq") 0 else 1) { i ->
+                        cfetSeq = i == 0
+                        switchScene(if (i == 0) "cfet_seq" else "cfet_mono")
                     }
                 }
             }
@@ -1682,7 +1683,8 @@ fun FetLabApp(lib: Library, renderer: Renderer) {
                 onTour = { startTour() }, onProcessTour = { startTour(catalog.processTour) },
                 onLearn = { l ->
                     showHelp = false
-                    if (l.key == "process") selectMode(PROCESS) else switchScene(l.key)
+                    if (l.key == "process") selectMode(PROCESS)
+                    else switchScene(if (l.key == "cfet_mono" && cfetSeq) "cfet_seq" else l.key)
                     sheetLevel = 0
                 },
                 onClose = { showHelp = false })

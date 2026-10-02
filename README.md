@@ -85,8 +85,8 @@ The rail-to-rail z dimension is commonly called cell height in standard-cell des
 Gate-stack span, device-pair span and rail-to-rail span are distinct measurements.
 The example-node labels do not assign an architecture to one universal technology node.
 
-Capacitances are geometry-only approximations. Their absolute values **and ratios** depend
-on missing dielectrics, omitted 3D fields and assumed material properties. See the
+Each model follows a published patent; where it differs, the step or note says it is the
+model's choice. See [patent alignment](docs/PATENT_ALIGNMENT.md), the
 [numerical audit](docs/CONTENT_AUDIT.md) and [technical references](docs/TECHNICAL_REFERENCES.md).
 Gate-stack thickness and the plotted dimensions can be checked against the box model;
 that is not physical validation against manufactured devices.

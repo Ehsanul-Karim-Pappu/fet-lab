@@ -231,8 +231,8 @@ td.d{color:var(--ink-2);font-size:12.5px}
       </div>
       <div class="chips" id="devs" style="margin-top:9px"></div>
       <div class="seg" id="cfetseg" hidden>
-        <button type="button" data-k="cfet_mono">Monolithic</button>
         <button type="button" data-k="cfet_seq">Sequential</button>
+        <button type="button" data-k="cfet_mono">Monolithic</button>
       </div>
       <p class="modenote">Process mode, the fabrication steps from bare silicon to finished device, is in the Android app.</p>
     </div>
@@ -962,10 +962,10 @@ function sceneFor(mode,tech){
   if(LAST[mode][tech])return LAST[mode][tech];
   const row=MODES[mode].find(r=>techOf(r[0])===tech);
   if(!row)return null;
-  return mode==="dev"&&tech==="cfet"?"cfet_mono":row[0];}
+  return mode==="dev"&&tech==="cfet"?"cfet_seq":row[0];}
 /** Which scene a device chip should open. */
 function devKey(fam){
-  if(fam==="cfet")return S.key.indexOf("cfet")===0?S.key:(LAST.dev.cfet||"cfet_mono");
+  if(fam==="cfet")return S.key.indexOf("cfet")===0?S.key:(LAST.dev.cfet||"cfet_seq");
   return fam;}
 function chips(){
   dwrap.innerHTML="";

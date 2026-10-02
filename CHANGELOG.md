@@ -3,7 +3,22 @@
 All notable changes to FET Lab. Dates are the release date; versions follow
 [semantic versioning](https://semver.org).
 
-## Unreleased
+## 1.4.0 — 2026-10-02
+
+Every model now follows a patent, figure by figure: the FinFET, both nanosheet designs (Si/SiGe
+and Si/Si), the forksheet, and the monolithic and sequential CFETs. Process mode gains the
+FinFET, the pFET and both sites with a gate cut or a shared gate, section planes with a 2D
+section beside the 3D view, a pitch-walk lesson, and steps that grow, etch and polish in turn.
+The inverters and the Compare scenes are built from the Device models. Every text is rewritten
+in plain language, every one of the 35 references is cited, and TalkBack reads the whole app.
+The geometry-only capacitance estimates are removed. The sequential CFET is now the default CFET.
+
+### Sequential CFET is the default
+
+- Opening CFET in Device mode, or from the learning path, now shows the sequential CFET. The toggle
+  reads "Sequential · Monolithic", with Sequential first and selected. The choice is still
+  remembered once changed. The web page does the same. The CFET Inverter and Layout scenes are
+  unchanged: they are built on the monolithic CFET.
 
 ### Steps list lands on the step without bouncing
 

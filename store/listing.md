@@ -41,8 +41,8 @@ MODEL LIMITS
 
 Dimensions measure the drawn geometry, not a foundry PDK. The complete material stack and
 contacts are illustrative. Smaller drawn spans do not establish equal-drive density gains.
-Capacitance values are geometry-only estimates with explicit assumptions, not measurements
-or a 3D field-solver extraction. Read the model notes and linked Technical references.
+Each model follows a published patent and says where it makes its own choices. Read the
+model notes and linked Technical references.
 
 BUILT FOR STUDYING
 
