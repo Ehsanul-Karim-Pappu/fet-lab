@@ -21,7 +21,9 @@ nanosheet, inner-wall forksheet and CFET. Learn device concepts and ideal CMOS i
 
 FOUR VIEWS OF THE SUBJECT
 
-Device — illustrative cross-sections with section planes, layer visibility and exploded views.
+Device — illustrative cross-sections with section planes, layer visibility, layers pulled apart,
+and a view of each device's defining feature: the FinFET's tri-gate, the nanosheet's
+gate-all-around wrap, the forksheet's fork. The nanosheet comes in two channel designs.
 Inverter — nFET/pFET connections, rails and ideal IN/OUT states. This is not circuit simulation.
 Layout — schematic layouts with simplified layers and exaggerated vertical spacing. The
 nanosheet layout shows two representative sheets; the technical scene shows three.
@@ -47,9 +49,10 @@ model notes and linked Technical references.
 BUILT FOR STUDYING
 
 Orbit, pan, zoom, identify layers and follow the optional guided tour. Replay it from Help,
-which also has a Process mode tour, a suggested learning order and a glossary.
+which also has a Process mode tour, a suggested learning order and a glossary. Tap any
+citation to open the reference it names.
 Each scene keeps its cuts and hidden layers while you switch between architectures.
-The Android app works offline and requests no internet permission. It stores two local
+The Android app works offline and requests no internet permission. It stores four local
 display preferences, with no analytics or personal-data collection. Reference and
 support links open your browser. See the privacy policy for the website/PWA.
 

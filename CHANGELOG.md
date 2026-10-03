@@ -41,6 +41,10 @@ All notable changes to FET Lab. Dates are the release date; versions follow
 
 ### Fixes
 
+- The README, the contributing guide, the privacy policy, the Play Store listing and the in-app
+  help now describe the app as it is: the defining-feature views, the two channel designs,
+  tappable citations, the theme, the web layout, and every preference the app and the page
+  keep.
 - The stepper's total counts the core steps on the route shown. On a both-sites lesson, the
   gate-cut ending read "STEP 20/21" on its last step, because the shared-gate ending was counted
   too; each ending now finishes on its own total (app and web).

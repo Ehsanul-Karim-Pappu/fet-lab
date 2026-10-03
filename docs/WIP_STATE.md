@@ -7,7 +7,13 @@ choices.
 
 ## Open for a later release
 
-- Process lessons for the forksheet and the CFET.
+- Process lessons for the forksheet and the CFET. The forksheet lesson is written (after
+  EP 3 989 273 A1) but was taken back off main: its builder, `scripts/build_fsproc.py`, is on
+  main and unused until `build_process.FLOWS` lists it again, and the rest of that change
+  (its planes, Why text, tests and docs, and the Device's site-length sub-fins) is kept outside
+  main, ready to apply.
+- The web tour's Layers stop: lighting the model while the hand hides a group, and picking the
+  group that covers most of the view, went off main with the same commit.
 - A sequential-CFET inverter; the CFET Inverter and Layout scenes are built on the monolithic
   CFET.
 - The Layout scenes' spans are schematic, not the Inverter scenes' numbers.

@@ -76,17 +76,18 @@
       "id": "story",
       "category": "Tools",
       "title": "Story",
-      "body": "Read the concepts, trade-offs and limitations behind the architecture. Open About for Credits and linked Technical references.",
+      "body": "Read the concepts, trade-offs and limitations behind the architecture. Tap any citation, such as [R13], to open the reference it names in About, where the Credits are too.",
       "tab": 4,
       "gesture": "none",
-      "web": "Read the concepts, trade-offs and limitations behind the architecture. Open About (the i at the top right) for Credits and the Technical references."
+      "web": "Read the concepts, trade-offs and limitations behind the architecture. Click any citation, such as [R13], to open the reference it names in About (the i at the top right), where the Credits are too."
     },
     {
       "id": "p_stepper",
       "category": "Process mode",
       "title": "Step through the fabrication",
       "body": "The stepper under the model moves one step at a time, or plays the whole flow. With a cross section on top, the same controls sit on the 3D view: play and the step number top left, the name top right, arrows at the sides. \"STEP 6/18 · OP 5\" is the fifth operation leading into core step 6; switch on Show every operation in Steps to see them all.",
-      "gesture": "tap"
+      "gesture": "tap",
+      "web": "The stepper under the model moves one step at a time, or plays the whole flow. With a cross section on top (Both), a wide window keeps the same bar under the 3D view; a phone-sized one spreads the controls over it: play and the step number top left, the name top right, arrows at the sides. \"STEP 6/18 · OP 5\" is the fifth operation leading into core step 6; switch on Show every operation in Steps to see them all."
     },
     {
       "id": "p_badge",

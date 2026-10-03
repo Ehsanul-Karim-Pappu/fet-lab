@@ -31,7 +31,7 @@ so a section reads like a real cross-section rather than a shell.
 
 | | |
 |---|---|
-| **Device** | Technical cross-sections of each architecture — section planes, exploded view, tap-to-identify. |
+| **Device** | Technical cross-sections of each architecture: preset views, including one that opens each device's defining feature (the FinFET's Tri-gate, the nanosheet's Gate-all-around, the forksheet's fork), cuts along any axis, layers pulled apart, layers hidden one by one or by group, and tap-to-identify. The nanosheet comes in two channel designs, picked on the stage. |
 | **Inverter** | Each architecture's Device model (the FinFET's with its pFET beside it) wired as a CMOS inverter by one metal level. Drive the input and the conducting path lights up. |
 | **Layout** | Schematic inverter layouts with simplified film stacks and simplified vertical dimensions (not to scale); two representative nanosheets instead of the technical model's three. |
 | **Process** | How a nanosheet FET or a FinFET is made, step by step, as real geometry: films, lithography, etch and fill on a 2 × 2 tile, then the selected site to the finished device, as the nFET, the pFET, or both sites with a gate cut or a shared gate. The stack lines or fins can be printed directly or by SADP or SAQP; a Pitch walk lesson lets the SAQP dimensions vary. Named section planes show a 2D section beside the 3D view (tap a layer to name it, pinch to zoom), and a step's "Show cross section" button opens its plane. Each lesson ends on the Device model it names. The web page has all of it too. Forksheet and CFET flows are coming. |
@@ -50,6 +50,11 @@ each one, in the app and on the web page; replay it from **?** (Help). Help also
 Process mode tour, which also runs by itself the first time Process is opened, a list of
 everything the app can do, a suggested order to learn the devices in, and a glossary of the
 terms the fabrication steps use.
+
+Every citation in the text, such as [R13], opens About at the reference it names, with its
+link and what it supports. The stage and the panels follow the system's light or dark theme,
+in the app and on the web page. The web page lays out like the app: the stage beside a tabbed
+panel on a wide window, a bottom sheet over the stage on a phone.
 
 ## What it shows—and what it does not
 
@@ -97,10 +102,12 @@ that is not physical validation against manufactured devices.
 ```
 android/    Native app — Kotlin, Jetpack Compose, hand-written OpenGL ES 2.0 renderer
 pwa/        Installable web app, works offline
-web/        Desktop viewers, standalone HTML
+web/        The same page as one standalone HTML file, plus an older nanosheet-only viewer
 models/     Every scene exported as GLB / STL / OBJ
 scripts/    The parametric generators
-data/       devices.json — the box list the app, the viewers and the exporters all read
+data/       Generated: devices.json (every scene's boxes), process.json (the Process lessons),
+            guide.json (tour, help and glossary), references.json; the app, the web page
+            and the exporters all read them
 store/      Play Store assets and listing copy
 docs/       Screenshots and the written background
 ```

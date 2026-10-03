@@ -27,10 +27,9 @@ Compose BOM.
 Do not hand-edit `data/devices.json` — it is generated. Edit the builders and re-run:
 
 ```bash
-pip install trimesh numpy
-python scripts/build.py              # all scenes, stories, estimates and viewer bundles
-python scripts/test_parasitics.py    # analytic model and grid checks
-python scripts/test_content.py       # shared content and reference checks
+pip install numpy                    # trimesh too, for the mesh export
+python scripts/build.py              # all scenes, lessons, stories, checks and viewer bundles
+python scripts/test_content.py       # shared content, lesson and reference checks
 python scripts/export_all.py         # GLB / STL / OBJ
 ```
 

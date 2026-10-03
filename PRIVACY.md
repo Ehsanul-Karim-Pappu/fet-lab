@@ -1,6 +1,6 @@
 # Privacy Policy — FET Lab
 
-_Last updated: 23 September 2026_
+_Last updated: 3 October 2026_
 
 **The FET Lab Android app has no personal-data collection or analytics.**
 
@@ -17,10 +17,10 @@ The website/PWA makes network requests as described below.
 
 ## What the app stores on your device
 
-The Android app saves two local preferences: whether you have seen or skipped the guided
-tour, and how see-through you set the control sheet. Neither is personal data, and FET Lab
-does not transmit them. You can replay the tour from Help; clearing the app's data resets
-both. Geometry, the guide and technical references are read-only assets bundled in the APK.
+The Android app saves four local preferences: whether you have seen or skipped the guided
+tour, whether you have seen the Process mode tour, how see-through you set the control sheet,
+and which nanosheet channel design you picked. None is personal data, and FET Lab does not
+transmit them. You can replay the tours from Help; clearing the app's data resets all four. Geometry, the guide and technical references are read-only assets bundled in the APK.
 
 Each scene remembers its camera, cuts and hidden layers while the app is open, so you can
 switch away and come back; this is held in memory only and is gone when the app closes.
@@ -33,8 +33,11 @@ are configured in `res/xml/data_extraction_rules.xml`.
 The no-internet-permission statement above applies to the Android APK, not the website.
 The website makes normal requests to its hosting provider and loads fonts from Google
 Fonts. Those providers can receive request information such as your IP address under
-their own policies. The PWA caches app files for offline use. Clearing site data removes
-these caches. FET Lab adds no analytics, advertising or tracking SDK.
+their own policies. The PWA caches app files for offline use, and the page keeps a few
+display preferences in your browser's local storage: whether you have seen the two tours,
+the nanosheet channel design and CFET integration you picked, and the last panel tab. They
+stay in your browser and are not sent anywhere. Clearing site data removes the caches and
+these preferences. FET Lab adds no analytics, advertising or tracking SDK.
 
 ## Links out of the app
 
