@@ -191,7 +191,7 @@ SCOPE = ("Si/Si CMOS nanosheet fabrication, after one example route: IBM's paten
          "It is also a different route from the Si/SiGe lesson's patent [R13]: that patent's isolation "
          "and channel release are not used here. "
          "Dimensions are illustrative.")
-FIGURES = ("Figure numbers are the application's (US 2023/0178617 A1, in docs/nsfet). "
+FIGURES = ("Figure numbers are the application's (US 2023/0178617 A1). "
            "Each state was compared with the drawings it names. "
            "The views are the app's own reconstructions, in its own frame and proportions. "
            "The application's alternate embodiment (Figs. 53–55) is not used.")

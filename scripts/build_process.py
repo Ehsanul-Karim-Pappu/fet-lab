@@ -254,7 +254,7 @@ NS_SCOPE = ("How a silicon nanosheet nFET is made with a replacement metal gate.
 # Figure identifiers name process states described in R13's text. Its drawings have not
 # been compared with these views, so no state claims to reproduce a drawing.
 NS_FIGURES = ("Figure numbers are those of US 2023/0420457 A1, the published application of "
-              "US 12,568,683 B2 [R13]. Each state was compared with the drawing it names (docs/nsfet). The "
+              "US 12,568,683 B2 [R13]. Each state was compared with the drawing it names. The "
               "views are the app's own reconstructions, in its own frame and proportions, so their "
               "orientation may differ from the drawing's.")
 NS_BRANCH = ("The patent makes a pFET and an nFET from one shared stack. This lesson follows "
@@ -1186,7 +1186,7 @@ def lesson(mode):
                   "each device keeps, not by how the lines are printed.",
             figures="Every step but the last is a patterning concept and matches no figure. "
                     "The last, the stack etch, is the nanosheet flow's own: a teaching reconstruction "
-                    "of the patent's Fig. 5A/B [R13], compared with that drawing (docs/nsfet).",
+                    "of the patent's Fig. 5A/B [R13], compared with that drawing.",
             branch=LESSONS[mode]["branch"], skipped={},
             refs=["R13", "R16", "R18", "R19", "R20", "R21"],
             match={k: v for k, v in ns["match"].items() if k in {st["match"] for st in steps}},
@@ -1208,8 +1208,8 @@ FIN_SCOPE = ("How a bulk silicon FinFET nFET is made, gate last: a dummy gate ho
              "mask, and the replacement contacts are made where a spin-on-carbon dummy contact stood. "
              "Dimensions are the model's. This is not a verified foundry recipe.")
 FIN_FIGURES = ("Figure numbers follow the patents' written descriptions: US 9,812,358 B1 for the device [R29], "
-               "US 9,171,764 B2 for the SAQP route [R30]. Each state was compared with the drawing it names "
-               "(docs/finfet), and the differences are named under each step. In the device "
+               "US 9,171,764 B2 for the SAQP route [R30]. Each state was compared with the drawing it names, "
+               "and the differences are named under each step. In the device "
                "patent's Figs. 14–22, B is the section along the gate (across the fins) and C the section along "
                "a fin: the reverse of Figs. 7–13. The views are the app's own reconstructions in its own "
                "frame, so their orientation may differ.")

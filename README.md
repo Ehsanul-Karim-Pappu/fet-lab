@@ -77,7 +77,8 @@ panel on a wide window, a bottom sheet over the stage on a phone.
   and a sequential one (TSMC, US 2024/0413156 A1).
 
 Each technology follows one patent example for its materials and steps; `docs/PATENT_ALIGNMENT.md`
-lists them, what each says, and what the model draws. The PDFs are in `docs/`.
+lists them, what each says, and what the model draws. Each is linked from its reference; the
+patent documents themselves are published by the patent offices and are not kept in this repository.
 
 This is one educational roadmap, not a universal process sequence. FinFETs remain in use.
 Process mode follows one disclosed integration route for the nanosheet nFET and pFET, and
@@ -171,6 +172,9 @@ appears in the app.
   layout you could tape out.
 - The forksheet modelled is the classic inner-wall device; imec's later outer-wall variant
   is not included.
+- FET Lab is not affiliated with or endorsed by any company or institution it cites; their
+  names only identify the sources. The Layout scenes name their layers by role (source/drain
+  contact, gate, contact via, gate via, Metal 0), not by any foundry's layer names.
 - In the plane of the wafer every scene is to scale: gate length, contacted length,
   channel width, cell width and Metal 0 track pitch all come from one set of constants in
   `build_devices.py`, so the same nanometre means the same thing in the Device,

@@ -1,7 +1,7 @@
 """
 Schematic-layout inverters, in the style of the reference GAAFET model:
-flat pastel layers, layout nomenclature (P Well / N Well / SiO2 / Nanowire / MD / Po /
-VD / VG / Metal 0), surface labels sitting on the geometry, light background, flat shading.
+flat pastel layers, generic layer-role names (P Well / N Well / SiO2 / Nanowire / Contact / Gate /
+Via / Metal 0), surface labels sitting on the geometry, light background, flat shading.
 
 In-plane the figure is to scale — gate length, contact length, channel width, cell
 width and track pitch all come from the device cross-sections. Only the vertical
@@ -38,7 +38,7 @@ def L(d, text, at, size="m", tone="dark", v=None, lead=True, sd=0, pid=None):
 # rail-to-rail width the inverter scenes derive. Only the vertical direction is
 # simplified and not to scale: some heights are compressed (fins, sheet spacing).
 MW = 16.0                                        # Metal 0 track width
-OVH = 3.0                                        # MD overhang past the end of a channel
+OVH = 3.0                                        # contact overhang past the end of a channel
 
 ARCH = {                        # gate length · rail-to-rail cell · Metal 0 tracks, -z to +z
     "fin":  dict(LG=18.0, cell=156.0, bars=("gnd", "in", "out", "vdd")),
@@ -52,7 +52,7 @@ def plan(arch):
     a = ARCH[arch]
     xpo  = a["LG"] / 2.0                         # gate, at its physical length
     xmd0 = xpo + LSP                             # spacer between gate and contact
-    xmd1 = xmd0 + LSD                            # MD, at the contacted source/drain length
+    xmd1 = xmd0 + LSD                            # contact, at the contacted source/drain length
     half = a["cell"] / 2.0
     # One uniform track pitch with the rails on the cell edges. Without a front GND rail
     # (CFET), only V_DD sits on the edge; the signal bars stay inside the cell.
@@ -66,7 +66,7 @@ def plan(arch):
 YPW0, YPW1 = -34.0, -14.0                        # P Well plinth
 YWL0, YWL1 = -14.0, -4.0                         # well layer
 YOX0, YOX1 = -4.0, 6.0                           # field oxide
-YMD1, YPO1 = 38.0, 44.0                          # tops of MD and Po
+YMD1, YPO1 = 38.0, 44.0                          # tops of the contacts and the gate
 YV1, YM0, YM1 = 50.0, 50.0, 58.0                 # via top / Metal 0
 
 def deck(d, P, holes, arch_note, nband, pband, wall=None):
@@ -102,7 +102,7 @@ def deck(d, P, holes, arch_note, nband, pband, wall=None):
     # stops beside a channel overhangs it by OVH — landing a contact flush with the end of
     # the channel it is contacting leaves no margin for overlay, and reads as a short to
     # whatever is on the other side.
-    # An MD column runs the full height of the cell, rail edge to rail edge, and is only
+    # A contact column runs the full height of the cell, rail edge to rail edge, and is only
     # broken where it has to serve two different nets. The source column is cut, because
     # one half goes to GND and the other to V_DD; each half then overhangs its own channel
     # by OVH, since landing a contact flush with the end of the channel it contacts leaves
@@ -110,17 +110,17 @@ def deck(d, P, holes, arch_note, nband, pband, wall=None):
     wz0, wz1 = wall if wall else (0.0, 0.0)
     inner_n = min(nband[1] + OVH, wz0) if wall else nband[1] + OVH
     inner_p = max(pband[0] - OVH, wz1) if wall else pband[0] - OVH
-    A(d, "md_gnd", "MD · nMOS source", "md",
+    A(d, "md_gnd", "S/D contact · nMOS source", "md",
       [box(-XMD1, -XMD0, YOX1, YMD1, -ZCELL, inner_n)], "Contacts", [-1.3, .3, -.6], "gnd")
-    A(d, "md_vdd", "MD · pMOS source", "md",
+    A(d, "md_vdd", "S/D contact · pMOS source", "md",
       [box(-XMD1, -XMD0, YOX1, YMD1, inner_p, ZCELL)], "Contacts", [-1.3, .3, .6], "vdd")
     if wall:
         # ...except here, where the wall is taller than the contact and splits it anyway.
-        A(d, "md_out", "MD · shared drain", "md",
+        A(d, "md_out", "S/D contact · shared drain", "md",
           [box(XMD0, XMD1, YOX1, YMD1, -ZCELL, wz0), box(XMD0, XMD1, YOX1, YMD1, wz1, ZCELL)],
           "Contacts", [1.3, .3, 0], "out")
     else:
-        A(d, "md_out", "MD · shared drain", "md",
+        A(d, "md_out", "S/D contact · shared drain", "md",
           [box(XMD0, XMD1, YOX1, YMD1, -ZCELL, ZCELL)], "Contacts", [1.3, .3, 0], "out")
 
     # --- gate --------------------------------------------------------------
@@ -134,21 +134,21 @@ def deck(d, P, holes, arch_note, nband, pband, wall=None):
     for z0, z1, bands in holes:
         for y0, y1 in gaps(YOX1, YPO1, bands):
             po.append(box(-XPO, XPO, y0, y1, z0, z1))
-    A(d, "po", "Po · gate electrode", "po", po, "Gate", [0, .9, 0], "in")
+    A(d, "po", "Gate electrode", "po", po, "Gate", [0, .9, 0], "in")
 
     # --- vias: each sits under its own Metal 0 track -----------------------
     vx = (XMD0 + XMD1) / 2.0
     for nm, net, xc, zc in (("gnd", "gnd", -vx, ZBAR["gnd"]),
                             ("vdd", "vdd", -vx, ZBAR["vdd"]),
                             ("out", "out",  vx, ZBAR["out"])):
-        A(d, f"vd_{nm}", f"VD · {net.upper()}", "vd",
+        A(d, f"vd_{nm}", f"Contact via · {net.upper()}", "vd",
           [box(xc - 4, xc + 4, YMD1, YV1, zc - 3, zc + 3)], "Vias", [0, 1.1, 0], net)
     if wall:
         # The wall splits the drain contact in two, so the n side needs its own via up.
         zn = (nband[0] + wz0) / 2.0
-        A(d, "vd_out2", "VD · OUT (n side)", "vd",
+        A(d, "vd_out2", "Contact via · OUT (n side)", "vd",
           [box(vx - 4, vx + 4, YMD1, YV1, zn - 3, zn + 3)], "Vias", [0, 1.1, 0], "out")
-    A(d, "vg", "VG · gate via", "vg",
+    A(d, "vg", "Gate via", "vg",
       [box(-5, 5, YPO1, YV1, ZBAR["in"] - 2, ZBAR["in"] + 2)], "Vias", [0, 1.2, 0], "in")
 
     # --- Metal 0, one uniform track pitch, rails on the cell boundary ------
@@ -174,12 +174,12 @@ def deck(d, P, holes, arch_note, nband, pband, wall=None):
     L(d, "P Well", [XW + 8, mid(YPW0, YPW1), zr], "m", "dark", LAYER_VIEWS, sd=1, pid="pwell")
     L(d, "N Well", [XW, mid(YWL0, YWL1), zr], "m", "dark", LAYER_VIEWS, sd=1, pid="nwell")
     L(d, "SiO₂", [XW, mid(YOX0, YOX1), zr], "m", "dark", LAYER_VIEWS, sd=1, pid="fox")
-    L(d, "MD", [XMD1, mid(YOX1, YMD1), mid(*pband)], "m", "dark", LAYER_VIEWS, sd=1, pid="md_out")
-    L(d, "VD", [XMD1, mid(YMD1, YV1), ZBAR["out"]], "s", "dark", LAYER_VIEWS, sd=1, pid="vd_out")
+    L(d, "Contact", [XMD1, mid(YOX1, YMD1), mid(*pband)], "m", "dark", LAYER_VIEWS, sd=1, pid="md_out")
+    L(d, "Via", [XMD1, mid(YMD1, YV1), ZBAR["out"]], "s", "dark", LAYER_VIEWS, sd=1, pid="vd_out")
     # left-hand column
-    L(d, "MD", [-XMD1, mid(YOX1, YMD1), mid(*nband)], "m", "dark", LAYER_VIEWS, sd=-1, pid="md_gnd")
-    L(d, "Po", [-XPO, mid(YMD1, YPO1), -zr], "m", "dark", LAYER_VIEWS, pid="po")
-    L(d, "VG", [-5, mid(YPO1, YV1), ZBAR["in"]], "s", "dark", LAYER_VIEWS, pid="vg")
+    L(d, "Contact", [-XMD1, mid(YOX1, YMD1), mid(*nband)], "m", "dark", LAYER_VIEWS, sd=-1, pid="md_gnd")
+    L(d, "Gate", [-XPO, mid(YMD1, YPO1), -zr], "m", "dark", LAYER_VIEWS, pid="po")
+    L(d, "Via", [-5, mid(YPO1, YV1), ZBAR["in"]], "s", "dark", LAYER_VIEWS, pid="vg")
     for net, label in (("gnd", "GND"), ("in", "IN"), ("out", "OUT"), ("vdd", "V_DD")):
         L(d, label, [-XW, mid(YM0, YM1), ZBAR[net]], "m", sd=-1, pid=f"m0_{net}")
     d.note = arch_note
@@ -248,7 +248,7 @@ def show_ns():
             A(d, f"{pol}_wsr{i+1}", f"{pol}MOS nanosheet {i+1} · source stub", "nanowire",
               [box(-XW, -XMD1, y0, y1, z0, z1)], grp, [-1.5, 0, 0], "body")
     deck(d, P, [(ZN0, ZN1, wires), (ZP0, ZP1, wires)],
-         "<b>Reading the schematic.</b> Two representative Si nanosheets per device pass through the shared gate. The nFET sits over the p-well and the pFET over the n-well. The connected drains form OUT. MD (source/drain contact), Po (gate), VD and VG (vias) and Metal 0 (the first routing level) are names for layer roles, used here to explain. They are not universal foundry naming conventions.",
+         "<b>Reading the schematic.</b> Two representative Si nanosheets per device pass through the shared gate. The nFET sits over the p-well and the pFET over the n-well. The connected drains form OUT. The layers are named by their role, in generic terms: the source/drain contacts, the gate, the vias (one to a contact, one to the gate) and Metal 0, the first routing level.",
          (ZN0, ZN1), (ZP0, ZP1))
     L(d, "Nanosheet", [XW, 25.5, ZP1 - 5], "s", "dark", LAYER_VIEWS, sd=1, pid=["p_ws2", "p_wsr2"])
     return finish(d, [
@@ -256,9 +256,9 @@ def show_ns():
         ["Cell z", "Rail-to-rail span (z), rail centre to rail centre", f'{P["cell"]:g} nm'],
         ["M0 bars", "Drawn Metal 0 bar spacing (schematic; real M0 pitch is about 20–24 nm, a typical value)", f'{P["step"]:.1f} nm'],
         ["Sheets", "Per device, drawn (the Device model has 3)", "2"], ["Devices", "pMOS over N Well, nMOS over P Well", "2"],
-        ["Gate", "Po, crossing both", "1"], ["Contacts", "MD columns", "3"],
+        ["Gate", "One line, crossing both", "1"], ["Contacts", "Contact columns", "3"],
         ["Metal 0", "V_DD · IN · OUT · GND", "4 bars"],
-        ["Vias", "VD to MD, VG to gate", "4"]])
+        ["Vias", "Contact vias to the contacts, a gate via to the gate", "4"]])
 
 # ------------------------------------------------------------------ FORKSHEET
 def show_fs():
@@ -294,7 +294,7 @@ def show_fs():
         ["Cell z", "Rail-to-rail span (z), rail centre to rail centre", f'{P["cell"]:g} nm'],
         ["M0 bars", "Drawn Metal 0 bar spacing (schematic; real M0 pitch is about 20–24 nm, a typical value)", f'{P["step"]:.1f} nm'],
         ["Sheets", "Per device, drawn (the Device model has 3)", "2"], ["Separation", "Dielectric wall", "no metal gap"],
-        ["Gate", "Po, bridged over the wall", "1"], ["Contacts", "MD columns", "3"],
+        ["Gate", "One line, bridged over the wall", "1"], ["Contacts", "Contact columns", "3"],
         ["Metal 0", "V_DD · IN · OUT · GND", "4 bars + drain jog"], ["Gate faces", "Per sheet", "3"]])
 
 # --------------------------------------------------------------------- FINFET
@@ -330,7 +330,7 @@ def show_fin():
         ["M0 bars", "Drawn Metal 0 bar spacing (schematic; real M0 pitch is about 20–24 nm, a typical value)", f'{P["step"]:.1f} nm'],
         ["Fin pitch", "Fin-to-fin, as drawn", f'{FP:g} nm'],
         ["Fins", "Per device", "2"], ["Gate faces", "Per fin", "3 (tri-gate)"],
-        ["Gate", "Po, crossing all four fins", "1"], ["Contacts", "MD columns", "3"],
+        ["Gate", "One line, crossing all four fins", "1"], ["Contacts", "Contact columns", "3"],
         ["Metal 0", "V_DD · IN · OUT · GND", "4 bars"],
         ["Drive", "Granularity", "one whole fin"]])
 
@@ -400,16 +400,16 @@ def show_cfet():
       "Tier isolation", [0, 1.0, 0])
 
     # --- contacts -----------------------------------------------------------
-    # The lower source's MD stops short of the GND via, which passes beside it.
-    A(d, "md_vdd", "MD · pMOS source (bottom)", "md",
+    # The lower source's contact stops short of the GND via, which passes beside it.
+    A(d, "md_vdd", "S/D contact · pMOS source (bottom)", "md",
       [box(-XMD1, -XMD0, MDB[0], MDB[1], VG[3] + 2, ZC)], "Contacts", [-1.3, -.3, 0], "vdd")
     A(d, "via_liner", "Via liner · isolates the GND via from the pMOS source", "fox",
       [box(VG[0], VG[1], MDB[0], MDB[1], VG[3], VG[3] + 2)], "Contacts", [-1.3, -.3, 0])
-    A(d, "md_outb", "MD · pMOS drain (bottom)", "md",
+    A(d, "md_outb", "S/D contact · pMOS drain (bottom)", "md",
       [box(XMD0, XMD1, MDB[0], MDB[1], -ZC, ZC)], "Contacts", [1.3, -.3, 0], "out")
-    A(d, "md_gnd", "MD · nMOS source (top)", "md",
+    A(d, "md_gnd", "S/D contact · nMOS source (top)", "md",
       [box(-XMD1, -XMD0, MDT[0], MDT[1], -ZC, ZC)], "Contacts", [-1.3, .5, 0], "gnd")
-    A(d, "md_outt", "MD · nMOS drain (top)", "md",
+    A(d, "md_outt", "S/D contact · nMOS drain (top)", "md",
       [box(XMD0, XMD1, MDT[0], MDT[1], -ZC, ZC)], "Contacts", [1.3, .5, 0], "out")
     A(d, "riser", "Output riser · past the isolation", "vd",
       [box(RIS[0], RIS[1], YMDI[0], YMDI[1], RIS[2], RIS[3])], "Contacts", [1.4, .1, .8], "out")
@@ -420,12 +420,12 @@ def show_cfet():
         po.append(box(-XPO, XPO, YPO[0], YPO[1], a, b))
     for y0, y1 in gaps(YPO[0], YPO[1], WN + WP):
         po.append(box(-XPO, XPO, y0, y1, -ZCH, ZCH))
-    A(d, "po", "Po · gate through both tiers", "po", po, "Gate", [0, .9, 0], "in")
+    A(d, "po", "Gate · through both tiers", "po", po, "Gate", [0, .9, 0], "in")
 
     # --- front: vias and Metal 0, signals only ------------------------------
-    A(d, "vd_out", "VD · OUT", "vd",
+    A(d, "vd_out", "Contact via · OUT", "vd",
       [box(vx - 4, vx + 4, YVD[0], YVD[1], ZB["out"] - 3, ZB["out"] + 3)], "Vias", [0, 1.2, 0], "out")
-    A(d, "vg", "VG · gate via", "vg",
+    A(d, "vg", "Gate via", "vg",
       [box(-5, 5, YPO[1], YVG[1], ZB["in"] - 2, ZB["in"] + 2)], "Vias", [0, 1.3, 0], "in")
     for net, label in (("in", "IN"), ("out", "OUT")):
         A(d, f"m0_{net}", f"Metal 0 · {label}", "m0",
@@ -439,13 +439,13 @@ def show_cfet():
     L(d, "SiO₂", [XW, mid(*YOX), ZC * .6], "m", "dark", LAYER_VIEWS, sd=1, pid="fox")
     L(d, "Nanosheet", [XW, 24.5, ZCH - 3], "s", "dark", LAYER_VIEWS, pid=["n_ws2", "n_wsr2", "p_ws2", "p_wsr2"])
     L(d, "Tier isolation", [XW, mid(*YMDI), ZC * .6], "m", "dark", LAYER_VIEWS, sd=1, pid="mdi")
-    L(d, "MD", [XMD1, mid(*MDT), ZCH + OVH], "m", "dark", LAYER_VIEWS, sd=1, pid=["md_outt", "md_gnd"])
-    L(d, "VD", [vx, mid(*YVD), ZB["out"]], "s", "dark", LAYER_VIEWS, sd=1, pid="vd_out")
+    L(d, "Contact", [XMD1, mid(*MDT), ZCH + OVH], "m", "dark", LAYER_VIEWS, sd=1, pid=["md_outt", "md_gnd"])
+    L(d, "Via", [vx, mid(*YVD), ZB["out"]], "s", "dark", LAYER_VIEWS, sd=1, pid="vd_out")
     # left-hand column
     L(d, "V_DD · GND", [-XW - 8, mid(*YBM), -ZC * .6], "m", "dark", LAYER_VIEWS, sd=-1, pid=["bm_vdd", "bm_gnd"])
-    L(d, "MD", [-XMD1, mid(*MDB), ZCH + OVH], "m", "dark", LAYER_VIEWS, sd=-1, pid="md_vdd")
-    L(d, "Po", [-XPO, 52, -ZC * .7], "m", "dark", LAYER_VIEWS, pid="po")
-    L(d, "VG", [-5, mid(*YVG), ZB["in"]], "s", "dark", LAYER_VIEWS, pid="vg")
+    L(d, "Contact", [-XMD1, mid(*MDB), ZCH + OVH], "m", "dark", LAYER_VIEWS, sd=-1, pid="md_vdd")
+    L(d, "Gate", [-XPO, 52, -ZC * .7], "m", "dark", LAYER_VIEWS, pid="po")
+    L(d, "Via", [-5, mid(*YVG), ZB["in"]], "s", "dark", LAYER_VIEWS, pid="vg")
     for net, label in (("in", "IN"), ("out", "OUT")):
         L(d, label, [-XW, mid(*YM), ZB[net]], "m", sd=-1, pid=f"m0_{net}")
 
@@ -455,7 +455,7 @@ def show_cfet():
         ["Cell z", "Rail-to-rail span (z), rail centre to rail centre", f'{P["cell"]:g} nm'],
         ["M0 bars", "Drawn Metal 0 bar spacing (schematic; real M0 pitch is about 20–24 nm, a typical value)", f'{P["step"]:.1f} nm'],
         ["Tiers", "nMOS above pMOS", "2"], ["Sheets", "Per tier", "2"],
-        ["Gate", "Po, continuous through both", "1"], ["Contacts", "MD, split top and bottom", "4"],
+        ["Gate", "One line, continuous through both", "1"], ["Contacts", "Split, top and bottom", "4"],
         ["Metal 0", "IN · OUT (front)", "2 bars"], ["Power", "V_DD and GND", "backside metal"]])
 
 # --------------------------------------------------------------- LAYOUT COMPARE

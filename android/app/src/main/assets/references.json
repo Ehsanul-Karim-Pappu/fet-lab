@@ -91,7 +91,7 @@
       "title": "Single stack dual channel gate-all-around nanosheet with strained PFET and bottom dielectric isolation NFET (US 2023/0420457 A1; granted as US 12,568,683 B2)",
       "publisher": "IBM (assignee), US patent",
       "url": "https://patents.google.com/patent/US20230420457A1/en",
-      "supports": "Source for the nanosheet process (Figs. 1–19) and the Si/SiGe CMOS Device and Inverter scenes. One Si/SiGe stack over a SiGe base (about 50 % Ge) makes both devices: an nFET with Si channels over bottom dielectric isolation (BDI), and a pFET with SiGe channels (about 25 % Ge) on an n-type punch-through stopper. Also: a SiBCN-class spacer film that also fills the BDI cavity; spacer etch-back and source/drain epitaxy region by region; low-κ inner spacers; separate work-function metals, W fill, gate cut and SiN SAC caps, or a shared gate (Fig. 19). The full application and all its figures are in docs/nsfet. A disclosed integration, not evidence of any foundry's flow."
+      "supports": "Source for the nanosheet process (Figs. 1–19) and the Si/SiGe CMOS Device and Inverter scenes. One Si/SiGe stack over a SiGe base (about 50 % Ge) makes both devices: an nFET with Si channels over bottom dielectric isolation (BDI), and a pFET with SiGe channels (about 25 % Ge) on an n-type punch-through stopper. Also: a SiBCN-class spacer film that also fills the BDI cavity; spacer etch-back and source/drain epitaxy region by region; low-κ inner spacers; separate work-function metals, W fill, gate cut and SiN SAC caps, or a shared gate (Fig. 19). A disclosed integration, not evidence of any foundry's flow."
     },
     {
       "id": "R14",
@@ -196,56 +196,56 @@
       "title": "Nanosheet epitaxy with full bottom isolation (US 2023/0178617 A1)",
       "publisher": "IBM (applicant), US patent application",
       "url": "https://patents.google.com/patent/US20230178617A1/en",
-      "supports": "An example Si/Si nanosheet CMOS route in Figs. 2–52. Stack: a Ge-rich sacrificial bottom layer, a Si seed layer, then lower-Ge SiGe and Si channel layers. Steps: stack lines, STI, sacrificial gates, spacers, source/drain recess, SiGe indent and inner spacers; undoped Si grown from the seed and the channel ends; the Ge-rich layer removed and replaced by bottom dielectric isolation under both devices; pFET SiGe:B and nFET SiC:P source/drain, each grown with the other region protected; ILD, sacrificial gate removal, SiGe removal that releases the Si channels of both devices, and separate work-function metals. The Si seed layer stays only under the inner spacers and the undoped Si; under the gate it is oxidized and etched away at channel release, and the gate sits on the bottom isolation. One disclosed example, not a production foundry flow. PDF in docs/nsfet."
+      "supports": "An example Si/Si nanosheet CMOS route in Figs. 2–52. Stack: a Ge-rich sacrificial bottom layer, a Si seed layer, then lower-Ge SiGe and Si channel layers. Steps: stack lines, STI, sacrificial gates, spacers, source/drain recess, SiGe indent and inner spacers; undoped Si grown from the seed and the channel ends; the Ge-rich layer removed and replaced by bottom dielectric isolation under both devices; pFET SiGe:B and nFET SiC:P source/drain, each grown with the other region protected; ILD, sacrificial gate removal, SiGe removal that releases the Si channels of both devices, and separate work-function metals. The Si seed layer stays only under the inner spacers and the undoped Si; under the gate it is oxidized and etched away at channel release, and the gate sits on the bottom isolation. One disclosed example, not a production foundry flow."
     },
     {
       "id": "R29",
       "title": "FinFET structures and methods of forming the same (US 9,812,358 B1)",
       "publisher": "Taiwan Semiconductor Manufacturing Company (assignee), US patent",
       "url": "https://patents.google.com/patent/US9812358B1/en",
-      "supports": "Source for the FinFET process (Figs. 2–22C) and the FinFET Device and Inverter scenes: fins, FCVD oxide STI and wells; dummy gate, gate seal spacers and LDD; dummy spacers, recess and SiP/SiGeB epitaxy region by region; SiN gate spacers; dummy ILD; gate-last replacement gate (high-κ, electrodes from TiN, TaN, TaC, Co, Ru, Al), gate recess and metal-oxide hard mask; spin-on-carbon dummy contacts, tri-layer lithography, ILD and replacement contacts (liner, conductor, silicide). PDF in docs/finfet."
+      "supports": "Source for the FinFET process (Figs. 2–22C) and the FinFET Device and Inverter scenes: fins, FCVD oxide STI and wells; dummy gate, gate seal spacers and LDD; dummy spacers, recess and SiP/SiGeB epitaxy region by region; SiN gate spacers; dummy ILD; gate-last replacement gate (high-κ, electrodes from TiN, TaN, TaC, Co, Ru, Al), gate recess and metal-oxide hard mask; spin-on-carbon dummy contacts, tri-layer lithography, ILD and replacement contacts (liner, conductor, silicide)."
     },
     {
       "id": "R30",
       "title": "Methods for fabricating integrated circuits using self-aligned quadruple patterning (US 9,171,764 B2)",
       "publisher": "GlobalFoundries (assignee), US patent",
       "url": "https://patents.google.com/patent/US9171764B2/en",
-      "supports": "Source for the FinFET's SAQP fin patterning (Figs. 1–11): SiN hard masks, upper and lower amorphous-Si mandrels, SiN spacers of about 14 nm and 10–20 nm, the lower spacers used as the fin mask, fin pairs with varied spacing, and SRAM fin removal. PDF in docs/finfet."
+      "supports": "Source for the FinFET's SAQP fin patterning (Figs. 1–11): SiN hard masks, upper and lower amorphous-Si mandrels, SiN spacers of about 14 nm and 10–20 nm, the lower spacers used as the fin mask, fin pairs with varied spacing, and SRAM fin removal."
     },
     {
       "id": "R31",
       "title": "A method for forming a semiconductor device and a semiconductor device (EP 3 989 273 A1)",
       "publisher": "imec (applicant), European patent application",
       "url": "https://patents.google.com/patent/EP3989273A1/en",
-      "supports": "Source for the forksheet Device scene: Si/SiGe stacks on either side of an insulating wall 8–20 nm wide, made of SiN (or SiCO, SiCN, SiOCN), rooted in the substrate and rising above the top channel; SiC or SiBCN gate spacers; SiN or low-κ inner spacers; P- and N-doped Si source/drain region by region; a contact partition wall 10–24 nm wide on top of the insulating wall; TiN and W contacts in a merged opening; HfO2, TiN or TaN, and TiAl or TiAlC work-function metals; W, Al, Co or Ru fill. PDF in docs/fsfet."
+      "supports": "Source for the forksheet Device scene: Si/SiGe stacks on either side of an insulating wall 8–20 nm wide, made of SiN (or SiCO, SiCN, SiOCN), rooted in the substrate and rising above the top channel; SiC or SiBCN gate spacers; SiN or low-κ inner spacers; P- and N-doped Si source/drain region by region; a contact partition wall 10–24 nm wide on top of the insulating wall; TiN and W contacts in a merged opening; HfO2, TiN or TaN, and TiAl or TiAlC work-function metals; W, Al, Co or Ru fill."
     },
     {
       "id": "R32",
       "title": "Semiconductor device structure including forksheet transistors and methods of forming the same (US 11,862,700 B2)",
       "publisher": "Taiwan Semiconductor Manufacturing Company (assignee), US patent",
       "url": "https://patents.google.com/patent/US11862700B2/en",
-      "supports": "A second forksheet route: a two-layer dielectric wall (high-κ then low-κ), a SiGe cladding, reduced end-cap spacing with air gaps between the channels, n-type and p-type gate electrode layers (TiAlC and TiN among others), a metal layer, a SAC layer and silicided source/drain (S/D) contacts. PDF in docs/fsfet."
+      "supports": "A second forksheet route: a two-layer dielectric wall (high-κ then low-κ), a SiGe cladding, reduced end-cap spacing with air gaps between the channels, n-type and p-type gate electrode layers (TiAlC and TiN among others), a metal layer, a SAC layer and silicided source/drain (S/D) contacts."
     },
     {
       "id": "R33",
       "title": "Stacked complementary field effect transistors (US 11,869,812 B2)",
       "publisher": "IBM (assignee), US patent",
       "url": "https://patents.google.com/patent/US11869812B2/en",
-      "supports": "Source for the monolithic CFET Device and Inverter scenes: one Si/SiGe stack on an insulating layer; the high-Ge SiGe between the two tiers replaced by spacer material (SiBCN and others); a lower SiGe:B source/drain, notched and isolated by an oxide layer, with an upper Si:P source/drain above it; one HKMG (HfO2, TiN, TiAlC, W) with a gate dielectric cap; front-side contacts only, including a shared via to both source/drains and a lower contact made through the space left by a sacrificial TiOx spacer. PDF in docs/cfet."
+      "supports": "Source for the monolithic CFET Device and Inverter scenes: one Si/SiGe stack on an insulating layer; the high-Ge SiGe between the two tiers replaced by spacer material (SiBCN and others); a lower SiGe:B source/drain, notched and isolated by an oxide layer, with an upper Si:P source/drain above it; one HKMG (HfO2, TiN, TiAlC, W) with a gate dielectric cap; front-side contacts only, including a shared via to both source/drains and a lower contact made through the space left by a sacrificial TiOx spacer."
     },
     {
       "id": "R34",
       "title": "CFETs and the methods of forming the same (US 2024/0413156 A1)",
       "publisher": "Taiwan Semiconductor Manufacturing Company (applicant), US patent application",
       "url": "https://patents.google.com/patent/US20240413156A1/en",
-      "supports": "Source for the sequential CFET Device scene: the lower transistor made in one wafer; an etch stop; a dielectric with an inter-metal line (Cu), and SiO2 bond layers; a second wafer fusion-bonded on top, with the upper transistor made in it; deep contact plugs from the front and the back to the inter-metal line; front- and backside interconnect; SiOCN inner spacers; TiAl and TiN work-function metals. PDF in docs/cfet. Its Chinese family member, CN 118712136 A (same applicant, inventors, figures and text), is also in docs/cfet and is text-searchable."
+      "supports": "Source for the sequential CFET Device scene: the lower transistor made in one wafer; an etch stop; a dielectric with an inter-metal line (Cu), and SiO2 bond layers; a second wafer fusion-bonded on top, with the upper transistor made in it; deep contact plugs from the front and the back to the inter-metal line; front- and backside interconnect; SiOCN inner spacers; TiAl and TiN work-function metals. Its Chinese family member, CN 118712136 A (same applicant, inventors, figures and text), was used to read its text."
     },
     {
       "id": "R35",
       "title": "Semiconductor device structure including forksheet transistors and methods of forming the same (US 2024/0178128 A1)",
       "publisher": "Taiwan Semiconductor Manufacturing Company (applicant), US patent application",
       "url": "https://patents.google.com/patent/US20240178128A1/en",
-      "supports": "Another way to join a forksheet's two gates, described in the forksheet story but not drawn: n and p gate electrodes split by the dielectric wall and planarised level with it (gate height 15 nm or less above the top channel); a gate bridge contact (TiN barrier, W fill and others), wider than the wall, sitting on the wall and touching both gates; the gate via contact lands on it; SiN etch stops, CESL and silicided source/drain (S/D) contacts with a TiN barrier. PDF in docs/fsfet."
+      "supports": "Another way to join a forksheet's two gates, described in the forksheet story but not drawn: n and p gate electrodes split by the dielectric wall and planarised level with it (gate height 15 nm or less above the top channel); a gate bridge contact (TiN barrier, W fill and others), wider than the wall, sitting on the wall and touching both gates; the gate via contact lands on it; SiN etch stops, CESL and silicided source/drain (S/D) contacts with a TiN barrier."
     }
   ],
   "unverified_legacy_credit": "Earlier versions cited S. Rathore et al., Semiconductor Science and Technology (2021), without a title, DOI or figure number. The exact source has not been established. Retained here for provenance, not presented as a verified reference or silently replaced with a different paper."

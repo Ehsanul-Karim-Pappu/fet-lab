@@ -34,6 +34,9 @@ object AppInfo {
         "Original illustrative geometry, based on the technical references below",
         "Device concepts come from the sources; exact dimensions, full material stacks and capacitances are not foundry data",
         "IBM Plex Sans and IBM Plex Mono — SIL Open Font License 1.1",
+        "AndroidX, Jetpack Compose and Kotlin — Apache License 2.0",
+        "The tour hand and the app icon artwork were generated with AI by the developer",
+        "Not affiliated with or endorsed by any company or institution it cites; their names only identify the sources",
         "Models are representative teaching geometry, not any foundry's process data"
     )
 }

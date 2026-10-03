@@ -8,24 +8,24 @@ such: operations such as resist coat and exposure, concepts, teaching steps and 
 Where a patent lists several materials for one layer, the model draws one of them and names it.
 Where a patent names none, the model's choice is labelled as the model's.
 
-The PDFs are in `docs/<technology>/`. Links carry no tracking parameters.
+Each patent is linked from its reference; the documents are published by the patent offices and are
+not kept in this repository. Links carry no tracking parameters.
 
-| Technology | Patent | Ref | PDF |
+| Technology | Patent | Ref | Document |
 |---|---|---|---|
-| FinFET: Device, Inverter, Process | TSMC, *FinFET structures and methods of forming the same*, US 9,812,358 B1 | R29 | `docs/finfet/FinFET_US9812358B1.pdf` |
-| FinFET fins, SAQP | GlobalFoundries, *Methods for fabricating integrated circuits using self-aligned quadruple patterning*, US 9,171,764 B2 | R30 | `docs/finfet/FinFET_SAQP_US9171764B2.pdf` |
-| Nanosheet, Si/SiGe CMOS: Device, Inverter, Process | IBM, *Single stack dual channel gate-all-around nanosheet with strained PFET and bottom dielectric isolation NFET*, US 2023/0420457 A1 (granted as US 12,568,683 B2) | R13 | `docs/nsfet/` (full text; all figures) |
-| Forksheet: Device, Inverter | imec, *A method for forming a semiconductor device and a semiconductor device*, EP 3 989 273 A1 | R31 | `docs/fsfet/Forksheet_Imec_EP3989273A1.pdf` |
-| Forksheet: gate-bridge variant (text only) | TSMC, *Semiconductor device structure including forksheet transistors and methods of forming the same*, US 2024/0178128 A1 | R35 | `docs/fsfet/Forksheet_TSMC_US20240178128A1.pdf` |
-| Forksheet: second example | TSMC, *Semiconductor device structure including forksheet transistors and methods of forming the same*, US 11,862,700 B2 | R32 | `docs/fsfet/Forksheet_TSMC_US11862700B2.pdf` |
-| Monolithic CFET: Device, Inverter | IBM, *Stacked complementary field effect transistors*, US 11,869,812 B2 | R33 | `docs/cfet/CFET_Monolithic_IBM_US11869812B2.pdf` |
-| Sequential CFET: Device | TSMC, *CFETs and the methods of forming the same*, US 2024/0413156 A1 | R34 | `docs/cfet/CFET_Sequential_TSMC_US20240413156A1.pdf` |
+| FinFET: Device, Inverter, Process | TSMC, *FinFET structures and methods of forming the same*, US 9,812,358 B1 | R29 | [US9812358B1](https://patents.google.com/patent/US9812358B1/en) |
+| FinFET fins, SAQP | GlobalFoundries, *Methods for fabricating integrated circuits using self-aligned quadruple patterning*, US 9,171,764 B2 | R30 | [US9171764B2](https://patents.google.com/patent/US9171764B2/en) |
+| Nanosheet, Si/SiGe CMOS: Device, Inverter, Process | IBM, *Single stack dual channel gate-all-around nanosheet with strained PFET and bottom dielectric isolation NFET*, US 2023/0420457 A1 (granted as US 12,568,683 B2) | R13 | [US20230420457A1](https://patents.google.com/patent/US20230420457A1/en) |
+| Forksheet: Device, Inverter | imec, *A method for forming a semiconductor device and a semiconductor device*, EP 3 989 273 A1 | R31 | [EP3989273A1](https://patents.google.com/patent/EP3989273A1/en) |
+| Forksheet: gate-bridge variant (text only) | TSMC, *Semiconductor device structure including forksheet transistors and methods of forming the same*, US 2024/0178128 A1 | R35 | [US20240178128A1](https://patents.google.com/patent/US20240178128A1/en) |
+| Forksheet: second example | TSMC, *Semiconductor device structure including forksheet transistors and methods of forming the same*, US 11,862,700 B2 | R32 | [US11862700B2](https://patents.google.com/patent/US11862700B2/en) |
+| Monolithic CFET: Device, Inverter | IBM, *Stacked complementary field effect transistors*, US 11,869,812 B2 | R33 | [US11869812B2](https://patents.google.com/patent/US11869812B2/en) |
+| Sequential CFET: Device | TSMC, *CFETs and the methods of forming the same*, US 2024/0413156 A1 | R34 | [US20240413156A1](https://patents.google.com/patent/US20240413156A1/en) |
 
 Outside this set:
-- The Si/Si CMOS nanosheet design follows IBM's US 2023/0178617 A1 (R28),
-  `docs/nsfet/Nanosheet_SiSi_IBM_US20230178617A1.pdf` (see its section below).
-- The TSMC sequential CFET patent's Chinese family member, CN 118712136 A, is in
-  `docs/cfet/CN118712136A.pdf`: the same disclosure as R34, with a text layer.
+- The Si/Si CMOS nanosheet design follows IBM's US 2023/0178617 A1 (R28) (see its section below).
+- The TSMC sequential CFET patent's Chinese family member, CN 118712136 A, has the same
+  disclosure as R34, with a text layer; it was used only to read R34's text.
 - SADP has no patent in the set and keeps its published references (R16, R19–R21).
 - The pitch-walk lesson varies the SAQP dimensions of R30's route and keeps R22–R23 for pitch walk
   itself.

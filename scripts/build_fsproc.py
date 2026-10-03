@@ -46,7 +46,7 @@ SCOPE = ("Forksheet fabrication after one example route: imec's patent applicati
          "and the finished pair its Fig. 6 [R31]. "
          "This is one disclosed example, not a production foundry flow. "
          "Dimensions are illustrative.")
-FIGURES = ("Figure numbers are the application's (EP 3 989 273 A1, in docs/fsfet). Fig. 5 is its flow "
+FIGURES = ("Figure numbers are the application's (EP 3 989 273 A1). Fig. 5 is its flow "
            "chart, so a step that cites it is one of the chart's boxes, which the text describes but no "
            "drawing shows. Each state that cites Figs. 3a–3g or 6 was compared with that drawing. "
            "The views are the app's own reconstructions, in its own frame and proportions: the "

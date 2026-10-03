@@ -1,6 +1,6 @@
 # Work state
 
-Released as 1.5.0 on 2026-10-03. The patent work this note used to track is finished: every
+Released as 1.5.1 on 2026-10-03. The patent work this note used to track is finished: every
 model and Process lesson follows its patent, checked figure by figure and against the text, and
 `docs/PATENT_ALIGNMENT.md` records what each one draws and where the model makes its own
 choices.

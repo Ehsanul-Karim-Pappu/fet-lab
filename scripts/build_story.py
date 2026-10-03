@@ -34,7 +34,7 @@ The Si/Si nanosheet design keeps an illustrative Mo gate fill. [R11]</p>
 TiN, a typical p-type work-function metal. nFETs get an Al-containing n-type metal (in
 practice, TiAl or TiAlC over thin TiN). Ti-based silicides replaced NiSi at FinFET-era nodes (general background).
 Work-function tuning, doping and strain are not simulated. [R7, R8, R9, R11]</p>
-<p>Layout colors mark roles (Channel, MD, Po, VD, VG and Metal 0), not chemical compositions.
+<p>Layout colors mark roles (channel, source/drain contact, gate, vias and Metal 0), not chemical compositions.
 The sequential CFET's bonding layers are drawn as SiO2, one of the options its patent lists.
 [R3, R12, R34]</p>
 <p>Capacitance values are estimates from the geometry alone. They leave out 3D fringe fields,

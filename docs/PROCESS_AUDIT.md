@@ -6,7 +6,7 @@ How a silicon nanosheet nFET is made with a replacement metal gate. The steps fo
 
 The patent makes a pFET and an nFET from one shared stack. This lesson follows the nFET only. The pFET steps (Figs. 10–11 and 15), and the pFET drawn beside the nFET in other figures, are left out here. They are in the pFET flow. Both sites shows the two together, with a choice of gate cut or shared gate. The 2 × 2 tile's four sites give context for the patterning; only the selected nFET becomes a finished device. The labels under each step say what each region is doing at that point.
 
-**Figure numbers are those of US 2023/0420457 A1, the published application of US 12,568,683 B2 [R13]. Each state was compared with the drawing it names (docs/nsfet). The views are the app's own reconstructions, in its own frame and proportions, so their orientation may differ from the drawing's.**
+**Figure numbers are those of US 2023/0420457 A1, the published application of US 12,568,683 B2 [R13]. Each state was compared with the drawing it names. The views are the app's own reconstructions, in its own frame and proportions, so their orientation may differ from the drawing's.**
 
 ## Match levels
 
@@ -193,7 +193,7 @@ How a bulk silicon FinFET nFET is made, gate last: a dummy gate holds the gate's
 
 The flow follows the nFET. The 2 × 2 tile's four sites give context for the patterning; only the selected nFET becomes a finished device. The pFET's own steps, such as its masked SiGeB epitaxy and its own gate materials [R29], are in the pFET flow. Both sites shows the two together, with a choice of gate cut or shared gate. The labels under each step say what each region is doing.
 
-**Figure numbers follow the patents' written descriptions: US 9,812,358 B1 for the device [R29], US 9,171,764 B2 for the SAQP route [R30]. Each state was compared with the drawing it names (docs/finfet), and the differences are named under each step. In the device patent's Figs. 14–22, B is the section along the gate (across the fins) and C the section along a fin: the reverse of Figs. 7–13. The views are the app's own reconstructions in its own frame, so their orientation may differ.**
+**Figure numbers follow the patents' written descriptions: US 9,812,358 B1 for the device [R29], US 9,171,764 B2 for the SAQP route [R30]. Each state was compared with the drawing it names, and the differences are named under each step. In the device patent's Figs. 14–22, B is the section along the gate (across the fins) and C the section along a fin: the reverse of Figs. 7–13. The views are the app's own reconstructions in its own frame, so their orientation may differ.**
 
 ## Match levels
 
@@ -377,7 +377,7 @@ SADP (self-aligned double patterning) on its own. These are the steps the Nanosh
 
 SADP splits the printed pitch once, from P to P/2: every core leaves two spacer lines [R21]. The SAQP chip splits it twice.
 
-**Every step but the last is a patterning concept and matches no figure. The last, the stack etch, is the nanosheet flow's own: a teaching reconstruction of the patent's Fig. 5A/B [R13], compared with that drawing (docs/nsfet).**
+**Every step but the last is a patterning concept and matches no figure. The last, the stack etch, is the nanosheet flow's own: a teaching reconstruction of the patent's Fig. 5A/B [R13], compared with that drawing.**
 
 ## Match levels
 
@@ -440,7 +440,7 @@ SAQP (self-aligned quadruple patterning) on its own. These are the steps the Nan
 
 SAQP splits the printed pitch twice, from P to P/4. The first spacer image becomes a second set of cores, and each of those leaves two spacer lines [R19][R20]. The SADP chip splits it once.
 
-**Every step but the last is a patterning concept and matches no figure. The last, the stack etch, is the nanosheet flow's own: a teaching reconstruction of the patent's Fig. 5A/B [R13], compared with that drawing (docs/nsfet).**
+**Every step but the last is a patterning concept and matches no figure. The last, the stack etch, is the nanosheet flow's own: a teaching reconstruction of the patent's Fig. 5A/B [R13], compared with that drawing.**
 
 ## Match levels
 
@@ -565,7 +565,7 @@ How a silicon-germanium nanosheet pFET is made. The steps follow the pFET branch
 
 The pFET branch starts with the same wafer, stack and patterning as the nFET (the tile's operations are the nFET flow's own). Then come its own masked operations, in the patent's order. The nFET beside it is left out here. The Both sites view shows the two together, with the masks that keep each region's steps to itself and the choice between a gate cut and a shared gate.
 
-**Figure numbers are those of US 2023/0420457 A1, the published application of US 12,568,683 B2 [R13]. Each state was compared with the drawing it names (docs/nsfet). The views are the app's own reconstructions, in its own frame and proportions, so their orientation may differ from the drawing's.**
+**Figure numbers are those of US 2023/0420457 A1, the published application of US 12,568,683 B2 [R13]. Each state was compared with the drawing it names. The views are the app's own reconstructions, in its own frame and proportions, so their orientation may differ from the drawing's.**
 
 ## Match levels
 
@@ -752,7 +752,7 @@ The nanosheet nFET and pFET together, as the patent makes them from one stack [R
 
 Both sites: one nFET and one pFET, not a finished circuit. Each site is its own flow's model at that stage. The gate line between the stacks and the region masks are drawn here. The 2 × 2 tile's patterning operations are in the nFET and pFET flows.
 
-**Figure numbers are those of US 2023/0420457 A1, the published application of US 12,568,683 B2 [R13]. Each state was compared with the drawing it names (docs/nsfet). The views are the app's own reconstructions, in its own frame and proportions, so their orientation may differ from the drawing's.**
+**Figure numbers are those of US 2023/0420457 A1, the published application of US 12,568,683 B2 [R13]. Each state was compared with the drawing it names. The views are the app's own reconstructions, in its own frame and proportions, so their orientation may differ from the drawing's.**
 
 ## Match levels
 
@@ -894,7 +894,7 @@ How a bulk silicon FinFET pFET is made, gate last. It follows the FinFET flow's 
 
 The pFET branch starts with the same wafer, fins and gate patterning as the nFET (the tile's operations are the nFET flow's own). Then come its own masked operations. The Both sites view shows the two together, with the region masks and the choice between a gate cut and a shared gate.
 
-**Figure numbers follow the patents' written descriptions: US 9,812,358 B1 for the device [R29], US 9,171,764 B2 for the SAQP route [R30]. Each state was compared with the drawing it names (docs/finfet), and the differences are named under each step. In the device patent's Figs. 14–22, B is the section along the gate (across the fins) and C the section along a fin: the reverse of Figs. 7–13. The views are the app's own reconstructions in its own frame, so their orientation may differ.**
+**Figure numbers follow the patents' written descriptions: US 9,812,358 B1 for the device [R29], US 9,171,764 B2 for the SAQP route [R30]. Each state was compared with the drawing it names, and the differences are named under each step. In the device patent's Figs. 14–22, B is the section along the gate (across the fins) and C the section along a fin: the reverse of Figs. 7–13. The views are the app's own reconstructions in its own frame, so their orientation may differ.**
 
 ## Match levels
 
@@ -1084,7 +1084,7 @@ The FinFET nFET and pFET together. The two single-site models sit one site width
 
 Both sites: one nFET and one pFET, not a finished circuit. Each site is its own flow's model at that stage. The gate line between them and the region masks are drawn here. The tile's patterning operations are in the nFET and pFET flows.
 
-**Figure numbers follow the patents' written descriptions: US 9,812,358 B1 for the device [R29], US 9,171,764 B2 for the SAQP route [R30]. Each state was compared with the drawing it names (docs/finfet), and the differences are named under each step. In the device patent's Figs. 14–22, B is the section along the gate (across the fins) and C the section along a fin: the reverse of Figs. 7–13. The views are the app's own reconstructions in its own frame, so their orientation may differ.**
+**Figure numbers follow the patents' written descriptions: US 9,812,358 B1 for the device [R29], US 9,171,764 B2 for the SAQP route [R30]. Each state was compared with the drawing it names, and the differences are named under each step. In the device patent's Figs. 14–22, B is the section along the gate (across the fins) and C the section along a fin: the reverse of Figs. 7–13. The views are the app's own reconstructions in its own frame, so their orientation may differ.**
 
 ## Match levels
 
@@ -1187,7 +1187,7 @@ Si/Si CMOS nanosheet fabrication, after one example route: IBM's patent applicat
 
 Both devices are followed together, side by side on one gate line. This is because their source/drain steps differ: each one is grown while the other region is protected. The contacts and the inverter wiring at the end complete the depicted devices for teaching. The application gives no complete routing recipe.
 
-**Figure numbers are the application's (US 2023/0178617 A1, in docs/nsfet). Each state was compared with the drawings it names. The views are the app's own reconstructions, in its own frame and proportions. The application's alternate embodiment (Figs. 53–55) is not used.**
+**Figure numbers are the application's (US 2023/0178617 A1). Each state was compared with the drawings it names. The views are the app's own reconstructions, in its own frame and proportions. The application's alternate embodiment (Figs. 53–55) is not used.**
 
 ## Match levels
 

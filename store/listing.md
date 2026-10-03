@@ -66,12 +66,13 @@ for everyone.
 Open source. Report anything that looks wrong on the issue tracker.
 ```
 
-## Release notes for 1.5.0 (500 characters max)
+## Release notes for 1.5.1 (500 characters max)
 
 ```
 Tap any citation, such as [R13], to open the reference it names in About.
 Both nanosheet designs have a Gate-all-around view, and the forksheet's fork view is clearer.
 The step counter shows the right total on every route.
+The Layout scenes name their layers by role (contact, gate, vias, Metal 0).
 About now says that FET Lab is built with AI assistance. If anything looks wrong, please open
 an issue on GitHub; the link is in About.
 ```
