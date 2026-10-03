@@ -1774,6 +1774,16 @@ private fun AboutScreen(focus: String? = null, onClose: () -> Unit) {
                 }
                 item {
                     AboutCard {
+                        AboutLabel("Built with AI")
+                        Text(AppInfo.AI_NOTE, fontFamily = PlexSans, fontSize = 13.sp, lineHeight = 19.sp,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Spacer(Modifier.height(14.dp))
+                        AboutAction("Report a mistake", "Open an issue on GitHub") { web(AppInfo.ISSUES) }
+                    }
+                    Spacer(Modifier.height(14.dp))
+                }
+                item {
+                    AboutCard {
                         AboutLabel("Developed by")
                         Text(AppInfo.DEVELOPER, fontFamily = PlexSans, fontSize = 15.sp,
                             fontWeight = FontWeight.SemiBold,
@@ -1848,9 +1858,9 @@ private fun AboutScreen(focus: String? = null, onClose: () -> Unit) {
     }
 }
 
-/** The About list's first reference item: header, Developed by, Source, Credits, the
- *  references' heading. */
-private const val FIRST_REF_ITEM = 5
+/** The About list's first reference item: header, Built with AI, Developed by, Source,
+ *  Credits, the references' heading. */
+private const val FIRST_REF_ITEM = 6
 
 @Composable
 private fun AboutCard(content: @Composable ColumnScope.() -> Unit) {

@@ -3,7 +3,21 @@
 All notable changes to FET Lab. Dates are the release date; versions follow
 [semantic versioning](https://semver.org).
 
-## Unreleased
+## 1.5.0 — 2026-10-03
+
+The web page catches up with the app: laid out like it, with Process mode, section planes, the
+Pitch walk controls, the guided tours, and a stage that follows the system theme. Every citation,
+in the app and on the web, now opens About at the reference it names. Both nanosheet designs get
+a Gate-all-around view. About, the README and the store listing now say that FET Lab is built
+with AI assistance, and ask for an issue on GitHub for anything that looks wrong.
+
+### Built with AI, and where to report a mistake
+
+- About, in the app and on the web page, opens with a note that FET Lab is built by its
+  developer working with AI assistance: everything is checked against its cited sources, but
+  mistakes can still slip through, so anything that looks wrong should be reported as an issue
+  on GitHub. The app's note has a Report a mistake button. The README, the contributing guide
+  and the Play Store listing say the same.
 
 ### The step bar in Both, on a wide window
 

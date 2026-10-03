@@ -27,6 +27,12 @@ so a section reads like a real cross-section rather than a shell.
 
 **1 unit = 1 nm.** `x` = source→drain, `y` = vertical stacking, `z` = lateral n/p span.
 
+> **Built with AI.** FET Lab is built by its developer working with AI assistance. The models,
+> the fabrication steps and the text are checked against the cited sources, but mistakes can
+> still slip through. If something looks wrong (a layer, a dimension, a step or a citation),
+> please [open an issue](../../issues) so it can be fixed for everyone. The app and the web
+> page say the same in About.
+
 ## Four ways to look at them
 
 | | |
@@ -182,7 +188,8 @@ Builds are on the [releases page](../../releases).
 ## Contributing
 
 Issues and pull requests welcome — see [CONTRIBUTING.md](CONTRIBUTING.md).
-Bug reports go to the [issue tracker](../../issues).
+Bug reports go to the [issue tracker](../../issues). Since the app is built with AI assistance,
+a report of anything that looks wrong is especially welcome.
 
 ## Licence
 

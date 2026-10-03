@@ -4,6 +4,10 @@ Thanks for taking a look. Issues and pull requests are both welcome.
 
 ## Reporting a problem
 
+FET Lab is built by its developer working with AI assistance. Everything is checked against
+its cited sources, but mistakes can still slip through, so a report of anything that looks
+wrong (a layer, a dimension, a step, a citation, a sentence) is very welcome.
+
 Open an issue and pick the right template. The two things that make a report actionable:
 
 - **For a rendering bug:** your device model, Android version, and a screenshot.

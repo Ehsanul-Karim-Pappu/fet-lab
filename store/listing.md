@@ -56,7 +56,24 @@ The Android app works offline and requests no internet permission. It stores fou
 display preferences, with no analytics or personal-data collection. Reference and
 support links open your browser. See the privacy policy for the website/PWA.
 
+BUILT WITH AI
+
+FET Lab is built by its developer working with AI assistance. The models, the fabrication
+steps and the text are checked against the cited sources, but mistakes can still slip through.
+If something looks wrong, please open an issue on GitHub (linked in About) so it can be fixed
+for everyone.
+
 Open source. Report anything that looks wrong on the issue tracker.
+```
+
+## Release notes for 1.5.0 (500 characters max)
+
+```
+Tap any citation, such as [R13], to open the reference it names in About.
+Both nanosheet designs have a Gate-all-around view, and the forksheet's fork view is clearer.
+The step counter shows the right total on every route.
+About now says that FET Lab is built with AI assistance. If anything looks wrong, please open
+an issue on GitHub; the link is in About.
 ```
 
 ## Category

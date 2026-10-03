@@ -167,8 +167,10 @@ git tag -a v1.0.0 -m "First release" && git push --tags
 
 ## Known gaps to close before you publish
 
-- The app has never been compiled. Build it first.
-- No unit or instrumentation tests exist.
+- CI builds a debug APK on every push to main; build and test the signed release bundle
+  yourself before uploading.
+- The content checks (`scripts/test_content.py`) cover the data the app reads; there are no
+  Kotlin unit or instrumentation tests.
 - Only English. `resourceConfigurations` is pinned to `en` — remove that line if you add
   translations.
 - No in-app update flow, no review prompt. Neither is required.

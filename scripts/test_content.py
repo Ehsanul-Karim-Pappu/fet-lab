@@ -680,6 +680,19 @@ class ContentTests(unittest.TestCase):
         cited = {r for m in re.findall(r'\[(R\d+(?:,\s*R\d+)*)\]', blob) for r in re.split(r',\s*', m)}
         self.assertLessEqual(cited, ids)
 
+    def test_built_with_ai_note(self):
+        """About (app and web), the README, the contributing guide and the store listing say the
+        app is built with AI assistance and point to GitHub issues for mistakes."""
+        kt = ROOT / 'android/app/src/main/java/io/github/ehsanulkarimpappu/fetlab'
+        self.assertIn('AI assistance', (kt / 'AppInfo.kt').read_text())
+        self.assertIn('AboutLabel("Built with AI")', (kt / 'AppUi.kt').read_text())
+        self.assertIn('web(AppInfo.ISSUES)', (kt / 'AppUi.kt').read_text())
+        for f in ('web/finfet-to-cfet.html', 'pwa/index.html', 'README.md', 'CONTRIBUTING.md', 'store/listing.md'):
+            text = (ROOT / f).read_text()
+            self.assertIn('AI assistance', text, f)
+            self.assertRegex(text, r'(?i)issue', f)
+        self.assertIn('fet-lab/issues', (ROOT / 'web/finfet-to-cfet.html').read_text())
+
     def test_each_design_has_its_lesson(self):
         """The app opens "ns" for Si/SiGe and "ns~si" for Si/Si, and nothing says a lesson is
         still in development."""
