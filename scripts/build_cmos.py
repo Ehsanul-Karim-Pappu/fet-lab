@@ -189,6 +189,16 @@ def compose(design, exploded, wired):
     }
     if wired:
         d.views["plan"] = dict(n="Routing", s="V_DD · V_SS · IN · OUT", az=-1.5708, el=1.02, r=R * .9, tgt=ctr, clip=None)
+    else:
+        # The nanosheet's counterpart of the FinFET's Tri-gate and the forksheet's fork: the
+        # source side lifted off and the model cut through the gate, so each sheet is seen
+        # with the gate wrapped round all four of its faces, in both devices.
+        # Lifted off: everything clear of the gate region, the substrate and isolation aside.
+        xg = bd.XG
+        clear = lambda p: all(b[0] + b[3] / 2 <= -xg + 1e-6 or b[0] - b[3] / 2 >= xg - 1e-6 for b in p["boxes"])
+        d.views["gaa"] = dict(n="Gate-all-around", s="source side lifted off", az=-1.2, el=0.30, r=R * .85,
+                              tgt=[0, yc, -dz / 2], clip=[3, None, None],
+                              off=[p["id"] for p in d.parts if clear(p) and "isolation" not in p["group"].lower()])
 
     # --- what the design is, in numbers and words --------------------------------------
     t, gap = stack["tch"], stack["tsg"]
