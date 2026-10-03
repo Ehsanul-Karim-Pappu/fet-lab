@@ -664,6 +664,8 @@ class ContentTests(unittest.TestCase):
                     'cites(sc.blurb)', 'cites(MAT[legendPick].note', 'cites(pw.note', 'cites(st.body)', 'cites(pl.text)'):
             self.assertIn(use, tpl)
         self.assertIn('document.addEventListener("click",e=>{const a=e.target.closest&&e.target.closest("a.ref")', tpl)
+        # In Both, only a phone-sized window spreads the step controls over the 3D strip.
+        self.assertIn('over=isSplit()&&PHONE.matches;pb.hidden=!f||over', tpl)
         kt = ROOT / 'android/app/src/main/java/io/github/ehsanulkarimpappu/fetlab'
         ui = (kt / 'AppUi.kt').read_text()
         for use in ('cited(st.body)', 'cited(b.text)', 'cited(strip(scene.note))', 'cited(scene.blurb)', 'cited(it.note)',

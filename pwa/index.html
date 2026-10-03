@@ -1934,7 +1934,9 @@ const PLAY='<svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor">
       PAUSE='<svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor"><rect x="3.4" y="2.4" width="3.2" height="11.2" rx=".6"/><rect x="9.4" y="2.4" width="3.2" height="11.2" rx=".6"/></svg>';
 let lastTitle="";
 function procbar(){
-  const pb=$("procbar"),f=SC&&SC.flow,split=isSplit();pb.hidden=!f||split;$("stepov").hidden=!f||!split;
+  // In Both, a phone-sized window spreads the controls over the 3D strip; a wide one keeps the
+  // same bar as everywhere else, at the strip's foot.
+  const pb=$("procbar"),f=SC&&SC.flow,over=isSplit()&&PHONE.matches;pb.hidden=!f||over;$("stepov").hidden=!f||!over;
   lbar.hidden=!(SC&&SC.logic);
   $("hint").hidden=PHONE.matches||!!f||!!(SC&&SC.logic);
   if(SC&&SC.logic)logicText();

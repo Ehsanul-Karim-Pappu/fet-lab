@@ -5,6 +5,12 @@ All notable changes to FET Lab. Dates are the release date; versions follow
 
 ## Unreleased
 
+### The step bar in Both, on a wide window
+
+- On the web, with the section and the 3D view shown together (Both), a wide window keeps the
+  same step bar as the 3D view, at the foot of the 3D strip. A phone-sized window keeps the
+  controls spread over the strip, as before.
+
 ### Citations open their reference everywhere
 
 - Every citation in the app's text now opens About at the reference it names, as the Steps
