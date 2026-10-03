@@ -693,6 +693,15 @@ class ContentTests(unittest.TestCase):
             self.assertRegex(text, r'(?i)issue', f)
         self.assertIn('fet-lab/issues', (ROOT / 'web/finfet-to-cfet.html').read_text())
 
+    def test_readme_links_resolve(self):
+        """Every image and local file the README points at exists."""
+        text = (ROOT / 'README.md').read_text()
+        local = re.findall(r'<img src="([^"]+)"', text) + \
+            [m for m in re.findall(r'\]\(([^)#]+)\)', text) if not m.startswith(('http', '../../'))]
+        self.assertTrue(local)
+        for f in local:
+            self.assertTrue((ROOT / f).exists(), f)
+
     def test_each_design_has_its_lesson(self):
         """The app opens "ns" for Si/SiGe and "ns~si" for Si/Si, and nothing says a lesson is
         still in development."""

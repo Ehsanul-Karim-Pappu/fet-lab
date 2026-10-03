@@ -1703,15 +1703,6 @@ fun FetLabApp(lib: Library, renderer: Renderer) {
 
 /* ============================================================== about ==== */
 
-/** "Build 6595236 · finfet-process · 2026-09-26", from the commit the APK was built from;
- *  null when the build did not know it. "modified" means uncommitted changes were included. */
-private fun buildLine(): String? =
-    BuildConfig.GIT_COMMIT.takeIf { it.isNotEmpty() }?.let { commit ->
-        listOf("Build $commit", BuildConfig.GIT_BRANCH, BuildConfig.GIT_DATE,
-               if (BuildConfig.GIT_MODIFIED) "modified" else "")
-            .filter { it.isNotEmpty() }.joinToString(" · ")
-    }
-
 @Composable
 private fun AboutScreen(focus: String? = null, onClose: () -> Unit) {
     val ctx = LocalContext.current
@@ -1734,8 +1725,7 @@ private fun AboutScreen(focus: String? = null, onClose: () -> Unit) {
     fun web(url: String) = open(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
     fun mail() = open(Intent(Intent.ACTION_SENDTO).apply {
         data = Uri.parse("mailto:${AppInfo.EMAIL}")
-        putExtra(Intent.EXTRA_SUBJECT, "${AppInfo.NAME} ${BuildConfig.VERSION_NAME}" +
-            (if (BuildConfig.GIT_COMMIT.isNotEmpty()) " (${BuildConfig.GIT_COMMIT})" else ""))
+        putExtra(Intent.EXTRA_SUBJECT, "${AppInfo.NAME} ${BuildConfig.VERSION_NAME}")
     })
 
     Surface(color = MaterialTheme.colorScheme.background, modifier = Modifier.fillMaxSize()) {
@@ -1761,13 +1751,9 @@ private fun AboutScreen(focus: String? = null, onClose: () -> Unit) {
                                 color = MaterialTheme.colorScheme.onBackground)
                             Text(AppInfo.TAGLINE, fontFamily = PlexSans, fontSize = 13.sp,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            Text("Version ${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE})",
+                            Text("Version ${BuildConfig.VERSION_NAME}",
                                 fontFamily = Mono, fontSize = 11.5f.sp,
                                 color = MaterialTheme.colorScheme.primary)
-                            buildLine()?.let {
-                                Text(it, fontFamily = Mono, fontSize = 11.5f.sp,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            }
                         }
                     }
                     Spacer(Modifier.height(24.dp))

@@ -11,7 +11,7 @@ def pm(p):
         b=trimesh.creation.box(extents=(dx,dy,dz)); b.apply_translation((cx,cy,cz)); ms.append(b)
     m=trimesh.util.concatenate(ms); m.merge_vertices(); return m
 for dev in G["devices"]:
-    k=dev["key"]; sc=trimesh.Scene()
+    k=dev["key"].replace("~","-"); sc=trimesh.Scene()     # ns~sige -> ns-sige.glb
     for p in dev["parts"]:
         m=pm(p); r,g,b=h2(MAT[p["material"]]["color"]); mt=p["material"] in METAL
         m.visual=trimesh.visual.TextureVisuals(material=PBRMaterial(
