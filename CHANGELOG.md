@@ -10,6 +10,8 @@ All notable changes to FET Lab. Dates are the release date; versions follow
 - Both nanosheet pairs (Si/SiGe and Si/Si) have a **Gate-all-around** view, the counterpart of
   the FinFET's Tri-gate and the forksheet's fork: the source side is lifted off and the model is
   cut through the gate, so each sheet shows the gate films wrapped round all four of its faces.
+- The forksheet's **The fork** view also lifts off the source-side SiN liner, which had been
+  left standing in front of the fork.
 
 ### The guided tour on the web
 

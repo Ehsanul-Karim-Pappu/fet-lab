@@ -531,7 +531,7 @@ def build_fs():
              "fork":dict(n="The fork",s="p side lifted off",az=-1.25,el=.30,r=240,tgt=[0,46,0],clip=[4,None,None],
                  off=[f"epi_{g}_source" for g in "np"]+[f"nisi_{g}_source" for g in "np"]+
                      [f"ni_{g}_source" for g in "np"]+[f"spacer_{g}_source" for g in "np"]+
-                     [f"inner_{g}_source" for g in "np"]+["cpw_source"])}
+                     [f"inner_{g}_source" for g in "np"]+[f"liner_{g}_source" for g in "np"]+["cpw_source"])}
     d.note=("<b>After EP 3 989 273 A1.</b> A SiN insulating wall separates the n and p stacks. Its base sits in the substrate. A thicker top sacrificial layer lets it rise above the top channel, so the work-function metals stay apart and the source/drain epitaxy is confined sideways. The TiN (p) and TiAlC (n) work-function metals are joined by a common W fill above the wall. That is the option the patent's background describes; its own figures do not cut through the gate at the wall. A SiN liner stays on the spacers and the wall tip. The source/drain contacts, TiN then W, are etched in one opening on each side of the gate. A SiN contact partition wall, formed on top of the insulating wall, splits them [R31]. This is the classic inner-wall forksheet, not imec's later outer-wall one [R2]. Dimensions are the model's choices, within the patent's ranges where it gives them.")
     return d.finish()
 
