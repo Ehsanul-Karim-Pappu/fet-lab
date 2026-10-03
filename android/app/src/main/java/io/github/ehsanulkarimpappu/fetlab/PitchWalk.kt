@@ -166,7 +166,7 @@ fun PitchWalkPanel(lib: Library, pw: PitchWalk) {
                 modifier = Modifier.padding(top = 6.dp))
             Text("largest gap ${nm(gmax)} − smallest ${nm(gmin)} · line width ${nm(s2)} nm",
                 fontFamily = Mono, fontSize = 11.sp, color = onV)
-            Text(pw.note, fontFamily = PlexSans, fontSize = 11.sp, lineHeight = 15.sp, color = onV,
+            Text(cited(pw.note), fontFamily = PlexSans, fontSize = 11.sp, lineHeight = 15.sp, color = onV,
                 modifier = Modifier.padding(top = 4.dp))
             TextButton(onClick = { w1 = pw.base["w1"] ?: w1; s1 = pw.base["s1"] ?: s1; s2 = pw.base["s2"] ?: s2 }) {
                 Text("Back to the ideal case", fontFamily = PlexSans, fontSize = 12.sp)

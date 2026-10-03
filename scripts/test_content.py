@@ -656,6 +656,28 @@ class ContentTests(unittest.TestCase):
         for k in ('ns~si', 'inv_ns~si'):
             self.assertIn('R28', devs[k]['note']); self.assertNotIn('R15', devs[k]['note'])
 
+    def test_citations_open_their_reference(self):
+        """Wherever the app's text cites a reference, the citation opens About at it: on the
+        web page in every tab's text and note, and in the Android app likewise."""
+        tpl = (ROOT / 'scripts/roadmap.tpl.html').read_text()
+        for use in ('citesHTML(sc.story)', 'citesHTML(SC.story)', 'citesHTML(sc.note)', 'citesHTML(MAT[k].note)',
+                    'cites(sc.blurb)', 'cites(MAT[legendPick].note', 'cites(pw.note', 'cites(st.body)', 'cites(pl.text)'):
+            self.assertIn(use, tpl)
+        self.assertIn('document.addEventListener("click",e=>{const a=e.target.closest&&e.target.closest("a.ref")', tpl)
+        kt = ROOT / 'android/app/src/main/java/io/github/ehsanulkarimpappu/fetlab'
+        ui = (kt / 'AppUi.kt').read_text()
+        for use in ('cited(st.body)', 'cited(b.text)', 'cited(strip(scene.note))', 'cited(scene.blurb)', 'cited(it.note)',
+                    'cited(t)', 'cited("·  $t")', 'AboutScreen(focus = aboutRef)'):
+            self.assertIn(use, ui)
+        self.assertIn('cited(pl.text)', (kt / 'Section.kt').read_text())
+        self.assertIn('cited(pw.note)', (kt / 'PitchWalk.kt').read_text())
+        self.assertIn('LinkAnnotation.Clickable', (kt / 'Cite.kt').read_text())
+        # Every citation in the data names a reference that exists.
+        ids = {r['id'] for r in self.refs['sources']}
+        blob = ''.join((ROOT / f).read_text() for f in ('data/devices.json', 'data/process.json', 'data/guide.json'))
+        cited = {r for m in re.findall(r'\[(R\d+(?:,\s*R\d+)*)\]', blob) for r in re.split(r',\s*', m)}
+        self.assertLessEqual(cited, ids)
+
     def test_each_design_has_its_lesson(self):
         """The app opens "ns" for Si/SiGe and "ns~si" for Si/Si, and nothing says a lesson is
         still in development."""

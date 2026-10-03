@@ -263,7 +263,7 @@ fun PlanesBlock(lib: Library, sc: Scene, planes: List<SectionPlane>, planeId: St
                         "Arrow: the viewing side.",
                     fontFamily = PlexSans, fontSize = 10.5f.sp, lineHeight = 14.sp,
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
-                if (pl != null) Text(pl.text, fontFamily = PlexSans, fontSize = 10.5f.sp, lineHeight = 14.sp,
+                if (pl != null) Text(cited(pl.text), fontFamily = PlexSans, fontSize = 10.5f.sp, lineHeight = 14.sp,
                     color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(top = 3.dp))
             }
         }

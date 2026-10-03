@@ -78,6 +78,7 @@ import androidx.compose.ui.geometry.Size as GSize
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.lerp as lerpColor
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
@@ -172,8 +173,10 @@ fun FetLabRoot() {
         }
     }
 
+    val refNav = remember { RefNav() }
     Crossfade(targetState = payload, animationSpec = tween(420), label = "boot") { p ->
-        if (p == null) BootScreen() else FetLabApp(p.first, p.second)
+        if (p == null) BootScreen()
+        else CompositionLocalProvider(LocalRefNav provides refNav) { FetLabApp(p.first, p.second) }
     }
 }
 
@@ -321,6 +324,12 @@ fun FetLabApp(lib: Library, renderer: Renderer) {
     var tab by rememberSaveable { mutableStateOf(0) }
     var selected by remember { mutableStateOf<Part?>(null) }
     var showAbout by rememberSaveable { mutableStateOf(false) }
+    // A tapped citation opens About at its reference.
+    var aboutRef by rememberSaveable { mutableStateOf<String?>(null) }
+    val refNav = LocalRefNav.current
+    LaunchedEffect(refNav.pending) {
+        refNav.pending?.let { aboutRef = it; showAbout = true; refNav.pending = null }
+    }
     var layerTick by remember { mutableIntStateOf(0) }
     // Phone layout only: the control sheet floats over the stage instead of shrinking it.
     // 0 peek (handle only) · 1 open (normal working height) · 2 expanded (reading height).
@@ -1161,7 +1170,7 @@ fun FetLabApp(lib: Library, renderer: Renderer) {
                 }
                 Box(Modifier.size(36.dp).tourTarget("about").clip(CircleShape)
                     .background(MaterialTheme.colorScheme.surfaceVariant)
-                    .clickable(role = Role.Button) { showAbout = true }
+                    .clickable(role = Role.Button) { aboutRef = null; showAbout = true }
                     .semantics { contentDescription = "About FET Lab: credits and references" },
                     contentAlignment = Alignment.Center) {
                     Text("i", fontFamily = Mono, fontSize = 16.sp, modifier = Modifier.clearAndSetSemantics {},
@@ -1651,7 +1660,7 @@ fun FetLabApp(lib: Library, renderer: Renderer) {
         AnimatedVisibility(visible = showAbout,
             enter = fadeIn(tween(200)) + slideInVertically(tween(280)) { it / 6 },
             exit = fadeOut(tween(160)) + slideOutVertically(tween(220)) { it / 6 }) {
-            AboutScreen { showAbout = false }
+            AboutScreen(focus = aboutRef) { showAbout = false; aboutRef = null }
         }
 
         TourOverlay(tourPlayer, active = tourStep >= 0, tint = MaterialTheme.colorScheme.primary,
@@ -1704,10 +1713,20 @@ private fun buildLine(): String? =
     }
 
 @Composable
-private fun AboutScreen(onClose: () -> Unit) {
+private fun AboutScreen(focus: String? = null, onClose: () -> Unit) {
     val ctx = LocalContext.current
     val references = remember {
         org.json.JSONObject(ctx.assets.open("references.json").bufferedReader().use { it.readText() })
+    }
+    val sources = remember(references) {
+        val a = references.getJSONArray("sources"); (0 until a.length()).map { a.getJSONObject(it) }
+    }
+    val list = rememberLazyListState()
+    // Opened from a citation: the list starts at that reference, which glows for a moment.
+    var glow by remember { mutableStateOf(focus) }
+    LaunchedEffect(focus) {
+        val i = sources.indexOfFirst { it.getString("id") == focus }
+        if (i >= 0) { list.scrollToItem(FIRST_REF_ITEM + i); glow = focus; delay(2200); glow = null }
     }
     fun open(intent: Intent) {
         try { ctx.startActivity(intent) } catch (e: ActivityNotFoundException) { /* no handler */ }
@@ -1731,7 +1750,7 @@ private fun AboutScreen(onClose: () -> Unit) {
                     Text("✕", fontSize = 15.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
-            LazyColumn(Modifier.fillMaxSize(),
+            LazyColumn(Modifier.fillMaxSize(), state = list,
                 contentPadding = PaddingValues(start = 18.dp, end = 18.dp, top = 14.dp, bottom = 36.dp)) {
                 item {
                     Row(verticalAlignment = Alignment.CenterVertically) {
@@ -1800,15 +1819,23 @@ private fun AboutScreen(onClose: () -> Unit) {
                             color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 }
+                // The references are items of their own, so a citation can open the list at one.
                 item {
+                    Spacer(Modifier.height(14.dp))
                     AboutCard {
                         AboutLabel("Technical references")
                         Text(references.getString("scope"), fontFamily = PlexSans,
                             fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        val sources = references.getJSONArray("sources")
-                        for (i in 0 until sources.length()) {
-                            val ref = sources.getJSONObject(i)
-                            Spacer(Modifier.height(12.dp))
+                    }
+                }
+                items(sources, key = { it.getString("id") }) { ref ->
+                    val lit by animateFloatAsState(if (glow == ref.getString("id")) 1f else 0f,
+                        tween(450), label = "refGlow")
+                    Surface(color = lerpColor(MaterialTheme.colorScheme.surface,
+                            MaterialTheme.colorScheme.primaryContainer, lit),
+                        shape = RoundedCornerShape(14.dp),
+                        modifier = Modifier.fillMaxWidth().padding(top = 8.dp)) {
+                        Column(Modifier.padding(horizontal = 12.dp, vertical = 8.dp)) {
                             AboutAction(ref.getString("id") + " · " + ref.getString("title"),
                                 ref.getString("publisher") + " — " + ref.getString("supports")) {
                                 web(ref.getString("url"))
@@ -1820,6 +1847,10 @@ private fun AboutScreen(onClose: () -> Unit) {
         }
     }
 }
+
+/** The About list's first reference item: header, Developed by, Source, Credits, the
+ *  references' heading. */
+private const val FIRST_REF_ITEM = 5
 
 @Composable
 private fun AboutCard(content: @Composable ColumnScope.() -> Unit) {
@@ -2111,7 +2142,7 @@ private fun StepSource(flow: ProcessFlow, st: ProcessStep) {
         else -> ""
     }
     if (label.isNotEmpty() || figs.isNotEmpty())
-        Text(figs + label, fontFamily = Mono, fontSize = 10.5f.sp, lineHeight = 15.sp,
+        Text(cited(figs + label), fontFamily = Mono, fontSize = 10.5f.sp, lineHeight = 15.sp,
             color = MaterialTheme.colorScheme.primary, modifier = Modifier.padding(top = 8.dp))
     // What the stepper's badge means for this step, in words.
     flow.badge[st.match]?.let { flow.badgeNote[it] }?.let {
@@ -2123,7 +2154,7 @@ private fun StepSource(flow: ProcessFlow, st: ProcessStep) {
         if (items.isEmpty()) return
         Text(head, style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(top = 8.dp))
-        for (t in items) Text("·  $t", fontFamily = PlexSans, fontSize = 12.sp, lineHeight = 17.sp,
+        for (t in items) Text(cited("·  $t"), fontFamily = PlexSans, fontSize = 12.sp, lineHeight = 17.sp,
             color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(top = 2.dp))
     }
     notes("MODEL CHOICES", st.subs)
@@ -2264,7 +2295,7 @@ private fun RoutePicker(flow: ProcessFlow, here: String, onRoute: (String) -> Un
                 for (r in flow.routes) Chip(r.name, r.id == here, Modifier.weight(1f)) { onRoute(r.id) }
             }
             flow.routes.firstOrNull { it.id == here }?.let {
-                Text(it.note, fontFamily = PlexSans, fontSize = 11.5f.sp, lineHeight = 16.sp,
+                Text(cited(it.note), fontFamily = PlexSans, fontSize = 11.5f.sp, lineHeight = 16.sp,
                     color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(top = 8.dp))
             }
         }
@@ -2302,7 +2333,7 @@ private fun StepsTab(lib: Library, flow: ProcessFlow, index: Int, list: LazyList
                 flow.pitchWalk?.let { PitchWalkPanel(lib, it) }
                 if (flow.sites.isNotEmpty()) SitePicker(flow, onSite)
                 for (t in listOf(flow.scope, flow.branch, flow.figures)) if (t.isNotEmpty())
-                    Text(t, fontFamily = PlexSans, fontSize = 12.sp, lineHeight = 17.sp,
+                    Text(cited(t), fontFamily = PlexSans, fontSize = 12.sp, lineHeight = 17.sp,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.padding(bottom = 6.dp))
                 // A flow with no operation substeps (the SADP and SAQP lessons) needs no switch.
@@ -2347,7 +2378,7 @@ private fun StepsTab(lib: Library, flow: ProcessFlow, index: Int, list: LazyList
                     // overshot and then settled.
                     AnimatedVisibility(visible = on, enter = fadeIn(tween(220)), exit = ExitTransition.None) {
                         Column(Modifier.padding(start = 34.dp, top = 5.dp)) {
-                            Text(st.body, fontFamily = PlexSans, fontSize = 12.5f.sp, lineHeight = 18.sp,
+                            Text(cited(st.body), fontFamily = PlexSans, fontSize = 12.5f.sp, lineHeight = 18.sp,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant)
                             StepTerms(glossary, st)
                             RegionLine(st)
@@ -2596,7 +2627,7 @@ private fun MaterialLegend(lib: Library, scene: Scene) {
                     }
                 }
                 mats.firstOrNull { it.key == pick }?.let {
-                    Text(it.note, fontFamily = PlexSans, fontSize = 11.5f.sp, lineHeight = 16.sp,
+                    Text(cited(it.note), fontFamily = PlexSans, fontSize = 11.5f.sp, lineHeight = 16.sp,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.padding(start = 4.dp, end = 4.dp, top = 4.dp))
                 }
@@ -2642,7 +2673,7 @@ private fun StoryTab(scene: Scene) {
         }
         items(blocks) { b ->
             when (b.kind) {
-                "h4" -> Text(b.text, fontFamily = PlexSans, fontSize = 14.5f.sp,
+                "h4" -> Text(cited(b.text), fontFamily = PlexSans, fontSize = 14.5f.sp,
                     fontWeight = FontWeight.SemiBold, lineHeight = 20.sp,
                     color = MaterialTheme.colorScheme.onBackground,
                     modifier = Modifier.padding(top = 18.dp, bottom = 6.dp))
@@ -2650,10 +2681,10 @@ private fun StoryTab(scene: Scene) {
                     Text("—", fontFamily = PlexSans, fontSize = 13.5f.sp,
                         color = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.padding(end = 8.dp))
-                    Text(b.text, fontFamily = PlexSans, fontSize = 13.5f.sp, lineHeight = 21.sp,
+                    Text(cited(b.text), fontFamily = PlexSans, fontSize = 13.5f.sp, lineHeight = 21.sp,
                         color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
-                else -> Text(b.text, fontFamily = PlexSans, fontSize = 13.5f.sp, lineHeight = 21.sp,
+                else -> Text(cited(b.text), fontFamily = PlexSans, fontSize = 13.5f.sp, lineHeight = 21.sp,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(bottom = 11.dp))
             }
@@ -2666,7 +2697,7 @@ private fun SpecsTab(scene: Scene, picked: String?, list: LazyListState, onPick:
     LazyColumn(state = list, contentPadding = PaddingValues(bottom = 16.dp),
         modifier = Modifier.tourTarget("list:specs")) {
         item {
-            Text(scene.blurb, fontFamily = PlexSans, fontSize = 13.sp, lineHeight = 19.sp,
+            Text(cited(scene.blurb), fontFamily = PlexSans, fontSize = 13.sp, lineHeight = 19.sp,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(top = 2.dp, bottom = 14.dp))
         }
@@ -2701,7 +2732,7 @@ private fun SpecsTab(scene: Scene, picked: String?, list: LazyListState, onPick:
             Surface(color = MaterialTheme.colorScheme.surfaceVariant,
                 shape = RoundedCornerShape(14.dp),
                 modifier = Modifier.fillMaxWidth().padding(top = 16.dp)) {
-                Text(strip(scene.note), fontFamily = PlexSans, fontSize = 13.sp, lineHeight = 19.sp,
+                Text(cited(strip(scene.note)), fontFamily = PlexSans, fontSize = 13.sp, lineHeight = 19.sp,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(14.dp))
             }

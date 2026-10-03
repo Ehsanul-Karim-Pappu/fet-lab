@@ -1527,7 +1527,7 @@ function pwHTML(pw){const v=pwState(pw);
     ${PWK.map(([k,n])=>`<div class="pwctl"><label for="pw-${k}"><span>${n}</span><b id="pwv-${k}">${nm1(v[k])} nm</b></label>
       <input type="range" id="pw-${k}" step="0.5" value="${v[k]}" aria-label="${n}"></div>`).join("")}
     <div id="pwgaps"></div><div class="pwbig" id="pwbig"></div><div class="pwsub" id="pwsub"></div>
-    <p class="pwnote">${esc(pw.note||"")}</p>
+    <p class="pwnote">${cites(pw.note||"")}</p>
     <button type="button" class="link" id="pwreset">Back to the ideal case</button></div>`;}
 function pwBind(pw){
   if(!$("pw"))return;
@@ -2045,7 +2045,7 @@ function tabLayers(){
   let h=`<div class="lyhead"><span>${vis} of ${sc.parts.length} layers visible</span>
     <button type="button" class="link" id="lyall">${any?"Hide all":"Show all"}</button></div>
     <div class="legend">${mats.map(k=>`<button type="button" data-m="${k}" aria-pressed="${legendPick===k}"><i style="background:${MAT[k].color}"></i>${esc(MAT[k].label)}</button>`).join("")}</div>`;
-  if(legendPick&&MAT[legendPick]&&mats.indexOf(legendPick)>=0)h+=`<p class="legnote">${esc(MAT[legendPick].note||"")}</p>`;
+  if(legendPick&&MAT[legendPick]&&mats.indexOf(legendPick)>=0)h+=`<p class="legnote">${cites(MAT[legendPick].note||"")}</p>`;
   sc.groups.forEach((g,gi)=>{const ps=sc.parts.filter(p=>p.group===g);if(!ps.length)return;
     h+=`<div class="grp"><div class="ghd"><span>${esc(g)}</span><button type="button" data-g="${gi}">${ps.some(p=>p.on)?"Hide":"Show"}</button></div><div class="lays">`+
       ps.map(p=>`<label class="lay${p.on?"":" off"}"><input type="checkbox" data-id="${esc(p.id)}" ${p.on?"checked":""}><i style="background:${(MAT[p.material]||{color:"#888"}).color}"></i><span class="tx" title="${esc(p.name)}">${esc(p.name)}</span></label>`).join("")+
@@ -2059,7 +2059,7 @@ function tabLayers(){
 function tabSpecs(){
   const sc=SC,used=[...new Set(sc.parts.map(p=>p.material))];
   const title=sc.key==="cmp"?"Active footprint":sc.logic?"Cell summary":"Critical dimensions";
-  body.innerHTML=`<div class="lbl">${title}</div><p class="sub">${esc(sc.blurb)}</p>
+  body.innerHTML=`<div class="lbl">${title}</div><p class="sub">${cites(sc.blurb)}</p>
     <div class="specs">${sc.dims.map(r=>{
       // a short value sits at the right of its row; a long one gets its own line under the
       // description, so neither column is squeezed to a letter's width
@@ -2067,15 +2067,23 @@ function tabSpecs(){
       return`<div class="spec${wide?" wide":""}"><span class="sym">${r[0]}</span><span class="d">${r[1]}</span><span class="n">${r[2]}</span></div>`;}).join("")}</div>
     <div class="lbl">Film stack</div><p class="sub">${used.length} materials in the ${esc(sc.name.toLowerCase())}.</p>
     <table><thead><tr><th>Material</th><th>Role</th></tr></thead><tbody>${
-      DATA.order.filter(k=>used.indexOf(k)>=0).map(k=>`<tr><td><span class="swcell"><i style="background:${MAT[k].color}"></i>${MAT[k].label}</span></td><td class="d">${MAT[k].note}</td></tr>`).join("")}</tbody></table>
-    ${sc.note?`<div class="note">${sc.note}</div>`:""}`;}
+      DATA.order.filter(k=>used.indexOf(k)>=0).map(k=>`<tr><td><span class="swcell"><i style="background:${MAT[k].color}"></i>${MAT[k].label}</span></td><td class="d">${citesHTML(MAT[k].note)}</td></tr>`).join("")}</tbody></table>
+    ${sc.note?`<div class="note">${citesHTML(sc.note)}</div>`:""}`;}
 function tabStory(){
   const sc=SC;
   body.innerHTML=`<div class="lbl">Why this device exists</div><p class="sub">${sc.key.indexOf("cmp")>=0?"What drives the whole roadmap.":
-    "The history behind the "+esc(sc.tag?sc.name.split(" · ")[0]:sc.name)+"."}</p><div class="prose">${sc.story||""}</div>`;}
-function tabWhy(){body.innerHTML=`<div class="lbl">Why the steps come in this order</div><div class="prose">${SC.story||""}</div>`;}
+    "The history behind the "+esc(sc.tag?sc.name.split(" · ")[0]:sc.name)+"."}</p><div class="prose">${citesHTML(sc.story)}</div>`;}
+function tabWhy(){body.innerHTML=`<div class="lbl">Why the steps come in this order</div><div class="prose">${citesHTML(SC.story)}</div>`;}
 /** Step text is plain; its citations [R16] become links into the references. */
-const cites=t=>esc(t).replace(/\[(R\d+)\]/g,(m,id)=>REFMAP[id]?`<a class="ref" href="#ref-${id}" data-ref="${id}">[${id}]</a>`:m);
+/** Citations ("[R13]", "[R1, R2]") become links that open About at their reference: in
+ *  escaped text (linkRefs), in plain text (cites) and in the written HTML texts, outside
+ *  their tags (citesHTML). */
+const refA=id=>`<a class="ref" href="#ref-${id}" data-ref="${id}">`;
+const linkRefs=h=>h.replace(/\[(R\d+(?:,\s*R\d+)*)\]/g,(m,ids)=>{const l=ids.split(",").map(x=>x.trim());
+  if(!l.every(id=>REFMAP[id]))return m;
+  return l.length===1?`${refA(l[0])}[${l[0]}]</a>`:"["+l.map(id=>`${refA(id)}${id}</a>`).join(", ")+"]";});
+const cites=t=>linkRefs(esc(t));
+const citesHTML=h=>(h||"").replace(/<[^>]*>|[^<]+/g,seg=>seg[0]==="<"?seg:linkRefs(seg));
 let stepsAt="",openTerm=null;
 function tabSteps(){
   const f=SC.flow,here=f.routeOr(routeIn(f)),cur=SC.stepIndex;
@@ -2152,7 +2160,9 @@ function stepBody(f,st){
   if(sp.length)h+=`<div class="showsec">${sp.map(x=>`<button type="button" data-show="${esc(x.id)}" aria-label="Show the cross section ${esc(x.name)}">Show cross section · ${esc(x.short)}</button>`).join("")}</div>`;
   if(/done$/.test(st.id)&&sceneFor("dev",techOf(SC.key)))h+=`<button type="button" class="btn" id="todev">Open in Device mode</button>`;
   return h+`</div>`;}
-body.addEventListener("click",e=>{const a=e.target.closest("a.ref");if(!a)return;e.preventDefault();openRef(a.dataset.ref);});
+// Anywhere on the page, panels and dialogs alike.
+document.addEventListener("click",e=>{const a=e.target.closest&&e.target.closest("a.ref");if(!a)return;
+  e.preventDefault();openRef(a.dataset.ref);});
 
 /** Everything that follows a change of scene or step. */
 function sceneChanged(isStep){

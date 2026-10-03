@@ -5,6 +5,15 @@ All notable changes to FET Lab. Dates are the release date; versions follow
 
 ## Unreleased
 
+### Citations open their reference everywhere
+
+- Every citation in the app's text now opens About at the reference it names, as the Steps
+  tab's already did on the web: in the Story, Why and Specs tabs, the scene notes, the
+  material notes, the section-plane texts, the routes and the Pitch walk panel. In a list such
+  as [R1, R9] each reference is its own link.
+- The Android app has the same: tap a citation and About opens scrolled to that reference,
+  which glows for a moment.
+
 ### A gate-all-around view for the nanosheet
 
 - Both nanosheet pairs (Si/SiGe and Si/Si) have a **Gate-all-around** view, the counterpart of
